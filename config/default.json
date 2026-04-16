@@ -1,0 +1,82 @@
+{
+  "node-env": "development",
+  "frontend-hostname": {
+    "dev": "http://localhost:5200",
+    "prod": "http://localhost:5000"
+  },
+  "opal-api": {
+    "url": "http://localhost:4550",
+    "opal-fines-service": "http://localhost:4550",
+    "opal-user-service": "http://localhost:4555",
+    "opal-rm-service": "http://localhost:4560"
+  },
+  "features": {
+    "redis": {
+      "enabled": false
+    },
+    "sso": {
+      "enabled": false
+    },
+    "helmet": {
+      "enabled": false
+    },
+    "launch-darkly": {
+      "enabled": false,
+      "stream": false
+    },
+    "app-insights": {
+      "enabled": false
+    },
+    "ip-logging": {
+      "enabled": false
+    }
+  },
+  "session": {
+    "prefix": "opal-session",
+    "ttlInSeconds": 1200,
+    "maxAge": null,
+    "secure": false,
+    "sameSite": "lax",
+    "domain": ""
+  },
+  "csrf": {
+    "cookieName": "XSRF-TOKEN",
+    "secure": false,
+    "sameSite": "strict"
+  },
+  "secrets": {
+    "opal": {
+      "redis-connection-string": "redis://localhost:6379",
+      "opal-frontend-session-secret": "supersecret",
+      "opal-frontend-cookie-secret": "supersecret",
+      "opal-frontend-csrf-secret": "supersecret",
+      "app-insights-connection-string": "supersecret",
+      "AzureADClientId": "supersecret",
+      "AzureADClientSecret": "supersecret",
+      "AzureADTenantId": "supersecret"
+    }
+  },
+  "expiry": {
+    "testMode": false,
+    "default": {
+      "expiryTimeInMilliseconds": 1800000,
+      "warningThresholdInMilliseconds": 1800000
+    },
+    "test": {
+      "expiryTimeInMilliseconds": 300000,
+      "warningThresholdInMilliseconds": 300000
+    },
+    "userStateExpiryInMilliseconds": 60000
+  },
+  "application-insights": {
+    "cloudRoleName": "opal-rm-frontend"
+  },
+  "microsoft": {
+    "url": "https://login.microsoftonline.com/"
+  },
+  "opal-user-service-urls": {
+    "userStateUrl": "/users/0/state",
+    "addUserUrl": "/users",
+    "updateUserUrl": "/users"
+  }
+}

@@ -1,0 +1,17 @@
+import { IPermissions } from '../interfaces/permissions.interfaces';
+
+export const PERMISSIONS: IPermissions = {
+  'create-and-manage-draft-accounts': 1,
+  'account-enquiry-account-notes': 2,
+  'account-enquiry': 3,
+  'collection-order': 4,
+  'check-and-validate-draft-accounts': 5,
+  'search-and-view-accounts': 6,
+  'account-maintenance': 7,
+  'add-account-activity-notes': 8,
+  'amend-payment-terms': 9,
+  'enter-enforcement': 10,
+  consolidate: 13,
+  'operational-report-by-enforcement': 14,
+  'operational-report-by-payments': 15,
+};

@@ -1,0 +1,88 @@
+<div class="page-container">
+  <opal-lib-moj-header [headerLinks]="headerLinks">
+    <ng-container organisationName>HMCTS</ng-container>
+    <ng-container serviceName>Opal RM</ng-container>
+    <opal-lib-moj-header-navigation-item (actionClick)="handleAuthentication()">
+      @if (!globalStore.authenticated()) {
+        <ng-container linkText>Sign in</ng-container>
+      } @else {
+        <ng-container linkText>Sign out</ng-container>
+      }
+    </opal-lib-moj-header-navigation-item>
+  </opal-lib-moj-header>
+  @if (globalStore.authenticated() && globalStore.userState().status === 'active') {
+    <opal-lib-moj-primary-navigation
+      primaryNavigationId="primaryNavigation"
+      [useFragmentNavigation]="false"
+      (navigationItemSelected)="onPrimaryNavSelected($event)"
+    >
+      @for (navigationItem of navigationItems(); track navigationItem.key) {
+        <li
+          opal-lib-moj-primary-navigation-item
+          [primaryNavigationItemId]="navigationItem.key"
+          [primaryNavigationItemFragment]="navigationItem.key"
+          [activeItemFragment]="activeNavigationItem()"
+          [primaryNavigationItemText]="navigationItem.value"
+        ></li>
+      }
+    </opal-lib-moj-primary-navigation>
+  }
+
+  <div class="content-wrapper">
+    <div class="govuk-width-container">
+      <main class="govuk-main-wrapper" id="main-content" role="main">
+        @if (minutesRemaining$ | async; as minutes) {
+          @if (thresholdInMinutes >= minutes && minutes > 0) {
+            <div>
+              @let minutesText = minutes === 1 ? 'minute' : 'minutes';
+              <div opal-lib-moj-alert ariaLabel="Your session will expire" type="warning">
+                <opal-lib-moj-alert-icon icon type="warning"></opal-lib-moj-alert-icon>
+                <opal-lib-moj-alert-content content
+                  ><opal-lib-moj-alert-content-text
+                    >Warning: Your session will expire in {{ minutes }} {{ minutesText }}. Please save your work and log
+                    out, then log back in to continue.
+                  </opal-lib-moj-alert-content-text>
+                </opal-lib-moj-alert-content>
+              </div>
+            </div>
+          }
+        }
+
+        @if (showExpiredWarning) {
+          <div opal-lib-moj-alert ariaLabel="Your session has expired" type="warning">
+            <opal-lib-moj-alert-icon icon type="warning"></opal-lib-moj-alert-icon>
+            <opal-lib-moj-alert-content content
+              ><opal-lib-moj-alert-content-text
+                >Warning: Your session has expired. Please log back in.
+              </opal-lib-moj-alert-content-text>
+            </opal-lib-moj-alert-content>
+          </div>
+        }
+
+        @if (globalStore.authenticated() && globalStore.bannerError().error) {
+          <div opal-lib-moj-alert ariaLabel="Error Message" type="error">
+            <opal-lib-moj-alert-icon icon type="error"></opal-lib-moj-alert-icon>
+            <opal-lib-moj-alert-content content>
+              <opal-lib-moj-alert-content-heading>{{
+                globalStore.bannerError().title
+              }}</opal-lib-moj-alert-content-heading>
+              <opal-lib-moj-alert-content-text>{{ globalStore.bannerError().message }}</opal-lib-moj-alert-content-text>
+              @if (globalStore.bannerError().operationId) {
+                <opal-lib-moj-alert-content-text>
+                  <p class="govuk-body-s govuk-dark-grey-text-colour govuk-!-margin-top-1">
+                    Error code: {{ globalStore.bannerError().operationId }}
+                  </p>
+                </opal-lib-moj-alert-content-text>
+              }
+            </opal-lib-moj-alert-content>
+          </div>
+        }
+        <div class="govuk-grid-row">
+          <router-outlet></router-outlet>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <opal-lib-govuk-footer [footerLinks]="footerLinks"></opal-lib-govuk-footer>
+</div>

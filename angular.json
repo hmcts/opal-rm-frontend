@@ -1,0 +1,236 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "opal-rm-frontend": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "dist/opal-rm-frontend/browser",
+            "index": "src/index.html",
+            "main": "src/main.ts",
+            "polyfills": ["zone.js"],
+            "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "src/favicon.ico",
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "./node_modules/@ministryofjustice/frontend/moj/assets/images",
+                "output": "./assets/images"
+              },
+              {
+                "glob": "**/*",
+                "input": "./node_modules/govuk-frontend/dist/govuk/assets/images",
+                "output": "./assets/images"
+              },
+              {
+                "glob": "**/*",
+                "input": "./node_modules/govuk-frontend/dist/govuk/assets/fonts",
+                "output": "./assets/fonts"
+              }
+            ],
+            "styles": ["src/styles.scss"],
+            "stylePreprocessorOptions": {
+              "includePaths": ["."]
+            },
+            "scripts": ["./node_modules/govuk-frontend/dist/govuk/all.bundle.js"],
+            "allowedCommonJsDependencies": ["accessible-autocomplete"]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "4mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "opal-rm-frontend:build:production"
+            },
+            "development": {
+              "buildTarget": "opal-rm-frontend:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "opal-rm-frontend:build"
+          }
+        },
+        "test-build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/opal-rm-frontend/test-build",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "polyfills": ["zone.js"],
+            "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "src/favicon.ico",
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "./node_modules/@ministryofjustice/frontend/moj/assets/images",
+                "output": "./assets/images"
+              },
+              {
+                "glob": "**/*",
+                "input": "./node_modules/govuk-frontend/dist/govuk/assets/images",
+                "output": "./assets/images"
+              },
+              {
+                "glob": "**/*",
+                "input": "./node_modules/govuk-frontend/dist/govuk/assets/fonts",
+                "output": "./assets/fonts"
+              }
+            ],
+            "styles": ["src/styles.scss"],
+            "stylePreprocessorOptions": {
+              "includePaths": ["."]
+            },
+            "scripts": ["./node_modules/govuk-frontend/dist/govuk/all.bundle.js"],
+            "allowedCommonJsDependencies": ["accessible-autocomplete"]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "4mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "buildTarget": "opal-rm-frontend:test-build:development",
+            "include": ["src/**/*.spec.ts"],
+            "tsConfig": "tsconfig.spec.json",
+            "runner": "vitest",
+            "runnerConfig": "vitest.config.ts",
+            "coverageReporters": ["html", "lcov", "text", "json"],
+            "setupFiles": ["src/test-setup.ts"]
+          }
+        },
+        "server": {
+          "builder": "@angular-devkit/build-angular:server",
+          "options": {
+            "outputPath": "dist/opal-rm-frontend/server",
+            "main": "server.ts",
+            "tsConfig": "tsconfig.server.json",
+            "inlineStyleLanguage": "scss",
+            "externalDependencies": ["@hmcts/nodejs-healthcheck"]
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "media"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "sourceMap": true,
+              "extractLicenses": false,
+              "vendorChunk": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve-ssr": {
+          "builder": "@angular-devkit/build-angular:ssr-dev-server",
+          "configurations": {
+            "development": {
+              "browserTarget": "opal-rm-frontend:build:development",
+              "serverTarget": "opal-rm-frontend:server:development"
+            },
+            "production": {
+              "browserTarget": "opal-rm-frontend:build:production",
+              "serverTarget": "opal-rm-frontend:server:production"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "prerender": {
+          "builder": "@angular-devkit/build-angular:prerender",
+          "options": {
+            "routes": ["/"]
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "opal-rm-frontend:build:production",
+              "serverTarget": "opal-rm-frontend:server:production"
+            },
+            "development": {
+              "browserTarget": "opal-rm-frontend:build:development",
+              "serverTarget": "opal-rm-frontend:server:development"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "schematicCollections": ["@angular-eslint/schematics"],
+    "analytics": false
+  }
+}

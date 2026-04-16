@@ -15,14 +15,14 @@ dependencies:
     repository: "oci://registry-1.docker.io/bitnamicharts"
     condition: redis.enabled
   - name: postgresql
-    version: 18.5.17
+    version: 18.5.20
     repository: "oci://registry-1.docker.io/bitnamicharts"
     condition: postgresql.enabled
-  - name: opal-rm-service
+  - name: opal-fines-service
     version: 0.0.81
     repository: "oci://hmctsprod.azurecr.io/helm"
-    condition: opal-rm-service.enabled
+    condition: opal-fines-service.enabled
   - name: servicebus
     version: 1.2.2
     repository: "oci://hmctsprod.azurecr.io/helm"
-    condition: opal-rm-service.enabled
+    condition: opal-fines-service.enabled

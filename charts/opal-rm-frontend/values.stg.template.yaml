@@ -4,8 +4,8 @@ nodejs:
   ingressHost: ${SERVICE_FQDN}
   environment:
     FRONTEND_HOSTNAME: https://${SERVICE_FQDN}
-    OPAL_API_URL: http://${SERVICE_NAME}-opal-rm-service
-    OPAL_RM_SERVICE_API_URL: http://${SERVICE_NAME}-opal-rm-service
+    OPAL_API_URL: http://${SERVICE_NAME}-opal-fines-service
+    OPAL_FINES_SERVICE_API_URL: http://${SERVICE_NAME}-opal-fines-service
     OPAL_USER_SERVICE_API_URL: https://opal-user-service.staging.platform.hmcts.net
     FEATURES_LAUNCH_DARKLY_ENABLED: false
     FEATURES_SSO_ENABLED: true
@@ -13,11 +13,11 @@ nodejs:
     SESSION_SAME_SITE: 'none'
     SESSION_DOMAIN: '.hmcts.net'
     CSRF_SAME_SITE: 'lax'
-opal-rm-service:
+opal-fines-service:
   enabled: true
   java:
-    releaseNameOverride: ${SERVICE_NAME}-opal-rm-service
-    ingressHost: opal-rm-service-${SERVICE_FQDN}
+    releaseNameOverride: ${SERVICE_NAME}-opal-fines-service
+    ingressHost: opal-fines-service-${SERVICE_FQDN}
     imagePullPolicy: Always
     devmemoryRequests: "1Gi"
     devcpuRequests: "250m"
@@ -43,12 +43,12 @@ opal-rm-service:
           - name: servicebus-logging-pdpl-queue-name
             alias: SERVICEBUS_LOGGING_PDPL_QUEUE_NAME
     environment:
-      OPAL_RM_DB_HOST: "{{ .Release.Name }}-postgresql"
-      OPAL_RM_DB_NAME: opal
-      OPAL_RM_DB_USERNAME: opal
-      OPAL_RM_DB_PASSWORD: opal
-      OPAL_RM_DB_OPTIONS: "?stringtype=unspecified"
-      OPAL_RM_DB_PORT: 5432
+      OPAL_FINES_DB_HOST: "{{ .Release.Name }}-postgresql"
+      OPAL_FINES_DB_NAME: opal
+      OPAL_FINES_DB_USERNAME: opal
+      OPAL_FINES_DB_PASSWORD: opal
+      OPAL_FINES_DB_OPTIONS: "?stringtype=unspecified"
+      OPAL_FINES_DB_PORT: 5432
       RUN_DB_MIGRATION_ON_STARTUP: true
       OPAL_USER_SERVICE_API_URL: https://opal-user-service.staging.platform.hmcts.net
       OPAL_LEGACY_GATEWAY_URL: ${STG_OPAL_LEGACY_GATEWAY_URL}

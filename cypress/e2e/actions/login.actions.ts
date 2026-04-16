@@ -78,7 +78,16 @@ export function signOut(): void {
 
 export function assertSignInPageVisible(): void {
   log('assert', 'Checking the OPAL sign-in page is shown');
-  cy.location('pathname', { timeout: 20_000 }).should('eq', '/sign-in');
-  cy.get(L.signInHeading, { timeout: 20_000 }).should('contain.text', 'Sign in');
-  cy.get(L.usernameInput, { timeout: 20_000 }).should('be.visible');
+  const isLocalOrPr = isLocalOrPrEnvironment();
+
+  cy.location('href', { timeout: 20_000 }).then((href) => {
+    if (isLocalOrPr) {
+      cy.location('pathname', { timeout: 20_000 }).should('eq', '/sign-in');
+      cy.get(L.signInHeading, { timeout: 20_000 }).should('contain.text', 'Sign in');
+      cy.get(L.usernameInput, { timeout: 20_000 }).should('be.visible');
+      return;
+    }
+
+    expect(href).to.include('login.microsoftonline.com');
+  });
 }

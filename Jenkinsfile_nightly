@@ -643,7 +643,7 @@ withNightlyPipeline(type, product, component) {
   before('akschartsinstall') {
     onPR {
       env.DEV_ENABLE_OPAL_FINES_SERVICE = true
-      env.DEV_OPAL_FINES_SERVICE_URL = 'https://opal-rm-frontend.staging.apps.hmcts.net'
+      env.DEV_OPAL_FINES_SERVICE_URL = 'https://opal-fines-service.staging.platform.hmcts.net'
       env.DEV_OPAL_FINES_SERVICE_IMAGE_SUFFIX = 'latest'
     }
   }

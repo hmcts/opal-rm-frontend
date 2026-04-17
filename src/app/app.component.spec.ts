@@ -25,6 +25,7 @@ import { MojAlertComponent } from '@hmcts/opal-frontend-common/components/moj/mo
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSpyObj } from './testing/create-spy-obj.helper';
 import { Component } from '@angular/core';
+import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from './constants/route-data.constant';
 
 const mockTokenExpiry: ISessionTokenExpiry = SESSION_TOKEN_EXPIRY_MOCK;
 
@@ -37,6 +38,7 @@ class DummyDashboardRouteComponent {}
 const testRoutes = [
   { path: 'dashboard', component: DummyDashboardRouteComponent },
   { path: 'dashboard/:dashboardType', component: DummyDashboardRouteComponent },
+  { path: 'hidden', component: DummyDashboardRouteComponent, data: PRIMARY_NAV_HIDDEN_ROUTE_DATA },
   { path: 'sign-in', component: DummyDashboardRouteComponent },
   { path: 'test', component: DummyDashboardRouteComponent },
 ];
@@ -66,6 +68,9 @@ const getPrimaryNavigationTexts = (fixture: ComponentFixture<AppComponent>): str
   Array.from<HTMLElement>(fixture.nativeElement.querySelectorAll('.moj-primary-navigation__link')).map(
     (link) => link.textContent?.trim() ?? '',
   );
+
+const hasPrimaryNavigation = (fixture: ComponentFixture<AppComponent>): boolean =>
+  fixture.debugElement.query(By.directive(MojPrimaryNavigationComponent)) !== null;
 
 describe('AppComponent - browser', () => {
   const mockDocumentLocation = {
@@ -285,8 +290,7 @@ describe('AppComponent - browser', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const component = fixture.componentInstance;
     const mockNavigationEnd = new NavigationEnd(1, '/test', '/test');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.spyOn<any, any>(component['router'].events, 'pipe').mockReturnValue(of(mockNavigationEnd));
+    Object.defineProperty(component, 'navigationEnd$', { value: of(mockNavigationEnd) });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn<any, any>(component['appInsightsService'], 'logPageView');
 
@@ -309,8 +313,7 @@ describe('AppComponent - browser', () => {
         }),
       },
     } as unknown as NavigationEnd;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.spyOn<any, any>(component['router'].events, 'pipe').mockReturnValue(of(mockNavigationEnd));
+    Object.defineProperty(component, 'navigationEnd$', { value: of(mockNavigationEnd) });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn<any, any>(component['appInsightsService'], 'logPageView');
 
@@ -330,6 +333,30 @@ describe('AppComponent - browser', () => {
       .componentInstance as MojPrimaryNavigationComponent;
 
     expect(primaryNavigation.useFragmentNavigation).toBe(false);
+  });
+
+  it('should hide primary navigation when the active route opts into hidden primary navigation', async () => {
+    globalStore.setAuthenticated(true);
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+
+    fixture.detectChanges();
+    await router.navigateByUrl('/hidden');
+    fixture.detectChanges();
+
+    expect(hasPrimaryNavigation(fixture)).toBe(false);
+  });
+
+  it('should show primary navigation on dashboard routes when the user is authenticated and active', async () => {
+    globalStore.setAuthenticated(true);
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+
+    fixture.detectChanges();
+    await router.navigateByUrl('/dashboard');
+    fixture.detectChanges();
+
+    expect(hasPrimaryNavigation(fixture)).toBe(true);
   });
 
   it('should hide Reports in primary navigation when the user lacks all report permissions', () => {
@@ -432,6 +459,46 @@ describe('AppComponent - browser', () => {
     fixture.detectChanges();
 
     expect(component.activeNavigationItem()).toBe('reports');
+  });
+
+  it('should not hide primary navigation for the initial pre-navigation URL in the starter shell', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+
+    expect(component['isPrimaryNavigationHiddenForInitialUrl']('/hidden')).toBe(false);
+  });
+
+  it('should read initial primary navigation visibility from the router tree after navigation', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+    const rootSnapshot = component['router'].routerState.snapshot.root;
+
+    Object.defineProperty(component['router'], 'navigated', { value: true, configurable: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hiddenSpy = vi.spyOn<any, any>(component, 'isPrimaryNavigationHidden').mockReturnValue(true);
+
+    expect(component['getInitialPrimaryNavigationHidden']()).toBe(true);
+    expect(hiddenSpy).toHaveBeenCalledWith(rootSnapshot);
+  });
+
+  it('should use Location.path before document location when reading the initial URL', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+
+    vi.spyOn(component['location'], 'path').mockReturnValue('/dashboard/cases?foo=1#bar');
+
+    expect(component['getCurrentUrlBeforeInitialNavigation']()).toBe('/dashboard/cases?foo=1#bar');
+  });
+
+  it('should fall back to router.url when document location is unavailable', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+
+    vi.spyOn(component['location'], 'path').mockReturnValue('');
+    Object.defineProperty(component, 'document', { value: { location: null }, configurable: true });
+    Object.defineProperty(component['router'], 'url', { value: '/dashboard/reports', configurable: true });
+
+    expect(component['getCurrentUrlBeforeInitialNavigation']()).toBe('/dashboard/reports');
   });
 });
 

@@ -7,7 +7,7 @@ import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-
 import { beforeEach, describe, expect, it } from 'vitest';
 import { firstValueFrom, isObservable, of, throwError } from 'rxjs';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
-import { ACCOUNTS_PERMISSIONS } from '@app/flows/accounts/constants/accounts-permissions.constant';
+import { CASES_PERMISSIONS } from '@app/flows/cases/constants/cases-permissions.constant';
 import { SEARCH_PERMISSIONS } from '@app/flows/search/constants/search-permissions.constant';
 import { dashboardSectionPermissionsGuard } from './dashboard-section-permissions.guard';
 
@@ -86,7 +86,7 @@ describe('dashboardSectionPermissionsGuard', () => {
     const expectedUrlTree = new UrlTree();
     mockRouter.createUrlTree.mockReturnValue(expectedUrlTree);
 
-    const result = await runGuard({ dashboardType: 'accounts' });
+    const result = await runGuard({ dashboardType: 'cases' });
 
     expect(result).toBe(expectedUrlTree);
     expect(mockRouter.createUrlTree).toHaveBeenCalledWith([`/${COMMON_PAGES_ROUTING_PATHS.children.accessDenied}`]);
@@ -95,17 +95,17 @@ describe('dashboardSectionPermissionsGuard', () => {
   it('returns false when the user state lookup errors', async () => {
     mockOpalUserService.getLoggedInUserState.mockReturnValue(throwError(() => new Error('boom')));
 
-    const result = await runGuard({ dashboardType: 'accounts' });
+    const result = await runGuard({ dashboardType: 'cases' });
 
     expect(result).toBe(false);
   });
 
   it('uses the route param when there is no sectionKey in route data', async () => {
     mockOpalUserService.getLoggedInUserState.mockReturnValue(
-      of(createUserStateWithPermissions([ACCOUNTS_PERMISSIONS[0]])),
+      of(createUserStateWithPermissions([CASES_PERMISSIONS[0]])),
     );
 
-    const result = await runGuard({ dashboardType: 'accounts' });
+    const result = await runGuard({ dashboardType: 'cases' });
 
     expect(result).toBe(true);
   });

@@ -7,7 +7,7 @@ export const PrimaryNavigationLocators = {
   activeItem: `${PRIMARY_NAVIGATION_ITEMS}[aria-current="page"]`,
   labels: {
     search: 'Search',
-    accounts: 'Accounts',
+    cases: 'Cases',
     reports: 'Reports',
     administration: 'Administration',
   },

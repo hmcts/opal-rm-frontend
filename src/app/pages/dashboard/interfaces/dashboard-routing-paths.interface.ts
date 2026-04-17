@@ -3,7 +3,7 @@ import { IChildRoutingPaths } from '@hmcts/opal-frontend-common/pages/routing/in
 export interface IDashboardRoutingPaths extends IChildRoutingPaths {
   children: {
     search: string;
-    accounts: string;
+    cases: string;
     reports: string;
     administration: string;
   };

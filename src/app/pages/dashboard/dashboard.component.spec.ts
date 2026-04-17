@@ -20,7 +20,7 @@ describe('DashboardComponent', () => {
   let permissionsServiceMock: any;
 
   beforeEach(async () => {
-    dashboardTypeParamMapSubject = new BehaviorSubject(convertToParamMap({ dashboardType: 'accounts' }));
+    dashboardTypeParamMapSubject = new BehaviorSubject(convertToParamMap({ dashboardType: 'cases' }));
     permissionsServiceMock = createSpyObj('PermissionsService', ['getUniquePermissions']);
     permissionsServiceMock.getUniquePermissions.mockReturnValue([101, 202, 303]);
 

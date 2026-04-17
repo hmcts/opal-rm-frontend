@@ -4,7 +4,7 @@ export const DASHBOARD_ROUTING_PATHS: IDashboardRoutingPaths = {
   root: 'dashboard',
   children: {
     search: 'search',
-    accounts: 'accounts',
+    cases: 'cases',
     reports: 'reports',
     administration: 'administration',
   },

@@ -1,8 +1,8 @@
 import { IDashboardPageConfigurationLink } from '@hmcts/opal-frontend-common/pages/dashboard-page/interfaces';
 
-export const ACCOUNTS_RESULTING_DASHBOARD_LINKS: IDashboardPageConfigurationLink[] = [
+export const CASES_RESULTING_DASHBOARD_LINKS: IDashboardPageConfigurationLink[] = [
   {
-    id: 'accountsEnterResultsLink',
+    id: 'casesEnterResultsLink',
     text: 'Enter results',
     routerLink: ['/'],
     fragment: null,
@@ -11,7 +11,7 @@ export const ACCOUNTS_RESULTING_DASHBOARD_LINKS: IDashboardPageConfigurationLink
     style: null,
   },
   {
-    id: 'accountsReviewResultsLink',
+    id: 'casesReviewResultsLink',
     text: 'Review results',
     routerLink: ['/'],
     fragment: null,
@@ -20,7 +20,7 @@ export const ACCOUNTS_RESULTING_DASHBOARD_LINKS: IDashboardPageConfigurationLink
     style: null,
   },
   {
-    id: 'accountsCheckResultsLink',
+    id: 'casesCheckResultsLink',
     text: 'Check results',
     routerLink: ['/'],
     fragment: null,

@@ -75,7 +75,7 @@ describe('dashboard-section-permissions.utils', () => {
   it('uses the defined landing priority instead of the input order', () => {
     const reorderedNavigationItems = [
       { key: 'reports', value: 'Reports' },
-      { key: 'accounts', value: 'Accounts' },
+      { key: 'cases', value: 'Cases' },
       { key: 'search', value: 'Search' },
     ] as const;
     const userState = createUserStateWithPermissions([1, 6, 14]);

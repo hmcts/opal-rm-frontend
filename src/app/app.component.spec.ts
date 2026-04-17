@@ -467,6 +467,39 @@ describe('AppComponent - browser', () => {
 
     expect(component['isPrimaryNavigationHiddenForInitialUrl']('/hidden')).toBe(false);
   });
+
+  it('should read initial primary navigation visibility from the router tree after navigation', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+    const rootSnapshot = component['router'].routerState.snapshot.root;
+
+    Object.defineProperty(component['router'], 'navigated', { value: true, configurable: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hiddenSpy = vi.spyOn<any, any>(component, 'isPrimaryNavigationHidden').mockReturnValue(true);
+
+    expect(component['getInitialPrimaryNavigationHidden']()).toBe(true);
+    expect(hiddenSpy).toHaveBeenCalledWith(rootSnapshot);
+  });
+
+  it('should use Location.path before document location when reading the initial URL', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+
+    vi.spyOn(component['location'], 'path').mockReturnValue('/dashboard/cases?foo=1#bar');
+
+    expect(component['getCurrentUrlBeforeInitialNavigation']()).toBe('/dashboard/cases?foo=1#bar');
+  });
+
+  it('should fall back to router.url when document location is unavailable', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+
+    vi.spyOn(component['location'], 'path').mockReturnValue('');
+    Object.defineProperty(component, 'document', { value: { location: null }, configurable: true });
+    Object.defineProperty(component['router'], 'url', { value: '/dashboard/reports', configurable: true });
+
+    expect(component['getCurrentUrlBeforeInitialNavigation']()).toBe('/dashboard/reports');
+  });
 });
 
 describe('AppComponent - server', () => {

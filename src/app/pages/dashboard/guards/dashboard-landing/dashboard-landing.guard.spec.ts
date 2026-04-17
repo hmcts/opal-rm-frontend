@@ -8,7 +8,7 @@ import { firstValueFrom, isObservable, of, throwError } from 'rxjs';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
 import { dashboardLandingGuard } from './dashboard-landing.guard';
 import { SEARCH_PERMISSIONS } from '@app/flows/search/constants/search-permissions.constant';
-import { ACCOUNTS_PERMISSIONS } from '@app/flows/accounts/constants/accounts-permissions.constant';
+import { CASES_PERMISSIONS } from '@app/flows/cases/constants/cases-permissions.constant';
 
 const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpalUserState => {
   const userState = structuredClone(OPAL_USER_STATE_MOCK);
@@ -68,23 +68,23 @@ describe('dashboardLandingGuard', () => {
     expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'search']);
   });
 
-  it('routes to Accounts when search is unavailable but accounts is permitted', async () => {
+  it('routes to Cases when search is unavailable but accounts is permitted', async () => {
     mockOpalUserService.getLoggedInUserState.mockReturnValue(
-      of(createUserStateWithPermissions([ACCOUNTS_PERMISSIONS[0]])),
+      of(createUserStateWithPermissions([CASES_PERMISSIONS[0]])),
     );
 
     const result = await runGuard();
 
-    expect(result).toBe('//dashboard/accounts');
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'accounts']);
+    expect(result).toBe('//dashboard/cases');
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'cases']);
   });
 
-  it('falls back to the default accounts dashboard when user state lookup fails', async () => {
+  it('falls back to the default cases dashboard when user state lookup fails', async () => {
     mockOpalUserService.getLoggedInUserState.mockReturnValue(throwError(() => new Error('boom')));
 
     const result = await runGuard();
 
-    expect(result).toBe('//dashboard/accounts');
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'accounts']);
+    expect(result).toBe('//dashboard/cases');
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'cases']);
   });
 });

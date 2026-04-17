@@ -4,7 +4,7 @@ import { DashboardPageType } from '@app/pages/dashboard/types/dashboard.type';
 import { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { DASHBOARD_SECTION_PERMISSIONS } from '../constants/dashboard-section-permissions.constant';
 
-const DASHBOARD_LANDING_PRIORITY: DashboardPageType[] = ['search', 'accounts', 'reports', 'administration'];
+const DASHBOARD_LANDING_PRIORITY: DashboardPageType[] = ['search', 'cases', 'reports', 'administration'];
 
 export const getUserPermissionIds = (userState?: IOpalUserState | null): number[] => {
   const permissionIds = (userState?.business_unit_users ?? []).flatMap((businessUnitUser) =>

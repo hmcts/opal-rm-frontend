@@ -352,14 +352,14 @@ describe('AppComponent - browser', () => {
     expect(getPrimaryNavigationTexts(fixture)).not.toContain('Search');
   });
 
-  it('should hide Accounts in primary navigation when the user lacks all accounts permissions', () => {
+  it('should hide Cases in primary navigation when the user lacks all accounts permissions', () => {
     globalStore.setAuthenticated(true);
     globalStore.setUserState(createUserStateWithPermissions([]));
 
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
 
-    expect(getPrimaryNavigationTexts(fixture)).not.toContain('Accounts');
+    expect(getPrimaryNavigationTexts(fixture)).not.toContain('Cases');
   });
 
   it('should ignore invalid primary navigation selection values', () => {
@@ -403,7 +403,7 @@ describe('AppComponent - browser', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const component = fixture.componentInstance;
 
-    expect(component['getDashboardTypeFromUrl']('/dashboard')).toBe('accounts');
+    expect(component['getDashboardTypeFromUrl']('/dashboard')).toBe('cases');
   });
 
   it('should derive a known dashboard type from /dashboard/:dashboardType URLs', () => {

@@ -1,1 +1,1 @@
-export const DASHBOARD_TYPES = ['search', 'accounts', 'reports', 'administration'] as const;
+export const DASHBOARD_TYPES = ['search', 'cases', 'reports', 'administration'] as const;

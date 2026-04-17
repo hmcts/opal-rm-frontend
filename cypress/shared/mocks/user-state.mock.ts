@@ -25,7 +25,7 @@ export const createStarterUserState = (permissionIds: readonly number[]): IOpalU
 
 export const STARTER_USER_STATE_NO_DASHBOARD_PERMISSIONS = createStarterUserState([]);
 
-export const STARTER_USER_STATE_ACCOUNTS_ONLY = createStarterUserState([
+export const STARTER_USER_STATE_CASES_ONLY = createStarterUserState([
   PERMISSIONS['create-and-manage-draft-accounts'],
   PERMISSIONS['check-and-validate-draft-accounts'],
   PERMISSIONS['consolidate'],

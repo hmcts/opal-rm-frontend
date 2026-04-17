@@ -1,4 +1,4 @@
 import { IDashboardPageConfiguration } from '@hmcts/opal-frontend-common/pages/dashboard-page/interfaces';
-import { ACCOUNTS_DASHBOARD_CONFIGURATION } from '../../../flows/accounts/constants/accounts-dashboard-configuration.constant';
+import { CASES_DASHBOARD_CONFIGURATION } from '../../../flows/cases/constants/cases-dashboard-configuration.constant';
 
-export const DASHBOARD_CONFIG_DEFAULT_DASHBOARD: IDashboardPageConfiguration = ACCOUNTS_DASHBOARD_CONFIGURATION;
+export const DASHBOARD_CONFIG_DEFAULT_DASHBOARD: IDashboardPageConfiguration = CASES_DASHBOARD_CONFIGURATION;

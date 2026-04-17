@@ -63,7 +63,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly POLL_INTERVAL = 60;
   private readonly dashboardRouteByType: Record<DashboardPageType, string[]> = {
     search: ['/', DASHBOARD_ROUTING_PATHS.root, DASHBOARD_ROUTING_PATHS.children.search],
-    accounts: ['/', DASHBOARD_ROUTING_PATHS.root, DASHBOARD_ROUTING_PATHS.children.accounts],
+    cases: ['/', DASHBOARD_ROUTING_PATHS.root, DASHBOARD_ROUTING_PATHS.children.cases],
     reports: ['/', DASHBOARD_ROUTING_PATHS.root, DASHBOARD_ROUTING_PATHS.children.reports],
     administration: ['/', DASHBOARD_ROUTING_PATHS.root, DASHBOARD_ROUTING_PATHS.children.administration],
   };

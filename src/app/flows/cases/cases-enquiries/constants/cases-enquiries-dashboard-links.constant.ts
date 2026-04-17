@@ -1,8 +1,8 @@
 import { IDashboardPageConfigurationLink } from '@hmcts/opal-frontend-common/pages/dashboard-page/interfaces';
 
-export const ACCOUNTS_ENQUIRIES_DASHBOARD_LINKS: IDashboardPageConfigurationLink[] = [
+export const CASES_ENQUIRIES_DASHBOARD_LINKS: IDashboardPageConfigurationLink[] = [
   {
-    id: 'accountsCaseEnquiriesLink',
+    id: 'casesCaseEnquiriesLink',
     text: 'Case enquiry',
     routerLink: ['/'],
     fragment: null,

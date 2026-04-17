@@ -11,7 +11,7 @@ import { AppComponent } from 'src/app/app.component';
 import { LoginLocators as Login } from '../../shared/selectors/login.locators';
 import { PrimaryNavigationLocators as Nav } from '../../shared/selectors/primary-navigation.locators';
 import {
-  STARTER_USER_STATE_ACCOUNTS_ONLY,
+  STARTER_USER_STATE_CASES_ONLY,
   STARTER_USER_STATE_ALL_DASHBOARDS,
 } from '../CommonIntercepts/CommonUserState.mocks';
 
@@ -63,15 +63,15 @@ describe('App shell', () => {
     cy.get(Nav.container).should('not.exist');
   });
 
-  it('shows only Accounts when the user only has accounts permissions', () => {
+  it('shows only Cases when the user only has accounts permissions', () => {
     mountAppShell({
       authenticated: true,
-      userState: STARTER_USER_STATE_ACCOUNTS_ONLY,
+      userState: STARTER_USER_STATE_CASES_ONLY,
     });
 
     cy.get(Login.accountNavigationLink).should('contain.text', 'Sign out');
     cy.get(Nav.items).should('have.length', 1);
-    cy.get(Nav.items).first().should('contain.text', Nav.labels.accounts);
+    cy.get(Nav.items).first().should('contain.text', Nav.labels.cases);
   });
 
   it('shows the full dashboard navigation when the user has all starter permissions', () => {
@@ -87,7 +87,7 @@ describe('App shell', () => {
 
         expect(labels).to.deep.equal([
           Nav.labels.search,
-          Nav.labels.accounts,
+          Nav.labels.cases,
           Nav.labels.reports,
           Nav.labels.administration,
         ]);

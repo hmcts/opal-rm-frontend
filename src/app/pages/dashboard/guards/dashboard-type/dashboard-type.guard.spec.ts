@@ -28,7 +28,7 @@ describe('dashboardTypeGuard', () => {
   };
 
   it('allows known dashboard types', () => {
-    const result = runGuard('accounts');
+    const result = runGuard('cases');
 
     expect(result).toBe(true);
     expect(mockRouter.createUrlTree).not.toHaveBeenCalled();

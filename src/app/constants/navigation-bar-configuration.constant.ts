@@ -6,8 +6,8 @@ export const NAVIGATION_BAR_CONFIGURATION: INavigationBarConfiguration[] = [
     value: 'Search',
   },
   {
-    key: 'accounts',
-    value: 'Accounts',
+    key: 'cases',
+    value: 'Cases',
   },
   {
     key: 'reports',

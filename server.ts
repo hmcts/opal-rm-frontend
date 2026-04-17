@@ -60,12 +60,6 @@ function app(): Express {
   const commonEngine = new CommonEngine({
     allowedHosts: [
       'localhost',
-      'opal-rm-frontend.staging.platform.hmcts.net',
-      'opal-rm-frontend-staging.staging.platform.hmcts.net',
-      'opal-rm-frontend.demo.platform.hmcts.net',
-      'opal-rm-frontend.ithc.platform.hmcts.net',
-      'opal-rm-frontend.test.platform.hmcts.net',
-      '*.dev.platform.hmcts.net',
       'opal-rm-frontend.staging.apps.hmcts.net',
       'opal-rm-frontend-staging.staging.apps.hmcts.net',
       'opal-rm-frontend.demo.apps.hmcts.net',

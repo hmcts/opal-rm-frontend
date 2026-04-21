@@ -538,4 +538,4 @@ The following tags can be used in your test scenarios to control ticket creation
 | `@JIRA-DEFECT:`    | `@JIRA-DEFECT:PROJ-987` | Links the ticket to a Jira Defect.                                 |
 | `@JIRA-IGNORE:`    | `@JIRA-IGNORE`          | Prevents ticket creation or update for this test.                  |
 
-- Tags are case-sensitive and must be used exactly as shown.
+- Tags are case-sensitive and must be used exactly as shown.  

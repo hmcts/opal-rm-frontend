@@ -465,7 +465,7 @@ describe('AppComponent - browser', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const component = fixture.componentInstance;
 
-    expect(component['isPrimaryNavigationHiddenForInitialUrl']('/hidden')).toBe(false);
+    expect(component['isPrimaryNavigationHiddenForInitialUrl']()).toBe(false);
   });
 
   it('should read initial primary navigation visibility from the router tree after navigation', () => {

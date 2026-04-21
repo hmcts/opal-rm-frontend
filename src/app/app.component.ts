@@ -274,7 +274,7 @@ export class AppComponent implements OnInit, OnDestroy {
       return this.isPrimaryNavigationHidden(this.router.routerState.snapshot.root);
     }
 
-    return this.isPrimaryNavigationHiddenForInitialUrl(this.getCurrentUrlBeforeInitialNavigation());
+    return this.isPrimaryNavigationHiddenForInitialUrl();
   }
 
   /**
@@ -300,7 +300,7 @@ export class AppComponent implements OnInit, OnDestroy {
    * There are no non-dashboard journey routes in opal-rm-frontend today, so no initial URL pattern hides
    * the primary navigation before the router has built an activated route tree.
    */
-  private isPrimaryNavigationHiddenForInitialUrl(_url: string): boolean {
+  private isPrimaryNavigationHiddenForInitialUrl(): boolean {
     return false;
   }
 

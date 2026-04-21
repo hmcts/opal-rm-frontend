@@ -1,6 +1,6 @@
 import { Component, NgZone, OnDestroy, OnInit, PLATFORM_ID, inject, DOCUMENT, computed } from '@angular/core';
 import { Observable, Subject, filter, from, map, of, startWith, takeUntil, takeWhile, tap, timer } from 'rxjs';
-import { CommonModule, Location, isPlatformBrowser } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   ActivatedRouteSnapshot,
   NavigationCancel,
@@ -63,7 +63,6 @@ import { HIDE_PRIMARY_NAV_ROUTE_DATA_KEY } from './constants/route-data.constant
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly document = inject(DOCUMENT);
-  private readonly location = inject(Location);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly ngZone = inject(NgZone);
   private readonly ngUnsubscribe = new Subject<void>();
@@ -275,25 +274,6 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     return this.isPrimaryNavigationHiddenForInitialUrl();
-  }
-
-  /**
-   * Reads the current browser URL before the router has produced an activated route tree.
-   */
-  private getCurrentUrlBeforeInitialNavigation(): string {
-    const locationPath = this.location.path(true);
-
-    if (locationPath) {
-      return locationPath;
-    }
-
-    const documentLocation = this.document.location;
-
-    if (!documentLocation) {
-      return this.router.url;
-    }
-
-    return `${documentLocation.pathname}${documentLocation.search}${documentLocation.hash}`;
   }
 
   /**

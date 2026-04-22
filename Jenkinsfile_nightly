@@ -42,7 +42,7 @@ properties([
 String type = 'angular'
 @Field String opalName = 'opal'
 @Field String product = opalName
-String component = 'frontend'
+String component = 'rm-frontend'
 String failureResult = 'FAILURE'
 @Field String secretKey = 'opal-$'.concat('{env}')
 @Field String browserChrome = 'chrome'

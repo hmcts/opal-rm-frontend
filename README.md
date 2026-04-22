@@ -14,6 +14,7 @@ This is an [Angular SSR](https://angular.dev/guide/ssr) application. There are t
 - [Running Unit Tests](#running-unit-tests)
 - [Running End-to-End Tests](#running-end-to-end-tests)
 - [Accessibility Tests](#running-accessibility-tests)
+- [OpenAPI Reference Models](#openapi-reference-models)
 - [Switching Between Local and Published Common Libraries](#switching-between-local-and-published-common-libraries)
 
 ## Getting Started
@@ -192,6 +193,13 @@ export FEATURES_LAUNCH_DARKLY_STREAM=true
 ## Build
 
 Run `yarn build:ssr` to build the project. The build artifacts will be stored in the `dist/opal-rm-frontend` directory. This compiles both the node.js server-side code and angular code.
+
+## OpenAPI reference models
+
+- Run `yarn generate:openapi` to download and merge the fines-service specifications, then emit a reference-only TypeScript client to `openapi/generated/api-client`.
+- The merged specification is written locally to `openapi/opal-merged.yaml` while the command runs. Both the merged YAML and generated client output are gitignored.
+- This workflow is for contract inspection only. Do not import anything from `openapi/generated/api-client` into runtime application code.
+- Backend fines OpenAPI specifications are merged from `DefendantAccount.yaml`, `MajorCreditor.yaml`, `MinorCreditor.yaml`, `common.yaml`, and `types.yaml` using `openapi/openapi-merge-config.json`.
 
 ## Code style
 
@@ -509,6 +517,7 @@ Zephyr Automation is a tool for integrating test results and ticket management b
 
 ## Project Scripts (zephyr:\*)
 
+- Run `yarn check:cypress:test-metadata` to audit the current starter test surface for missing Jira metadata. The audit checks `cypress/component/**/*.cy.ts` and `cypress/e2e/functional/opal/**/*.feature`, then writes a CSV report to `tmp/cypress-test-metadata-report.csv`.
 - `zephyr:cypress:jira-create`: Create Jira tickets from the Cypress JSON report at `functional-output/zephyr/cypress-report-1.json`.
 - `zephyr:cypress:jira-update`: Update Jira tickets using the Cypress JSON report at `functional-output/zephyr/cypress-report-1.json`.
 - `zephyr:cypress:jira-execute`: Create a Zephyr execution from the Cypress JSON report at `functional-output/zephyr/cypress-report-1.json`.
@@ -522,6 +531,8 @@ Zephyr Automation is a tool for integrating test results and ticket management b
 - `zephyr:test:functional`: Reset outputs, run functional tests, then create a Zephyr execution from the functional Cucumber JSON report.
 - `zephyr:test:smoke`: Reset outputs, run smoke tests, then create a Zephyr execution from the smoke Cucumber JSON report.
 
+Zephyr scripts still use the JSON report paths listed above as their inputs. Their console output is also mirrored to `tmp/zephyr/*.log`, with each script overwriting its own log file on the next run. `/tmp` is gitignored.
+
 ### Supported Tags
 
 The following tags can be used in your test scenarios to control ticket creation, linking, and metadata:
@@ -529,6 +540,7 @@ The following tags can be used in your test scenarios to control ticket creation
 | Tag Prefix         | Example Value           | Description                                                        |
 | ------------------ | ----------------------- | ------------------------------------------------------------------ |
 | `@JIRA-KEY:`       | `@JIRA-KEY:PROJ-123`    | Associates the test with an existing Jira issue key.               |
+| `@JIRA-KEY:POT-*`  | `@JIRA-KEY:POT-1234`    | Associates one executable test with one Zephyr POT test case key.  |
 | `@JIRA-COMPONENT:` | `@JIRA-COMPONENT:API`   | Adds the specified Jira component to the ticket.                   |
 | `@JIRA-LABEL:`     | `@JIRA-LABEL:smoke`     | Adds the specified label to the Jira ticket.                       |
 | `@JIRA-EPIC:`      | `@JIRA-EPIC:PROJ-456`   | Links the ticket to the specified Jira Epic.                       |
@@ -539,3 +551,4 @@ The following tags can be used in your test scenarios to control ticket creation
 | `@JIRA-IGNORE:`    | `@JIRA-IGNORE`          | Prevents ticket creation or update for this test.                  |
 
 - Tags are case-sensitive and must be used exactly as shown.  
+- `yarn check:cypress:test-metadata` expects each executable component or functional test in the audited starter suites to carry at least one `@JIRA-STORY:*` tag and exactly one `@JIRA-KEY:POT-*` tag.

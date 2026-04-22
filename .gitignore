@@ -66,3 +66,5 @@ smoke-output
 runner-results
 cypress/parallel/weights
 multi-reporter-config.json
+/openapi/generated
+/openapi/opal-merged.yaml

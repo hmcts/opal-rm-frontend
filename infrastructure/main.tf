@@ -12,7 +12,7 @@ data "azurerm_key_vault" "opal_key_vault" {
   resource_group_name = local.resourceGroup
 }
 
-module "opal_redis" {
+module "opal_rm_redis" {
   source        = "git@github.com:hmcts/cnp-module-redis?ref=master"
   product       = var.product
   location      = var.location
@@ -30,7 +30,7 @@ module "opal_redis" {
 
 resource "azurerm_key_vault_secret" "redis_connection_string" {
   name  = "redis-connection-string"
-  value = "rediss://:${urlencode(module.opal_redis.access_key)}@${module.opal_redis.host_name}:${module.opal_redis.redis_port}?tls=true"
+  value = "rediss://:${urlencode(module.opal_rm_redis.access_key)}@${module.opal_rm_redis.host_name}:${module.opal_rm_redis.redis_port}?tls=true"
 
   key_vault_id = data.azurerm_key_vault.opal_key_vault.id
 }

@@ -9,7 +9,7 @@ import uk.gov.hmcts.contino.GithubAPI
 String opalName = 'opal'
 String type = 'angular'
 String product = opalName
-String component = 'frontend'
+String component = 'rm-frontend'
 @Field String masterProjectName = 'HMCTS/opal-rm-frontend/master'
 @Field String browserChrome = 'chrome'
 @Field String browserEdge = 'edge'

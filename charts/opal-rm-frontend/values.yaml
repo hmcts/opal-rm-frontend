@@ -8,9 +8,9 @@ nodejs:
       secrets:
         - app-insights-connection-string
         - redis-connection-string
-        - opal-frontend-session-secret
-        - opal-frontend-cookie-secret
-        - opal-frontend-csrf-secret
+        - opal-rm-frontend-session-secret
+        - opal-rm-frontend-cookie-secret
+        - opal-rm-frontend-csrf-secret
         - launch-darkly-client-id
         - AzureADClientId
         - AzureADClientSecret

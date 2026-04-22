@@ -82,7 +82,7 @@ export function configureApiProxyRoutes(app: Express, proxyConfiguration: ProxyC
 
 export function configureSession(server: Express): void {
   const sessionStorageConfig: SessionStorageConfiguration = {
-    secret: config.get('secrets.opal.opal-frontend-cookie-secret'),
+    secret: config.get('secrets.opal.opal-rm-frontend-cookie-secret'),
     prefix: config.get('session.prefix'),
     maxAge: config.get('session.maxAge'),
     sameSite: config.get('session.sameSite'),
@@ -98,7 +98,7 @@ export function configureSession(server: Express): void {
 export function configureCsrf(server: Express): void {
   new CSRFToken().enableFor(
     server,
-    config.get('secrets.opal.opal-frontend-csrf-secret'),
+    config.get('secrets.opal.opal-rm-frontend-csrf-secret'),
     config.get('csrf.cookieName'),
     config.get('csrf.sameSite'),
     config.get('csrf.secure'),

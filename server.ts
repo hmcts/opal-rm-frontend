@@ -67,6 +67,7 @@ function app(): Express {
       'opal-rm-frontend.test.apps.hmcts.net',
       '*.dev.apps.hmcts.net',
       '*.dev.platform.hmcts.net',
+      'opal-rm-frontend-staging.staging.platform.hmcts.net',
     ],
   });
 

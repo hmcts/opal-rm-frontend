@@ -31,7 +31,7 @@
     }
   },
   "session": {
-    "prefix": "opal-session",
+    "prefix": "opal-rm-frontend-session",
     "ttlInSeconds": 1200,
     "maxAge": null,
     "secure": false,

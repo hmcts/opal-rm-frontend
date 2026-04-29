@@ -52,6 +52,7 @@
     }
   },
   "session": {
+    "prefix": "SESSION_PREFIX",
     "secure": { "__name": "SESSION_SECURE_ENABLED", "__format": "json" },
     "sameSite": "SESSION_SAME_SITE",
     "domain": "SESSION_DOMAIN"

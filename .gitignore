@@ -49,6 +49,7 @@ package-lock.json
 .nx
 .codex-plans
 .codex-docs
+docs/superpowers/
 .worktrees/
 
 # System files

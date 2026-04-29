@@ -317,11 +317,11 @@ function resolveParallelMode(suite, requestedParallel) {
 
 /**
  * Resolve suite configuration for execution and reporting.
- * @param {{ suite: string, mode: 'opal' | 'legacy', browser: string, tags: boolean }} options
+ * @param {{ suite: string, mode: 'opal' | 'legacy', browser: string }} options
  * @returns {object}
  */
 function buildSuiteConfig(options) {
-  const { suite, mode, browser, tags } = options;
+  const { suite, mode, browser } = options;
   const isLegacy = mode === 'legacy';
 
   if (suite === 'component') {
@@ -330,7 +330,7 @@ function buildSuiteConfig(options) {
       mode,
       browser,
       outputRoot: 'functional-output',
-      leafScript: 'test:opalComponent:noReset',
+      leafScript: 'test:component:leaf',
       specPattern: 'cypress/component/**/**.cy.ts',
       screenshotsFolder: `functional-output/component/${browser}/screenshots`,
       componentJsonDir: `functional-output/component/${browser}/json`,
@@ -377,16 +377,7 @@ function buildSuiteConfig(options) {
     mode,
     browser,
     outputRoot,
-    leafScript:
-      suite === 'smoke'
-        ? isLegacy
-          ? 'test:smokeLegacy'
-          : 'test:smokeOpal'
-        : isLegacy
-          ? 'test:functionalLegacy'
-          : tags
-            ? 'test:functionalOpal:tagged'
-            : 'test:functionalOpal',
+    leafScript: `test:${suite}:leaf`,
     specPattern,
     screenshotsFolder,
     componentJsonDir: '',
@@ -591,7 +582,7 @@ function executeSuite(suite, options, baseEnv) {
   const env = { ...baseEnv };
   const mode = normalizeMode(options.mode);
   const browser = resolveBrowser(options.browser);
-  const config = buildSuiteConfig({ suite, mode, browser, tags: options.tags });
+  const config = buildSuiteConfig({ suite, mode, browser });
 
   env.BROWSER_TO_RUN = browser;
   applyRunnerEnv(env, { mode, suite, tags: options.tags });

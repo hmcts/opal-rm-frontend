@@ -3204,6 +3204,56 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hmcts/opal-frontend-common-cypress@file:/Users/iamfrankiemoran/Documents/Github/opal-frontend-common-cypress-lib/hmcts-opal-frontend-common-cypress-0.0.1.tgz::locator=opal-rm-frontend%40workspace%3A.":
+  version: 0.0.1
+  resolution: "@hmcts/opal-frontend-common-cypress@file:/Users/iamfrankiemoran/Documents/Github/opal-frontend-common-cypress-lib/hmcts-opal-frontend-common-cypress-0.0.1.tgz#/Users/iamfrankiemoran/Documents/Github/opal-frontend-common-cypress-lib/hmcts-opal-frontend-common-cypress-0.0.1.tgz::hash=99a1cb&locator=opal-rm-frontend%40workspace%3A."
+  peerDependencies:
+    "@badeball/cypress-cucumber-preprocessor": ">=18 <25"
+    cypress: ">=12 <16"
+    cypress-mochawesome-reporter: ">=3 <5"
+    cypress-multi-reporters: ">=1 <3"
+    cypress-parallel: ">=0.14 <1"
+    junit-report-merger: ">=7 <10"
+    mocha-junit-reporter: ">=2 <3"
+    mochawesome: ">=7 <8"
+    mochawesome-merge: ">=4 <6"
+    mochawesome-report-generator: ">=6 <7"
+    typescript: ">=5 <7"
+  peerDependenciesMeta:
+    "@badeball/cypress-cucumber-preprocessor":
+      optional: true
+    cypress:
+      optional: true
+    cypress-mochawesome-reporter:
+      optional: true
+    cypress-multi-reporters:
+      optional: true
+    cypress-parallel:
+      optional: true
+    junit-report-merger:
+      optional: true
+    mocha-junit-reporter:
+      optional: true
+    mochawesome:
+      optional: true
+    mochawesome-merge:
+      optional: true
+    mochawesome-report-generator:
+      optional: true
+    typescript:
+      optional: true
+  bin:
+    opal-cypress-build-component-report: ./dist/bin/build-component-report.js
+    opal-cypress-build-cucumber-report: ./dist/bin/build-cucumber-report.js
+    opal-cypress-check-test-metadata: ./dist/bin/check-cypress-test-metadata.js
+    opal-cypress-find-tests-missing-epic: ./dist/bin/find-tests-missing-epic.js
+    opal-cypress-find-tests-with-multiple-epics: ./dist/bin/find-tests-with-multiple-epics.js
+    opal-cypress-resolve-placeholder-jira-epics: ./dist/bin/resolve-placeholder-jira-epics.js
+    opal-cypress-runner: ./dist/bin/run-test-suite.js
+  checksum: 10/5bae7f0a95d1e074bea5b3dca2e2e4bbec943db9ddbbfb25b32ca19aafd312eccdbe3f32f683eba2bcd6c65a0d527639711662b0db75f25afa2551abbb7eb36e
+  languageName: node
+  linkType: hard
+
 "@hmcts/opal-frontend-common-node@npm:^0.0.29":
   version: 0.0.29
   resolution: "@hmcts/opal-frontend-common-node@npm:0.0.29"
@@ -14848,6 +14898,7 @@ __metadata:
     "@hmcts/nodejs-healthcheck": "npm:^1.8.5"
     "@hmcts/nodejs-logging": "npm:^4.0.4"
     "@hmcts/opal-frontend-common": "npm:^0.0.72"
+    "@hmcts/opal-frontend-common-cypress": "file:/Users/iamfrankiemoran/Documents/Github/opal-frontend-common-cypress-lib/hmcts-opal-frontend-common-cypress-0.0.1.tgz"
     "@hmcts/opal-frontend-common-node": "npm:^0.0.29"
     "@hmcts/properties-volume": "npm:^1.1.0"
     "@hmcts/zephyr-automation-nodejs": "npm:0.0.7"

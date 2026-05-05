@@ -3204,9 +3204,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hmcts/opal-frontend-common-cypress@npm:^0.0.1":
-  version: 0.0.1
-  resolution: "@hmcts/opal-frontend-common-cypress@npm:0.0.1"
+"@hmcts/opal-frontend-common-cypress@npm:^0.0.2":
+  version: 0.0.2
+  resolution: "@hmcts/opal-frontend-common-cypress@npm:0.0.2"
   peerDependencies:
     "@badeball/cypress-cucumber-preprocessor": ">=18 <25"
     cypress: ">=12 <16"
@@ -3250,7 +3250,7 @@ __metadata:
     opal-cypress-find-tests-with-multiple-epics: dist/bin/find-tests-with-multiple-epics.js
     opal-cypress-resolve-placeholder-jira-epics: dist/bin/resolve-placeholder-jira-epics.js
     opal-cypress-runner: dist/bin/run-test-suite.js
-  checksum: 10/5bae7f0a95d1e074bea5b3dca2e2e4bbec943db9ddbbfb25b32ca19aafd312eccdbe3f32f683eba2bcd6c65a0d527639711662b0db75f25afa2551abbb7eb36e
+  checksum: 10/6626964bc8d667e253941a1ded1821a11fc8eedea509a13fab4b5cd2c2eba0f02e467e3d36ae670df226982351e38793311a73591d26fa835b884a0a45df1665
   languageName: node
   linkType: hard
 
@@ -14898,7 +14898,7 @@ __metadata:
     "@hmcts/nodejs-healthcheck": "npm:^1.8.5"
     "@hmcts/nodejs-logging": "npm:^4.0.4"
     "@hmcts/opal-frontend-common": "npm:^0.0.72"
-    "@hmcts/opal-frontend-common-cypress": "npm:^0.0.1"
+    "@hmcts/opal-frontend-common-cypress": "npm:^0.0.2"
     "@hmcts/opal-frontend-common-node": "npm:^0.0.29"
     "@hmcts/properties-volume": "npm:^1.1.0"
     "@hmcts/zephyr-automation-nodejs": "npm:0.0.7"

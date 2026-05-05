@@ -51,6 +51,7 @@ package-lock.json
 .codex-docs
 docs/superpowers/
 .worktrees/
+.codex/skills/
 
 # System files
 .DS_Store

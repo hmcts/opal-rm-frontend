@@ -5,7 +5,6 @@
     "prod": "http://localhost:5000"
   },
   "opal-api": {
-    "url": "http://localhost:4550",
     "opal-fines-service": "http://localhost:4550",
     "opal-user-service": "http://localhost:4555"
   },
@@ -74,8 +73,13 @@
     "url": "https://login.microsoftonline.com/"
   },
   "opal-user-service-urls": {
-    "userStateUrl": "/users/0/state",
+    "userStateUrl": "/v2/users/0/state",
     "addUserUrl": "/users",
     "updateUserUrl": "/users"
+  },
+  "user-state": {
+    "cacheKeyPrefix": "USER_STATE_",
+    "routePath": "/api/user-state",
+    "tokenClaim": "sub"
   }
 }

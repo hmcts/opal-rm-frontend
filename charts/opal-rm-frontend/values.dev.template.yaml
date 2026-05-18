@@ -66,7 +66,7 @@ opal-fines-service:
       OPAL_FRONTEND_URL: "https://${SERVICE_FQDN}"
       OPAL_USER_SERVICE_API_URL: https://opal-user-service.staging.platform.hmcts.net
       FLYWAY_LOCATIONS: classpath:db/migration/ddl, classpath:db/migration/data/allEnvs, classpath:db/migration/data/nle, classpath:db/migration/data/dev
-      APPLICATIONINSIGHTS_ROLE_NAME: "opal-frontend-pr-${CHANGE_ID}-fines-service"
+      APPLICATIONINSIGHTS_ROLE_NAME: "opal-rm-frontend-pr-${CHANGE_ID}-fines-service"
       DEFAULT_APP_MODE: ${DEV_DEFAULT_APP_MODE}
       OPAL_LEGACY_GATEWAY_URL: ${DEV_OPAL_LEGACY_GATEWAY_URL}
       OPAL_LEGACY_GATEWAY_USERNAME: ${OPAL_LEGACY_GATEWAY_USERNAME}

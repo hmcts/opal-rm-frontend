@@ -137,5 +137,6 @@ export function configureMonitoring(): TransferServerState {
     ssoEnabled: config.get('features.sso.enabled'),
     appInsightsConfig: appInsights,
     userStateCacheExpirationMilliseconds: config.get('expiry.userStateExpiryInMilliseconds'),
+    userStateDomain: config.get('user-state.domain'),
   };
 }

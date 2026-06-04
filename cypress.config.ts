@@ -1,6 +1,7 @@
 import { defineConfig } from 'cypress';
 import { mergeZephyrReports, cleanZephyrReports } from '@hmcts/zephyr-automation-nodejs';
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import {
@@ -176,6 +177,16 @@ async function setupE2eNodeEvents(
     }
 
     return afterScreenshotHandler(config, details);
+  });
+
+  on('task', {
+    'contentDigest:sha512Base64': (payload: unknown) => {
+      if (typeof payload !== 'string') {
+        throw new TypeError('contentDigest:sha512Base64 expects a string payload');
+      }
+
+      return createHash('sha512').update(payload, 'utf8').digest('base64');
+    },
   });
 
   if (process.env.TEST_MODE === 'OPAL') {

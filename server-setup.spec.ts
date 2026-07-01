@@ -30,6 +30,7 @@ describe('server setup', () => {
         routePath: '/api/user-state',
         tokenClaim: 'sub',
       });
+      expect(routesConfig.proxyConfiguration.opalRmServiceUrl).toBe('http://localhost:4556');
       expect(Object.hasOwn(routesConfig.proxyConfiguration, 'opalApiUrl')).toBe(false);
     });
   });

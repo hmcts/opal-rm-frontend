@@ -40,6 +40,7 @@ export function getRoutesConfig(): {
     ...DEFAULT_PROXY_CONFIG,
     opalFinesServiceUrl: config.get('opal-api.opal-fines-service'),
     opalUserServiceUrl: config.get('opal-api.opal-user-service'),
+    opalRmServiceUrl: config.get('opal-api.opal-rm-service'),
   };
 
   const routesConfiguration: RoutesConfiguration = {

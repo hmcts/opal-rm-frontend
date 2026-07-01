@@ -90,7 +90,7 @@ opal-rm-service:
           - name: app-insights-connection-string
             alias: app-insights-connection-string
     environment:
-      OPAL_RM_DB_HOST: "{{ .Release.Name }}-postgresql"
+      OPAL_RM_DB_HOST: "${SERVICE_NAME}-rm-postgresql"
       OPAL_RM_DB_NAME: "opal-rm-db"
       OPAL_RM_DB_USERNAME: "{{ .Values.global.postgresUsername }}"
       OPAL_RM_DB_PASSWORD: "{{ .Values.global.postgresPassword }}"
@@ -99,6 +99,7 @@ opal-rm-service:
       APPLICATIONINSIGHTS_ROLE_NAME: "opal-rm-frontend-pr-${CHANGE_ID}-rm-service"
   postgresql:
     enabled: true
+    fullnameOverride: ${SERVICE_NAME}-rm-postgresql
     auth:
       username: opal-rm
       password: opal-rm

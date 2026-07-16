@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { ROUTER_CONFIGURATION } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppInitializerService } from '@hmcts/opal-frontend-common/services/app-initializer-service';
 import { appConfig } from './app.config';

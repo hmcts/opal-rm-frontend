@@ -360,35 +360,22 @@ describe('AppComponent - browser', () => {
     expect(hasPrimaryNavigation(fixture)).toBe(true);
   });
 
-  it('should hide Reports in primary navigation when the user lacks all report permissions', () => {
-    globalStore.setAuthenticated(true);
-    globalStore.setUserState(createUserStateWithPermissions([]));
+  it.each([
+    { navigationItem: 'Reports', permissionType: 'report' },
+    { navigationItem: 'Search', permissionType: 'search' },
+    { navigationItem: 'Cases', permissionType: 'accounts' },
+  ])(
+    'should hide $navigationItem in primary navigation when the user lacks all $permissionType permissions',
+    ({ navigationItem }) => {
+      globalStore.setAuthenticated(true);
+      globalStore.setUserState(createUserStateWithPermissions([]));
 
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
+      const fixture = TestBed.createComponent(AppComponent);
+      fixture.detectChanges();
 
-    expect(getPrimaryNavigationTexts(fixture)).not.toContain('Reports');
-  });
-
-  it('should hide Search in primary navigation when the user lacks all search permissions', () => {
-    globalStore.setAuthenticated(true);
-    globalStore.setUserState(createUserStateWithPermissions([]));
-
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-
-    expect(getPrimaryNavigationTexts(fixture)).not.toContain('Search');
-  });
-
-  it('should hide Cases in primary navigation when the user lacks all accounts permissions', () => {
-    globalStore.setAuthenticated(true);
-    globalStore.setUserState(createUserStateWithPermissions([]));
-
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-
-    expect(getPrimaryNavigationTexts(fixture)).not.toContain('Cases');
-  });
+      expect(getPrimaryNavigationTexts(fixture)).not.toContain(navigationItem);
+    },
+  );
 
   it('should ignore invalid primary navigation selection values', () => {
     const fixture = TestBed.createComponent(AppComponent);

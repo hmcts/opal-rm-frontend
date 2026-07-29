@@ -1,17 +1,25 @@
+import config from 'config';
 import type { Express, RequestHandler } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 
-const { opalApiProxyMock } = vi.hoisted(() => ({
+const { opalApiProxyMock, sessionStorageEnableForMock } = vi.hoisted(() => ({
   opalApiProxyMock: vi.fn((_url: string, _ipLoggingEnabled: boolean): RequestHandler => {
     return (_req, _res, next) => next();
   }),
+  sessionStorageEnableForMock: vi.fn(),
 }));
 
 vi.mock('@hmcts/opal-frontend-common-node/proxy/opal-api-proxy', () => ({
   default: opalApiProxyMock,
 }));
 
-import { configureApiProxyRoutes, getRoutesConfig } from './server-setup';
+vi.mock('@hmcts/opal-frontend-common-node/session/session-storage', () => ({
+  default: class {
+    enableFor = sessionStorageEnableForMock;
+  },
+}));
+
+import { configureApiProxyRoutes, configureSession, getRoutesConfig } from './server-setup';
 
 describe('server setup', () => {
   describe('getRoutesConfig', () => {
@@ -54,6 +62,22 @@ describe('server setup', () => {
       expect(app.use).toHaveBeenCalledWith('/opal-rm-service', expect.any(Function));
       expect(app.use).not.toHaveBeenCalledWith('/api', expect.any(Function));
       expect(opalApiProxyMock).not.toHaveBeenCalledWith('http://legacy-opal-api', expect.any(Boolean));
+    });
+  });
+
+  describe('configureSession', () => {
+    it('uses the managed Redis connection string from Key Vault', () => {
+      expect(config.has('secrets.opal.managed-redis-connection-string')).toBe(true);
+      expect(config.has('secrets.opal.redis-connection-string')).toBe(false);
+
+      configureSession({} as Express);
+
+      expect(sessionStorageEnableForMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          redisConnectionString: 'redis://localhost:6379',
+        }),
+      );
     });
   });
 });

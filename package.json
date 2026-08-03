@@ -178,7 +178,7 @@
     "nonGlobalStepDefinitions": true
   },
   "resolutions": {
-    "@cucumber/messages": "^32.0.0",
+    "@cucumber/messages": "^34.0.0",
     "browserslist": "^4.28.1",
     "cookie": "^1.0.0",
     "on-headers": "^1.1.0",

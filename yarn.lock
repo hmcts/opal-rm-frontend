@@ -2827,13 +2827,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@cucumber/messages@npm:^32.0.0":
-  version: 32.3.1
-  resolution: "@cucumber/messages@npm:32.3.1"
-  dependencies:
-    class-transformer: "npm:0.5.1"
-    reflect-metadata: "npm:0.2.2"
-  checksum: 10/eb02dff7dd7471a08a090736ec9eadb1ff9370724a50384ceada4a54819a388dacea9bdf8bd74427338dc7432b178810bcdf48387cd3c94c522b94b07542dacd
+"@cucumber/messages@npm:^34.0.0":
+  version: 34.2.0
+  resolution: "@cucumber/messages@npm:34.2.0"
+  checksum: 10/8051ea29d67d7e2e87bd575371df737e2ab841955c73d3244cf0d33ed4335c553c0a236ed36e6f6cf2b6afd99defa0f4ca36b4bb1ea5074955dea6405c840ed2
   languageName: node
   linkType: hard
 
@@ -8914,13 +8911,6 @@ __metadata:
   version: 2.2.0
   resolution: "cjs-module-lexer@npm:2.2.0"
   checksum: 10/fc8eb5c1919504366d8260a150d93c4e857740e770467dc59ca0cc34de4b66c93075559a5af65618f359187866b1be40e036f4e1a1bab2f1e06001c216415f74
-  languageName: node
-  linkType: hard
-
-"class-transformer@npm:0.5.1":
-  version: 0.5.1
-  resolution: "class-transformer@npm:0.5.1"
-  checksum: 10/750327e3e9a5cf233c5234252f4caf6b06c437bf68a24acbdcfb06c8e0bfff7aa97c30428184813e38e08111b42871f20c5cf669ea4490f8ae837c09f08b31e7
   languageName: node
   linkType: hard
 

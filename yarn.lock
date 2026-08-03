@@ -9269,6 +9269,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"connect-redis@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "connect-redis@npm:10.0.0"
+  peerDependencies:
+    express-session: ">=1"
+    redis: ">=5"
+  checksum: 10/6263130357f9fb29e612e181137bce3493d7a57a2f25481cb737d62020401007d934da99e4ccdded7b4401ba8431d5df38a9abd4356342d498afc704b12c0991
+  languageName: node
+  linkType: hard
+
 "connect-redis@npm:^9.0.0":
   version: 9.0.0
   resolution: "connect-redis@npm:9.0.0"
@@ -15039,7 +15049,7 @@ __metadata:
     body-parser: "npm:^2.0.0"
     browser-sync: "npm:^3.0.2"
     config: "npm:^4.0.0"
-    connect-redis: "npm:^9.0.0"
+    connect-redis: "npm:^10.0.0"
     cookie-parser: "npm:^1.4.6"
     csrf-csrf: "npm:^4.0.0"
     cypress: "npm:^15.0.0"

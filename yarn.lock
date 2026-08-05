@@ -3431,9 +3431,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hmcts/opal-frontend-common@npm:0.0.95":
-  version: 0.0.95
-  resolution: "@hmcts/opal-frontend-common@npm:0.0.95"
+"@hmcts/opal-frontend-common@npm:0.0.96":
+  version: 0.0.96
+  resolution: "@hmcts/opal-frontend-common@npm:0.0.96"
   dependencies:
     "@microsoft/applicationinsights-web": "npm:^3.3.6"
     "@ministryofjustice/frontend": "npm:^10.0.0"
@@ -3455,7 +3455,7 @@ __metadata:
   peerDependenciesMeta:
     "@ngrx/signals":
       optional: true
-  checksum: 10/62fbbd6d7b4e12ab1005ab188476ff5202f9e3fa2ca5ce9b40a19b35fe0966b22a73e9fbcb4572563f152d59f6bc6b9cdcdf6f40ed3dd4b6a93a8df69a1ec2f0
+  checksum: 10/a377f6603c99781230cc109170ba34daf30fcb04012585687e55090193a3314239ddb2d57ccdb590f64ff36f43e27dab8051ae24f91f716ed29e8e1dec5f18a8
   languageName: node
   linkType: hard
 
@@ -6866,9 +6866,9 @@ __metadata:
   linkType: hard
 
 "@types/luxon@npm:^3.4.2":
-  version: 3.7.2
-  resolution: "@types/luxon@npm:3.7.2"
-  checksum: 10/6634ebaceeec84d39cbb456d4db358481bc2ba7d05df47890a4f2d235100c29a52f621e1401f016747093093fa86c117bef01446199e0b1af3bcdcee47a57b1f
+  version: 3.7.3
+  resolution: "@types/luxon@npm:3.7.3"
+  checksum: 10/f097bd3f7c47ae766928e0fa496ec13fe4d72c42b29afa4bed457775ce4fb4d8574ccccc0c974bf8915d1e6a7e226fa6efb989905786c4c9c1714754f74e8a17
   languageName: node
   linkType: hard
 
@@ -15013,7 +15013,7 @@ __metadata:
     "@hmcts/info-provider": "npm:^1.1.0"
     "@hmcts/nodejs-healthcheck": "npm:^1.8.5"
     "@hmcts/nodejs-logging": "npm:^4.0.4"
-    "@hmcts/opal-frontend-common": "npm:0.0.95"
+    "@hmcts/opal-frontend-common": "npm:0.0.96"
     "@hmcts/opal-frontend-common-cypress": "npm:^0.0.3"
     "@hmcts/opal-frontend-common-node": "npm:0.0.43"
     "@hmcts/properties-volume": "npm:^1.1.0"

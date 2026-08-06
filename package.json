@@ -162,7 +162,7 @@
     "junit-report-merger": "^9.0.0",
     "mocha": "^11.0.0",
     "mocha-junit-reporter": "^2.2.1",
-    "mochawesome": "^7.1.3",
+    "mochawesome": "^8.0.0",
     "mochawesome-merge": "^5.0.0",
     "mochawesome-report-generator": "^6.2.0",
     "openapi-merge-cli": "^1.3.2",

@@ -2828,9 +2828,9 @@ __metadata:
   linkType: hard
 
 "@cucumber/messages@npm:^34.0.0":
-  version: 34.2.0
-  resolution: "@cucumber/messages@npm:34.2.0"
-  checksum: 10/8051ea29d67d7e2e87bd575371df737e2ab841955c73d3244cf0d33ed4335c553c0a236ed36e6f6cf2b6afd99defa0f4ca36b4bb1ea5074955dea6405c840ed2
+  version: 34.2.1
+  resolution: "@cucumber/messages@npm:34.2.1"
+  checksum: 10/bb781a8e21f9f61a986906a4864a7495298b7955637de0df4f0df3a4af0f68c1dd0c4cc980f37adf584ea5d5c476451fd352e744522535199b6f5ca86b3e2b7a
   languageName: node
   linkType: hard
 

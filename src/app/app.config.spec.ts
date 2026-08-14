@@ -1,6 +1,9 @@
+import { HttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppInitializerService } from '@hmcts/opal-frontend-common/services/app-initializer-service';
+import { withHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
 import { appConfig } from './app.config';
 
 type ProviderRecord = {
@@ -52,6 +55,7 @@ describe('appConfig', () => {
             initializeApp: vi.fn(),
           },
         },
+        provideHttpClientTesting(),
       ],
     });
   });
@@ -80,5 +84,21 @@ describe('appConfig', () => {
       anchorScrolling: 'enabled',
       scrollPositionRestoration: 'top',
     });
+  });
+
+  it('retries opted-in transient GET requests before surfacing an error', () => {
+    const http = TestBed.inject(HttpClient);
+    const httpTestingController = TestBed.inject(HttpTestingController);
+    const response = vi.fn();
+    const error = vi.fn();
+
+    http.get('/retry', { context: withHttpRetry({ retryCount: 1, delayMs: 0 }) }).subscribe({ next: response, error });
+
+    httpTestingController.expectOne('/retry').flush(null, { status: 503, statusText: 'Service Unavailable' });
+    httpTestingController.expectOne('/retry').flush({ available: true });
+
+    expect(response).toHaveBeenCalledWith({ available: true });
+    expect(error).not.toHaveBeenCalled();
+    httpTestingController.verify();
   });
 });

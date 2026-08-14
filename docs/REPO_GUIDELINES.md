@@ -107,4 +107,3 @@ Changed UI must meet WCAG 2.2 AA expectations.
 - Update the README or supporting documentation when behaviour, configuration, commands, integration points, or workflows change.
 - Update an LLD only when the complete journey or feature is ready and an LLD update is required.
 - Identify required configuration and feature flags in the implementation handoff and PR.
-- Use `docs/DEFINITION_OF_DONE.md` to distinguish local readiness from overall completion.

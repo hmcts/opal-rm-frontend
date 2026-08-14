@@ -12,7 +12,6 @@ Use Yarn 4 through Corepack. Treat `.nvmrc` and `package.json#packageManager` as
 - Read the guidance applicable to the task:
   - Implementation standards: `docs/REPO_GUIDELINES.md`
   - Branches, commits, PRs, and evidence: `docs/CONTRIBUTING.md`
-  - Completion criteria: `docs/DEFINITION_OF_DONE.md`
   - Cypress component tests: `docs/CYPRESS_COMPONENT_TESTING.md`
   - Cypress E2E and accessibility tests: `docs/CYPRESS_E2E_TESTING.md`
 
@@ -64,6 +63,5 @@ Supporting repository documents remain authoritative when a named skill is unava
 - Run proportionate automated checks and report the exact commands and results.
 - Report checks that were not run and explain why.
 - Record required configuration, feature flags, manual testing, limitations, and follow-up work.
-- Use `docs/DEFINITION_OF_DONE.md` when assessing completion.
 - Treat reviewer approval, QA sign-off, CI, deployment, environment verification, feature-flag activation, and ticket closure as pending unless direct evidence confirms them.
-- Do not claim the ticket is Done while any applicable Definition of Done criterion remains unverified.
+- Do not represent pending or unverified work as complete.

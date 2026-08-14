@@ -1,6 +1,6 @@
 # Contributing
 
-This document is the authoritative workflow for branches, commits, pull requests, evidence, review, and QA. Use `docs/DEFINITION_OF_DONE.md` to assess overall completion.
+This document is the authoritative workflow for branches, commits, pull requests, evidence, review, and QA.
 
 ## Branches
 

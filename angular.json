@@ -158,7 +158,7 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "buildTarget": "opal-rm-frontend:test-build:development",
-            "include": ["src/**/*.spec.ts"],
+            "include": ["src/**/*.spec.ts", "../server-setup.spec.ts"],
             "tsConfig": "tsconfig.spec.json",
             "runner": "vitest",
             "runnerConfig": "vitest.config.ts",

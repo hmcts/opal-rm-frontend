@@ -42,19 +42,18 @@ Run checks proportionate to the changed area.
 
 Use the Cypress commands and workflows in the applicable Cypress guide.
 
+## Code review rules
+
+- For code reviews, read and apply `docs/CODE_REVIEW_GUIDELINES.md` and `docs/REPO_GUIDELINES.md`.
+- Report concrete defects introduced by the reviewed change and anchor each finding to the smallest relevant diff range.
+- Base severity on actual user, security, accessibility, operational, or delivery impact.
+- Treat implementation preferences as advisory unless they cause a demonstrable defect.
+
 ## Task-specific workflows
 
-When the corresponding skill is available:
+Use an available task-specific skill when its description matches the requested work.
 
-- Existing extracted TDIA context: use `opal-ticket-context`.
-- Saved TDIA source requiring extraction: use `opal-ticket-tdia`.
-- Frontend code review: use `opal-frontend-review-guidelines`.
-- Angular and Vitest tests: use `opal-frontend-vitest-guard`.
-- Cypress component tests or review: use `opal-frontend-component-tests` or `opal-frontend-component-test-review`.
-- Cypress E2E tests or review: use `opal-frontend-e2e-tests` or `opal-frontend-e2e-test-review`.
-- Completed journey or feature LLD updates: use `opal-flow-lld`.
-
-Supporting repository documents remain authoritative when a named skill is unavailable.
+Supporting repository documents remain authoritative when a relevant skill is unavailable.
 
 ## Verification and handoff
 

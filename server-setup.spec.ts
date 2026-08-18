@@ -38,7 +38,7 @@ describe('server setup', () => {
         routePath: '/api/user-state',
         tokenClaim: 'sub',
       });
-      expect(routesConfig.proxyConfiguration.opalRmServiceUrl).toBe('http://localhost:4556');
+      expect(routesConfig.proxyConfiguration.opalRmServiceUrl).toBe('http://localhost:4551');
       expect(Object.hasOwn(routesConfig.proxyConfiguration, 'opalApiUrl')).toBe(false);
     });
   });
@@ -51,7 +51,7 @@ describe('server setup', () => {
         opalApiUrl: 'http://legacy-opal-api',
         opalFinesServiceUrl: 'http://opal-fines-service',
         opalUserServiceUrl: 'http://opal-user-service',
-        opalRmServiceUrl: 'http://opal-rm-service',
+        opalRmServiceUrl: 'http://opal-maintenance-service',
       } as Parameters<typeof configureApiProxyRoutes>[1] & { opalApiUrl: string };
 
       configureApiProxyRoutes(app, proxyConfiguration);
@@ -59,7 +59,7 @@ describe('server setup', () => {
       expect(app.use).toHaveBeenCalledTimes(3);
       expect(app.use).toHaveBeenCalledWith('/opal-fines-service', expect.any(Function));
       expect(app.use).toHaveBeenCalledWith('/opal-user-service', expect.any(Function));
-      expect(app.use).toHaveBeenCalledWith('/opal-rm-service', expect.any(Function));
+      expect(app.use).toHaveBeenCalledWith('/opal-maintenance-service', expect.any(Function));
       expect(app.use).not.toHaveBeenCalledWith('/api', expect.any(Function));
       expect(opalApiProxyMock).not.toHaveBeenCalledWith('http://legacy-opal-api', expect.any(Boolean));
     });

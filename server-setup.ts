@@ -40,7 +40,7 @@ export function getRoutesConfig(): {
     ...DEFAULT_PROXY_CONFIG,
     opalFinesServiceUrl: config.get('opal-api.opal-fines-service'),
     opalUserServiceUrl: config.get('opal-api.opal-user-service'),
-    opalRmServiceUrl: config.get('opal-api.opal-rm-service'),
+    opalRmServiceUrl: config.get('opal-api.opal-maintenance-service'),
     timeoutInMilliseconds: config.get('opal-api.timeoutInMilliseconds'),
   };
 
@@ -102,7 +102,7 @@ export function configureApiProxyRoutes(app: Express, proxyConfiguration: ProxyC
 
   if (proxyConfiguration.opalRmServiceUrl) {
     app.use(
-      '/opal-rm-service',
+      '/opal-maintenance-service',
       OpalApiProxy(proxyConfiguration.opalRmServiceUrl, ipLoggingEnabled, proxyConfiguration.timeoutInMilliseconds),
     );
   }

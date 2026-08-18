@@ -46,7 +46,6 @@ Use the Cypress commands and workflows in the applicable Cypress guide.
 
 When the corresponding skill is available:
 
-- Large or multi-stage work: use `execplan`.
 - Existing extracted TDIA context: use `opal-ticket-context`.
 - Saved TDIA source requiring extraction: use `opal-ticket-tdia`.
 - Frontend code review: use `opal-frontend-review-guidelines`.

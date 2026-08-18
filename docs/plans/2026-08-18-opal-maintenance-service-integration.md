@@ -35,6 +35,8 @@ repository's port, chart, image, ingress, and database settings.
 - Modify: `server-setup.ts:39-45,103-108`
 - Modify: `config/default.json:7-12`
 - Modify: `config/custom-environment-variables.json:3-9`
+- Modify: `angular.json:161`
+- Modify: `tsconfig.spec.json:4-12`
 
 **Interfaces:**
 
@@ -59,12 +61,12 @@ const proxyConfiguration = {
 expect(app.use).toHaveBeenCalledWith('/opal-maintenance-service', expect.any(Function));
 ```
 
-- [ ] **Step 2: Run the focused spec and confirm the red state**
+- [ ] **Step 2: Run the server assertions directly and confirm the red state**
 
 Run:
 
 ```bash
-yarn test --include=server-setup.spec.ts
+yarn exec vitest run server-setup.spec.ts
 ```
 
 Expected: FAIL because the current default is `http://localhost:4556` and the current Express route is
@@ -107,22 +109,62 @@ if (proxyConfiguration.opalRmServiceUrl) {
 }
 ```
 
-- [ ] **Step 5: Run the focused spec and confirm the green state**
+- [ ] **Step 5: Include and type-check the root server spec in the Angular test target**
+
+In `angular.json`, update the test target include list to:
+
+```json
+"include": ["src/**/*.spec.ts", "../server-setup.spec.ts"]
+```
+
+In `tsconfig.spec.json`, set the test program root and include the root server spec:
+
+```json
+"compilerOptions": {
+  "rootDir": "."
+},
+"include": ["src/**/*.spec.ts", "server-setup.spec.ts", "src/test-setup.ts", "src/**/*.d.ts"]
+```
+
+- [ ] **Step 6: Run the focused supported spec and confirm the green state**
 
 Run:
 
 ```bash
-yarn test --include=server-setup.spec.ts
+yarn test --include=../server-setup.spec.ts
 ```
 
-Expected: PASS with all tests in `server-setup.spec.ts` successful.
+Expected: PASS with **1 test file and 3/3 tests** successful.
 
-- [ ] **Step 6: Commit the proxy migration**
+- [ ] **Step 7: Run the complete supported suite and confirm the green state**
+
+Run:
+
+```bash
+yarn test
+```
+
+Expected: PASS with **11 test files and 67/67 tests** successful, preserving the existing 64 tests and executing the 3
+server assertions.
+
+- [ ] **Step 8: Commit the proxy migration**
 
 ```bash
 git add server-setup.spec.ts server-setup.ts config/default.json config/custom-environment-variables.json
 git commit -m "fix: proxy opal maintenance service"
 ```
+
+This is the implementation commit `a6f49e6`.
+
+- [ ] **Step 9: Commit the test-discovery configuration separately**
+
+```bash
+git add angular.json tsconfig.spec.json
+git commit -m "test: include server setup spec in Angular test target"
+```
+
+This is the subsequent test-discovery commit `1efa614`; do not amend, squash, or otherwise rewrite the implementation
+commit.
 
 ---
 

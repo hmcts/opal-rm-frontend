@@ -27,6 +27,7 @@ Use Yarn 4 through Corepack. Treat `.nvmrc` and `package.json#packageManager` as
 - Add or update relevant tests for changed behaviour, validation, state, and error or empty states.
 - Update supporting documentation when behaviour, configuration, integrations, or workflows change.
 - Do not change dependency or lock files unless the task requires a dependency change.
+- Do not force-add ignored files with `git add -f` or `git add --force` unless the user explicitly approves adding that specific file.
 
 ## Commands
 

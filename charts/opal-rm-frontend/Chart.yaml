@@ -22,10 +22,15 @@ dependencies:
     version: 0.0.107
     repository: "oci://hmctsprod.azurecr.io/helm"
     condition: opal-fines-service.enabled
-  - name: opal-rm-service
-    version: 0.0.2
+  - name: postgresql
+    alias: opal-maintenance-postgresql
+    version: 18.8.7
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    condition: opal-maintenance-postgresql.enabled
+  - name: opal-maintenance-service
+    version: 0.0.17
     repository: "oci://hmctsprod.azurecr.io/helm"
-    condition: opal-rm-service.enabled
+    condition: opal-maintenance-service.enabled
   - name: servicebus
     version: 1.2.2
     repository: "oci://hmctsprod.azurecr.io/helm"

@@ -5,7 +5,7 @@ nodejs:
   environment:
     FRONTEND_HOSTNAME: https://${SERVICE_FQDN}
     OPAL_FINES_SERVICE_API_URL: http://${SERVICE_NAME}-opal-fines-service
-    OPAL_RM_SERVICE_API_URL: http://${SERVICE_NAME}-opal-rm-service
+    OPAL_MAINTENANCE_SERVICE_API_URL: http://${SERVICE_NAME}-opal-maintenance-service
     OPAL_USER_SERVICE_API_URL: https://opal-user-service.staging.platform.hmcts.net
     FEATURES_LAUNCH_DARKLY_ENABLED: true
     FEATURES_SSO_ENABLED: true
@@ -63,11 +63,36 @@ opal-fines-service:
       LAUNCH_DARKLY_ENABLED: true
       OPAL_REDIS_ENABLED: true
       REDIS_CONNECTION_STRING: redis://${SERVICE_NAME}-hmcts-redis-master:6379
-opal-rm-service:
+opal-maintenance-service:
   enabled: true
   java:
-    ingressHost: opal-rm-service-${SERVICE_FQDN}
+    ingressHost: opal-maintenance-service-${SERVICE_FQDN}
     imagePullPolicy: Always
+    keyVaults:
+      opal:
+        secrets:
+          - name: app-insights-connection-string
+            alias: app-insights-connection-string
+    environment:
+      OPAL_MAINTENANCE_DB_HOST: "${SERVICE_NAME}-maintenance-postgresql"
+      OPAL_MAINTENANCE_DB_NAME: "opal-maintenance-db"
+      OPAL_MAINTENANCE_DB_USERNAME: "opal-maintenance"
+      OPAL_MAINTENANCE_DB_PASSWORD: "opal-maintenance"
+      OPAL_MAINTENANCE_DB_PORT: "5432"
+      OPAL_MAINTENANCE_DB_OPTIONS: "?stringtype=unspecified"
+      RUN_DB_MIGRATION_ON_STARTUP: true
+      FLYWAY_LOCATIONS: classpath:db/migration/ddl, classpath:db/migration/data/allEnvs, classpath:db/migration/data/nle, classpath:db/migration/data/stg
+opal-maintenance-postgresql:
+  enabled: true
+  fullnameOverride: ${SERVICE_NAME}-maintenance-postgresql
+  auth:
+    username: opal-maintenance
+    password: opal-maintenance
+    database: opal-maintenance-db
+  primary:
+    persistence:
+      enabled: false
+    resourcesPreset: small
 postgresql:
   enabled: true
   auth:

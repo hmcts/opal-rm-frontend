@@ -3,7 +3,7 @@ import type { Express, RequestHandler } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { opalApiProxyMock, sessionStorageEnableForMock } = vi.hoisted(() => ({
-  opalApiProxyMock: vi.fn((_url: string, _ipLoggingEnabled: boolean): RequestHandler => {
+  opalApiProxyMock: vi.fn((): RequestHandler => {
     return (_req, _res, next) => next();
   }),
   sessionStorageEnableForMock: vi.fn(),

@@ -1,6 +1,6 @@
 import config from 'config';
 import type { Express, RequestHandler } from 'express';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { opalApiProxyMock, sessionStorageEnableForMock } = vi.hoisted(() => ({
   opalApiProxyMock: vi.fn((_url: string, _ipLoggingEnabled: boolean): RequestHandler => {
@@ -19,9 +19,13 @@ vi.mock('@hmcts/opal-frontend-common-node/session/session-storage', () => ({
   },
 }));
 
-import { configureApiProxyRoutes, configureSession, getRoutesConfig } from './server-setup';
+import { configureApiProxyRoutes, configureSession, getRoutesConfig } from '../server-setup';
 
 describe('server setup', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('getRoutesConfig', () => {
     it('configures the common-node user state route', () => {
       const routesConfig = getRoutesConfig() as ReturnType<typeof getRoutesConfig> & {
@@ -39,6 +43,9 @@ describe('server setup', () => {
         tokenClaim: 'sub',
       });
       expect(routesConfig.proxyConfiguration.opalRmServiceUrl).toBe('http://localhost:4556');
+      expect(routesConfig.proxyConfiguration.timeoutInMilliseconds).toBe(
+        config.get<number>('opal-api.timeoutInMilliseconds'),
+      );
       expect(Object.hasOwn(routesConfig.proxyConfiguration, 'opalApiUrl')).toBe(false);
     });
   });
@@ -46,12 +53,14 @@ describe('server setup', () => {
   describe('configureApiProxyRoutes', () => {
     it('does not configure the legacy /api proxy route', () => {
       const app = { use: vi.fn() } as unknown as Express;
+      const timeoutInMilliseconds = 30_000;
 
       const proxyConfiguration = {
         opalApiUrl: 'http://legacy-opal-api',
         opalFinesServiceUrl: 'http://opal-fines-service',
         opalUserServiceUrl: 'http://opal-user-service',
         opalRmServiceUrl: 'http://opal-rm-service',
+        timeoutInMilliseconds,
       } as Parameters<typeof configureApiProxyRoutes>[1] & { opalApiUrl: string };
 
       configureApiProxyRoutes(app, proxyConfiguration);
@@ -62,6 +71,40 @@ describe('server setup', () => {
       expect(app.use).toHaveBeenCalledWith('/opal-rm-service', expect.any(Function));
       expect(app.use).not.toHaveBeenCalledWith('/api', expect.any(Function));
       expect(opalApiProxyMock).not.toHaveBeenCalledWith('http://legacy-opal-api', expect.any(Boolean));
+      expect(opalApiProxyMock).toHaveBeenNthCalledWith(
+        1,
+        'http://opal-fines-service',
+        config.get<boolean>('features.ip-logging.enabled'),
+        timeoutInMilliseconds,
+      );
+      expect(opalApiProxyMock).toHaveBeenNthCalledWith(
+        2,
+        'http://opal-user-service',
+        config.get<boolean>('features.ip-logging.enabled'),
+        timeoutInMilliseconds,
+      );
+      expect(opalApiProxyMock).toHaveBeenNthCalledWith(
+        3,
+        'http://opal-rm-service',
+        config.get<boolean>('features.ip-logging.enabled'),
+        timeoutInMilliseconds,
+      );
+    });
+
+    it('fails before configuring API proxy routes when the timeout is missing', () => {
+      const app = { use: vi.fn() } as unknown as Express;
+      const proxyConfiguration = {
+        opalFinesServiceUrl: 'http://opal-fines-service',
+        opalUserServiceUrl: 'http://opal-user-service',
+        opalRmServiceUrl: 'http://opal-rm-service',
+        timeoutInMilliseconds: null,
+      } as Parameters<typeof configureApiProxyRoutes>[1];
+
+      expect(() => configureApiProxyRoutes(app, proxyConfiguration)).toThrow(
+        'Missing opal-api.timeoutInMilliseconds configuration.',
+      );
+      expect(app.use).not.toHaveBeenCalled();
+      expect(opalApiProxyMock).not.toHaveBeenCalled();
     });
   });
 

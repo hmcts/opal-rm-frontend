@@ -3413,9 +3413,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hmcts/opal-frontend-common-node@npm:0.0.43":
-  version: 0.0.43
-  resolution: "@hmcts/opal-frontend-common-node@npm:0.0.43"
+"@hmcts/opal-frontend-common-node@npm:^0.0.45":
+  version: 0.0.45
+  resolution: "@hmcts/opal-frontend-common-node@npm:0.0.45"
   dependencies:
     "@azure/msal-browser": "npm:^5.0.0"
     "@hmcts/info-provider": "npm:^1.1.0"
@@ -3425,8 +3425,8 @@ __metadata:
     applicationinsights: "npm:~2.9.6"
     axios: "npm:^1.6.2"
     body-parser: "npm:^2.0.0"
-    config: "npm:^4.0.0"
-    connect-redis: "npm:^9.0.0"
+    config: "npm:^5.0.0"
+    connect-redis: "npm:^10.0.0"
     cookie-parser: "npm:^1.4.6"
     csrf-csrf: "npm:^4.0.0"
     express: "npm:^5.0.0"
@@ -3437,11 +3437,11 @@ __metadata:
     redis: "npm:^6.0.0"
     session-file-store: "npm:^1.5.0"
     xml2js: "npm:^0.6.2"
-  checksum: 10/a0b29f920786110f353452d88a7b41d157125ffcee986300e04c05f87fc37e27120a4516701240bddfda8f4d2dfca392c9870015c9320a4872baf528d7dc2316
+  checksum: 10/57c1cd9f333f0dba7636ffd50030597eff93dddc42c245fcf9421aaad2d8a3bb4da9ccf5bc9046cc9201999bc0703cbbf46d1973e14f559b317ba5ff2c665dbf
   languageName: node
   linkType: hard
 
-"@hmcts/opal-frontend-common@npm:0.0.101":
+"@hmcts/opal-frontend-common@npm:^0.0.101":
   version: 0.0.101
   resolution: "@hmcts/opal-frontend-common@npm:0.0.101"
   dependencies:
@@ -9234,12 +9234,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"config@npm:^4.0.0":
-  version: 4.4.2
-  resolution: "config@npm:4.4.2"
+"config@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "config@npm:5.0.0"
   dependencies:
     json5: "npm:^2.2.3"
-  checksum: 10/57c321f94d8893f3748daefc62923b806d8d79f1da12f448f5ee190c25aa75aed5c6e31f206c3dd0ea7a8f2d11d6737d24f92019509a5d2f4773156ede16e7de
+  checksum: 10/317dc25a4ded70010cc5636fb92d35b845e94e49f54a52a4a5ecaa81f3b118b8e2bf5e56ce486ab9c8c5e5e8ef68668ca2a95ef8eb12ee382aadbe834f382c40
   languageName: node
   linkType: hard
 
@@ -9264,16 +9264,6 @@ __metadata:
     express-session: ">=1"
     redis: ">=5"
   checksum: 10/6263130357f9fb29e612e181137bce3493d7a57a2f25481cb737d62020401007d934da99e4ccdded7b4401ba8431d5df38a9abd4356342d498afc704b12c0991
-  languageName: node
-  linkType: hard
-
-"connect-redis@npm:^9.0.0":
-  version: 9.0.0
-  resolution: "connect-redis@npm:9.0.0"
-  peerDependencies:
-    express-session: ">=1"
-    redis: ">=5"
-  checksum: 10/da5c6304a33c54128f105f5022f515fbe651ae0b28e194f2ba8b5d9def6cf59a690bb5f99715a6e69d4ef8f27273be4cd59608727cecf0e42d6cbb0fe9022d6a
   languageName: node
   linkType: hard
 
@@ -14971,9 +14961,9 @@ __metadata:
     "@hmcts/info-provider": "npm:^1.1.0"
     "@hmcts/nodejs-healthcheck": "npm:^1.8.5"
     "@hmcts/nodejs-logging": "npm:^4.0.4"
-    "@hmcts/opal-frontend-common": "npm:0.0.101"
+    "@hmcts/opal-frontend-common": "npm:^0.0.101"
     "@hmcts/opal-frontend-common-cypress": "npm:^0.0.3"
-    "@hmcts/opal-frontend-common-node": "npm:0.0.43"
+    "@hmcts/opal-frontend-common-node": "npm:^0.0.45"
     "@hmcts/properties-volume": "npm:^1.1.0"
     "@hmcts/zephyr-automation-nodejs": "npm:0.0.8"
     "@microsoft/applicationinsights-web": "npm:^3.3.5"
@@ -14996,7 +14986,7 @@ __metadata:
     axios: "npm:^1.6.2"
     body-parser: "npm:^2.0.0"
     browser-sync: "npm:^3.0.2"
-    config: "npm:^4.0.0"
+    config: "npm:^5.0.0"
     connect-redis: "npm:^10.0.0"
     cookie-parser: "npm:^1.4.6"
     csrf-csrf: "npm:^4.0.0"
@@ -15038,7 +15028,7 @@ __metadata:
     tsconfig-paths-webpack-plugin: "npm:^4.2.0"
     tslib: "npm:^2.3.0"
     tsx: "npm:^4.21.0"
-    typescript: "npm:~6.0.0"
+    typescript: "npm:~5.9.3"
     vitest: "npm:^4.0.8"
     webpack: "npm:^5.93.0"
     xml2js: "npm:^0.6.2"
@@ -18397,7 +18387,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.9.3":
+"typescript@npm:^5.9.3, typescript@npm:~5.9.3":
   version: 5.9.3
   resolution: "typescript@npm:5.9.3"
   bin:
@@ -18407,33 +18397,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:~6.0.0":
-  version: 6.0.3
-  resolution: "typescript@npm:6.0.3"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10/0ef2357a4cffd916b52b683a021cdab0f81eea4e9aa35f2d254581c9a5106da02224e3392e1b0ed42b7a48f80c966e5f52b8e1a27941fa0523c1705a9c2e0330
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@npm%3A^5.9.3#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A^5.9.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A~5.9.3#optional!builtin<compat/typescript>":
   version: 5.9.3
   resolution: "typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10/696e1b017bc2635f4e0c94eb4435357701008e2f272f553d06e35b494b8ddc60aa221145e286c28ace0c89ee32827a28c2040e3a69bdc108b1a5dc8fb40b72e3
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@npm%3A~6.0.0#optional!builtin<compat/typescript>":
-  version: 6.0.3
-  resolution: "typescript@patch:typescript@npm%3A6.0.3#optional!builtin<compat/typescript>::version=6.0.3&hash=5786d5"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10/22b67a18dafedf9b1468b64ca20d9aa02ea61d449b65413d8aa6552aeb63f52ef369e86beb25b6b4c91a803d9726ee5c196f391a9b64201263263410a4223ee6
   languageName: node
   linkType: hard
 

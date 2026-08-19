@@ -112,7 +112,11 @@ export function configureApiProxyRoutes(app: Express, proxyConfiguration: ProxyC
   if (proxyConfiguration.opalRmServiceUrl) {
     app.use(
       '/opal-maintenance-service',
-      OpalApiProxy(proxyConfiguration.opalRmServiceUrl, ipLoggingEnabled, proxyConfiguration.timeoutInMilliseconds),
+      OpalApiProxy(
+        proxyConfiguration.opalRmServiceUrl,
+        ipLoggingEnabled,
+        opalMaintenanceServiceProxyTimeoutInMilliseconds,
+      ),
     );
   }
 }

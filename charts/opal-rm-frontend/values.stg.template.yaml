@@ -16,6 +16,7 @@ nodejs:
 opal-maintenance-service:
   enabled: true
   java:
+    releaseNameOverride: ${SERVICE_NAME}-opal-maintenance-service
     ingressHost: opal-maintenance-service-${SERVICE_FQDN}
     imagePullPolicy: Always
     keyVaults:

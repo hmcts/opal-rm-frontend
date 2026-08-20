@@ -4,7 +4,7 @@
       "inputURL": "http://localhost:4551/v3/api-docs",
       "dispute": {
         "alwaysApply": false,
-        "suffix": ""
+        "suffix": "Maintenance"
       }
     }
   ],

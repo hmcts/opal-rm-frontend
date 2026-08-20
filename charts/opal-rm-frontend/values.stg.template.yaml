@@ -34,7 +34,7 @@ opal-maintenance-service:
             alias: AAD_CLIENT_ID
           - name: AzureADClientSecret
             alias: AAD_CLIENT_SECRET
-          - name: redis-connection-string
+          - name: managed-redis-connection-string
             alias: REDIS_CONNECTION_STRING
           - name: maintenance-service-POSTGRES-PASS
             alias: OPAL_MAINTENANCE_DB_PASSWORD

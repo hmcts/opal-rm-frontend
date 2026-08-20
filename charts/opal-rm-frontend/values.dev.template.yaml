@@ -42,19 +42,19 @@ opal-maintenance-service:
             alias: AAD_CLIENT_ID
           - name: AzureADClientSecret
             alias: AAD_CLIENT_SECRET
-          - name: OpalTestUserPassword
-            alias: OPAL_TEST_USER_PASSWORD
-          - name: opalLegacyJCDEGatewayUsername
-            alias: OPAL_LEGACY_GATEWAY_USERNAME
-          - name: opalLegacyJCDEGatewayPassword
-            alias: OPAL_LEGACY_GATEWAY_PASSWORD
-          - name: launch-darkly-sdk-key-dev
-            alias: LAUNCH_DARKLY_SDK_KEY
+          - name: redis-connection-string
+            alias: REDIS_CONNECTION_STRING
+          - name: maintenance-service-POSTGRES-PASS
+            alias: OPAL_MAINTENANCE_DB_PASSWORD
+          - name: maintenance-service-POSTGRES-USER
+            alias: OPAL_MAINTENANCE_DB_USERNAME
+          - name: servicebus-connection-string
+            alias: SERVICEBUS_CONNECTION_STRING
+          - name: servicebus-logging-pdpl-queue-name
+            alias: SERVICEBUS_LOGGING_PDPL_QUEUE_NAME
     environment:
       OPAL_MAINTENANCE_DB_HOST: "{{ .Release.Name }}-postgresql"
       OPAL_MAINTENANCE_DB_NAME: opal
-      OPAL_MAINTENANCE_DB_USERNAME: opal
-      OPAL_MAINTENANCE_DB_PASSWORD: opal
       OPAL_MAINTENANCE_DB_OPTIONS: "?stringtype=unspecified"
       OPAL_MAINTENANCE_DB_PORT: 5432
       RUN_DB_MIGRATION_ON_STARTUP: true

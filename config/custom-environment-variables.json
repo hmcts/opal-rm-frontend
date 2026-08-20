@@ -1,7 +1,6 @@
 {
   "node-env": "NODE_ENV",
   "opal-api": {
-    "opal-fines-service": "OPAL_FINES_SERVICE_API_URL",
     "opal-user-service": "OPAL_USER_SERVICE_API_URL",
     "opal-maintenance-service": "OPAL_MAINTENANCE_SERVICE_API_URL",
     "timeoutInMilliseconds": {
@@ -136,12 +135,6 @@
     },
     "retryDelayInMilliseconds": {
       "__name": "OPAL_USER_SERVICE_RETRY_DELAY_IN_MILLISECONDS",
-      "__format": "json"
-    }
-  },
-  "opal-fines-service": {
-    "timeoutInMilliseconds": {
-      "__name": "OPAL_FINES_SERVICE_TIMEOUT_IN_MILLISECONDS",
       "__format": "json"
     }
   },

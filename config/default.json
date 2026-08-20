@@ -5,7 +5,6 @@
     "prod": "http://localhost:5000"
   },
   "opal-api": {
-    "opal-fines-service": "http://localhost:4550",
     "opal-user-service": "http://localhost:4555",
     "opal-maintenance-service": "http://localhost:4551",
     "timeoutInMilliseconds": 30000
@@ -112,11 +111,6 @@
   },
   "opal-user-service": {
     "timeoutInMilliseconds": 5000,
-    "retryAttempts": 3,
-    "retryDelayInMilliseconds": 200
-  },
-  "opal-fines-service": {
-    "timeoutInMilliseconds": 29000,
     "retryAttempts": 3,
     "retryDelayInMilliseconds": 200
   },

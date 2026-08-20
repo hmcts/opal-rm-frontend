@@ -41,7 +41,7 @@ redis:
 opal-maintenance-service:
   enabled: false
 
-opal-maintenance-postgresql:
+postgresql:
   enabled: false
   image:
     registry: hmctsprod.azurecr.io

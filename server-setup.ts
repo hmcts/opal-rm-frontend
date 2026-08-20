@@ -15,6 +15,7 @@ import {
   ProxyConfiguration,
   UserStateConfiguration,
 } from '@hmcts/opal-frontend-common-node/interfaces';
+import { DEFAULT_PROXY_CONFIG } from '@hmcts/opal-frontend-common-node/constants';
 
 const env = process.env['NODE_ENV'] || 'development';
 const developmentMode = env === 'development';
@@ -35,11 +36,12 @@ export function getRoutesConfig(): {
     warningThresholdInMilliseconds: config.get<number>(`${expiryConfigPath}.warningThresholdInMilliseconds`),
   };
 
-  const proxyConfiguration = {
+  const proxyConfiguration: ProxyConfiguration = {
+    ...DEFAULT_PROXY_CONFIG,
     opalUserServiceUrl: config.get('opal-api.opal-user-service'),
     opalRmServiceUrl: config.get('opal-api.opal-maintenance-service'),
     timeoutInMilliseconds: config.get('opal-api.timeoutInMilliseconds'),
-  } as ProxyConfiguration;
+  };
 
   const routesConfiguration: RoutesConfiguration = {
     frontendHostname:

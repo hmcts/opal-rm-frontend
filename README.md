@@ -4,7 +4,7 @@ This is an [Angular SSR](https://angular.dev/guide/ssr) application. There are t
 
 - the web server for when the app is deployed in Kubernetes.
 
-- to proxy API requests to internally-facing backend API services, such as the [opal-maintenance-service](https://github.com/hmcts/opal-maintenance-service) or [opal-fines-service](https://github.com/hmcts/opal-fines-service).
+- to proxy API requests to internally-facing backend API services, such as the [opal-maintenance-service](https://github.com/hmcts/opal-maintenance-service).
 
 ## Contents
 
@@ -61,18 +61,14 @@ This pulls the latest shared skills and installs Codex-only symlinks for the sha
 Documents/
 └── GitHub/
   ├── opal-shared-infrastructure/
-  ├── opal-fines-service/
   ├── opal-maintenance-service/
   ├── opal-user-service/
-  ├── opal-logging-service/
   └── opal-rm-frontend/
 ```
 
-Clone the [opal-shared-infrastructure](https://github.com/hmcts/opal-shared-infrastructure) repository and follow the instructions in there to get it up and running. This is required for the below repositories:
-Clone the [opal-fines-service](https://github.com/hmcts/opal-fines-service) repository and follow the instructions in there to get it up and running. This is required by the front end to make local Fines API requests.
+Clone the [opal-shared-infrastructure](https://github.com/hmcts/opal-shared-infrastructure) repository and follow the instructions in there to get it up and running. This is required by the backend repositories.
 Clone the [opal-maintenance-service](https://github.com/hmcts/opal-maintenance-service) repository and follow the instructions in there to get it up and running. This is required by the front end to make local Maintenance API requests.
 Clone the [opal-user-service](https://github.com/hmcts/opal-user-service) repository and follow the instructions in there to get it up and running. This is required by the front end to make local User API requests.
-Clone the [opal-logging-service](https://github.com/hmcts/opal-logging-service) repository and follow the instructions in there to get it up and running. This is required by the `opal-fines-service` to make local Logging API requests.
 
 #### 2. Clone opal-frontend-common-ui-lib
 
@@ -129,7 +125,7 @@ There are two ways to run the Angular SSR application depending on whether you a
 
 The application's home page will be available at **http://localhost:5200**.
 
-**Note** this is running the [Angular SSR](https://angular.dev/guide/ssr) application and expects the [opal-maintenance-service](https://github.com/hmcts/opal-maintenance-service) & [opal-fines-service](https://github.com/hmcts/opal-fines-service) to also be running locally to function correctly.
+**Note** this is running the [Angular SSR](https://angular.dev/guide/ssr) application and expects the [opal-maintenance-service](https://github.com/hmcts/opal-maintenance-service) and [opal-user-service](https://github.com/hmcts/opal-user-service) to also be running locally to function correctly.
 
 #### 5. Production server
 
@@ -169,7 +165,7 @@ There are two options depending on whether you're working with local or publishe
 
 The application's home page will be available at **http://localhost:5000**.
 
-**Note** this is running the [Angular SSR](https://angular.dev/guide/ssr) application and expects the [opal-maintenance-service](https://github.com/hmcts/opal-maintenance-service) & [opal-fines-service](https://github.com/hmcts/opal-fines-service) to also be running locally to function correctly.
+**Note** this is running the [Angular SSR](https://angular.dev/guide/ssr) application and expects the [opal-maintenance-service](https://github.com/hmcts/opal-maintenance-service) and [opal-user-service](https://github.com/hmcts/opal-user-service) to also be running locally to function correctly.
 
 #### 6. Redis (Optional)
 
@@ -240,10 +236,10 @@ Run `yarn build:ssr` to build the project. The build artifacts will be stored in
 
 ## OpenAPI reference models
 
-- Run `yarn generate:openapi` to download and merge the fines-service specifications, then emit a reference-only TypeScript client to `openapi/generated/api-client`.
+- Start `opal-maintenance-service` locally on port `4551` before generating reference models.
+- Run `yarn generate:openapi` to read the maintenance service's `/v3/api-docs` document and emit a reference-only TypeScript client to `openapi/generated/api-client`.
 - The merged specification is written locally to `openapi/opal-merged.yaml` while the command runs. Both the merged YAML and generated client output are gitignored.
 - This workflow is for contract inspection only. Do not import anything from `openapi/generated/api-client` into runtime application code.
-- Backend fines OpenAPI specifications are merged from `DefendantAccount.yaml`, `MajorCreditor.yaml`, `MinorCreditor.yaml`, `common.yaml`, and `types.yaml` using `openapi/openapi-merge-config.json`.
 
 ## Code style
 

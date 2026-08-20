@@ -345,9 +345,6 @@ void setupTestSpecifications() {
 
 // Configure PR env deployment for dev maintenance service
 void determineDevEnvironmentDeployment() {
-    env.DEV_ENABLE_OPAL_FINES_SERVICE = true // Default to true for development environment as FE wont work without it
-    env.DEV_OPAL_FINES_SERVICE_URL = "https://opal-rm-frontend-pr-${env.CHANGE_ID}-fines-service.dev.platform.hmcts.net"
-    env.DEV_OPAL_FINES_SERVICE_IMAGE_SUFFIX = 'latest'
     env.DEV_ENABLE_OPAL_MAINTENANCE_SERVICE = true
     env.DEV_OPAL_MAINTENANCE_SERVICE_URL =
       "https://opal-rm-frontend-pr-${env.CHANGE_ID}-maintenance-service.dev.platform.hmcts.net"
@@ -355,17 +352,6 @@ void determineDevEnvironmentDeployment() {
 
     if (cachedPrLabels.contains('enable_keep_helm')) {
         for (label in cachedPrLabels.findAll { String cachedLabel -> cachedLabel.startsWith('enable_opal_') }) {
-            // Fines service
-            if (label ==~ /enable_opal_fines_service.*/) {
-                env.DEV_ENABLE_OPAL_FINES_SERVICE = true
-                env.DEV_OPAL_FINES_SERVICE_URL =
-          "https://opal-rm-frontend-pr-${env.CHANGE_ID}-fines-service.dev.platform.hmcts.net"
-                if (label ==~ /enable_opal_fines_service:pr-.*/) {
-                    env.DEV_OPAL_FINES_SERVICE_IMAGE_SUFFIX = label.replace('enable_opal_fines_service:', '')
-                }
-                echo "Deploying Opal fines service ${env.DEV_OPAL_FINES_SERVICE_URL}"
-            }
-            // Maintenance service
             if (label ==~ /enable_opal_maintenance_service.*/) {
                 env.DEV_ENABLE_OPAL_MAINTENANCE_SERVICE = true
                 env.DEV_OPAL_MAINTENANCE_SERVICE_URL =

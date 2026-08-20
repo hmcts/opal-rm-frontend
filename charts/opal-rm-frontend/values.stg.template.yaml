@@ -35,11 +35,13 @@ opal-maintenance-service:
             alias: SERVICEBUS_LOGGING_PDPL_QUEUE_NAME
           - name: redis-connection-string
             alias: REDIS_CONNECTION_STRING
+          - name: maintenance-service-POSTGRES-PASS
+            alias: OPAL_MAINTENANCE_DB_PASSWORD
+          - name: maintenance-service-POSTGRES-USER
+            alias: OPAL_MAINTENANCE_DB_USERNAME
     environment:
       OPAL_MAINTENANCE_DB_HOST: "${SERVICE_NAME}-maintenance-postgresql"
       OPAL_MAINTENANCE_DB_NAME: "opal-maintenance-db"
-      OPAL_MAINTENANCE_DB_USERNAME: "opal-maintenance"
-      OPAL_MAINTENANCE_DB_PASSWORD: "opal-maintenance"
       OPAL_MAINTENANCE_DB_PORT: "5432"
       OPAL_MAINTENANCE_DB_OPTIONS: "?stringtype=unspecified"
       RUN_DB_MIGRATION_ON_STARTUP: true

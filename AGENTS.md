@@ -65,3 +65,11 @@ Supporting repository documents remain authoritative when a relevant skill is un
 - Record required configuration, feature flags, manual testing, limitations, and follow-up work.
 - Treat reviewer approval, QA sign-off, CI, deployment, environment verification, feature-flag activation, and ticket closure as pending unless direct evidence confirms them.
 - Do not represent pending or unverified work as complete.
+
+## Definition of Done
+
+Before handoff, use the repository's authoritative
+[Frontend Definition of Done](docs/FRONTEND_DEFINITION_OF_DONE.md). Every applicable agent-executable criterion must
+pass, every item marked **Not applicable** must have a recorded reason, and agent-executable work must not be
+deferred to a human. If an applicable criterion remains unmet, report **Not Agent Complete** with the unmet
+criterion and required remediation; do not claim the work is ready for human review.

@@ -236,8 +236,7 @@ Run `yarn build:ssr` to build the project. The build artifacts will be stored in
 
 ## OpenAPI reference models
 
-- Start `opal-maintenance-service` locally on port `4551` before generating reference models.
-- Run `yarn generate:openapi` to read the maintenance service's `/v3/api-docs` document and emit a reference-only TypeScript client to `openapi/generated/api-client`.
+- Run `yarn generate:openapi` to download the maintenance service's OpenAPI type definitions from its Git repository and emit a reference-only TypeScript client to `openapi/generated/api-client`.
 - The merged specification is written locally to `openapi/opal-merged.yaml` while the command runs. Both the merged YAML and generated client output are gitignored.
 - This workflow is for contract inspection only. Do not import anything from `openapi/generated/api-client` into runtime application code.
 

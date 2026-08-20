@@ -1,10 +1,10 @@
 {
   "inputs": [
     {
-      "inputURL": "http://localhost:4551/v3/api-docs",
+      "inputURL": "https://raw.githubusercontent.com/hmcts/opal-maintenance-service/master/src/main/resources/openapi/types.yaml",
       "dispute": {
         "alwaysApply": false,
-        "suffix": "Maintenance"
+        "suffix": "Types"
       }
     }
   ],

@@ -42,6 +42,8 @@ opal-maintenance-service:
             alias: OPAL_MAINTENANCE_DB_USERNAME
           - name: servicebus-connection-string
             alias: SERVICEBUS_CONNECTION_STRING
+          - name: servicebus-shared-access-key
+            alias: SERVICEBUS_SHARED_ACCESS_KEY
           - name: servicebus-logging-pdpl-queue-name
             alias: SERVICEBUS_LOGGING_PDPL_QUEUE_NAME
     environment:

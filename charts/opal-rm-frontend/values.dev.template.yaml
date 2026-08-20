@@ -29,6 +29,13 @@ opal-maintenance-service:
     devcpuRequests: "250m"
     devmemoryLimits: "2Gi"
     devcpuLimits: "2500m"
+    secrets:
+      SERVICEBUS_SHARED_ACCESS_KEY:
+        secretRef: opal-sb-dev
+        key: primaryKey
+      SERVICEBUS_CONNECTION_STRING:
+        secretRef: opal-sb-dev
+        key: connectionString
     global:
       enableKeyVaults: true
     keyVaults:
@@ -48,10 +55,6 @@ opal-maintenance-service:
             alias: OPAL_MAINTENANCE_DB_PASSWORD
           - name: maintenance-service-POSTGRES-USER
             alias: OPAL_MAINTENANCE_DB_USERNAME
-          - name: servicebus-connection-string
-            alias: SERVICEBUS_CONNECTION_STRING
-          - name: servicebus-logging-pdpl-queue-name
-            alias: SERVICEBUS_LOGGING_PDPL_QUEUE_NAME
     environment:
       OPAL_MAINTENANCE_DB_HOST: "{{ .Release.Name }}-postgresql"
       OPAL_MAINTENANCE_DB_NAME: opal
@@ -60,6 +63,7 @@ opal-maintenance-service:
       RUN_DB_MIGRATION_ON_STARTUP: true
       FLYWAY_LOCATIONS: classpath:db/migration/ddl, classpath:db/migration/data/allEnvs, classpath:db/migration/data/nle, classpath:db/migration/data/dev
       APPLICATIONINSIGHTS_ROLE_NAME: "opal-rm-frontend-pr-${CHANGE_ID}-maintenance-service"
+      SERVICEBUS_LOGGING_PDPL_QUEUE_NAME: "{{ .Release.Name}}-servicebus-logging-pdpl"
       TESTING_SUPPORT_ENDPOINTS_ENABLED: false
       OPAL_REDIS_ENABLED: false
       OPAL_USER_SERVICE_API_URL: https://opal-user-service.staging.platform.hmcts.net
@@ -76,6 +80,14 @@ postgresql:
     persistence:
       enabled: false
     resourcesPreset: small
+servicebus:
+  enabled: ${DEV_ENABLE_OPAL_MAINTENANCE_SERVICE}
+  releaseNameOverride: ${SERVICE_NAME}-servicebus
+  resourceGroup: "opal-aso-dev-rg"
+  sbNamespace: "opal-servicebus-dev"
+  setup:
+    queues:
+      - name: "logging-pdpl"
 redis:
   enabled: true
   architecture: standalone

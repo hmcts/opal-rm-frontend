@@ -57,6 +57,8 @@ superpowers/
 .superpowers/
 **/superpowers/
 **/.superpowers/
+/docs/designs/
+/docs/plans/
 
 # System files
 .DS_Store

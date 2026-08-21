@@ -9,7 +9,7 @@ type RequestOptions = Partial<Cypress.RequestOptions> & {
 };
 type RequestOriginalFn = (...args: unknown[]) => Cypress.Chainable<Cypress.Response<unknown>>;
 
-const OPAL_API_PATH_PREFIXES = ['/opal-fines-service', '/opal-user-service', '/opal-rm-service'];
+const OPAL_API_PATH_PREFIXES = ['/opal-user-service', '/opal-maintenance-service'];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

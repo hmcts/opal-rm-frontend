@@ -67,6 +67,10 @@ Severity reflects impact, not the category of the repository rule involved.
 
 - Report missing tests when changed behaviour is regression-prone and the existing suite would not detect a likely
   failure. State the behaviour or scenario that needs coverage.
+- Treat confirmed Sonar **Coverage on New Code** below 100% as a delivery finding. Identify the uncovered behaviour or
+  condition rather than asking for coverage without context.
+- Report a new or expanded coverage exclusion when it is broader than necessary, lacks a technical justification, or
+  removes code from measurement without suitable alternative verification.
 - Check loading, error, empty, validation, and retry behaviour when the change can reach those states.
 - Treat failing required checks, TypeScript errors, and production-build failures introduced by the change as
   findings. Do not infer that a check passed without evidence.

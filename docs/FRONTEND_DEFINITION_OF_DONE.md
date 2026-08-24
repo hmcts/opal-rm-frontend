@@ -25,6 +25,10 @@ A frontend UI ticket is **Ready for human review** when all applicable criteria 
 - [ ] All agent-executable checks required by the target repository pass against the final change.
 - [ ] Verification evidence records the commands executed and their results.
 - [ ] Every applicable Acceptance Criterion has automated or manual verification evidence.
+- [ ] Evidence from the externally configured Sonar Quality Gate confirms **Coverage on New Code** is 100% for new and
+      materially changed executable code.
+- [ ] Every new or expanded coverage exclusion is narrowly scoped and records its technical reason, affected code,
+      risk, and alternative verification.
 - [ ] No failed required check remains unresolved.
 - [ ] Checks that require a human, unavailable environment, specialist tooling, account, or permission are listed with:
   - the scenario to verify;

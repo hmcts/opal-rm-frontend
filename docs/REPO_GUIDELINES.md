@@ -155,6 +155,13 @@ Changed UI must meet WCAG 2.2 AA expectations.
 ## Testing
 
 - Add or update tests for changed logic, validation, state handling, error paths, empty states, and regression-prone behaviour.
+- New and materially changed executable code must achieve 100% in Sonar's **Coverage on New Code** metric. The
+  externally configured Sonar Quality Gate must enforce this target; do not treat a local coverage report alone as
+  equivalent evidence.
+- Add tests that assert meaningful behaviour rather than tests that merely execute lines to increase coverage.
+- Keep coverage exclusions narrow. Record each new or expanded exclusion in the PR with its technical reason, the code
+  affected, the risk it creates, and any alternative verification. Do not add broad exclusions to make the quality
+  gate pass.
 - Use the most focused test level that proves the behaviour: Vitest unit, Cypress component, smoke, or functional E2E.
 - Name unit specs `*.spec.ts` and colocate them with their source.
 - Keep Angular `TestBed` setup focused and mock HTTP or store dependencies at clear boundaries.

@@ -89,9 +89,8 @@ export class CasesCreateCasefileCaseTypeFormComponent extends AbstractFormBaseCo
 
     this.handleErrorMessages();
     this.formSubmitted = true;
-    const nestedFlow = event.submitter ? event.submitter.className.includes('nested-flow') : false;
     this.unsavedChanges.emit(this.hasUnsavedChanges());
-    this.formSubmit.emit({ formData: this.form.getRawValue(), nestedFlow });
+    this.formSubmit.emit({ formData: this.form.getRawValue(), nestedFlow: false });
   }
 
   public override ngOnInit(): void {

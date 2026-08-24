@@ -10,9 +10,11 @@ describe('CasesCreateCasefileTaskListComponent', () => {
     fixture = TestBed.createComponent(CasesCreateCasefileTaskListComponent);
   });
 
-  it('renders the Task List heading', () => {
+  it('renders the Task List heading in the journey page grid', () => {
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('h1')?.textContent.trim()).toBe('Task List');
+    const pageColumn = fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds');
+    expect(pageColumn).not.toBeNull();
+    expect(pageColumn.querySelector('h1')?.textContent.trim()).toBe('Task List');
   });
 });

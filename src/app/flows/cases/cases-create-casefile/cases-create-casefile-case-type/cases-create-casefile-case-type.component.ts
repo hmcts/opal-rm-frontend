@@ -26,11 +26,11 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
   private readonly store = inject(CasesCreateCasefileStore);
 
   private isCaseType(value: unknown): value is CasesCreateCasefileCaseType {
-    return Object.values(CASES_CREATE_CASEFILE_CASE_TYPES).some((caseType) => caseType === value);
+    return Object.values(CASES_CREATE_CASEFILE_CASE_TYPES).includes(value as CasesCreateCasefileCaseType);
   }
 
   private isApplicantType(value: unknown): value is CasesCreateCasefileApplicantType {
-    return Object.values(CASES_CREATE_CASEFILE_APPLICANT_TYPES).some((applicantType) => applicantType === value);
+    return Object.values(CASES_CREATE_CASEFILE_APPLICANT_TYPES).includes(value as CasesCreateCasefileApplicantType);
   }
 
   public get initialFormData(): ICasesCreateCasefileCaseTypeFormData {

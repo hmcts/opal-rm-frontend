@@ -38,8 +38,12 @@ Severity reflects impact, not the category of the repository rule involved.
   changes.
 - Check that form submission cannot be processed more than intended and that request concurrency matches the user
   journey.
+- Check nested subscriptions, dependent requests started from `tap()`, and other imperative observable side effects
+  when they can cause incomplete navigation state, unhandled failures, duplicate requests, or ordering races.
+- Check that imperative subscriptions, timers, event listeners, and retained resources are released with their owner.
 - Flag expensive template expressions or change-detection work only when the changed rendering path can create a
   material performance or stability problem.
+- Check response caching for defined freshness and invalidation behaviour and for correct user or session isolation.
 - Check changed SSR paths for unguarded browser globals or browser-only APIs.
 
 ### Security and privacy
@@ -63,6 +67,12 @@ Severity reflects impact, not the category of the repository rule involved.
 
 - Report missing tests when changed behaviour is regression-prone and the existing suite would not detect a likely
   failure. State the behaviour or scenario that needs coverage.
+- Treat confirmed Sonar **Coverage on New Code** below the configured 80% Quality Gate as a delivery finding.
+- Do not report coverage between 80% and 100% as a defect by itself. Check the uncovered code and report a finding when
+  regression-prone behaviour is not adequately tested; otherwise ensure the PR identifies the affected behaviour,
+  risk, and reason for the gap.
+- Report a new or expanded coverage exclusion when it is broader than necessary, lacks a technical justification, or
+  removes code from measurement without suitable alternative verification.
 - Check loading, error, empty, validation, and retry behaviour when the change can reach those states.
 - Treat failing required checks, TypeScript errors, and production-build failures introduced by the change as
   findings. Do not infer that a check passed without evidence.

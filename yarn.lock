@@ -2997,16 +2997,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@es-joy/jsdoccomment@npm:~0.95.0":
-  version: 0.95.0
-  resolution: "@es-joy/jsdoccomment@npm:0.95.0"
+"@es-joy/jsdoccomment@npm:~0.95.1":
+  version: 0.95.1
+  resolution: "@es-joy/jsdoccomment@npm:0.95.1"
   dependencies:
     "@types/estree": "npm:^1.0.9"
     "@typescript-eslint/types": "npm:^8.67.0"
     comment-parser: "npm:1.4.8"
     esquery: "npm:^1.7.0"
-    jsdoc-type-pratt-parser: "npm:~9.1.1"
-  checksum: 10/e54a24afd7c07fd9578d1d6a2e2570a227b526ecc5a6ef0458dac2252449b1aaa476256cef33f16db7e32ca499b1493601a7a0f258d64464e49a40385619376c
+    jsdoc-type-pratt-parser: "npm:~9.1.2"
+  checksum: 10/882104a3965574c60451d196264a270099cd82d9376d887b45b726b4c037295a44445bc087f35e2dcb7257e7e95af349a75ba153ee547bb06c535d3fec7b30d7
   languageName: node
   linkType: hard
 
@@ -6054,18 +6054,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redis/bloom@npm:6.2.0":
-  version: 6.2.0
-  resolution: "@redis/bloom@npm:6.2.0"
+"@redis/bloom@npm:6.2.1":
+  version: 6.2.1
+  resolution: "@redis/bloom@npm:6.2.1"
   peerDependencies:
-    "@redis/client": ^6.2.0
-  checksum: 10/1e3de81701fe0f5e40a300f695f67b526dcddb041c71b23bb9d3e1d81316427debc40041468b078451e200261cf1076a22046cb5dc5c4a6889a718dfd5326018
+    "@redis/client": ^6.2.1
+  checksum: 10/c99949d089147934d9247a6903e83c1a656693cfa24db00e2c61e6caf5d9c7803df4a1d969514f02bee0b75bbb5bc2dbf14b00a973ff16503b2cb2bb22ba0683
   languageName: node
   linkType: hard
 
-"@redis/client@npm:6.2.0":
-  version: 6.2.0
-  resolution: "@redis/client@npm:6.2.0"
+"@redis/client@npm:6.2.1":
+  version: 6.2.1
+  resolution: "@redis/client@npm:6.2.1"
   dependencies:
     cluster-key-slot: "npm:1.1.2"
   peerDependencies:
@@ -6076,34 +6076,34 @@ __metadata:
       optional: true
     "@opentelemetry/api":
       optional: true
-  checksum: 10/33e810e22b191a6a9e40f2234e10f9e1db2571f420df2a94f836716f08a5175f226de114d23a611bdfaf8979c3670c1f4e8c105b03ecb65d5f9f2119eef06019
+  checksum: 10/ebee48006a32cf3403a5bab50d8342b868de51bfddea398dfde0566a6f63d6569f7914777e7306499eb9f4ffb7c4b6dd2f24657fc77a68dc82e4efa705ea29b4
   languageName: node
   linkType: hard
 
-"@redis/json@npm:6.2.0":
-  version: 6.2.0
-  resolution: "@redis/json@npm:6.2.0"
+"@redis/json@npm:6.2.1":
+  version: 6.2.1
+  resolution: "@redis/json@npm:6.2.1"
   peerDependencies:
-    "@redis/client": ^6.2.0
-  checksum: 10/22e5931c19d8e856d0c2b0cd7f9a7535f5e08ede9ae2acf19143b86cd7995313de171b6ab42b95cd477e95481d7e447c606ad99bdfdc34f50c8205b30e565cbb
+    "@redis/client": ^6.2.1
+  checksum: 10/522bc6a750d9083944996944469f4d2111a0c87fafc64ad5d353fd7cd7b70202aec8eb7dec2b1ea7c8a100def242bd7d2d26b36c0e91d3fc2d9f98381e20a6e2
   languageName: node
   linkType: hard
 
-"@redis/search@npm:6.2.0":
-  version: 6.2.0
-  resolution: "@redis/search@npm:6.2.0"
+"@redis/search@npm:6.2.1":
+  version: 6.2.1
+  resolution: "@redis/search@npm:6.2.1"
   peerDependencies:
-    "@redis/client": ^6.2.0
-  checksum: 10/080a56f1f7a5a9063f557809303492dbc37263004bc6decd2ecd2387e7c2df916f9832ddd883b8d2e664e4790923e3a45d2849f68112079ac453753c23c13c43
+    "@redis/client": ^6.2.1
+  checksum: 10/1460dea8c7ab73e4f2a5c35a239b4ed80f31df01904e7eeb8942fe790120724accd7017fb02d505b754f2c6ac44ed6fb70f64373c1e11dae596f79a7c02f7bee
   languageName: node
   linkType: hard
 
-"@redis/time-series@npm:6.2.0":
-  version: 6.2.0
-  resolution: "@redis/time-series@npm:6.2.0"
+"@redis/time-series@npm:6.2.1":
+  version: 6.2.1
+  resolution: "@redis/time-series@npm:6.2.1"
   peerDependencies:
-    "@redis/client": ^6.2.0
-  checksum: 10/6e58d61ef6ef172dee7f49663fbad19031cc3fc871e599900c5116c2194884eabf249a314f50dff9f79af6130e2cb779f4fb778a52eda1b5405d0f18f745f420
+    "@redis/client": ^6.2.1
+  checksum: 10/c099ecfd748879d40d00db88a662a8ba723fcfcd7e9c4bce97977336e78df26ea1045ac0dd43c8548cb7469f3329b5501cf934b6e2d182680bec7b61d43cbd2c
   languageName: node
   linkType: hard
 
@@ -6876,9 +6876,9 @@ __metadata:
   linkType: hard
 
 "@types/luxon@npm:^3.4.2":
-  version: 3.7.4
-  resolution: "@types/luxon@npm:3.7.4"
-  checksum: 10/f062cbf6cfac319b88abcedd253308c6dc98e0b76e1ab991fb9fb1573c602097f2d54a95ea874d3678f3963a73478bcce260c621deb6c779c83ff891611e46d7
+  version: 3.7.5
+  resolution: "@types/luxon@npm:3.7.5"
+  checksum: 10/656e6e5c057f5e9769d2f2c0d84795de3d68d461557dca432dbdf6b98d1e57b15f273d99781c1e8d786f1fd15dcc29eeb48496685aa77fc3f14e186b6230ab0e
   languageName: node
   linkType: hard
 
@@ -8898,6 +8898,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chrome-remote-interface@npm:0.33.3":
+  version: 0.33.3
+  resolution: "chrome-remote-interface@npm:0.33.3"
+  dependencies:
+    commander: "npm:2.11.x"
+    ws: "npm:^7.2.0"
+  bin:
+    chrome-remote-interface: bin/client.js
+  checksum: 10/65d07afc8f97fad6326bd94f0c4ef004d76b16841015c72d09aefbfa4df62b47407067a01c886535a706c36b23070b40fc3edb96444665438efa1d4f65cc3db8
+  languageName: node
+  linkType: hard
+
 "chrome-trace-event@npm:^1.0.2":
   version: 1.0.4
   resolution: "chrome-trace-event@npm:1.0.4"
@@ -9120,6 +9132,13 @@ __metadata:
   version: 15.0.0
   resolution: "commander@npm:15.0.0"
   checksum: 10/a5dab1f5c3f1bf2ea19e8089f650f7fb65c3ed88e13ddde62e490d34b20057bcb2cd3de5b6ddc8aae93286083f8256ca0b812df842f574cbebe0e40f5b2f98f7
+  languageName: node
+  linkType: hard
+
+"commander@npm:2.11.x":
+  version: 2.11.0
+  resolution: "commander@npm:2.11.0"
+  checksum: 10/d8940de4ce2886aa32ae27a1533d10ce46da8c6dcd965075462a6b8d17b01f596ec329e1430f84a123e52675403f0c2b11a6a5d144eb46146da9ae974edbc2c0
   languageName: node
   linkType: hard
 
@@ -9634,8 +9653,8 @@ __metadata:
   linkType: hard
 
 "cypress@npm:^15.0.0":
-  version: 15.20.0
-  resolution: "cypress@npm:15.20.0"
+  version: 15.21.0
+  resolution: "cypress@npm:15.21.0"
   dependencies:
     "@cypress/request": "npm:^4.0.0"
     "@cypress/xvfb": "npm:^1.2.4"
@@ -9648,6 +9667,7 @@ __metadata:
     buffer: "npm:^5.7.1"
     cachedir: "npm:^2.4.0"
     chalk: "npm:^4.1.0"
+    chrome-remote-interface: "npm:0.33.3"
     ci-info: "npm:^4.1.0"
     cli-table3: "npm:0.6.1"
     commander: "npm:^6.2.1"
@@ -9677,7 +9697,7 @@ __metadata:
     yauzl: "npm:^3.3.1"
   bin:
     cypress: bin/cypress
-  checksum: 10/210643f3cd8d2f49df7166f94ab6dcfb3d8b256ad5b337fcb03ad58b12fd3a183afa357f8e4f754417b747bb24bdb38784690e6d569497769a24cb1837b764db
+  checksum: 10/f242d433ca1107eb8d68ff3d63686f575e54675ab85f228b02f86214204a92dfcff2e4ca27af725fb220b9229eab17889cdde023b8f9c194b5bc95688a7eb102
   languageName: node
   linkType: hard
 
@@ -10624,10 +10644,10 @@ __metadata:
   linkType: hard
 
 "eslint-plugin-jsdoc@npm:^64.0.0":
-  version: 64.1.0
-  resolution: "eslint-plugin-jsdoc@npm:64.1.0"
+  version: 64.2.1
+  resolution: "eslint-plugin-jsdoc@npm:64.2.1"
   dependencies:
-    "@es-joy/jsdoccomment": "npm:~0.95.0"
+    "@es-joy/jsdoccomment": "npm:~0.95.1"
     "@es-joy/resolve.exports": "npm:1.2.0"
     are-docs-informative: "npm:^0.1.1"
     comment-parser: "npm:1.4.8"
@@ -10643,7 +10663,7 @@ __metadata:
     to-valid-identifier: "npm:^1.0.0"
   peerDependencies:
     eslint: ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0
-  checksum: 10/91fb6e27c2d0ab1502a4002ae871bde675e8314a76a12cbbe265b68beb9ba3acd6552ef9cb4830c0f16ae5be23219fb9f635e0eed45daa8802cb0b949dd9f596
+  checksum: 10/15025bfb9c1235a775bdbd82297bfc0b49763d894b5ef039a5b3645896f5c108f47168d7f9403cd8e035bb68026ee34cac72e3e56a043d2c7a4801015510176d
   languageName: node
   linkType: hard
 
@@ -12997,12 +13017,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsdoc-type-pratt-parser@npm:~9.1.1":
-  version: 9.1.1
-  resolution: "jsdoc-type-pratt-parser@npm:9.1.1"
+"jsdoc-type-pratt-parser@npm:~9.1.2":
+  version: 9.1.2
+  resolution: "jsdoc-type-pratt-parser@npm:9.1.2"
   dependencies:
     "@types/estree": "npm:^1.0.9"
-  checksum: 10/1ce911e04c1dc94be4376c6ad317853eb9b0e70c9afe25afffd12ec8d136cb18e4e9f1d2ab62187ba9caf9b10623a7a22ab35bdcd9b7bc250b0e9db6c22a33f1
+  checksum: 10/71f3487ff895cc7581752213bb8e65d460405f7db001809e1a8effb2776ac2a03c2cc1032b5d216d040b56d1648abb722b43ace83629ebc2fd19ecb1b6d8a8fb
   languageName: node
   linkType: hard
 
@@ -16146,15 +16166,15 @@ __metadata:
   linkType: hard
 
 "redis@npm:^6.0.0":
-  version: 6.2.0
-  resolution: "redis@npm:6.2.0"
+  version: 6.2.1
+  resolution: "redis@npm:6.2.1"
   dependencies:
-    "@redis/bloom": "npm:6.2.0"
-    "@redis/client": "npm:6.2.0"
-    "@redis/json": "npm:6.2.0"
-    "@redis/search": "npm:6.2.0"
-    "@redis/time-series": "npm:6.2.0"
-  checksum: 10/a6915e791e788a1310c55c6f4a534300500bda381f84b83a9ffccd8594718a55eb80911448dbfdb3b7ec6b5ebb0a154cc18c0d7becc8d1510a6aec517b288f33
+    "@redis/bloom": "npm:6.2.1"
+    "@redis/client": "npm:6.2.1"
+    "@redis/json": "npm:6.2.1"
+    "@redis/search": "npm:6.2.1"
+    "@redis/time-series": "npm:6.2.1"
+  checksum: 10/b1a5afa76a0268b6f7636929f5366a8ee7d570d98f54471734ed9a4a1683216f2ea36a9a213b16154a5b90f2c018181cefc03cca77310bfc6d9330656019733e
   languageName: node
   linkType: hard
 
@@ -19335,6 +19355,21 @@ __metadata:
     signal-exit: "npm:^3.0.2"
     typedarray-to-buffer: "npm:^3.1.5"
   checksum: 10/0955ab94308b74d32bc252afe69d8b42ba4b8a28b8d79f399f3f405969f82623f981e35d13129a52aa2973450f342107c06d86047572637584e85a1c0c246bf3
+  languageName: node
+  linkType: hard
+
+"ws@npm:^7.2.0":
+  version: 7.5.13
+  resolution: "ws@npm:7.5.13"
+  peerDependencies:
+    bufferutil: ^4.0.1
+    utf-8-validate: ^5.0.2
+  peerDependenciesMeta:
+    bufferutil:
+      optional: true
+    utf-8-validate:
+      optional: true
+  checksum: 10/0873c813ce75c466b026ce0a4ce9a8b5b5f1dc9ef0dd7ae9690fa4025c66afb165d3a45550357080b29d66a0e3028cd13c72ccefc83ce10723b4822a574ebc99
   languageName: node
   linkType: hard
 

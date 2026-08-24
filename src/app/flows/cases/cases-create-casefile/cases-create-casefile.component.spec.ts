@@ -34,6 +34,15 @@ describe('CasesCreateCasefileComponent', () => {
     expect(component.canDeactivate()).toBe(false);
   });
 
+  it('prevents the browser beforeunload event when changes exist', () => {
+    store.setUnsavedChanges(true);
+    const event = new Event('beforeunload', { cancelable: true });
+
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it('blocks external departure after valid journey state is saved', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     expect(component.handleBeforeUnload()).toBe(false);

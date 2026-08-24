@@ -57,7 +57,7 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
 
   public handleFormSubmit(form: ICasesCreateCasefileCaseTypeForm): void {
     const { caseType, applicantType } = form.formData;
-    let selection: CasesCreateCasefileCaseTypeSelection | null = null;
+    let selection: CasesCreateCasefileCaseTypeSelection;
 
     if (!this.isCaseType(caseType)) {
       return;
@@ -69,15 +69,8 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
       }
 
       selection = { caseType, applicantType };
-    } else if (
-      caseType === CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT ||
-      caseType === CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS
-    ) {
+    } else {
       selection = { caseType };
-    }
-
-    if (!selection) {
-      return;
     }
 
     this.store.setCaseTypeSelection(selection);

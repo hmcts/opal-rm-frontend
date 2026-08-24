@@ -45,6 +45,14 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     expect(component.initialFormData).toEqual({ caseType: 'REMO In', applicantType: 'Individual' });
   });
 
+  it('rehydrates valid saved outbound selections without Applicant Type', () => {
+    for (const caseType of [CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT, CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS]) {
+      store.setCaseTypeSelection({ caseType });
+
+      expect(component.initialFormData).toEqual({ caseType, applicantType: null });
+    }
+  });
+
   it('does not rehydrate stale runtime selections', () => {
     const staleStore = store as unknown as WritableStateSource<ICasesCreateCasefileState>;
 
@@ -52,6 +60,24 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
       caseTypeSelection: { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN } as unknown as ReturnType<
         typeof store.caseTypeSelection
       >,
+    });
+
+    expect(component.initialFormData).toEqual({ caseType: null, applicantType: null });
+
+    patchState(staleStore, {
+      caseTypeSelection: {
+        caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+        applicantType: 'Unknown applicant type',
+      } as unknown as ReturnType<typeof store.caseTypeSelection>,
+    });
+
+    expect(component.initialFormData).toEqual({ caseType: null, applicantType: null });
+
+    patchState(staleStore, {
+      caseTypeSelection: {
+        caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT,
+        applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
+      } as unknown as ReturnType<typeof store.caseTypeSelection>,
     });
 
     expect(component.initialFormData).toEqual({ caseType: null, applicantType: null });

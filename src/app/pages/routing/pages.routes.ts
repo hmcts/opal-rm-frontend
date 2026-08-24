@@ -7,6 +7,7 @@ import { dashboardLandingGuard } from '../dashboard/guards/dashboard-landing/das
 import { dashboardTypeGuard } from '../dashboard/guards/dashboard-type/dashboard-type.guard';
 import { dashboardSectionPermissionsGuard } from '../dashboard/guards/dashboard-section-permissions/dashboard-section-permissions.guard';
 import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
+import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from '@app/constants/route-data.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '@app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { routing as casesCreateCasefileRouting } from '@app/flows/cases/cases-create-casefile/routing/cases-create-casefile.routes';
 
@@ -32,5 +33,8 @@ export const routing: Routes = [
     children: casesCreateCasefileRouting,
     canActivate: [authGuard, accountGuard],
     canDeactivate: [canDeactivateGuard],
+    data: {
+      ...PRIMARY_NAV_HIDDEN_ROUTE_DATA,
+    },
   },
 ];

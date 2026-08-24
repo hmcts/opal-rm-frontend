@@ -103,6 +103,9 @@ Use the applicable Cypress guide for component, smoke, functional E2E, and acces
   makes the behaviour easier to understand or test.
 - Prefer small, single-purpose, pure functions. Pass explicit inputs and return data instead of hiding dependencies or
   performing avoidable side effects, and keep cyclomatic complexity low.
+- Use the collection method that most directly expresses intent: use `includes()` for value membership and `some()`
+  when evaluating a predicate. Do not replace one mechanically where equality semantics or sparse collections affect
+  behaviour.
 - Separate container and presentational responsibilities when a component's orchestration and rendering concerns have
   grown difficult to understand or test together.
 - Do not introduce broad shared providers or shared state when a standalone or feature-scoped provider is sufficient.

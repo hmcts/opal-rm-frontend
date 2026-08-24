@@ -6,6 +6,9 @@ import { authGuard } from '@hmcts/opal-frontend-common/guards/auth';
 import { dashboardLandingGuard } from '../dashboard/guards/dashboard-landing/dashboard-landing.guard';
 import { dashboardTypeGuard } from '../dashboard/guards/dashboard-type/dashboard-type.guard';
 import { dashboardSectionPermissionsGuard } from '../dashboard/guards/dashboard-section-permissions/dashboard-section-permissions.guard';
+import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '@app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
+import { routing as casesCreateCasefileRouting } from '@app/flows/cases/cases-create-casefile/routing/cases-create-casefile.routes';
 
 export const routing: Routes = [
   { path: '', redirectTo: PAGES_ROUTING_PATHS.children.dashboard, pathMatch: 'full' },
@@ -19,5 +22,15 @@ export const routing: Routes = [
     path: `${DASHBOARD_ROUTING_PATHS.root}/:dashboardType`,
     loadComponent: () => import('../dashboard/dashboard.component').then((c) => c.DashboardComponent),
     canActivate: [authGuard, accountGuard, dashboardTypeGuard, dashboardSectionPermissionsGuard],
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.root,
+    loadComponent: () =>
+      import('../../flows/cases/cases-create-casefile/cases-create-casefile.component').then(
+        (component) => component.CasesCreateCasefileComponent,
+      ),
+    children: casesCreateCasefileRouting,
+    canActivate: [authGuard, accountGuard],
+    canDeactivate: [canDeactivateGuard],
   },
 ];

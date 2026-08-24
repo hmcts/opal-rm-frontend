@@ -1,8 +1,8 @@
 import { ActivatedRoute, Router } from '@angular/router';
 import { mount } from 'cypress/angular';
 import { CasesCreateCasefileCaseTypeComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/cases-create-casefile-case-type.component';
-import { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-case-type-selection.type';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
+import { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 
 export const setupCreateCasefileCaseType = (initialSelection: CasesCreateCasefileCaseTypeSelection | null = null) => {
   const store = new CasesCreateCasefileStore();

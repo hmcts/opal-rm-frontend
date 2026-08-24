@@ -1,7 +1,7 @@
 import { computed } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
-import { CasesCreateCasefileCaseTypeSelection } from '../interfaces/cases-create-casefile-case-type-selection.type';
+import { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 
 export const CasesCreateCasefileStore = signalStore(
   { providedIn: 'root' },

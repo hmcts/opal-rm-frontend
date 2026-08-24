@@ -1,17 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
 import { DASHBOARD_ROUTING_PATHS } from '@app/pages/dashboard/constants/dashboard-routing-paths.constant';
-import {
-  CASES_CREATE_CASEFILE_APPLICANT_TYPES,
-  CasesCreateCasefileApplicantType,
-} from '../constants/cases-create-casefile-applicant-types.constant';
-import {
-  CASES_CREATE_CASEFILE_CASE_TYPES,
-  CasesCreateCasefileCaseType,
-} from '../constants/cases-create-casefile-case-types.constant';
-import { CasesCreateCasefileCaseTypeSelection } from '../interfaces/cases-create-casefile-case-type-selection.type';
+import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
+import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
+import { CasesCreateCasefileApplicantType } from '../types/cases-create-casefile-applicant-type.type';
+import { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
+import { CasesCreateCasefileCaseType } from '../types/cases-create-casefile-case-type.type';
 import { CasesCreateCasefileCaseTypeFormComponent } from './cases-create-casefile-case-type-form/cases-create-casefile-case-type-form.component';
 import { ICasesCreateCasefileCaseTypeFormData } from './interfaces/cases-create-casefile-case-type-form-data.interface';
 import { ICasesCreateCasefileCaseTypeForm } from './interfaces/cases-create-casefile-case-type-form.interface';

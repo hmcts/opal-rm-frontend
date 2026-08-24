@@ -1,5 +1,5 @@
-import { CasesCreateCasefileApplicantType } from '../../constants/cases-create-casefile-applicant-types.constant';
-import { CasesCreateCasefileCaseType } from '../../constants/cases-create-casefile-case-types.constant';
+import { CasesCreateCasefileApplicantType } from '../../types/cases-create-casefile-applicant-type.type';
+import { CasesCreateCasefileCaseType } from '../../types/cases-create-casefile-case-type.type';
 
 export interface ICasesCreateCasefileCaseTypeFormData {
   caseType: CasesCreateCasefileCaseType | null;

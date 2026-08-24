@@ -4,14 +4,10 @@ import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/component
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
 import { takeUntil } from 'rxjs';
-import {
-  CASES_CREATE_CASEFILE_APPLICANT_TYPES,
-  CasesCreateCasefileApplicantType,
-} from '../../constants/cases-create-casefile-applicant-types.constant';
-import {
-  CASES_CREATE_CASEFILE_CASE_TYPES,
-  CasesCreateCasefileCaseType,
-} from '../../constants/cases-create-casefile-case-types.constant';
+import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../../constants/cases-create-casefile-applicant-types.constant';
+import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../../constants/cases-create-casefile-case-types.constant';
+import { CasesCreateCasefileApplicantType } from '../../types/cases-create-casefile-applicant-type.type';
+import { CasesCreateCasefileCaseType } from '../../types/cases-create-casefile-case-type.type';
 import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_ERRORS } from '../constants/cases-create-casefile-case-type-field-errors.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPE_OPTIONS } from '../constants/cases-create-casefile-case-type-options.constant';
 import { ICasesCreateCasefileCaseTypeFieldErrors } from '../interfaces/cases-create-casefile-case-type-field-errors.interface';

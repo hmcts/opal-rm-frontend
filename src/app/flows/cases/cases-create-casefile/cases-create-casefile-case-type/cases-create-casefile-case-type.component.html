@@ -1,0 +1,8 @@
+<div class="govuk-grid-column-two-thirds">
+  <app-cases-create-casefile-case-type-form
+    [initialFormData]="initialFormData"
+    (formSubmit)="handleFormSubmit($event)"
+    (unsavedChanges)="handleUnsavedChanges($event)"
+    (cancel)="handleCancel()"
+  />
+</div>

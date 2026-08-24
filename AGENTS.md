@@ -8,12 +8,12 @@ Use Yarn 4 through Corepack. Treat `.nvmrc` and `package.json#packageManager` as
 
 - Read the ticket and its Acceptance Criteria when the task is ticketed.
 - Inspect `git status` and preserve unrelated existing changes.
-- Create or reuse a dedicated branch following `docs/CONTRIBUTING.md`.
-- Read the guidance applicable to the task:
-  - Implementation standards: `docs/REPO_GUIDELINES.md`
-  - Branches, commits, PRs, and evidence: `docs/CONTRIBUTING.md`
-  - Cypress component tests: `docs/CYPRESS_COMPONENT_TESTING.md`
-  - Cypress E2E and accessibility tests: `docs/CYPRESS_E2E_TESTING.md`
+- Create or reuse a dedicated branch following [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
+- Route implementation and unit testing to [docs/REPO_GUIDELINES.md](docs/REPO_GUIDELINES.md), component testing to
+  [docs/CYPRESS_COMPONENT_TESTING.md](docs/CYPRESS_COMPONENT_TESTING.md), E2E and accessibility testing to
+  [docs/CYPRESS_E2E_TESTING.md](docs/CYPRESS_E2E_TESTING.md), contribution work to
+  [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md), and review work to
+  [docs/CODE_REVIEW_GUIDELINES.md](docs/CODE_REVIEW_GUIDELINES.md).
 
 ## Always
 
@@ -42,11 +42,13 @@ Run checks proportionate to the changed area.
 - Produce unit-test coverage: `yarn test:coverage`
 - Create a production bundle: `yarn build`
 
-Use the Cypress commands and workflows in the applicable Cypress guide.
+Use the Cypress commands and workflows in the applicable
+[component](docs/CYPRESS_COMPONENT_TESTING.md) or [E2E and accessibility](docs/CYPRESS_E2E_TESTING.md) guide.
 
 ## Code review rules
 
-- For code reviews, read and apply `docs/CODE_REVIEW_GUIDELINES.md` and `docs/REPO_GUIDELINES.md`.
+- For code reviews, read and apply [docs/CODE_REVIEW_GUIDELINES.md](docs/CODE_REVIEW_GUIDELINES.md) and
+  [docs/REPO_GUIDELINES.md](docs/REPO_GUIDELINES.md).
 - Report concrete defects introduced by the reviewed change and anchor each finding to the smallest relevant diff range.
 - Base severity on actual user, security, accessibility, operational, or delivery impact.
 - Treat implementation preferences as advisory unless they cause a demonstrable defect.

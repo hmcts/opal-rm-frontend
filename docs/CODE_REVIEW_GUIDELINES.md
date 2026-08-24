@@ -38,8 +38,12 @@ Severity reflects impact, not the category of the repository rule involved.
   changes.
 - Check that form submission cannot be processed more than intended and that request concurrency matches the user
   journey.
+- Check nested subscriptions, dependent requests started from `tap()`, and other imperative observable side effects
+  when they can cause incomplete navigation state, unhandled failures, duplicate requests, or ordering races.
+- Check that imperative subscriptions, timers, event listeners, and retained resources are released with their owner.
 - Flag expensive template expressions or change-detection work only when the changed rendering path can create a
   material performance or stability problem.
+- Check response caching for defined freshness and invalidation behaviour and for correct user or session isolation.
 - Check changed SSR paths for unguarded browser globals or browser-only APIs.
 
 ### Security and privacy

@@ -99,6 +99,8 @@ Use the applicable Cypress guide for component, smoke, functional E2E, and acces
 - Avoid unrelated refactoring, speculative abstractions, duplicated logic, and unnecessary dependencies.
 - Prefer simple, readable code. Add comments that explain why a non-obvious decision was made rather than restating
   what the code does.
+- Add JSDoc to public APIs and methods whose contract, constraints, side effects, error behaviour, or usage cannot be
+  understood clearly from their name and types. Do not add comments that merely restate the implementation.
 - Keep components and services small, cohesive, and focused on one clear responsibility. Extract helpers when doing so
   makes the behaviour easier to understand or test.
 - Prefer small, single-purpose, pure functions. Pass explicit inputs and return data instead of hiding dependencies or

@@ -1,12 +1,29 @@
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
+import { DASHBOARD_ROUTING_PATHS } from 'src/app/pages/dashboard/constants/dashboard-routing-paths.constant';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
 import { setupCreateCasefileCaseType } from './setup/create-case-type.setup';
+import type { CasesCreateCasefileStoreInstance } from './setup/create-case-type.setup';
 
-const buildStoryTags = () => ['@JIRA-STORY:PO-9799', '@JIRA-EPIC:PO-6506'];
+const CREATE_CASEFILE_STORY_TAG = '@JIRA-STORY:PO-9799';
+const CREATE_CASEFILE_EPIC_TAG = '@JIRA-EPIC:PO-6506';
+const buildTags = (...tags: string[]): string[] => [...tags, CREATE_CASEFILE_STORY_TAG, CREATE_CASEFILE_EPIC_TAG];
+const taskListPath = `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList}`;
+const casesDashboardPath = `/${DASHBOARD_ROUTING_PATHS.root}/${DASHBOARD_ROUTING_PATHS.children.cases}`;
 
-describe('Create Casefile Case Type', { tags: buildStoryTags() }, () => {
-  it('renders the exact case type content with no default values', () => {
+const assertStoredSelection = (
+  expectedSelection: ReturnType<CasesCreateCasefileStoreInstance['caseTypeSelection']>,
+) => {
+  cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+    expect(store.caseTypeSelection()).to.deep.equal(expectedSelection);
+    expect(store.stateChanges()).to.equal(true);
+    expect(store.unsavedChanges()).to.equal(false);
+  });
+};
+
+describe('Create Casefile Case Type', () => {
+  it('AC1. should render the exact case type content with no default values', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType();
 
     cy.get(Page.heading).should('have.text', 'Create a case');
@@ -45,7 +62,7 @@ describe('Create Casefile Case Type', { tags: buildStoryTags() }, () => {
     cy.get(Page.applicantConditional).should('have.class', 'govuk-radios__conditional--hidden');
   });
 
-  it('requires explicit Case Type and Applicant Type choices', () => {
+  it('AC2. should require explicit Case Type and Applicant Type choices', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType();
 
     cy.get(Page.continueButton).click();
@@ -60,7 +77,7 @@ describe('Create Casefile Case Type', { tags: buildStoryTags() }, () => {
     cy.get(Page.errorSummary).should('be.focused').and('contain.text', 'Select applicant type');
   });
 
-  it('links summary errors to the correct fields', () => {
+  it('AC2. should link summary errors to the correct fields', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType();
 
     cy.get(Page.continueButton).click();
@@ -73,16 +90,26 @@ describe('Create Casefile Case Type', { tags: buildStoryTags() }, () => {
     cy.get(Page.applicantType).should('be.focused');
   });
 
-  it('saves REMO In and requests Task List navigation', () => {
+  it('AC3. should save REMO In and request Task List navigation', { tags: buildTags() }, () => {
+    const postRequestSpy = cy.spy().as('postRequest');
+    cy.intercept({ method: 'POST', url: '**/draft-casefiles**' }, (request) => {
+      postRequestSpy(request);
+      request.continue();
+    });
     setupCreateCasefileCaseType();
 
     cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).check();
     cy.get(Page.applicantType).select(CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION);
     cy.get(Page.continueButton).click();
-    cy.get('@routerNavigate').should('have.been.calledWith', ['/cases/create-casefile/task-list'], {});
+    assertStoredSelection({
+      caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+      applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
+    });
+    cy.get('@routerNavigate').should('have.been.calledWith', [taskListPath], {});
+    cy.get('@postRequest').should('not.have.been.called');
   });
 
-  it('clears Applicant Type after switching outbound', () => {
+  it('AC1, AC3. should clear Applicant Type after switching outbound', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType();
 
     cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).check();
@@ -92,18 +119,20 @@ describe('Create Casefile Case Type', { tags: buildStoryTags() }, () => {
     cy.get(Page.applicantType).should('be.disabled');
     cy.get(Page.applicantTypeSelectedOption).should('have.text', 'Select');
     cy.get(Page.continueButton).click();
-    cy.get('@routerNavigate').should('have.been.calledWith', ['/cases/create-casefile/task-list'], {});
+    assertStoredSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    cy.get('@routerNavigate').should('have.been.calledWith', [taskListPath], {});
   });
 
-  it('saves REMO Out (CMS) and requests Task List navigation', () => {
+  it('AC3. should save REMO Out (CMS) and request Task List navigation', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType();
 
     cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS)).check();
     cy.get(Page.continueButton).click();
-    cy.get('@routerNavigate').should('have.been.calledWith', ['/cases/create-casefile/task-list'], {});
+    assertStoredSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+    cy.get('@routerNavigate').should('have.been.calledWith', [taskListPath], {});
   });
 
-  it('rehydrates a saved valid selection', () => {
+  it('AC3. should rehydrate a saved valid selection', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType({
       caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
       applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
@@ -113,18 +142,34 @@ describe('Create Casefile Case Type', { tags: buildStoryTags() }, () => {
     cy.get(Page.applicantTypeSelectedOption).should('have.text', CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL);
   });
 
-  it('supports keyboard focus and has no detected Axe violations', () => {
+  it('AC4. should support keyboard focus order for Continue and Cancel', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType();
 
-    cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).focus().should('be.focused');
-    cy.get(Page.continueButton).focus().should('be.focused');
-    cy.get(Page.cancelLink).focus().should('be.focused');
+    cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT)).check().should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(Page.continueButton).should('have.focus');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(Page.cancelLink).should('have.focus');
+  });
+
+  it('AC3. should request Cases dashboard navigation on Cancel', { tags: buildTags() }, () => {
+    setupCreateCasefileCaseType();
+
+    cy.get(Page.cancelLink).click();
+    cy.get('@routerNavigate').should('have.been.calledWith', [casesDashboardPath], {});
+  });
+
+  it('AC4. should have no detected Axe violations with a valid conditional selection', { tags: buildTags() }, () => {
+    setupCreateCasefileCaseType();
+
+    cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).check();
+    cy.get(Page.applicantType).select(CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL);
     cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
     cy.checkA11y();
   });
 
   for (const width of [1280, 320]) {
-    it(`reflows without horizontal page overflow at ${width}px`, () => {
+    it(`AC4. should reflow without horizontal page overflow at ${width}px`, { tags: buildTags() }, () => {
       cy.viewport(width, 900);
       setupCreateCasefileCaseType();
 

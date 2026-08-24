@@ -4,6 +4,8 @@ import { CasesCreateCasefileCaseTypeComponent } from 'src/app/flows/cases/cases-
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 
+export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCasefileStore>;
+
 export const setupCreateCasefileCaseType = (initialSelection: CasesCreateCasefileCaseTypeSelection | null = null) => {
   const store = new CasesCreateCasefileStore();
   const navigate = cy.stub().as('routerNavigate').resolves(true);
@@ -23,6 +25,8 @@ export const setupCreateCasefileCaseType = (initialSelection: CasesCreateCasefil
         { provide: Router, useValue: { navigate } },
         { provide: ActivatedRoute, useValue: { parent: null } },
       ],
+    }).then(() => {
+      cy.wrap(store).as('casesCreateCasefileStore');
     });
   });
 };

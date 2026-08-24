@@ -67,8 +67,10 @@ Severity reflects impact, not the category of the repository rule involved.
 
 - Report missing tests when changed behaviour is regression-prone and the existing suite would not detect a likely
   failure. State the behaviour or scenario that needs coverage.
-- Treat confirmed Sonar **Coverage on New Code** below 100% as a delivery finding. Identify the uncovered behaviour or
-  condition rather than asking for coverage without context.
+- Treat confirmed Sonar **Coverage on New Code** below the configured 80% Quality Gate as a delivery finding.
+- Do not report coverage between 80% and 100% as a defect by itself. Check the uncovered code and report a finding when
+  regression-prone behaviour is not adequately tested; otherwise ensure the PR identifies the affected behaviour,
+  risk, and reason for the gap.
 - Report a new or expanded coverage exclusion when it is broader than necessary, lacks a technical justification, or
   removes code from measurement without suitable alternative verification.
 - Check loading, error, empty, validation, and retry behaviour when the change can reach those states.

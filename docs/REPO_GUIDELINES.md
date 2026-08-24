@@ -155,9 +155,13 @@ Changed UI must meet WCAG 2.2 AA expectations.
 ## Testing
 
 - Add or update tests for changed logic, validation, state handling, error paths, empty states, and regression-prone behaviour.
-- New and materially changed executable code must achieve 100% in Sonar's **Coverage on New Code** metric. The
-  externally configured Sonar Quality Gate must enforce this target; do not treat a local coverage report alone as
-  equivalent evidence.
+- New and materially changed executable code must meet the configured Sonar **Coverage on New Code** Quality Gate of
+  80%. Aim for 100% meaningful coverage. Identify and justify any uncovered new code in the PR, including the affected
+  behaviour, risk, and reason it is not covered.
+- Treat 80% as the enforceable floor, not the engineering target. Business rules, validation, guards, state
+  transitions, transformations, and error paths should normally be fully covered.
+- Use evidence from the externally configured Sonar Quality Gate to confirm the threshold. Do not treat a local
+  coverage report alone as equivalent evidence.
 - Add tests that assert meaningful behaviour rather than tests that merely execute lines to increase coverage.
 - Keep coverage exclusions narrow. Record each new or expanded exclusion in the PR with its technical reason, the code
   affected, the risk it creates, and any alternative verification. Do not add broad exclusions to make the quality

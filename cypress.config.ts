@@ -257,17 +257,6 @@ export default defineConfig({
         },
         resolve: {
           extensions: ['.ts', '.js'],
-          alias: {
-            '../../src/assets/images/govuk-crest.svg': path.resolve(
-              __dirname,
-              'node_modules/govuk-frontend/dist/govuk/assets/images/govuk-crest.svg',
-            ),
-            '../../src/assets/images': path.resolve(
-              __dirname,
-              'node_modules/@ministryofjustice/frontend/moj/assets/images',
-            ),
-            '../../src/assets/fonts': path.resolve(__dirname, 'node_modules/govuk-frontend/dist/govuk/assets/fonts'),
-          },
           plugins: [
             new TsconfigPathsPlugin({
               configFile: componentTsconfigPath,

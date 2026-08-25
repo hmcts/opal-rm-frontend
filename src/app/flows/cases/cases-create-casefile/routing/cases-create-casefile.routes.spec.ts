@@ -70,7 +70,9 @@ describe('Create Casefile routes', () => {
   it.each(guardedRouteCases)(
     'registers %s as a guarded lazy route without permission or requirement metadata',
     async (pathKey, title) => {
-      const route = routing.find((candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children[pathKey]);
+      const route = routing.find(
+        (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children[pathKey],
+      );
 
       expect(route?.loadComponent).toEqual(expect.any(Function));
       expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);

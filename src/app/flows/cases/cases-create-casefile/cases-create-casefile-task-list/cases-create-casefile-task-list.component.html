@@ -1,3 +1,278 @@
 <div class="govuk-grid-column-two-thirds">
-  <h1 class="govuk-heading-l">Task List</h1>
+  <opal-lib-govuk-back-link (clickEvent)="handleBack($event)"></opal-lib-govuk-back-link>
+
+  <span class="govuk-caption-l">Create an order</span>
+  <h1 class="govuk-heading-l">Case details</h1>
+
+  <opal-lib-govuk-summary-list summaryListId="caseDetails">
+    <div opal-lib-govuk-summary-list-row summaryListId="caseDetails" summaryListRowId="caseType">
+      <ng-container name>Case type</ng-container>
+      <ng-container value>{{ caseTypeSelection()?.caseType }}</ng-container>
+    </div>
+    @if (showApplicantType()) {
+      <div opal-lib-govuk-summary-list-row summaryListId="caseDetails" summaryListRowId="applicantType">
+        <ng-container name>Applicant type</ng-container>
+        <ng-container value>{{ applicantType() }}</ng-container>
+      </div>
+    }
+  </opal-lib-govuk-summary-list>
+
+  <h2 class="govuk-heading-m">Party details</h2>
+  <opal-lib-govuk-task-list taskListId="partyDetails">
+    <opal-lib-govuk-task-list-item
+      taskListItemId="respondentItem"
+      taskListStatusId="respondentStatus"
+      taskListItemClasses="govuk-task-list__item--with-link"
+    >
+      <ng-container name>
+        <a
+          class="govuk-link govuk-task-list__link govuk-link--no-visited-state"
+          [href]="paths.respondentDetails"
+          aria-describedby="respondentStatus"
+          (click)="navigateTo(paths.respondentDetails, $event)"
+        >
+          Respondent
+        </a>
+      </ng-container>
+      <ng-container status>
+        <opal-lib-govuk-tag
+          tagId="respondentStatusTag"
+          [tagClasses]="statusTagClasses[store.taskStatuses().respondent]"
+        >
+          {{ store.taskStatuses().respondent }}
+        </opal-lib-govuk-tag>
+      </ng-container>
+    </opal-lib-govuk-task-list-item>
+
+    <opal-lib-govuk-task-list-item
+      taskListItemId="applicantItem"
+      taskListStatusId="applicantStatus"
+      taskListItemClasses="govuk-task-list__item--with-link"
+    >
+      <ng-container name>
+        <a
+          class="govuk-link govuk-task-list__link govuk-link--no-visited-state"
+          [href]="applicantPath()"
+          aria-describedby="applicantStatus"
+          (click)="navigateTo(applicantPath(), $event)"
+        >
+          Applicant
+        </a>
+      </ng-container>
+      <ng-container status>
+        <opal-lib-govuk-tag tagId="applicantStatusTag" [tagClasses]="statusTagClasses[store.taskStatuses().applicant]">
+          {{ store.taskStatuses().applicant }}
+        </opal-lib-govuk-tag>
+      </ng-container>
+    </opal-lib-govuk-task-list-item>
+
+    <opal-lib-govuk-task-list-item
+      taskListItemId="centralAuthorityItem"
+      taskListStatusId="centralAuthorityStatus"
+      taskListItemClasses="govuk-task-list__item--with-link"
+    >
+      <ng-container name>
+        <a
+          class="govuk-link govuk-task-list__link govuk-link--no-visited-state"
+          [href]="paths.centralAuthorityDetails"
+          aria-describedby="centralAuthorityStatus"
+          (click)="navigateTo(paths.centralAuthorityDetails, $event)"
+        >
+          Central authority
+        </a>
+      </ng-container>
+      <ng-container status>
+        <opal-lib-govuk-tag
+          tagId="centralAuthorityStatusTag"
+          [tagClasses]="statusTagClasses[store.taskStatuses().centralAuthority]"
+        >
+          {{ store.taskStatuses().centralAuthority }}
+        </opal-lib-govuk-tag>
+      </ng-container>
+    </opal-lib-govuk-task-list-item>
+  </opal-lib-govuk-task-list>
+
+  <h2 class="govuk-heading-m">Order</h2>
+  <opal-lib-govuk-task-list taskListId="order">
+    <opal-lib-govuk-task-list-item
+      taskListItemId="orderDetailsItem"
+      taskListStatusId="orderDetailsStatus"
+      [taskListItemClasses]="store.orderDetailsAvailable() ? 'govuk-task-list__item--with-link' : ''"
+    >
+      <ng-container name>
+        @if (store.orderDetailsAvailable()) {
+          <a
+            class="govuk-link govuk-task-list__link govuk-link--no-visited-state"
+            [href]="paths.orderDetails"
+            aria-describedby="orderDetailsStatus"
+            (click)="navigateTo(paths.orderDetails, $event)"
+          >
+            Order details
+          </a>
+        } @else {
+          Order details
+        }
+      </ng-container>
+      <ng-container status>
+        @if (store.orderDetailsAvailable()) {
+          <opal-lib-govuk-tag
+            tagId="orderDetailsStatusTag"
+            [tagClasses]="statusTagClasses[store.taskStatuses().orderDetails]"
+          >
+            {{ store.taskStatuses().orderDetails }}
+          </opal-lib-govuk-tag>
+        } @else {
+          Cannot start yet
+        }
+      </ng-container>
+    </opal-lib-govuk-task-list-item>
+
+    <opal-lib-govuk-task-list-item
+      taskListItemId="orderTermsItem"
+      taskListStatusId="orderTermsStatus"
+      [taskListItemClasses]="store.remainingOrderTasksAvailable() ? 'govuk-task-list__item--with-link' : ''"
+    >
+      <ng-container name>
+        @if (store.remainingOrderTasksAvailable()) {
+          <a
+            class="govuk-link govuk-task-list__link govuk-link--no-visited-state"
+            [href]="paths.orderTermsSummary"
+            aria-describedby="orderTermsStatus"
+            (click)="navigateTo(paths.orderTermsSummary, $event)"
+          >
+            Order terms
+          </a>
+        } @else {
+          Order terms
+        }
+      </ng-container>
+      <ng-container status>
+        @if (store.remainingOrderTasksAvailable()) {
+          <opal-lib-govuk-tag
+            tagId="orderTermsStatusTag"
+            [tagClasses]="statusTagClasses[store.taskStatuses().orderTerms]"
+          >
+            {{ store.taskStatuses().orderTerms }}
+          </opal-lib-govuk-tag>
+        } @else {
+          Cannot start yet
+        }
+      </ng-container>
+    </opal-lib-govuk-task-list-item>
+
+    <opal-lib-govuk-task-list-item
+      taskListItemId="interestAndIndexationItem"
+      taskListStatusId="interestAndIndexationStatus"
+      [taskListItemClasses]="store.remainingOrderTasksAvailable() ? 'govuk-task-list__item--with-link' : ''"
+    >
+      <ng-container name>
+        @if (store.remainingOrderTasksAvailable()) {
+          <a
+            class="govuk-link govuk-task-list__link govuk-link--no-visited-state"
+            [href]="paths.interestAndIndexation"
+            aria-describedby="interestAndIndexationStatus"
+            (click)="navigateTo(paths.interestAndIndexation, $event)"
+          >
+            Interest and indexation
+          </a>
+        } @else {
+          Interest and indexation
+        }
+      </ng-container>
+      <ng-container status>
+        @if (store.remainingOrderTasksAvailable()) {
+          <opal-lib-govuk-tag
+            tagId="interestAndIndexationStatusTag"
+            [tagClasses]="statusTagClasses[store.taskStatuses().interestAndIndexation]"
+          >
+            {{ store.taskStatuses().interestAndIndexation }}
+          </opal-lib-govuk-tag>
+        } @else {
+          Cannot start yet
+        }
+      </ng-container>
+    </opal-lib-govuk-task-list-item>
+
+    <opal-lib-govuk-task-list-item
+      taskListItemId="managingPaymentsItem"
+      taskListStatusId="managingPaymentsStatus"
+      [taskListItemClasses]="store.remainingOrderTasksAvailable() ? 'govuk-task-list__item--with-link' : ''"
+    >
+      <ng-container name>
+        @if (store.remainingOrderTasksAvailable()) {
+          <a
+            class="govuk-link govuk-task-list__link govuk-link--no-visited-state"
+            [href]="paths.managingPayments"
+            aria-describedby="managingPaymentsStatus"
+            (click)="navigateTo(paths.managingPayments, $event)"
+          >
+            Managing payments
+          </a>
+        } @else {
+          Managing payments
+        }
+      </ng-container>
+      <ng-container status>
+        @if (store.remainingOrderTasksAvailable()) {
+          <opal-lib-govuk-tag
+            tagId="managingPaymentsStatusTag"
+            [tagClasses]="statusTagClasses[store.taskStatuses().managingPayments]"
+          >
+            {{ store.taskStatuses().managingPayments }}
+          </opal-lib-govuk-tag>
+        } @else {
+          Cannot start yet
+        }
+      </ng-container>
+    </opal-lib-govuk-task-list-item>
+  </opal-lib-govuk-task-list>
+
+  <h2 class="govuk-heading-m">Additional information</h2>
+  <opal-lib-govuk-task-list taskListId="additionalInformation">
+    <opal-lib-govuk-task-list-item
+      taskListItemId="commentsAndNotesItem"
+      taskListStatusId="commentsAndNotesStatus"
+      taskListItemClasses="govuk-task-list__item--with-link"
+    >
+      <ng-container name>
+        <a
+          class="govuk-link govuk-task-list__link govuk-link--no-visited-state"
+          [href]="paths.commentsAndNotes"
+          aria-describedby="commentsAndNotesStatus"
+          (click)="navigateTo(paths.commentsAndNotes, $event)"
+        >
+          Comments and notes
+        </a>
+      </ng-container>
+      <ng-container status>
+        <opal-lib-govuk-tag
+          tagId="commentsAndNotesStatusTag"
+          [tagClasses]="statusTagClasses[store.taskStatuses().commentsAndNotes]"
+        >
+          {{ store.taskStatuses().commentsAndNotes }}
+        </opal-lib-govuk-tag>
+      </ng-container>
+    </opal-lib-govuk-task-list-item>
+  </opal-lib-govuk-task-list>
+
+  <h2 class="govuk-heading-m">Check and submit</h2>
+  @if (store.checkCaseAvailable()) {
+    <opal-lib-govuk-button buttonId="checkCaseButton" (buttonClickEvent)="navigateTo(paths.checkCaseDetails)">
+      Check case
+    </opal-lib-govuk-button>
+  } @else {
+    <p id="checkCaseBlockingGuidance" class="govuk-body">
+      You cannot proceed until all required sections have been completed.
+    </p>
+  }
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <a
+    id="cancelCaseCreation"
+    class="govuk-link govuk-error-colour govuk-link--no-visited-state"
+    [href]="paths.cancel"
+    (click)="navigateTo(paths.cancel, $event)"
+  >
+    Cancel case creation
+  </a>
 </div>

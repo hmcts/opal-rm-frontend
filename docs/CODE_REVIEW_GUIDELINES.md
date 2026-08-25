@@ -38,6 +38,9 @@ Severity reflects impact, not the category of the repository rule involved.
   changes.
 - Check that form submission cannot be processed more than intended and that request concurrency matches the user
   journey.
+- Check new routed journeys hide primary navigation at their parent route and on initial direct or refreshed child
+  URLs. Report repeated child metadata or initial-render navigation exposure when it can make a journey page appear as
+  dashboard navigation.
 - Check nested subscriptions, dependent requests started from `tap()`, and other imperative observable side effects
   when they can cause incomplete navigation state, unhandled failures, duplicate requests, or ordering races.
 - Check that imperative subscriptions, timers, event listeners, and retained resources are released with their owner.
@@ -60,6 +63,11 @@ Severity reflects impact, not the category of the repository rule involved.
   equivalent semantics.
 - Report controls without an accessible name, validation errors that are not associated with their controls, and
   state changes that are not understandable to assistive-technology users.
+- Check routed placeholders retain the intended GOV.UK grid wrapper and width when omission would make the placeholder
+  materially diverge from the completed or approved adjacent journey page.
+- Do not require `opal-lib-govuk-button` inside a `govuk-button-group` containing one primary action and
+  `opal-lib-govuk-cancel-link` when its host element breaks GOV.UK flex alignment. Check that the native-button fallback
+  retains GOV.UK classes, semantic button type, accessible text, stable ID, and appropriate spacing.
 - Report deviations from an established GOV.UK or HMCTS pattern when they create inconsistent behaviour,
   accessibility problems, or a demonstrable user-experience regression.
 

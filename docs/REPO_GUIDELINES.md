@@ -52,6 +52,11 @@ Use the applicable Cypress guide for component, smoke, functional E2E, and acces
 - Apply modern Angular features in new and materially changed code when they are supported by the installed version
   and fit the established integration.
 - Prefer standalone components, routes, and providers. Do not introduce an `NgModule` unless an existing integration requires one.
+- Treat routed data-entry flows as journeys rather than dashboard pages. Apply `PRIMARY_NAV_HIDDEN_ROUTE_DATA` at the
+  journey's parent route so every child page inherits hidden primary navigation without duplicated route metadata.
+- When adding the first route under a new journey root, update the app shell's initial-URL recognition and tests as well
+  as the route data. Direct or refreshed child URLs must start with primary navigation hidden; do not rely only on a
+  later `NavigationEnd` event, which can expose the navigation during initial rendering.
 - Prefer modern template control flow such as `@if`, `@for`, and `@switch` over legacy structural directives in new
   and changed templates. Track dynamic `@for` collections by a unique, stable item identity; use `$index` only for
   collections that are truly static.
@@ -138,6 +143,14 @@ Use the applicable Cypress guide for component, smoke, functional E2E, and acces
 - Use GOV.UK typography, spacing tokens, colour, and content conventions.
 - Add bespoke styling only when no suitable established pattern exists.
 - Keep content concise, user-centred, and consistent with the GOV.UK style guide.
+- Keep routed placeholder pages structurally representative of their intended completed page. Include the appropriate
+  GOV.UK grid wrapper and page-width class, matching the approved adjacent journey page when that is the design
+  baseline; do not leave a bare heading that renders at a different width from the eventual screen.
+- Use the shared GOV.UK button component by default. For a `govuk-button-group` containing exactly one primary action
+  and `opal-lib-govuk-cancel-link`, use a native `<button>` with the standard `govuk-button` classes when the shared
+  button component's custom-element host prevents GOV.UK flex alignment. Preserve the correct `type`, accessible text,
+  stable ID, spacing class, and shared cancel-link behaviour, and do not generalise this exception to other button
+  arrangements.
 
 ## Accessibility
 

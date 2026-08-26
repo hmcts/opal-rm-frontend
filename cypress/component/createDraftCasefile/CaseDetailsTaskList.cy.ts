@@ -347,6 +347,24 @@ describe('Create Casefile Case Details Task List', () => {
     },
   );
 
+  it('AC4. should reset task progress when Case Type changes after direct navigation', { tags: buildTags() }, () => {
+    const initialSelection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    const changedSelection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS } as const;
+    setupCaseDetailsTaskList({ selection: initialSelection, providedTasks: mandatoryTasks });
+    assertStoreState(initialSelection, mandatoryTasks);
+
+    cy.get('@angularRouter').then((router: Router) => {
+      cy.wrap(router.navigateByUrl(createJourneyPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType)));
+    });
+    assertRouterPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType);
+    cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT)).should('be.checked');
+    cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS)).check();
+    cy.get(Page.continueButton).click();
+
+    assertRouterPath(taskListPath);
+    assertStoreState(changedSelection, []);
+  });
+
   for (const childPath of [
     CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
     CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails,

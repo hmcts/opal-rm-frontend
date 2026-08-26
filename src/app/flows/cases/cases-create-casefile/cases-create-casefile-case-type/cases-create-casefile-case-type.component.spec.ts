@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
+import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-create-casefile-state.constant';
+import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileCaseTypeComponent } from './cases-create-casefile-case-type.component';
@@ -113,6 +115,23 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
 
     expect(store.caseTypeSelection()).toEqual({ caseType: 'REMO Out' });
     expect(store.caseTypeSelection()).not.toHaveProperty('applicantType');
+  });
+
+  it('clears downstream task progress when a different Case Type is submitted after returning directly', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    store.setTaskStatus('applicant', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+
+    component.handleFormSubmit({
+      formData: {
+        caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS,
+        applicantType: null,
+      },
+      nestedFlow: false,
+    });
+
+    expect(store.taskStatuses()).toEqual(CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES);
+    expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
   });
 
   it('does not save or navigate for invalid runtime form values', () => {

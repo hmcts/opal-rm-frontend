@@ -119,6 +119,57 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.caseTypeSelection()).not.toHaveProperty('applicantType');
   });
 
+  it('resets task progress when the submitted Case Type changes', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    provide('respondent', 'applicant', 'orderDetails');
+
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+    expect(store.taskStatuses()).toEqual(CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES);
+  });
+
+  it('resets task progress when the submitted REMO In Applicant Type changes', () => {
+    store.setCaseTypeSelection({
+      caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+      applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
+    });
+    provide('respondent', 'applicant', 'orderDetails');
+
+    store.setCaseTypeSelection({
+      caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+      applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
+    });
+
+    expect(store.taskStatuses()).toEqual(CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES);
+  });
+
+  it('preserves task progress when the submitted Case Type selection is unchanged', () => {
+    const selection = {
+      caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+      applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
+    } as const;
+    store.setCaseTypeSelection(selection);
+    provide('respondent', 'applicant', 'orderDetails');
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.taskStatuses().respondent).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.taskStatuses().applicant).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.taskStatuses().orderDetails).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+  });
+
+  it('preserves task progress when the submitted outbound Case Type is unchanged', () => {
+    const selection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    store.setCaseTypeSelection(selection);
+    provide('respondent', 'applicant', 'orderDetails');
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.taskStatuses().respondent).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.taskStatuses().applicant).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.taskStatuses().orderDetails).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+  });
+
   it.each([
     [
       'REMO In with Individual',

@@ -4,11 +4,30 @@ import {
   CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES,
   CASES_CREATE_CASEFILE_STATE,
 } from '../constants/cases-create-casefile-state.constant';
+import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefile-task-status.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
 import { isCasesCreateCasefileCaseTypeSelectionValid } from '../utils/cases-create-casefile-case-type-selection';
+
+const areCaseTypeSelectionsEqual = (
+  currentSelection: CasesCreateCasefileCaseTypeSelection | null,
+  nextSelection: CasesCreateCasefileCaseTypeSelection,
+): boolean => {
+  if (!currentSelection || currentSelection.caseType !== nextSelection.caseType) {
+    return false;
+  }
+
+  if (
+    currentSelection.caseType === CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN &&
+    nextSelection.caseType === CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN
+  ) {
+    return currentSelection.applicantType === nextSelection.applicantType;
+  }
+
+  return true;
+};
 
 export const CasesCreateCasefileStore = signalStore(
   { providedIn: 'root' },
@@ -45,7 +64,11 @@ export const CasesCreateCasefileStore = signalStore(
   }),
   withMethods((store) => ({
     setCaseTypeSelection: (caseTypeSelection: CasesCreateCasefileCaseTypeSelection): void => {
-      patchState(store, { caseTypeSelection, stateChanges: true, unsavedChanges: false });
+      const taskStatuses = areCaseTypeSelectionsEqual(store.caseTypeSelection(), caseTypeSelection)
+        ? store.taskStatuses()
+        : { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES };
+
+      patchState(store, { caseTypeSelection, taskStatuses, stateChanges: true, unsavedChanges: false });
     },
     setTaskStatus: (task: CasesCreateCasefileTask, status: CasesCreateCasefileTaskStatus): void => {
       patchState(store, {

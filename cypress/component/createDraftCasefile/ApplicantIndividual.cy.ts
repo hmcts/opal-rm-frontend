@@ -542,10 +542,38 @@ describe('Create Casefile Applicant Individual', () => {
         assertInlineError(selector, message);
       }
 
-      cy.contains(Page.applicantIndividual.errorSummaryLinks, /^Enter alias first name\(s\)$/).click();
-      cy.get(Page.applicantIndividual.aliasFirstName(0)).should('be.focused');
-      cy.contains(Page.applicantIndividual.errorSummaryLinks, /^Enter sort code$/).click();
-      cy.get(Page.applicantIndividual.ukBankSortCode).should('be.focused');
+      const errorSummaryFocusMappings: Array<{ message: string; controlSelector: string }> = [
+        { message: expectedErrors[0], controlSelector: Page.applicantIndividual.firstNames },
+        { message: expectedErrors[1], controlSelector: Page.applicantIndividual.lastName },
+        { message: expectedErrors[2], controlSelector: Page.applicantIndividual.aliasFirstName(0) },
+        { message: expectedErrors[3], controlSelector: Page.applicantIndividual.aliasLastName(0) },
+        { message: expectedErrors[4], controlSelector: Page.applicantIndividual.addressLine1 },
+        { message: expectedErrors[5], controlSelector: Page.applicantIndividual.countryAutocomplete },
+        { message: expectedErrors[6], controlSelector: Page.applicantIndividual.thirdPartyNameOrOrganisation },
+        { message: expectedErrors[7], controlSelector: Page.applicantIndividual.thirdPartyRelationship },
+        { message: expectedErrors[8], controlSelector: Page.applicantIndividual.thirdPartyAddressLine1 },
+        { message: expectedErrors[9], controlSelector: Page.applicantIndividual.thirdPartyCountry },
+        { message: expectedErrors[10], controlSelector: Page.applicantIndividual.ukBankNameOnAccount },
+        { message: expectedErrors[11], controlSelector: Page.applicantIndividual.ukBankSortCode },
+        { message: expectedErrors[12], controlSelector: Page.applicantIndividual.ukBankAccountNumber },
+        { message: expectedErrors[13], controlSelector: Page.applicantIndividual.ukBankPaymentReference },
+        { message: expectedErrors[14], controlSelector: Page.applicantIndividual.restrictedInformationReason },
+      ];
+      const remainingFocusMappings = [...errorSummaryFocusMappings];
+      cy.get(Page.applicantIndividual.errorSummaryLinks)
+        .should('have.length', errorSummaryFocusMappings.length)
+        .each(($link) => {
+          const mapping = remainingFocusMappings.shift();
+          if (!mapping) {
+            throw new Error('Expected a focus mapping for each rendered summary link');
+          }
+          expect(normalizeText($link.text())).to.equal(mapping.message);
+          cy.wrap($link).click();
+          cy.get(mapping.controlSelector).should('be.focused');
+        })
+        .then(() => {
+          expect(remainingFocusMappings).to.be.empty;
+        });
     },
   );
 

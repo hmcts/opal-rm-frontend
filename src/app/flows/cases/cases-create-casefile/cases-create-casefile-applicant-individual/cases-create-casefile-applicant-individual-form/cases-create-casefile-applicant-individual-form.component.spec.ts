@@ -93,6 +93,13 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     ];
   };
 
+  const setRenderedInputValue = (inputId: string, value: string): HTMLInputElement => {
+    const input = fixture.nativeElement.querySelector(`#${inputId}`) as HTMLInputElement;
+    input.value = value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    return input;
+  };
+
   beforeEach(async () => {
     document.body.classList.add('govuk-frontend-supported', 'js-enabled');
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
@@ -235,10 +242,14 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     expect(component.form.controls['applicant_country_id'].hasError('required')).toBe(true);
   });
 
-  it('creates one stable alias row when selected and caps aliases at five', () => {
+  it('creates and focuses one stable alias row from the rendered checkbox and emits dirty state', async () => {
+    const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
+    const addAliasesCheckbox = fixture.nativeElement.querySelector('#applicant_add_aliases') as HTMLInputElement;
 
-    component.form.controls['applicant_add_aliases'].setValue(true);
+    addAliasesCheckbox.click();
+
+    expect(addAliasesCheckbox.checked).toBe(true);
     expect(component.aliasControls).toHaveLength(1);
     expect(component.aliasControls[0]).toEqual({
       applicant_alias_first_names: {
@@ -252,91 +263,55 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
         controlName: 'applicant_alias_last_name_0',
       },
     });
+    expect(component.form.dirty).toBe(true);
+    expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_alias_first_names_0'));
+    });
+  });
+
+  it('uses the rendered Add button to focus new rows, emit dirty state and enforce the five-row limit', async () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_aliases: [{ firstNames: 'Alternative', lastName: 'Applicant' }],
+    };
+    const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
+    fixture.detectChanges();
 
     for (let index = 1; index < 5; index += 1) {
-      component.addAlias(index, 'applicant_aliases');
+      (fixture.nativeElement.querySelector('#addApplicantAlias') as HTMLButtonElement).click();
     }
-    component.addAlias(5, 'applicant_aliases');
 
     expect(component.aliasControls).toHaveLength(5);
     expect(component.form.controls['applicant_aliases'].value).toHaveLength(5);
-    fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#addApplicantAlias')).toBeNull();
-  });
-
-  it('focuses the first field of each alias added after selection', async () => {
-    fixture.detectChanges();
-
-    component.form.controls['applicant_add_aliases'].setValue(true);
+    expect(component.form.dirty).toBe(true);
+    expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
     await vi.waitFor(() => {
-      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_alias_first_names_0'));
-    });
-
-    component.addAlias(1, 'applicant_aliases');
-    await vi.waitFor(() => {
-      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_alias_first_names_1'));
+      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_alias_first_names_4'));
     });
   });
 
-  it('marks alias removal dirty and focuses the remaining row when two aliases become one', async () => {
+  it('uses the rendered Remove link to clear only removed errors, emit dirty state and focus the remaining row', async () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
       applicant_aliases: [
-        { firstNames: 'Alternative', lastName: 'Applicant' },
-        { firstNames: 'Second', lastName: 'Alias' },
+        { firstNames: '', lastName: '' },
+        { firstNames: '', lastName: '' },
       ],
     };
+    const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+    unsavedChangesSpy.mockClear();
 
-    component.removeAlias(1, 'applicant_aliases');
+    (
+      fixture.nativeElement.querySelector('#applicantAliasesConditional-conditional a.govuk-link') as HTMLAnchorElement
+    ).click();
 
     expect(component.aliasControls).toHaveLength(1);
     expect(component.form.dirty).toBe(true);
-    await vi.waitFor(() => {
-      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_alias_first_names_0'));
-    });
-  });
-
-  it('clears alias rows and their field and summary errors when aliases are deselected', () => {
-    component.initialFormData = {
-      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_aliases: [{ firstNames: '', lastName: '' }],
-    };
-    fixture.detectChanges();
-    component.handleFormSubmit(new SubmitEvent('submit', { cancelable: true }));
-
-    expect(component.formErrorSummaryMessage).toContainEqual({
-      fieldId: 'applicant_alias_first_names_0',
-      message: 'Enter alias first name(s)',
-    });
-
-    component.form.controls['applicant_add_aliases'].setValue(false);
-
-    expect(component.aliasControls).toHaveLength(0);
-    expect(component.form.controls['applicant_aliases'].value).toEqual([]);
-    expect(
-      component.formErrorSummaryMessage.some((error: { fieldId: string }) =>
-        error.fieldId.startsWith('applicant_alias_'),
-      ),
-    ).toBe(false);
-    expect(
-      component.formErrors.some((error: { fieldId: string }) => error.fieldId.startsWith('applicant_alias_')),
-    ).toBe(false);
-  });
-
-  it('clears only the removed alias errors', () => {
-    component.initialFormData = {
-      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_aliases: [
-        { firstNames: '', lastName: '' },
-        { firstNames: '', lastName: '' },
-      ],
-    };
-    fixture.detectChanges();
-    component.handleFormSubmit(new SubmitEvent('submit', { cancelable: true }));
-
-    component.removeAlias(1, 'applicant_aliases');
-
+    expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
     expect(component.formErrorSummaryMessage).toContainEqual({
       fieldId: 'applicant_alias_first_names_0',
       message: 'Enter alias first name(s)',
@@ -345,6 +320,42 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
       false,
     );
     expect(component.formErrors.some((error: { fieldId: string }) => error.fieldId.endsWith('_1'))).toBe(false);
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_alias_first_names_0'));
+    });
+  });
+
+  it('uses the rendered checkbox to deselect aliases, clear their errors and emit dirty state', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_aliases: [{ firstNames: '', lastName: '' }],
+    };
+    const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(component.formErrorSummaryMessage).toContainEqual({
+      fieldId: 'applicant_alias_first_names_0',
+      message: 'Enter alias first name(s)',
+    });
+    unsavedChangesSpy.mockClear();
+
+    const addAliasesCheckbox = fixture.nativeElement.querySelector('#applicant_add_aliases') as HTMLInputElement;
+    addAliasesCheckbox.click();
+
+    expect(addAliasesCheckbox.checked).toBe(false);
+    expect(component.aliasControls).toHaveLength(0);
+    expect(component.form.controls['applicant_aliases'].value).toEqual([]);
+    expect(component.form.dirty).toBe(true);
+    expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
+    expect(
+      component.formErrorSummaryMessage.some((error: { fieldId: string }) =>
+        error.fieldId.startsWith('applicant_alias_'),
+      ),
+    ).toBe(false);
+    expect(
+      component.formErrors.some((error: { fieldId: string }) => error.fieldId.startsWith('applicant_alias_')),
+    ).toBe(false);
   });
 
   it('emits dirty state after a rendered core field edit', () => {
@@ -359,22 +370,48 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
   });
 
-  it('shows ordered inline and summary errors and focuses the summary on invalid Return', () => {
+  it('retains invalid rendered values and shows ordered inline and summary errors from the rendered Return button', () => {
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
+    const enteredValues = {
+      applicant_first_names: '   ',
+      applicant_last_name: 'L'.repeat(51),
+      applicant_date_of_birth: '01/01/2999',
+      applicant_main_email_address: 'invalid',
+      applicant_address_line_1: '\t',
+    } as const;
+    const renderedInputs = Object.fromEntries(
+      Object.entries(enteredValues).map(([controlName, value]) => [
+        controlName,
+        setRenderedInputValue(controlName, value),
+      ]),
+    );
 
-    component.handleFormSubmit(new SubmitEvent('submit', { cancelable: true }));
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
 
     expect(component.formErrorSummaryMessage).toEqual([
       { fieldId: 'applicant_first_names', message: 'Enter applicant’s first name(s)' },
-      { fieldId: 'applicant_last_name', message: 'Enter applicant’s last name' },
+      { fieldId: 'applicant_last_name', message: 'Last name must be 50 characters or fewer' },
+      { fieldId: 'applicant_date_of_birth', message: 'Date must be in the past' },
+      {
+        fieldId: 'applicant_main_email_address',
+        message: 'Enter an email address in the correct format, like name@example.com',
+      },
       { fieldId: 'applicant_address_line_1', message: 'Enter an address' },
       { fieldId: 'applicant_country_id', message: 'Select a country' },
     ]);
+    expect(formSubmitSpy).not.toHaveBeenCalled();
+    for (const [controlName, value] of Object.entries(enteredValues)) {
+      expect(component.form.get(controlName)?.value).toBe(value);
+      expect((renderedInputs[controlName] as HTMLInputElement).value).toBe(value);
+      const message = component.formErrorSummaryMessage.find((error) => error.fieldId === controlName)?.message;
+      expect(fixture.nativeElement.querySelector(`#${controlName}-error-message`)?.textContent).toContain(message);
+    }
+    expect(
+      fixture.nativeElement.querySelector('#applicant_country_id-autocomplete-error-message')?.textContent,
+    ).toContain('Select a country');
     expect(fixture.nativeElement.querySelector('.govuk-error-summary__title')?.textContent).toContain(
       'There is a problem',
-    );
-    expect(fixture.nativeElement.querySelector('#applicant_first_names-error-message')?.textContent).toContain(
-      'Enter applicant’s first name(s)',
     );
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.govuk-error-summary'));
   });
@@ -389,7 +426,7 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     };
     fixture.detectChanges();
 
-    component.handleFormSubmit(new SubmitEvent('submit', { cancelable: true }));
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
 
     const expectedMessages = {
       applicant_title: 'Title must be 20 characters or fewer',

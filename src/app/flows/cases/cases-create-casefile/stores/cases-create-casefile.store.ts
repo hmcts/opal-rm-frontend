@@ -6,6 +6,7 @@ import {
 } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
+import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefile-task-status.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
@@ -64,11 +65,29 @@ export const CasesCreateCasefileStore = signalStore(
   }),
   withMethods((store) => ({
     setCaseTypeSelection: (caseTypeSelection: CasesCreateCasefileCaseTypeSelection): void => {
-      const taskStatuses = areCaseTypeSelectionsEqual(store.caseTypeSelection(), caseTypeSelection)
+      const selectionUnchanged = areCaseTypeSelectionsEqual(store.caseTypeSelection(), caseTypeSelection);
+      const taskStatuses = selectionUnchanged
         ? store.taskStatuses()
         : { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES };
 
-      patchState(store, { caseTypeSelection, taskStatuses, stateChanges: true, unsavedChanges: false });
+      patchState(store, {
+        caseTypeSelection,
+        respondentDetails: selectionUnchanged ? store.respondentDetails() : null,
+        taskStatuses,
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+    },
+    setRespondentDetails: (respondentDetails: ICasesCreateCasefileRespondentDetails): void => {
+      patchState(store, {
+        respondentDetails,
+        taskStatuses: {
+          ...store.taskStatuses(),
+          respondent: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
+        },
+        stateChanges: true,
+        unsavedChanges: false,
+      });
     },
     setTaskStatus: (task: CasesCreateCasefileTask, status: CasesCreateCasefileTaskStatus): void => {
       patchState(store, {

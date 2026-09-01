@@ -4,12 +4,41 @@ import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
+import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
 import { CasesCreateCasefileStore } from './cases-create-casefile.store';
 
 describe('CasesCreateCasefileStore', () => {
   let store: InstanceType<typeof CasesCreateCasefileStore>;
+
+  const respondentDetails: ICasesCreateCasefileRespondentDetails = {
+    title: 'Mx',
+    firstNames: 'Test',
+    lastName: 'Respondent',
+    aliases: [{ firstNames: 'Example', lastName: 'Alias' }],
+    dateOfBirth: '1990-01-31',
+    nationalInsuranceNumber: 'QQ123456C',
+    otherPersonalInformation: 'Synthetic test information',
+    contactDetails: {
+      mainEmailAddress: 'test@example.com',
+      otherEmailAddress: null,
+      mainTelephoneNumber: '01234567890',
+      otherTelephoneNumber: null,
+      address: {
+        addressLine1: '1 Test Street',
+        addressLine2: null,
+        addressLine3: null,
+        addressLine4: null,
+        addressLine5: null,
+        postalOrZipCode: 'TE1 1ST',
+        countryId: 1,
+      },
+    },
+    thirdParty: null,
+    employer: null,
+    restrictedInformation: { restricted: false, reason: null },
+  };
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
@@ -26,6 +55,10 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.caseTypeComplete()).toBe(false);
     expect(store.unsavedChanges()).toBe(false);
     expect(store.stateChanges()).toBe(false);
+  });
+
+  it('starts without respondent details', () => {
+    expect(store.respondentDetails()).toBeNull();
   });
 
   it('starts mandatory tasks as Required and optional tasks as Optional', () => {
@@ -117,6 +150,36 @@ describe('CasesCreateCasefileStore', () => {
 
     expect(store.caseTypeSelection()).toEqual({ caseType: 'REMO Out (CMS)' });
     expect(store.caseTypeSelection()).not.toHaveProperty('applicantType');
+  });
+
+  it('saves respondent details and marks the task Provided atomically', () => {
+    store.setUnsavedChanges(true);
+    store.setRespondentDetails(respondentDetails);
+
+    expect(store.respondentDetails()).toEqual(respondentDetails);
+    expect(store.taskStatuses().respondent).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.unsavedChanges()).toBe(false);
+    expect(store.stateChanges()).toBe(true);
+  });
+
+  it('clears respondent data when the Case Type changes', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setRespondentDetails(respondentDetails);
+
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+    expect(store.respondentDetails()).toBeNull();
+    expect(store.taskStatuses().respondent).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
+  });
+
+  it('preserves respondent data when the Case Type selection is unchanged', () => {
+    const selection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    store.setCaseTypeSelection(selection);
+    store.setRespondentDetails(respondentDetails);
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.respondentDetails()).toEqual(respondentDetails);
   });
 
   it('resets task progress when the submitted Case Type changes', () => {

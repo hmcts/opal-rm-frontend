@@ -110,10 +110,11 @@ export class CasesCreateCasefileApplicantIndividualMapperService {
         };
       case CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK: {
         const accountNumber = optional(formData.applicant_non_uk_bank_account_number);
+        const bicSwiftCode = optional(formData.applicant_non_uk_bank_bic_swift_code);
         const iban = optional(formData.applicant_non_uk_bank_iban);
 
-        if (accountNumber === null && iban === null) {
-          throw new Error('Required non-UK bank account number or IBAN is missing');
+        if (bicSwiftCode === null && iban === null) {
+          throw new Error('Required non-UK bank BIC/SWIFT code or IBAN is missing');
         }
 
         return {
@@ -121,7 +122,7 @@ export class CasesCreateCasefileApplicantIndividualMapperService {
           nameOnAccount: requiredString(formData.applicant_non_uk_bank_name_on_account, 'non-UK bank name on account'),
           accountNumber,
           paymentReference: optional(formData.applicant_non_uk_bank_payment_reference),
-          bicSwiftCode: optional(formData.applicant_non_uk_bank_bic_swift_code),
+          bicSwiftCode,
           iban,
           bankName: optional(formData.applicant_non_uk_bank_name),
           branchSortCode: optional(formData.applicant_non_uk_bank_branch_sort_code),
@@ -203,6 +204,7 @@ export class CasesCreateCasefileApplicantIndividualMapperService {
   public toApplicantDetails(
     formData: ICasesCreateCasefileApplicantIndividualFormData,
   ): ICasesCreateCasefileApplicantIndividual {
+    const dateOfBirth = optional(formData.applicant_date_of_birth);
     const thirdParty = formData.applicant_send_correspondence_to_third_party
       ? {
           nameOrOrganisation: requiredString(
@@ -234,9 +236,7 @@ export class CasesCreateCasefileApplicantIndividualMapperService {
             lastName: requiredString(alias.lastName, `alias ${index + 1} last name`),
           }))
         : [],
-      dateOfBirth: formData.applicant_date_of_birth
-        ? this.dateService.getFromFormatToFormat(formData.applicant_date_of_birth, 'dd/MM/yyyy', 'yyyy-MM-dd')
-        : null,
+      dateOfBirth: dateOfBirth ? this.dateService.getFromFormatToFormat(dateOfBirth, 'dd/MM/yyyy', 'yyyy-MM-dd') : null,
       contactDetails: {
         mainEmailAddress: optional(formData.applicant_main_email_address),
         otherEmailAddress: optional(formData.applicant_other_email_address),

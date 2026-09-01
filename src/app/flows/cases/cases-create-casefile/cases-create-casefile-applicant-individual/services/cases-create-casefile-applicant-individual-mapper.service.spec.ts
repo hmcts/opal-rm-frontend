@@ -237,6 +237,15 @@ describe('CasesCreateCasefileApplicantIndividualMapperService', () => {
     });
   });
 
+  it('normalises a whitespace-only date of birth to null', () => {
+    expect(
+      mapper.toApplicantDetails({
+        ...validUkFormData,
+        applicant_date_of_birth: '   ',
+      }).dateOfBirth,
+    ).toBeNull();
+  });
+
   it.each([
     ['applicant first names', { applicant_first_names: null }],
     ['applicant last name', { applicant_last_name: '   ' }],
@@ -262,16 +271,53 @@ describe('CasesCreateCasefileApplicantIndividualMapperService', () => {
     ).toThrowError(`Required ${description} is missing`);
   });
 
-  it('throws when neither non-UK account identifier is supplied', () => {
+  it('maps non-UK bank details when only a BIC/SWIFT code is supplied', () => {
+    expect(
+      mapper.toApplicantDetails({
+        ...validUkFormData,
+        applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+        applicant_non_uk_bank_name_on_account: 'Non-UK Applicant',
+        applicant_non_uk_bank_account_number: null,
+        applicant_non_uk_bank_bic_swift_code: 'BICCODE',
+        applicant_non_uk_bank_iban: null,
+      }).bankDetails,
+    ).toMatchObject({
+      type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      accountNumber: null,
+      bicSwiftCode: 'BICCODE',
+      iban: null,
+    });
+  });
+
+  it('maps non-UK bank details when only an IBAN is supplied', () => {
+    expect(
+      mapper.toApplicantDetails({
+        ...validUkFormData,
+        applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+        applicant_non_uk_bank_name_on_account: 'Non-UK Applicant',
+        applicant_non_uk_bank_account_number: null,
+        applicant_non_uk_bank_bic_swift_code: '   ',
+        applicant_non_uk_bank_iban: 'GB29NWBK60161331926819',
+      }).bankDetails,
+    ).toMatchObject({
+      type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      accountNumber: null,
+      bicSwiftCode: null,
+      iban: 'GB29NWBK60161331926819',
+    });
+  });
+
+  it('throws when neither a non-UK BIC/SWIFT code nor IBAN is supplied', () => {
     expect(() =>
       mapper.toApplicantDetails({
         ...validUkFormData,
         applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
         applicant_non_uk_bank_name_on_account: 'Non-UK Applicant',
-        applicant_non_uk_bank_account_number: '   ',
-        applicant_non_uk_bank_iban: null,
+        applicant_non_uk_bank_account_number: '87654321',
+        applicant_non_uk_bank_bic_swift_code: '   ',
+        applicant_non_uk_bank_iban: '   ',
       }),
-    ).toThrowError('Required non-UK bank account number or IBAN is missing');
+    ).toThrowError('Required non-UK bank BIC/SWIFT code or IBAN is missing');
   });
 
   it('throws when the non-UK name on account is missing', () => {
@@ -281,6 +327,7 @@ describe('CasesCreateCasefileApplicantIndividualMapperService', () => {
         applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
         applicant_non_uk_bank_name_on_account: null,
         applicant_non_uk_bank_account_number: '87654321',
+        applicant_non_uk_bank_bic_swift_code: 'BICCODE',
       }),
     ).toThrowError('Required non-UK bank name on account is missing');
   });

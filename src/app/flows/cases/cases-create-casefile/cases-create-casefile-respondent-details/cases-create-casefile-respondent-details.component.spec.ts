@@ -75,6 +75,7 @@ describe('CasesCreateCasefileRespondentDetailsComponent', () => {
 
   it('saves a valid respondent and returns to the task list', () => {
     component = createComponent();
+    component.handleUnsavedChanges(true);
 
     component.handleFormSubmit({
       formData: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
@@ -83,6 +84,8 @@ describe('CasesCreateCasefileRespondentDetailsComponent', () => {
 
     expect(store.respondentDetails()).toEqual(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
     expect(store.taskStatuses().respondent).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.unsavedChanges()).toBe(false);
+    expect(component['canDeactivate']()).toBe(true);
     expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
   });
 
@@ -95,6 +98,7 @@ describe('CasesCreateCasefileRespondentDetailsComponent', () => {
 
     expect(store.respondentDetails()).toEqual(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
     expect(store.unsavedChanges()).toBe(true);
+    expect(component['canDeactivate']()).toBe(false);
     expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
   });
 

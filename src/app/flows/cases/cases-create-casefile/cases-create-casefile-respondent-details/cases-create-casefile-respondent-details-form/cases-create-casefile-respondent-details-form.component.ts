@@ -8,7 +8,16 @@ import {
   Output,
   inject,
 } from '@angular/core';
-import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormArray,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { AbstractFormAliasBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-alias-base';
 import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
@@ -71,6 +80,14 @@ interface IRespondentAliasFormRow {
   [controlName: string]: string | null;
 }
 
+type IRespondentDetailsRawFormData = Omit<
+  ICasesCreateCasefileRespondentDetailsFormData,
+  'respondent_aliases' | 'respondent_third_party_country_id'
+> & {
+  respondent_aliases: IRespondentAliasFormRow[];
+  respondent_third_party_country_id: string | number | null;
+};
+
 @Component({
   selector: 'app-cases-create-casefile-respondent-details-form',
   imports: [
@@ -130,6 +147,14 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   @Input({ required: true }) public countrySelectOptions!: IGovUkSelectOptions[];
   public yesterday!: string;
 
+  private countrySelectionValidator(options: ReadonlyArray<{ value: string | number }>): ValidatorFn {
+    const countryIds = new Set(options.map((option) => String(option.value)));
+    return (control: AbstractControl): ValidationErrors | null =>
+      control.value !== null && control.value !== '' && countryIds.has(String(control.value))
+        ? null
+        : { required: true };
+  }
+
   private setupForm(): void {
     const emailValidators = [optionalMaxLengthValidator(76), patternValidator(EMAIL_ADDRESS_PATTERN, 'emailPattern')];
     const disabled = <T>(value: T): { value: T; disabled: true } => ({ value, disabled: true });
@@ -156,7 +181,10 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
       respondent_address_line_4: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
       respondent_address_line_5: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
       respondent_postal_or_zip_code: new FormControl<string | null>(null, optionalMaxLengthValidator(10)),
-      respondent_country_id: new FormControl<number | null>(null, Validators.required),
+      respondent_country_id: new FormControl<number | null>(null, [
+        Validators.required,
+        this.countrySelectionValidator(this.countryAutocompleteItems),
+      ]),
       respondent_send_correspondence_to_third_party: new FormControl(false, { nonNullable: true }),
       respondent_third_party_name_or_organisation: new FormControl<string | null>(
         disabled(null),
@@ -185,7 +213,10 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
         disabled(null),
         optionalMaxLengthValidator(10),
       ),
-      respondent_third_party_country_id: new FormControl<number | null>(disabled(null)),
+      respondent_third_party_country_id: new FormControl<number | null>(
+        disabled(null),
+        this.countrySelectionValidator(this.countrySelectOptions),
+      ),
       respondent_add_employer_details: new FormControl(false, { nonNullable: true }),
       respondent_employer_name: new FormControl<string | null>(disabled(null), Validators.maxLength(50)),
       respondent_employee_reference: new FormControl<string | null>(disabled(null), optionalMaxLengthValidator(20)),
@@ -215,7 +246,10 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
         disabled(null),
         optionalMaxLengthValidator(10),
       ),
-      respondent_employer_country_id: new FormControl<number | null>(disabled(null)),
+      respondent_employer_country_id: new FormControl<number | null>(
+        disabled(null),
+        this.countrySelectionValidator(this.countryAutocompleteItems),
+      ),
       respondent_restricted_information: new FormControl(false, { nonNullable: true }),
       respondent_restricted_information_reason: new FormControl<string | null>(
         disabled(null),
@@ -243,14 +277,41 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     }));
   }
 
+  private normalizeThirdPartyCountryId(value: string | number | null): number | null {
+    if (value === null || value === '') {
+      return null;
+    }
+    return Number(value);
+  }
+
   private clearConditionalBranchErrors(controlNames: readonly string[]): void {
     for (const controlName of controlNames) {
       this.formControlErrorMessages[controlName] = null;
     }
-    this.formErrorSummaryMessage = this.formErrorSummaryMessage.filter(
-      (error) => !controlNames.includes(error.fieldId),
-    );
-    this.formErrors = (this.formErrors ?? []).filter((error) => !controlNames.includes(error.fieldId));
+    this.clearErrorEntries((fieldId) => controlNames.includes(fieldId));
+  }
+
+  private clearErrorEntries(matches: (fieldId: string) => boolean): void {
+    this.formErrorSummaryMessage = this.formErrorSummaryMessage.filter((error) => !matches(error.fieldId));
+    this.formErrors = (this.formErrors ?? []).filter((error) => !matches(error.fieldId));
+  }
+
+  private clearAliasErrors(controlNames?: readonly string[]): void {
+    const matches = controlNames
+      ? (fieldId: string) => controlNames.includes(fieldId)
+      : (fieldId: string) => this.aliasFields.some((field) => fieldId.startsWith(`${field}_`));
+
+    this.clearErrorEntries(matches);
+  }
+
+  private setupAliasErrorCleanupListener(): void {
+    this.form.controls['respondent_add_aliases'].valueChanges
+      .pipe(takeUntil(this.conditionalBranchesDestroyed))
+      .subscribe((selected) => {
+        if (selected !== true) {
+          this.clearAliasErrors();
+        }
+      });
   }
 
   private updateConditionalBranch(branch: (typeof this.conditionalBranches)[number], selected: boolean): void {
@@ -305,6 +366,14 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     }
   }
 
+  public override removeAlias(index: number, formArrayName: string, event?: Event): void {
+    const removedControlNames = this.aliasFields
+      .map((field) => this.aliasControls[index]?.[field]?.controlName)
+      .filter((controlName): controlName is string => controlName !== undefined);
+    super.removeAlias(index, formArrayName, event);
+    this.clearAliasErrors(removedControlNames);
+  }
+
   public override handleFormSubmit(event: SubmitEvent): void {
     event.preventDefault();
     if (!this.form.valid) {
@@ -316,14 +385,14 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     this.formSubmitted = true;
     this.unsavedChanges.emit(this.hasUnsavedChanges());
 
-    const rawValue = this.form.getRawValue() as Omit<
-      ICasesCreateCasefileRespondentDetailsFormData,
-      'respondent_aliases'
-    > & { respondent_aliases: IRespondentAliasFormRow[] };
+    const rawValue = this.form.getRawValue() as IRespondentDetailsRawFormData;
     this.formSubmit.emit({
       formData: {
         ...rawValue,
         respondent_aliases: this.mapIndexedRowsToAliases(rawValue.respondent_aliases),
+        respondent_third_party_country_id: this.normalizeThirdPartyCountryId(
+          rawValue.respondent_third_party_country_id,
+        ),
       },
       nestedFlow: false,
     });
@@ -339,6 +408,7 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     this.setInitialErrorMessages();
     this.rePopulateForm(this.initialFormData);
     this.setUpAliasCheckboxListener('respondent_add_aliases', 'respondent_aliases');
+    this.setupAliasErrorCleanupListener();
     this.setupConditionalBranchListeners();
     this.applyInitialConditionalBranchState();
     this.yesterday = this.dateService.getPreviousDate({ days: 1 });

@@ -1,4 +1,8 @@
 import type { Router } from '@angular/router';
+import {
+  GENERIC_HTTP_ERROR_MESSAGE,
+  GENERIC_HTTP_ERROR_TITLE,
+} from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileRespondentDetails } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-respondent-details.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
@@ -610,20 +614,35 @@ describe('Create Casefile Respondent Details', () => {
     });
   });
 
-  it('AC5. should prevent valid Return when Countries resolves empty', { tags: buildTags() }, () => {
-    setupRespondentDetails({ countries: EMPTY_COUNTRIES_RESPONSE });
-
-    cy.get(Page.respondentDetails.firstNames).type('Test');
-    cy.get(Page.respondentDetails.lastName).type('Respondent');
-    cy.get(Page.respondentDetails.addressLine1).type('1 Test Street');
-    cy.get(Page.respondentDetails.returnToCaseDetails).click();
-    cy.get(Page.respondentDetails.errorSummary).should('be.focused').and('contain.text', 'Select a country');
-    assertInlineError(Page.respondentDetails.countryError, 'Select a country');
-    assertRouterPath(respondentPath);
-    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-      expect(store.respondentDetails()).to.equal(null);
-      expect(store.taskStatuses().respondent).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
+  it('AC5. should prevent activation and allow retry when Countries resolves empty', { tags: buildTags() }, () => {
+    setupRespondentDetails({
+      initialChildPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
+      countries: EMPTY_COUNTRIES_RESPONSE,
+      useAppShell: true,
     });
+
+    assertRouterPath(taskListPath);
+    cy.get(Page.caseDetails.respondentLink).click();
+    cy.wait('@getCountries').its('response.statusCode').should('equal', 200);
+    assertRouterPath(taskListPath);
+    cy.get('@globalStore').then((globalStore: GlobalStoreInstance) => {
+      expect(globalStore.bannerError()).to.deep.equal({
+        error: true,
+        title: GENERIC_HTTP_ERROR_TITLE,
+        message: GENERIC_HTTP_ERROR_MESSAGE,
+        operationId: null,
+      });
+    });
+    cy.get(Page.globalErrorBanner).should('be.visible');
+    cy.get(Page.globalErrorBannerHeading).should('have.text', GENERIC_HTTP_ERROR_TITLE);
+    cy.get(Page.globalErrorBannerContent)
+      .should('contain.text', GENERIC_HTTP_ERROR_MESSAGE)
+      .and('not.contain.text', 'Error code:');
+
+    cy.get(Page.caseDetails.respondentLink).click();
+    cy.wait('@getCountries').its('response.statusCode').should('equal', 200);
+    assertRouterPath(taskListPath);
+    cy.get('@getCountries.all').should('have.length', 2);
   });
 
   it(

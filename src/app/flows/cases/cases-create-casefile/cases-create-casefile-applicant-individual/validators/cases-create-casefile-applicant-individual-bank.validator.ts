@@ -5,11 +5,10 @@ const NUMERIC_PATTERN = /^\d+$/;
 const BIC_SWIFT_PATTERN = /^[A-Za-z0-9]{8,11}$/;
 const IBAN_PATTERN = /^[A-Za-z0-9]{1,34}$/;
 
-const trimmedValue = (control: AbstractControl): string =>
-  typeof control.value === 'string' ? control.value.trim() : '';
+const stringValue = (control: AbstractControl): string => (typeof control.value === 'string' ? control.value : '');
 
 export const casesCreateCasefileApplicantIndividualUkSortCodeValidator: ValidatorFn = (control) => {
-  const value = trimmedValue(control);
+  const value = stringValue(control);
   const digitsOnly = value.replaceAll('-', '');
 
   if (!NUMERIC_PATTERN.test(digitsOnly)) {
@@ -24,7 +23,7 @@ export const casesCreateCasefileApplicantIndividualUkSortCodeValidator: Validato
 };
 
 export const casesCreateCasefileApplicantIndividualUkAccountNumberValidator: ValidatorFn = (control) => {
-  const value = trimmedValue(control);
+  const value = stringValue(control);
 
   if (!NUMERIC_PATTERN.test(value)) {
     return { ukAccountNumberPattern: true };
@@ -34,21 +33,21 @@ export const casesCreateCasefileApplicantIndividualUkAccountNumberValidator: Val
 };
 
 export const casesCreateCasefileApplicantIndividualBicSwiftValidator: ValidatorFn = (control) => {
-  const value = trimmedValue(control);
+  const value = stringValue(control);
 
-  return value === '' || BIC_SWIFT_PATTERN.test(value) ? null : { internationalIdentifierPattern: true };
+  return value.trim() === '' || BIC_SWIFT_PATTERN.test(value) ? null : { internationalIdentifierPattern: true };
 };
 
 export const casesCreateCasefileApplicantIndividualIbanValidator: ValidatorFn = (control) => {
-  const value = trimmedValue(control);
+  const value = stringValue(control);
 
-  return value === '' || IBAN_PATTERN.test(value) ? null : { internationalIdentifierPattern: true };
+  return value.trim() === '' || IBAN_PATTERN.test(value) ? null : { internationalIdentifierPattern: true };
 };
 
 export const casesCreateCasefileApplicantIndividualBranchSortCodeValidator: ValidatorFn = (control) => {
-  const value = trimmedValue(control);
+  const value = stringValue(control);
 
-  if (value === '') {
+  if (value.trim() === '') {
     return null;
   }
 

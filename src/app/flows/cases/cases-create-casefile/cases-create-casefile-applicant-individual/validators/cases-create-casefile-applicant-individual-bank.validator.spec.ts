@@ -21,6 +21,12 @@ describe('CasesCreateCasefileApplicantIndividualBankValidator', () => {
       });
     });
 
+    it('returns ukSortCodePattern when an otherwise valid sort code is wrapped in whitespace', () => {
+      expect(casesCreateCasefileApplicantIndividualUkSortCodeValidator(new FormControl(' 11-22-33 '))).toEqual({
+        ukSortCodePattern: true,
+      });
+    });
+
     it.each(['11223', '1122334'])('returns ukSortCodeLength when %s has the wrong number of digits', (value) => {
       expect(casesCreateCasefileApplicantIndividualUkSortCodeValidator(new FormControl(value))).toEqual({
         ukSortCodeLength: true,
@@ -35,6 +41,12 @@ describe('CasesCreateCasefileApplicantIndividualBankValidator', () => {
 
     it('returns ukAccountNumberPattern when the account number contains letters', () => {
       expect(casesCreateCasefileApplicantIndividualUkAccountNumberValidator(new FormControl('12345A'))).toEqual({
+        ukAccountNumberPattern: true,
+      });
+    });
+
+    it('returns ukAccountNumberPattern when an otherwise valid account number is wrapped in whitespace', () => {
+      expect(casesCreateCasefileApplicantIndividualUkAccountNumberValidator(new FormControl(' 123456 '))).toEqual({
         ukAccountNumberPattern: true,
       });
     });
@@ -56,6 +68,12 @@ describe('CasesCreateCasefileApplicantIndividualBankValidator', () => {
         internationalIdentifierPattern: true,
       });
     });
+
+    it('returns internationalIdentifierPattern when an otherwise valid BIC or SWIFT value is wrapped in whitespace', () => {
+      expect(casesCreateCasefileApplicantIndividualBicSwiftValidator(new FormControl(' ABCD1234 '))).toEqual({
+        internationalIdentifierPattern: true,
+      });
+    });
   });
 
   describe('casesCreateCasefileApplicantIndividualIbanValidator', () => {
@@ -74,6 +92,12 @@ describe('CasesCreateCasefileApplicantIndividualBankValidator', () => {
         });
       },
     );
+
+    it('returns internationalIdentifierPattern when an otherwise valid IBAN value is wrapped in whitespace', () => {
+      expect(casesCreateCasefileApplicantIndividualIbanValidator(new FormControl(' GB82WEST12345698765432 '))).toEqual({
+        internationalIdentifierPattern: true,
+      });
+    });
   });
 
   describe('casesCreateCasefileApplicantIndividualBranchSortCodeValidator', () => {
@@ -83,6 +107,12 @@ describe('CasesCreateCasefileApplicantIndividualBankValidator', () => {
 
     it('returns branchSortCodePattern when the branch or sort code contains letters', () => {
       expect(casesCreateCasefileApplicantIndividualBranchSortCodeValidator(new FormControl('123A'))).toEqual({
+        branchSortCodePattern: true,
+      });
+    });
+
+    it('returns branchSortCodePattern when an otherwise valid branch or sort code is wrapped in whitespace', () => {
+      expect(casesCreateCasefileApplicantIndividualBranchSortCodeValidator(new FormControl(' 123456 '))).toEqual({
         branchSortCodePattern: true,
       });
     });

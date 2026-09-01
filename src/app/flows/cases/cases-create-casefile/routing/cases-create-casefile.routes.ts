@@ -4,6 +4,7 @@ import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-casefile-routing-titles.constant';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
+import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
 export const routing: Routes = [
   {
@@ -38,8 +39,12 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileRespondentDetailsComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [canDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.respondentDetails },
-    resolve: { title: TitleResolver },
+    resolve: {
+      title: TitleResolver,
+      countries: fetchCasesCreateCasefileCountriesResolver,
+    },
   },
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual,

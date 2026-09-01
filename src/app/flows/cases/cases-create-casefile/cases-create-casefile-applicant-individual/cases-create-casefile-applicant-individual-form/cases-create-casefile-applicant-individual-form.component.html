@@ -324,17 +324,14 @@
         inputName="applicant_bank_type"
         [inputValue]="option.value"
         [control]="form.controls.applicant_bank_type"
-        [ariaControls]="
-          option.value === bankTypes.UK
-            ? ukBankConditionalId
-            : option.value === bankTypes.NON_UK
-              ? nonUkBankConditionalId
-              : ''
-        "
       ></div>
 
       @if (option.value === bankTypes.UK) {
-        <opal-lib-govuk-radios-conditional [conditionalId]="ukBankConditionalId">
+        <div
+          class="govuk-radios__conditional"
+          [class.govuk-radios__conditional--hidden]="form.controls.applicant_bank_type.value !== bankTypes.UK"
+          [id]="ukBankConditionalId"
+        >
           <opal-lib-govuk-text-input
             labelText="Name on account"
             labelClasses="govuk-label--s"
@@ -372,11 +369,15 @@
             [control]="form.get('applicant_uk_bank_payment_reference')"
             [errors]="formControlErrorMessages['applicant_uk_bank_payment_reference']"
           />
-        </opal-lib-govuk-radios-conditional>
+        </div>
       }
 
       @if (option.value === bankTypes.NON_UK) {
-        <opal-lib-govuk-radios-conditional [conditionalId]="nonUkBankConditionalId">
+        <div
+          class="govuk-radios__conditional"
+          [class.govuk-radios__conditional--hidden]="form.controls.applicant_bank_type.value !== bankTypes.NON_UK"
+          [id]="nonUkBankConditionalId"
+        >
           <opal-lib-govuk-text-input
             labelText="Name on account"
             labelClasses="govuk-label--s"
@@ -440,7 +441,7 @@
             [control]="form.get('applicant_non_uk_bank_branch_sort_code')"
             [errors]="formControlErrorMessages['applicant_non_uk_bank_branch_sort_code']"
           />
-        </opal-lib-govuk-radios-conditional>
+        </div>
       }
     }
   </opal-lib-govuk-radio>

@@ -1,49 +1,111 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
+import { ActivatedRoute, Router } from '@angular/router';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createSpyObj } from '@app/testing/create-spy-obj.helper';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
+import type { ICasesCreateCasefileCountryReferenceDataResponse } from '../services/interfaces/cases-create-casefile-country-reference-data-response.interface';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
+import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS } from './mocks/cases-create-casefile-respondent-details.mock';
 import { CasesCreateCasefileRespondentDetailsComponent } from './cases-create-casefile-respondent-details.component';
 
 describe('CasesCreateCasefileRespondentDetailsComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileRespondentDetailsComponent>;
+  let component: CasesCreateCasefileRespondentDetailsComponent;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
-  const router = { navigateByUrl: vi.fn().mockResolvedValue(true) };
+  const router = createSpyObj(Router, ['navigate']);
+  const countriesResponse: ICasesCreateCasefileCountryReferenceDataResponse = {
+    count: 2,
+    refData: [
+      {
+        country_id: 1,
+        cjs_code: 1,
+        country_name: 'United Kingdom',
+        date_used_from: '2020-01-01',
+        active: true,
+      },
+      {
+        country_id: 2,
+        cjs_code: 2,
+        country_name: 'France',
+        date_used_from: '2020-01-01',
+        active: true,
+      },
+    ],
+  };
+
+  const createComponent = (): CasesCreateCasefileRespondentDetailsComponent => {
+    fixture = TestBed.createComponent(CasesCreateCasefileRespondentDetailsComponent);
+    return fixture.componentInstance;
+  };
 
   beforeEach(async () => {
-    router.navigateByUrl.mockClear();
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileRespondentDetailsComponent],
-      providers: [{ provide: Router, useValue: router }, CasesCreateCasefileStore],
+      providers: [
+        { provide: Router, useValue: router },
+        { provide: ActivatedRoute, useValue: { snapshot: { data: { countries: countriesResponse } }, parent: null } },
+      ],
     }).compileComponents();
+
+    router['navigate'].mockReset();
     store = TestBed.inject(CasesCreateCasefileStore);
-    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
-    store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
-    fixture = TestBed.createComponent(CasesCreateCasefileRespondentDetailsComponent);
-    fixture.detectChanges();
+    store.resetStore();
   });
 
-  it('renders the Respondent details placeholder and returns to Case details without changing state', () => {
-    const before = {
-      caseTypeSelection: store.caseTypeSelection(),
-      taskStatuses: store.taskStatuses(),
-      unsavedChanges: store.unsavedChanges(),
-      stateChanges: store.stateChanges(),
-    };
+  it('maps resolved Countries for autocomplete and select controls', () => {
+    component = createComponent();
 
-    expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds h1')?.textContent.trim()).toBe(
-      'Respondent details',
-    );
-    fixture.nativeElement.querySelector('a.govuk-back-link').click();
+    expect(component.countryAutocompleteItems).toEqual([
+      { name: 'United Kingdom', value: 1 },
+      { name: 'France', value: 2 },
+    ]);
+    expect(component.countrySelectOptions).toEqual([
+      { name: 'Select', value: '' },
+      { name: 'United Kingdom', value: 1 },
+      { name: 'France', value: 2 },
+    ]);
+  });
 
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/task-list');
-    expect({
-      caseTypeSelection: store.caseTypeSelection(),
-      taskStatuses: store.taskStatuses(),
-      unsavedChanges: store.unsavedChanges(),
-      stateChanges: store.stateChanges(),
-    }).toEqual(before);
+  it('rehydrates the last saved respondent through the mapper', () => {
+    store.setRespondentDetails(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
+    component = createComponent();
+
+    expect(component.initialFormData).toEqual(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData);
+  });
+
+  it('saves a valid respondent and returns to the task list', () => {
+    component = createComponent();
+
+    component.handleFormSubmit({
+      formData: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+      nestedFlow: false,
+    });
+
+    expect(store.respondentDetails()).toEqual(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
+    expect(store.taskStatuses().respondent).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
+  });
+
+  it('tracks dirty state and cancels without replacing saved respondent data', () => {
+    store.setRespondentDetails(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
+    component = createComponent();
+
+    component.handleUnsavedChanges(true);
+    component.handleCancel();
+
+    expect(store.respondentDetails()).toEqual(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
+    expect(store.unsavedChanges()).toBe(true);
+    expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
+  });
+
+  it('clears only the transient dirty marker after a confirmed route departure', () => {
+    store.setRespondentDetails(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
+    component = createComponent();
+
+    component.handleUnsavedChanges(true);
+    component.ngOnDestroy();
+
+    expect(store.respondentDetails()).toEqual(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
+    expect(store.unsavedChanges()).toBe(false);
   });
 });

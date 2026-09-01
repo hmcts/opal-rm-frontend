@@ -16,6 +16,7 @@ import { CasesCreateCasefileTaskListComponent } from '../cases-create-casefile-t
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-casefile-routing-titles.constant';
 import { routing } from './cases-create-casefile.routes';
+import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
@@ -93,7 +94,11 @@ describe('Create Casefile routes', () => {
       );
 
       expect(route?.loadComponent).toEqual(expect.any(Function));
-      expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
+      expect(route?.canActivate).toEqual(
+        pathKey === 'applicantIndividual'
+          ? [casesCreateCasefileFlowStateGuard, casesCreateCasefileApplicantIndividualGuard]
+          : [casesCreateCasefileFlowStateGuard],
+      );
       expect(route?.data).toEqual({ title });
       expect(route?.resolve).toEqual({ title: TitleResolver });
 

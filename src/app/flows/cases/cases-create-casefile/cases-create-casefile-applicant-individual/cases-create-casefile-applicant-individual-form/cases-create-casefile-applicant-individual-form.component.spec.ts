@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
 import type { ICasesCreateCasefileApplicantIndividualFormData } from '../interfaces/cases-create-casefile-applicant-individual-form-data.interface';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../mocks/cases-create-casefile-applicant-individual.mock';
 import { CasesCreateCasefileApplicantIndividualFormComponent } from './cases-create-casefile-applicant-individual-form.component';
@@ -108,6 +109,11 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     return input;
   };
 
+  const selectBankType = (bankType: string): void => {
+    (fixture.nativeElement.querySelector(`#applicant_bank_type-${bankType}`) as HTMLInputElement).click();
+    fixture.detectChanges();
+  };
+
   beforeEach(async () => {
     document.body.classList.add('govuk-frontend-supported', 'js-enabled');
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
@@ -189,7 +195,7 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
         applicant_alias_last_name_1: 'Alias',
       },
     ]);
-    expect(component.form.controls['applicant_uk_bank_name_on_account'].disabled).toBe(true);
+    expect(component.form.controls['applicant_uk_bank_name_on_account'].enabled).toBe(true);
     expect(component.form.controls['applicant_uk_bank_name_on_account'].value).toBe('Test Applicant');
     expect(component.form.pristine).toBe(true);
   });
@@ -444,6 +450,245 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     expect(component.form.controls['applicant_country_id'].hasError('required')).toBe(true);
   });
 
+  it('renders one required Bank details radio group with all three approved choices', () => {
+    fixture.detectChanges();
+
+    const bankFieldset = fixture.nativeElement.querySelector('#applicant_bank_type') as HTMLFieldSetElement;
+    const labels = Array.from(bankFieldset.querySelectorAll('.govuk-radios__label')).map((label) =>
+      label.textContent?.trim(),
+    );
+
+    expect(labels).toEqual(['UK bank account', 'Non-UK bank account', 'None or not applicable']);
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+    expect(component.form.controls['applicant_bank_type'].hasError('required')).toBe(true);
+    expect(component.formErrorSummaryMessage).toContainEqual({
+      fieldId: 'applicant_bank_type',
+      message: 'Select an option',
+    });
+  });
+
+  it('enables only the UK branch and accepts both exact sort-code formats with 6-to-8 digit account numbers', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_bank_type: null,
+      applicant_uk_bank_name_on_account: null,
+      applicant_uk_bank_sort_code: null,
+      applicant_uk_bank_account_number: null,
+      applicant_uk_bank_payment_reference: null,
+    };
+    fixture.detectChanges();
+
+    selectBankType(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK);
+
+    const ukControls = [
+      'applicant_uk_bank_name_on_account',
+      'applicant_uk_bank_sort_code',
+      'applicant_uk_bank_account_number',
+      'applicant_uk_bank_payment_reference',
+    ] as const;
+    const nonUkControls = conditionalControlNames.slice(14, 21);
+    for (const controlName of ukControls) {
+      expect(component.form.controls[controlName].enabled).toBe(true);
+      expect(component.form.controls[controlName].hasError('required')).toBe(true);
+    }
+    for (const controlName of nonUkControls) {
+      expect(component.form.controls[controlName].disabled).toBe(true);
+    }
+
+    component.form.controls['applicant_uk_bank_name_on_account'].setValue('Account holder');
+    component.form.controls['applicant_uk_bank_payment_reference'].setValue('PAY-001');
+    component.form.controls['applicant_uk_bank_sort_code'].setValue('112233');
+    component.form.controls['applicant_uk_bank_account_number'].setValue('123456');
+    expect(component.form.controls['applicant_uk_bank_sort_code'].errors).toBeNull();
+    expect(component.form.controls['applicant_uk_bank_account_number'].errors).toBeNull();
+
+    component.form.controls['applicant_uk_bank_sort_code'].setValue('11-22-33');
+    component.form.controls['applicant_uk_bank_account_number'].setValue('12345678');
+    expect(component.form.controls['applicant_uk_bank_sort_code'].errors).toBeNull();
+    expect(component.form.controls['applicant_uk_bank_account_number'].errors).toBeNull();
+    expect(component.form.valid).toBe(true);
+  });
+
+  it('rejects invalid UK sort-code and account-number formats with deterministic errors', () => {
+    component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData;
+    fixture.detectChanges();
+
+    const sortCode = component.form.controls['applicant_uk_bank_sort_code'];
+    const accountNumber = component.form.controls['applicant_uk_bank_account_number'];
+
+    sortCode.setValue('11 22 33');
+    expect(sortCode.hasError('ukSortCodePattern')).toBe(true);
+    sortCode.setValue('12345');
+    expect(sortCode.hasError('ukSortCodeLength')).toBe(true);
+    accountNumber.setValue('12345A');
+    expect(accountNumber.hasError('ukAccountNumberPattern')).toBe(true);
+    accountNumber.setValue('12345');
+    expect(accountNumber.hasError('ukAccountNumberLength')).toBe(true);
+  });
+
+  it('accepts a non-UK account with a valid BIC and optional payment reference', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      applicant_uk_bank_name_on_account: null,
+      applicant_uk_bank_sort_code: null,
+      applicant_uk_bank_account_number: null,
+      applicant_uk_bank_payment_reference: null,
+      applicant_non_uk_bank_name_on_account: 'Account holder',
+      applicant_non_uk_bank_bic_swift_code: 'ABCDEFGH',
+    };
+    fixture.detectChanges();
+
+    expect(component.form.controls['applicant_non_uk_bank_name_on_account'].enabled).toBe(true);
+    expect(component.form.controls['applicant_non_uk_bank_payment_reference'].errors).toBeNull();
+    expect(component.form.controls['applicant_non_uk_bank_bic_swift_code'].errors).toBeNull();
+    expect(component.form.controls['applicant_non_uk_bank_iban'].errors).toBeNull();
+    expect(component.form.valid).toBe(true);
+  });
+
+  it('accepts a non-UK account with a valid IBAN and revalidates the BIC requirement when IBAN changes', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      applicant_uk_bank_name_on_account: null,
+      applicant_uk_bank_sort_code: null,
+      applicant_uk_bank_account_number: null,
+      applicant_uk_bank_payment_reference: null,
+      applicant_non_uk_bank_name_on_account: 'Account holder',
+      applicant_non_uk_bank_bic_swift_code: null,
+      applicant_non_uk_bank_iban: null,
+    };
+    fixture.detectChanges();
+
+    const bic = component.form.controls['applicant_non_uk_bank_bic_swift_code'];
+    const iban = component.form.controls['applicant_non_uk_bank_iban'];
+    expect(bic.hasError('internationalIdentifierRequired')).toBe(true);
+
+    iban.setValue('GB82WEST12345698765432');
+
+    expect(iban.errors).toBeNull();
+    expect(bic.errors).toBeNull();
+    expect(component.form.valid).toBe(true);
+  });
+
+  it('requires one international identifier and applies raw exact identifier and branch-code formats', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      applicant_uk_bank_name_on_account: null,
+      applicant_uk_bank_sort_code: null,
+      applicant_uk_bank_account_number: null,
+      applicant_uk_bank_payment_reference: null,
+      applicant_non_uk_bank_name_on_account: 'Account holder',
+      applicant_non_uk_bank_bic_swift_code: null,
+      applicant_non_uk_bank_iban: null,
+    };
+    fixture.detectChanges();
+
+    const bic = component.form.controls['applicant_non_uk_bank_bic_swift_code'];
+    const iban = component.form.controls['applicant_non_uk_bank_iban'];
+    const branchCode = component.form.controls['applicant_non_uk_bank_branch_sort_code'];
+    expect(bic.hasError('internationalIdentifierRequired')).toBe(true);
+
+    bic.setValue('ABC 1234');
+    expect(bic.hasError('internationalIdentifierPattern')).toBe(true);
+    bic.setValue(null);
+    iban.setValue('GB82 WEST');
+    expect(iban.hasError('internationalIdentifierPattern')).toBe(true);
+    iban.setValue('A'.repeat(35));
+    expect(iban.hasError('internationalIdentifierPattern')).toBe(true);
+    iban.setValue('GB82WEST12345698765432');
+    branchCode.setValue('123A');
+    expect(branchCode.hasError('branchSortCodePattern')).toBe(true);
+    branchCode.setValue('1'.repeat(13));
+    expect(branchCode.hasError('branchSortCodeLength')).toBe(true);
+  });
+
+  it('clears inactive bank values and errors when switching mutually exclusive rendered branches', () => {
+    component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData;
+    fixture.detectChanges();
+    component.form.controls['applicant_uk_bank_sort_code'].setValue('invalid');
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+    expect(component.formErrorSummaryMessage).toContainEqual({
+      fieldId: 'applicant_uk_bank_sort_code',
+      message: 'Enter correct sort code',
+    });
+
+    selectBankType(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK);
+
+    for (const controlName of conditionalControlNames.slice(10, 14)) {
+      expect(component.form.controls[controlName].disabled).toBe(true);
+      expect(component.form.controls[controlName].value).toBeNull();
+      expect(component.formControlErrorMessages[controlName]).toBeNull();
+    }
+    expect(component.formErrorSummaryMessage.some((error) => error.fieldId.startsWith('applicant_uk_bank_'))).toBe(
+      false,
+    );
+
+    component.form.controls['applicant_non_uk_bank_name_on_account'].setValue('Account holder');
+    component.form.controls['applicant_non_uk_bank_bic_swift_code'].setValue('ABCDEFGH');
+    selectBankType(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE);
+
+    for (const controlName of conditionalControlNames.slice(14, 21)) {
+      expect(component.form.controls[controlName].disabled).toBe(true);
+      expect(component.form.controls[controlName].value).toBeNull();
+    }
+    expect(component.form.valid).toBe(true);
+  });
+
+  it('restores the selected saved bank branch before first render without marking the form dirty', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      applicant_uk_bank_name_on_account: null,
+      applicant_uk_bank_sort_code: null,
+      applicant_uk_bank_account_number: null,
+      applicant_uk_bank_payment_reference: null,
+      applicant_non_uk_bank_name_on_account: 'Saved account',
+      applicant_non_uk_bank_account_number: 'ACC-123',
+      applicant_non_uk_bank_payment_reference: null,
+      applicant_non_uk_bank_bic_swift_code: 'ABCDEFGH',
+      applicant_non_uk_bank_iban: null,
+      applicant_non_uk_bank_name: 'Saved bank',
+      applicant_non_uk_bank_branch_sort_code: '123456',
+    };
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement.querySelector('#applicant_bank_type-non-uk') as HTMLInputElement).checked).toBe(true);
+    expect(component.form.controls['applicant_non_uk_bank_name_on_account'].value).toBe('Saved account');
+    expect(component.form.controls['applicant_non_uk_bank_bic_swift_code'].value).toBe('ABCDEFGH');
+    expect(component.form.controls['applicant_non_uk_bank_name_on_account'].enabled).toBe(true);
+    expect(component.form.controls['applicant_uk_bank_name_on_account'].disabled).toBe(true);
+    expect(component.form.pristine).toBe(true);
+  });
+
+  it('cleans up the IBAN-to-BIC revalidation subscription when destroyed', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      applicant_uk_bank_name_on_account: null,
+      applicant_uk_bank_sort_code: null,
+      applicant_uk_bank_account_number: null,
+      applicant_uk_bank_payment_reference: null,
+      applicant_non_uk_bank_name_on_account: 'Account holder',
+      applicant_non_uk_bank_bic_swift_code: null,
+      applicant_non_uk_bank_iban: null,
+    };
+    fixture.detectChanges();
+    const bic = component.form.controls['applicant_non_uk_bank_bic_swift_code'];
+    const iban = component.form.controls['applicant_non_uk_bank_iban'];
+    const updateSpy = vi.spyOn(bic, 'updateValueAndValidity');
+
+    iban.setValue('GB82WEST12345698765432');
+    expect(updateSpy).toHaveBeenCalled();
+    updateSpy.mockClear();
+
+    component.ngOnDestroy();
+    iban.setValue('GB82WEST12345698765433');
+
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
   it('creates and focuses one stable alias row from the rendered checkbox and emits dirty state', async () => {
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
@@ -601,6 +846,7 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
       },
       { fieldId: 'applicant_address_line_1', message: 'Enter an address' },
       { fieldId: 'applicant_country_id', message: 'Select a country' },
+      { fieldId: 'applicant_bank_type', message: 'Select an option' },
     ]);
     expect(formSubmitSpy).not.toHaveBeenCalled();
     for (const [controlName, value] of Object.entries(enteredValues)) {

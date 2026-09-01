@@ -16,12 +16,12 @@ import { CasesCreateCasefileTaskListComponent } from '../cases-create-casefile-t
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-casefile-routing-titles.constant';
 import { routing } from './cases-create-casefile.routes';
+import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
 const guardedRouteCases = [
   ['taskList', 'Case details'],
-  ['applicantIndividual', 'Applicant details - Individual'],
   ['applicantOrganisation', 'Applicant details - Organisation'],
   ['centralAuthorityDetails', 'Central authority details'],
   ['orderDetails', 'Order details'],
@@ -83,6 +83,28 @@ describe('Create Casefile routes', () => {
     const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
 
     expect(component?.name).toBe(CasesCreateCasefileRespondentDetailsComponent.name);
+  });
+
+  it('registers Individual applicant with ordered flow guards, unsaved-change protection and active Countries', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual,
+    );
+
+    expect(route?.loadComponent).toEqual(expect.any(Function));
+    expect(route?.canActivate).toEqual([
+      casesCreateCasefileFlowStateGuard,
+      casesCreateCasefileApplicantIndividualGuard,
+    ]);
+    expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.applicantIndividual });
+    expect(route?.resolve).toEqual({
+      title: TitleResolver,
+      countries: fetchCasesCreateCasefileCountriesResolver,
+    });
+
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
+
+    expect(component?.name).toBe(CasesCreateCasefileApplicantIndividualComponent.name);
   });
 
   it.each(guardedRouteCases)(

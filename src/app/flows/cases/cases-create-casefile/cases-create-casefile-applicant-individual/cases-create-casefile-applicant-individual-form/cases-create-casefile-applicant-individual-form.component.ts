@@ -29,6 +29,11 @@ import {
   GovukCheckboxesItemComponent,
 } from '@hmcts/opal-frontend-common/components/govuk/govuk-checkboxes';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
+import {
+  GovukRadioComponent,
+  GovukRadiosConditionalComponent,
+  GovukRadiosItemComponent,
+} from '@hmcts/opal-frontend-common/components/govuk/govuk-radio';
 import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import type { IGovUkSelectOptions } from '@hmcts/opal-frontend-common/components/govuk/govuk-select/interfaces';
 import { GovukTextAreaComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-area';
@@ -41,13 +46,23 @@ import { optionalMaxLengthValidator } from '@hmcts/opal-frontend-common/validato
 import { optionalValidDateValidator } from '@hmcts/opal-frontend-common/validators/optional-valid-date';
 import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern-validator';
 import { Subject, takeUntil } from 'rxjs';
+import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
 import type { ICasesCreateCasefileApplicantAlias } from '../../interfaces/cases-create-casefile-applicant-alias.interface';
 import type { CasesCreateCasefileApplicantBankType } from '../../types/cases-create-casefile-applicant-bank-type.type';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_ALIAS } from '../constants/cases-create-casefile-applicant-individual-alias.constant';
+import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_BANK_OPTIONS } from '../constants/cases-create-casefile-applicant-individual-bank-options.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_ERRORS } from '../constants/cases-create-casefile-applicant-individual-field-errors.constant';
 import type { ICasesCreateCasefileApplicantIndividualFieldErrors } from '../interfaces/cases-create-casefile-applicant-individual-field-errors.interface';
 import type { ICasesCreateCasefileApplicantIndividualFormData } from '../interfaces/cases-create-casefile-applicant-individual-form-data.interface';
 import type { ICasesCreateCasefileApplicantIndividualForm } from '../interfaces/cases-create-casefile-applicant-individual-form.interface';
+import {
+  casesCreateCasefileApplicantIndividualBicSwiftValidator,
+  casesCreateCasefileApplicantIndividualBranchSortCodeValidator,
+  casesCreateCasefileApplicantIndividualIbanValidator,
+  casesCreateCasefileApplicantIndividualInternationalIdentifierRequiredValidator,
+  casesCreateCasefileApplicantIndividualUkAccountNumberValidator,
+  casesCreateCasefileApplicantIndividualUkSortCodeValidator,
+} from '../validators/cases-create-casefile-applicant-individual-bank.validator';
 import { casesCreateCasefileApplicantIndividualTrimRequiredValidator } from '../validators/cases-create-casefile-applicant-individual-trim-required.validator';
 
 const THIRD_PARTY_CONTROL_NAMES = [
@@ -62,6 +77,25 @@ const THIRD_PARTY_CONTROL_NAMES = [
   'applicant_third_party_postal_or_zip_code',
   'applicant_third_party_country_id',
 ] as const;
+
+const UK_BANK_CONTROL_NAMES = [
+  'applicant_uk_bank_name_on_account',
+  'applicant_uk_bank_sort_code',
+  'applicant_uk_bank_account_number',
+  'applicant_uk_bank_payment_reference',
+] as const;
+
+const NON_UK_BANK_CONTROL_NAMES = [
+  'applicant_non_uk_bank_name_on_account',
+  'applicant_non_uk_bank_account_number',
+  'applicant_non_uk_bank_payment_reference',
+  'applicant_non_uk_bank_bic_swift_code',
+  'applicant_non_uk_bank_iban',
+  'applicant_non_uk_bank_name',
+  'applicant_non_uk_bank_branch_sort_code',
+] as const;
+
+type BankControlName = (typeof UK_BANK_CONTROL_NAMES)[number] | (typeof NON_UK_BANK_CONTROL_NAMES)[number];
 
 interface IApplicantAliasFormRow {
   [controlName: string]: string | null;
@@ -131,6 +165,9 @@ type ApplicantIndividualRawFormData = Omit<
     GovukCheckboxesConditionalComponent,
     GovukCheckboxesItemComponent,
     GovukErrorSummaryComponent,
+    GovukRadioComponent,
+    GovukRadiosConditionalComponent,
+    GovukRadiosItemComponent,
     GovukSelectComponent,
     GovukTextAreaComponent,
     GovukTextInputComponent,
@@ -174,6 +211,10 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
   @Input({ required: true }) public countryAutocompleteItems!: IAlphagovAccessibleAutocompleteItem[];
   @Input({ required: true }) public countrySelectOptions!: IGovUkSelectOptions[];
   public override form!: FormGroup<IApplicantIndividualFormControls>;
+  public readonly bankOptions = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_BANK_OPTIONS;
+  public readonly bankTypes = CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES;
+  public readonly ukBankConditionalId = 'applicantUkBankConditional';
+  public readonly nonUkBankConditionalId = 'applicantNonUkBankConditional';
   public yesterday!: string;
 
   private countrySelectionValidator(options: ReadonlyArray<{ value: string | number }>): ValidatorFn {
@@ -253,7 +294,7 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
         disabled(null),
         this.countrySelectionValidator(this.countrySelectOptions),
       ),
-      applicant_bank_type: new FormControl<CasesCreateCasefileApplicantBankType | null>(null),
+      applicant_bank_type: new FormControl<CasesCreateCasefileApplicantBankType | null>(null, Validators.required),
       applicant_uk_bank_name_on_account: new FormControl<string | null>(disabled(null)),
       applicant_uk_bank_sort_code: new FormControl<string | null>(disabled(null)),
       applicant_uk_bank_account_number: new FormControl<string | null>(disabled(null)),
@@ -372,6 +413,89 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
     }
   }
 
+  private resetAndDisableBankBranch(controlNames: readonly BankControlName[]): void {
+    for (const controlName of controlNames) {
+      const control = this.form.controls[controlName];
+      control.reset(null, { emitEvent: false });
+      control.clearValidators();
+      control.setErrors(null);
+      control.disable({ emitEvent: false });
+      control.updateValueAndValidity({ emitEvent: false });
+    }
+    this.clearConditionalBranchErrors(controlNames);
+  }
+
+  private enableUkBankBranch(): void {
+    const validators: Record<(typeof UK_BANK_CONTROL_NAMES)[number], ValidatorFn[]> = {
+      applicant_uk_bank_name_on_account: [casesCreateCasefileApplicantIndividualTrimRequiredValidator],
+      applicant_uk_bank_sort_code: [
+        casesCreateCasefileApplicantIndividualTrimRequiredValidator,
+        casesCreateCasefileApplicantIndividualUkSortCodeValidator,
+      ],
+      applicant_uk_bank_account_number: [
+        casesCreateCasefileApplicantIndividualTrimRequiredValidator,
+        casesCreateCasefileApplicantIndividualUkAccountNumberValidator,
+      ],
+      applicant_uk_bank_payment_reference: [casesCreateCasefileApplicantIndividualTrimRequiredValidator],
+    };
+
+    for (const controlName of UK_BANK_CONTROL_NAMES) {
+      const control = this.form.controls[controlName];
+      control.setValidators(validators[controlName]);
+      control.enable({ emitEvent: false });
+      control.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
+  private enableNonUkBankBranch(): void {
+    const ibanControl = this.form.controls.applicant_non_uk_bank_iban;
+    const validators: Record<(typeof NON_UK_BANK_CONTROL_NAMES)[number], ValidatorFn[]> = {
+      applicant_non_uk_bank_name_on_account: [casesCreateCasefileApplicantIndividualTrimRequiredValidator],
+      applicant_non_uk_bank_account_number: [optionalMaxLengthValidator(20)],
+      applicant_non_uk_bank_payment_reference: [],
+      applicant_non_uk_bank_bic_swift_code: [
+        casesCreateCasefileApplicantIndividualBicSwiftValidator,
+        casesCreateCasefileApplicantIndividualInternationalIdentifierRequiredValidator(ibanControl),
+      ],
+      applicant_non_uk_bank_iban: [casesCreateCasefileApplicantIndividualIbanValidator],
+      applicant_non_uk_bank_name: [],
+      applicant_non_uk_bank_branch_sort_code: [casesCreateCasefileApplicantIndividualBranchSortCodeValidator],
+    };
+
+    for (const controlName of NON_UK_BANK_CONTROL_NAMES) {
+      const control = this.form.controls[controlName];
+      control.setValidators(validators[controlName]);
+      control.enable({ emitEvent: false });
+      control.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
+  private updateBankBranch(bankType: CasesCreateCasefileApplicantBankType | null): void {
+    if (bankType !== CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK) {
+      this.resetAndDisableBankBranch(UK_BANK_CONTROL_NAMES);
+    }
+    if (bankType !== CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK) {
+      this.resetAndDisableBankBranch(NON_UK_BANK_CONTROL_NAMES);
+    }
+
+    if (bankType === CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK) {
+      this.enableUkBankBranch();
+    } else if (bankType === CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK) {
+      this.enableNonUkBankBranch();
+    }
+  }
+
+  private setupBankBranchListeners(): void {
+    this.form.controls.applicant_bank_type.valueChanges
+      .pipe(takeUntil(this.conditionalBranchesDestroyed))
+      .subscribe((bankType) => this.updateBankBranch(bankType));
+    this.form.controls.applicant_non_uk_bank_iban.valueChanges
+      .pipe(takeUntil(this.conditionalBranchesDestroyed))
+      .subscribe(() =>
+        this.form.controls.applicant_non_uk_bank_bic_swift_code.updateValueAndValidity({ emitEvent: false }),
+      );
+  }
+
   private applyInitialConditionalBranchState(): void {
     for (const branch of this.conditionalBranches) {
       this.updateConditionalBranch(branch, this.form.controls[branch.checkbox].value === true);
@@ -440,6 +564,8 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
     this.setupAliasErrorCleanupListener();
     this.setupConditionalBranchListeners();
     this.applyInitialConditionalBranchState();
+    this.setupBankBranchListeners();
+    this.updateBankBranch(this.form.controls.applicant_bank_type.value);
     this.yesterday = this.dateService.getPreviousDate({ days: 1 });
     super.ngOnInit();
   }

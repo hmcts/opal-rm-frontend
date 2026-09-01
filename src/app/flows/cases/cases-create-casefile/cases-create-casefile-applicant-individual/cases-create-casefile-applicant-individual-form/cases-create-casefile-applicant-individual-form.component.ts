@@ -29,10 +29,7 @@ import {
   GovukCheckboxesItemComponent,
 } from '@hmcts/opal-frontend-common/components/govuk/govuk-checkboxes';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
-import { GovukRadioComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-radio';
-import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import type { IGovUkSelectOptions } from '@hmcts/opal-frontend-common/components/govuk/govuk-select/interfaces';
-import { GovukTextAreaComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-area';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { MojDatePickerComponent } from '@hmcts/opal-frontend-common/components/moj/moj-date-picker';
 import { EMAIL_ADDRESS_PATTERN } from '@hmcts/opal-frontend-common/constants';
@@ -115,9 +112,6 @@ type ApplicantIndividualRawFormData = Omit<ICasesCreateCasefileApplicantIndividu
     GovukCheckboxesConditionalComponent,
     GovukCheckboxesItemComponent,
     GovukErrorSummaryComponent,
-    GovukRadioComponent,
-    GovukSelectComponent,
-    GovukTextAreaComponent,
     GovukTextInputComponent,
     MojDatePickerComponent,
   ],

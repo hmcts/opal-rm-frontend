@@ -1,0 +1,48 @@
+import type { ICasesCreateCasefileRespondentAlias } from '../../interfaces/cases-create-casefile-respondent-alias.interface';
+
+export interface ICasesCreateCasefileRespondentDetailsFormData {
+  respondent_title: string | null;
+  respondent_first_names: string | null;
+  respondent_last_name: string | null;
+  respondent_add_aliases: boolean;
+  respondent_aliases: ICasesCreateCasefileRespondentAlias[];
+  respondent_date_of_birth: string | null;
+  respondent_national_insurance_number: string | null;
+  respondent_other_personal_information: string | null;
+  respondent_main_email_address: string | null;
+  respondent_other_email_address: string | null;
+  respondent_main_telephone_number: string | null;
+  respondent_other_telephone_number: string | null;
+  respondent_address_line_1: string | null;
+  respondent_address_line_2: string | null;
+  respondent_address_line_3: string | null;
+  respondent_address_line_4: string | null;
+  respondent_address_line_5: string | null;
+  respondent_postal_or_zip_code: string | null;
+  respondent_country_id: number | null;
+  respondent_send_correspondence_to_third_party: boolean;
+  respondent_third_party_name_or_organisation: string | null;
+  respondent_third_party_relationship: string | null;
+  respondent_third_party_reference: string | null;
+  respondent_third_party_address_line_1: string | null;
+  respondent_third_party_address_line_2: string | null;
+  respondent_third_party_address_line_3: string | null;
+  respondent_third_party_address_line_4: string | null;
+  respondent_third_party_address_line_5: string | null;
+  respondent_third_party_postal_or_zip_code: string | null;
+  respondent_third_party_country_id: number | null;
+  respondent_add_employer_details: boolean;
+  respondent_employer_name: string | null;
+  respondent_employee_reference: string | null;
+  respondent_employer_email_address: string | null;
+  respondent_employer_telephone_number: string | null;
+  respondent_employer_address_line_1: string | null;
+  respondent_employer_address_line_2: string | null;
+  respondent_employer_address_line_3: string | null;
+  respondent_employer_address_line_4: string | null;
+  respondent_employer_address_line_5: string | null;
+  respondent_employer_postal_or_zip_code: string | null;
+  respondent_employer_country_id: number | null;
+  respondent_restricted_information: boolean;
+  respondent_restricted_information_reason: string | null;
+}

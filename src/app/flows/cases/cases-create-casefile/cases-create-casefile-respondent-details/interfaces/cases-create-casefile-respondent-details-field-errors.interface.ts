@@ -1,0 +1,56 @@
+import type {
+  IAbstractFormBaseFieldError,
+  IAbstractFormBaseFieldErrors,
+} from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base/interfaces';
+
+export interface ICasesCreateCasefileRespondentDetailsFieldErrors extends IAbstractFormBaseFieldErrors {
+  respondent_title: IAbstractFormBaseFieldError;
+  respondent_first_names: IAbstractFormBaseFieldError;
+  respondent_last_name: IAbstractFormBaseFieldError;
+  respondent_alias_first_names_0: IAbstractFormBaseFieldError;
+  respondent_alias_last_name_0: IAbstractFormBaseFieldError;
+  respondent_alias_first_names_1: IAbstractFormBaseFieldError;
+  respondent_alias_last_name_1: IAbstractFormBaseFieldError;
+  respondent_alias_first_names_2: IAbstractFormBaseFieldError;
+  respondent_alias_last_name_2: IAbstractFormBaseFieldError;
+  respondent_alias_first_names_3: IAbstractFormBaseFieldError;
+  respondent_alias_last_name_3: IAbstractFormBaseFieldError;
+  respondent_alias_first_names_4: IAbstractFormBaseFieldError;
+  respondent_alias_last_name_4: IAbstractFormBaseFieldError;
+  respondent_date_of_birth: IAbstractFormBaseFieldError;
+  respondent_national_insurance_number: IAbstractFormBaseFieldError;
+  respondent_other_personal_information: IAbstractFormBaseFieldError;
+  respondent_main_email_address: IAbstractFormBaseFieldError;
+  respondent_other_email_address: IAbstractFormBaseFieldError;
+  respondent_main_telephone_number: IAbstractFormBaseFieldError;
+  respondent_other_telephone_number: IAbstractFormBaseFieldError;
+  respondent_address_line_1: IAbstractFormBaseFieldError;
+  respondent_address_line_2: IAbstractFormBaseFieldError;
+  respondent_address_line_3: IAbstractFormBaseFieldError;
+  respondent_address_line_4: IAbstractFormBaseFieldError;
+  respondent_address_line_5: IAbstractFormBaseFieldError;
+  respondent_postal_or_zip_code: IAbstractFormBaseFieldError;
+  respondent_country_id: IAbstractFormBaseFieldError;
+  respondent_third_party_name_or_organisation: IAbstractFormBaseFieldError;
+  respondent_third_party_relationship: IAbstractFormBaseFieldError;
+  respondent_third_party_reference: IAbstractFormBaseFieldError;
+  respondent_third_party_address_line_1: IAbstractFormBaseFieldError;
+  respondent_third_party_address_line_2: IAbstractFormBaseFieldError;
+  respondent_third_party_address_line_3: IAbstractFormBaseFieldError;
+  respondent_third_party_address_line_4: IAbstractFormBaseFieldError;
+  respondent_third_party_address_line_5: IAbstractFormBaseFieldError;
+  respondent_third_party_postal_or_zip_code: IAbstractFormBaseFieldError;
+  respondent_third_party_country_id: IAbstractFormBaseFieldError;
+  respondent_employer_name: IAbstractFormBaseFieldError;
+  respondent_employee_reference: IAbstractFormBaseFieldError;
+  respondent_employer_email_address: IAbstractFormBaseFieldError;
+  respondent_employer_telephone_number: IAbstractFormBaseFieldError;
+  respondent_employer_address_line_1: IAbstractFormBaseFieldError;
+  respondent_employer_address_line_2: IAbstractFormBaseFieldError;
+  respondent_employer_address_line_3: IAbstractFormBaseFieldError;
+  respondent_employer_address_line_4: IAbstractFormBaseFieldError;
+  respondent_employer_address_line_5: IAbstractFormBaseFieldError;
+  respondent_employer_postal_or_zip_code: IAbstractFormBaseFieldError;
+  respondent_employer_country_id: IAbstractFormBaseFieldError;
+  respondent_restricted_information_reason: IAbstractFormBaseFieldError;
+}

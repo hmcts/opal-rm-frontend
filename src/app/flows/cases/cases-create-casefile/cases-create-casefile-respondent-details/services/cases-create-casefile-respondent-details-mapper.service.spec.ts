@@ -124,6 +124,55 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
     mapper = TestBed.inject(CasesCreateCasefileRespondentDetailsMapperService);
   });
 
+  it('maps an empty respondent snapshot to complete empty form data', () => {
+    expect(mapper.toFormData(null)).toEqual({
+      respondent_title: null,
+      respondent_first_names: null,
+      respondent_last_name: null,
+      respondent_add_aliases: false,
+      respondent_aliases: [],
+      respondent_date_of_birth: null,
+      respondent_national_insurance_number: null,
+      respondent_other_personal_information: null,
+      respondent_main_email_address: null,
+      respondent_other_email_address: null,
+      respondent_main_telephone_number: null,
+      respondent_other_telephone_number: null,
+      respondent_address_line_1: null,
+      respondent_address_line_2: null,
+      respondent_address_line_3: null,
+      respondent_address_line_4: null,
+      respondent_address_line_5: null,
+      respondent_postal_or_zip_code: null,
+      respondent_country_id: null,
+      respondent_send_correspondence_to_third_party: false,
+      respondent_third_party_name_or_organisation: null,
+      respondent_third_party_relationship: null,
+      respondent_third_party_reference: null,
+      respondent_third_party_address_line_1: null,
+      respondent_third_party_address_line_2: null,
+      respondent_third_party_address_line_3: null,
+      respondent_third_party_address_line_4: null,
+      respondent_third_party_address_line_5: null,
+      respondent_third_party_postal_or_zip_code: null,
+      respondent_third_party_country_id: null,
+      respondent_add_employer_details: false,
+      respondent_employer_name: null,
+      respondent_employee_reference: null,
+      respondent_employer_email_address: null,
+      respondent_employer_telephone_number: null,
+      respondent_employer_address_line_1: null,
+      respondent_employer_address_line_2: null,
+      respondent_employer_address_line_3: null,
+      respondent_employer_address_line_4: null,
+      respondent_employer_address_line_5: null,
+      respondent_employer_postal_or_zip_code: null,
+      respondent_employer_country_id: null,
+      respondent_restricted_information: false,
+      respondent_restricted_information_reason: null,
+    });
+  });
+
   it('maps canonical saved data to display form data and branch flags', () => {
     expect(mapper.toFormData(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved)).toMatchObject({
       respondent_first_names: 'Test',

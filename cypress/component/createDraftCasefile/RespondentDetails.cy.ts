@@ -14,6 +14,8 @@ const respondentPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails;
 const taskListPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
+const UNSAVED_CHANGES_WARNING =
+  'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.';
 
 const SAVED_RESPONDENT: ICasesCreateCasefileRespondentDetails = {
   title: 'Mx',
@@ -28,15 +30,15 @@ const SAVED_RESPONDENT: ICasesCreateCasefileRespondentDetails = {
   otherPersonalInformation: 'Synthetic test information',
   contactDetails: {
     mainEmailAddress: 'test@example.com',
-    otherEmailAddress: null,
+    otherEmailAddress: 'other@example.com',
     mainTelephoneNumber: '01234567890',
-    otherTelephoneNumber: null,
+    otherTelephoneNumber: '09876543210',
     address: {
       addressLine1: '1 Test Street',
-      addressLine2: null,
-      addressLine3: null,
-      addressLine4: null,
-      addressLine5: null,
+      addressLine2: 'Test Area',
+      addressLine3: 'Test District',
+      addressLine4: 'Test Town',
+      addressLine5: 'Test County',
       postalOrZipCode: 'TE1 1ST',
       countryId: 826,
     },
@@ -47,26 +49,26 @@ const SAVED_RESPONDENT: ICasesCreateCasefileRespondentDetails = {
     reference: 'REF-1',
     address: {
       addressLine1: '2 Test Street',
-      addressLine2: null,
-      addressLine3: null,
-      addressLine4: null,
-      addressLine5: null,
-      postalOrZipCode: null,
+      addressLine2: 'Support Area',
+      addressLine3: 'Support District',
+      addressLine4: 'Support Town',
+      addressLine5: 'Support County',
+      postalOrZipCode: 'SU2 2ST',
       countryId: 250,
     },
   },
   employer: {
     employerName: 'Test Employer',
     employeeReference: 'EMP-1',
-    emailAddress: null,
-    telephoneNumber: null,
+    emailAddress: 'employer@example.com',
+    telephoneNumber: '01111111111',
     address: {
       addressLine1: '3 Test Street',
-      addressLine2: null,
-      addressLine3: null,
-      addressLine4: null,
-      addressLine5: null,
-      postalOrZipCode: null,
+      addressLine2: 'Employer Area',
+      addressLine3: 'Employer District',
+      addressLine4: 'Employer Town',
+      addressLine5: 'Employer County',
+      postalOrZipCode: 'EM3 3ST',
       countryId: 826,
     },
   },
@@ -147,8 +149,25 @@ const assertInlineError = (selector: string, expectedMessage: string): void => {
 };
 
 const assertRouterPath = (expectedPath: string): void => {
-  cy.get('@angularRouter').then((router: Router) => {
+  cy.get('@angularRouter').should((router: Router) => {
     expect(router.url).to.equal(expectedPath);
+  });
+};
+
+const assertDocumentOrder = (selectors: string[]): void => {
+  cy.document().then((document) => {
+    const elements = selectors.map((selector) => {
+      const element = document.querySelector(selector);
+      expect(element, `${selector} exists`).not.to.equal(null);
+      return element!;
+    });
+
+    for (let index = 1; index < elements.length; index += 1) {
+      expect(
+        Boolean(elements[index - 1].compareDocumentPosition(elements[index]) & Node.DOCUMENT_POSITION_FOLLOWING),
+        `${selectors[index - 1]} precedes ${selectors[index]}`,
+      ).to.equal(true);
+    }
   });
 };
 
@@ -220,10 +239,29 @@ describe('Create Casefile Respondent Details', () => {
         'Restricted information',
       ]);
     });
-    cy.get(Page.respondentDetails.firstNames).should('be.visible').and('have.value', '');
-    cy.get(Page.respondentDetails.lastName).should('be.visible').and('have.value', '');
-    cy.get(Page.respondentDetails.addressLine1).should('be.visible').and('have.value', '');
-    cy.get(Page.respondentDetails.countryAutocomplete).should('be.visible').and('have.value', '');
+    const initialTextControls = [
+      Page.respondentDetails.title,
+      Page.respondentDetails.firstNames,
+      Page.respondentDetails.lastName,
+      Page.respondentDetails.dateOfBirth,
+      Page.respondentDetails.nationalInsuranceNumber,
+      Page.respondentDetails.otherPersonalInformation,
+      Page.respondentDetails.mainEmailAddress,
+      Page.respondentDetails.otherEmailAddress,
+      Page.respondentDetails.mainTelephoneNumber,
+      Page.respondentDetails.otherTelephoneNumber,
+      Page.respondentDetails.addressLine1,
+      Page.respondentDetails.addressLine2,
+      Page.respondentDetails.addressLine3,
+      Page.respondentDetails.addressLine4,
+      Page.respondentDetails.addressLine5,
+      Page.respondentDetails.postalOrZipCode,
+      Page.respondentDetails.countryAutocomplete,
+    ];
+    for (const selector of initialTextControls) {
+      cy.get(selector).should('be.visible').and('have.value', '');
+    }
+    cy.get(Page.respondentDetails.countryId).should('have.value', '');
     for (const checkbox of [
       Page.respondentDetails.addAliases,
       Page.respondentDetails.sendCorrespondenceToThirdParty,
@@ -232,10 +270,44 @@ describe('Create Casefile Respondent Details', () => {
     ]) {
       cy.get(checkbox).should('be.enabled').and('not.be.checked');
     }
+    for (const conditional of [
+      Page.respondentDetails.aliasesConditional,
+      Page.respondentDetails.thirdPartyConditional,
+      Page.respondentDetails.employerConditional,
+      Page.respondentDetails.restrictedInformationConditional,
+    ]) {
+      cy.get(conditional).should('not.exist');
+    }
+    cy.get(Page.respondentDetails.addAliasButton).should('not.exist');
     cy.get(Page.respondentDetails.returnToCaseDetails)
       .invoke('text')
       .then((text) => expect(normalizeText(text)).to.equal('Return to case details'));
     cy.get(Page.respondentDetails.cancelLink).should('have.text', 'Cancel');
+    assertDocumentOrder([
+      Page.respondentDetails.title,
+      Page.respondentDetails.firstNames,
+      Page.respondentDetails.lastName,
+      Page.respondentDetails.addAliases,
+      Page.respondentDetails.dateOfBirth,
+      Page.respondentDetails.nationalInsuranceNumber,
+      Page.respondentDetails.otherPersonalInformation,
+      Page.respondentDetails.mainEmailAddress,
+      Page.respondentDetails.otherEmailAddress,
+      Page.respondentDetails.mainTelephoneNumber,
+      Page.respondentDetails.otherTelephoneNumber,
+      Page.respondentDetails.addressLine1,
+      Page.respondentDetails.addressLine2,
+      Page.respondentDetails.addressLine3,
+      Page.respondentDetails.addressLine4,
+      Page.respondentDetails.addressLine5,
+      Page.respondentDetails.postalOrZipCode,
+      Page.respondentDetails.countryAutocomplete,
+      Page.respondentDetails.sendCorrespondenceToThirdParty,
+      Page.respondentDetails.addEmployerDetails,
+      Page.respondentDetails.restrictedInformation,
+      Page.respondentDetails.returnToCaseDetails,
+      Page.respondentDetails.cancelLink,
+    ]);
   });
 
   it('AC1. should rehydrate saved identity, aliases, Countries and conditional objects', { tags: buildTags() }, () => {
@@ -244,20 +316,57 @@ describe('Create Casefile Respondent Details', () => {
     cy.get(Page.respondentDetails.title).should('have.value', 'Mx');
     cy.get(Page.respondentDetails.firstNames).should('have.value', 'Test');
     cy.get(Page.respondentDetails.lastName).should('have.value', 'Respondent');
+    cy.get(Page.respondentDetails.dateOfBirth).should('have.value', '31/01/1990');
+    cy.get(Page.respondentDetails.nationalInsuranceNumber).should('have.value', 'QQ123456C');
+    cy.get(Page.respondentDetails.otherPersonalInformation).should('have.value', 'Synthetic test information');
     cy.get(Page.respondentDetails.addAliases).should('be.checked');
     cy.get(Page.respondentDetails.aliasFirstNames).should('have.length', 2);
+    cy.get(Page.respondentDetails.aliasLastNames).should('have.length', 2);
     cy.get(Page.respondentDetails.aliasFirstName(0)).should('have.value', 'Example');
+    cy.get(Page.respondentDetails.aliasLastName(0)).should('have.value', 'Alias');
+    cy.get(Page.respondentDetails.aliasFirstName(1)).should('have.value', 'Second');
     cy.get(Page.respondentDetails.aliasLastName(1)).should('have.value', 'Alias');
+    cy.get(Page.respondentDetails.aliasesConditional).should('be.visible');
+    cy.get(Page.respondentDetails.mainEmailAddress).should('have.value', 'test@example.com');
+    cy.get(Page.respondentDetails.otherEmailAddress).should('have.value', 'other@example.com');
+    cy.get(Page.respondentDetails.mainTelephoneNumber).should('have.value', '01234567890');
+    cy.get(Page.respondentDetails.otherTelephoneNumber).should('have.value', '09876543210');
+    cy.get(Page.respondentDetails.addressLine1).should('have.value', '1 Test Street');
+    cy.get(Page.respondentDetails.addressLine2).should('have.value', 'Test Area');
+    cy.get(Page.respondentDetails.addressLine3).should('have.value', 'Test District');
+    cy.get(Page.respondentDetails.addressLine4).should('have.value', 'Test Town');
+    cy.get(Page.respondentDetails.addressLine5).should('have.value', 'Test County');
+    cy.get(Page.respondentDetails.postalOrZipCode).should('have.value', 'TE1 1ST');
     cy.get(Page.respondentDetails.countryAutocomplete).should('have.value', 'United Kingdom');
     cy.get(Page.respondentDetails.countryId).should('have.value', '826');
     cy.get(Page.respondentDetails.sendCorrespondenceToThirdParty).should('be.checked');
+    cy.get(Page.respondentDetails.thirdPartyConditional).should('be.visible');
     cy.get(Page.respondentDetails.thirdPartyNameOrOrganisation).should('have.value', 'Test Support');
+    cy.get(Page.respondentDetails.thirdPartyRelationship).should('have.value', 'Representative');
+    cy.get(Page.respondentDetails.thirdPartyReference).should('have.value', 'REF-1');
+    cy.get(Page.respondentDetails.thirdPartyAddressLine1).should('have.value', '2 Test Street');
+    cy.get(Page.respondentDetails.thirdPartyAddressLine2).should('have.value', 'Support Area');
+    cy.get(Page.respondentDetails.thirdPartyAddressLine3).should('have.value', 'Support District');
+    cy.get(Page.respondentDetails.thirdPartyAddressLine4).should('have.value', 'Support Town');
+    cy.get(Page.respondentDetails.thirdPartyAddressLine5).should('have.value', 'Support County');
+    cy.get(Page.respondentDetails.thirdPartyPostalOrZipCode).should('have.value', 'SU2 2ST');
     cy.get(Page.respondentDetails.thirdPartyCountry).should('have.value', '250');
     cy.get(Page.respondentDetails.addEmployerDetails).should('be.checked');
+    cy.get(Page.respondentDetails.employerConditional).should('be.visible');
     cy.get(Page.respondentDetails.employerName).should('have.value', 'Test Employer');
+    cy.get(Page.respondentDetails.employeeReference).should('have.value', 'EMP-1');
+    cy.get(Page.respondentDetails.employerEmailAddress).should('have.value', 'employer@example.com');
+    cy.get(Page.respondentDetails.employerTelephoneNumber).should('have.value', '01111111111');
+    cy.get(Page.respondentDetails.employerAddressLine1).should('have.value', '3 Test Street');
+    cy.get(Page.respondentDetails.employerAddressLine2).should('have.value', 'Employer Area');
+    cy.get(Page.respondentDetails.employerAddressLine3).should('have.value', 'Employer District');
+    cy.get(Page.respondentDetails.employerAddressLine4).should('have.value', 'Employer Town');
+    cy.get(Page.respondentDetails.employerAddressLine5).should('have.value', 'Employer County');
+    cy.get(Page.respondentDetails.employerPostalOrZipCode).should('have.value', 'EM3 3ST');
     cy.get(Page.respondentDetails.employerCountryAutocomplete).should('have.value', 'United Kingdom');
     cy.get(Page.respondentDetails.employerCountryId).should('have.value', '826');
     cy.get(Page.respondentDetails.restrictedInformation).should('be.checked');
+    cy.get(Page.respondentDetails.restrictedInformationConditional).should('be.visible');
     cy.get(Page.respondentDetails.restrictedInformationReason).should(
       'have.value',
       'Synthetic restricted-information reason',
@@ -272,9 +381,14 @@ describe('Create Casefile Respondent Details', () => {
 
       cy.get(Page.respondentDetails.addAliases).check();
       cy.get(Page.respondentDetails.aliasFirstName(0)).should('be.focused').type('First');
+      cy.get(Page.respondentDetails.aliasLastName(0)).type('Alias');
       for (let index = 1; index < 5; index += 1) {
         cy.get(Page.respondentDetails.addAliasButton).click();
         cy.get(Page.respondentDetails.aliasFirstName(index)).should('be.focused');
+        if (index === 1) {
+          cy.get(Page.respondentDetails.aliasFirstName(index)).type('Second');
+          cy.get(Page.respondentDetails.aliasLastName(index)).type('Alias');
+        }
       }
       cy.get(Page.respondentDetails.aliasFirstNames).should('have.length', 5);
       cy.get(Page.respondentDetails.aliasLastNames).should('have.length', 5);
@@ -284,6 +398,14 @@ describe('Create Casefile Respondent Details', () => {
       cy.get(Page.respondentDetails.aliasesConditional).should('not.exist');
       cy.get(Page.respondentDetails.aliasFirstNames).should('not.exist');
       cy.get(Page.respondentDetails.aliasLastNames).should('not.exist');
+
+      cy.get(Page.respondentDetails.addAliases).check();
+      cy.get(Page.respondentDetails.aliasFirstNames).should('have.length', 1);
+      cy.get(Page.respondentDetails.aliasLastNames).should('have.length', 1);
+      cy.get(Page.respondentDetails.aliasFirstName(0)).should('have.value', '');
+      cy.get(Page.respondentDetails.aliasLastName(0)).should('have.value', '');
+      cy.get(Page.respondentDetails.aliasFirstName(1)).should('not.exist');
+      cy.get(Page.respondentDetails.aliasLastName(1)).should('not.exist');
     },
   );
 
@@ -437,15 +559,12 @@ describe('Create Casefile Respondent Details', () => {
 
   it('AC4. should retain the last saved state when Cancel abandons a dirty working copy', { tags: buildTags() }, () => {
     setupRespondentDetails({ savedRespondent: SAVED_RESPONDENT });
-    cy.on('window:confirm', (message) => {
-      expect(message).to.equal(
-        'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.',
-      );
-      return true;
-    });
+    const acceptCancelConfirm = cy.stub().as('acceptCancelConfirm').returns(true);
+    cy.on('window:confirm', acceptCancelConfirm);
 
     cy.get(Page.respondentDetails.firstNames).clear().type('Dirty working copy');
     cy.get(Page.respondentDetails.cancelLink).click();
+    cy.get('@acceptCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
     assertRouterPath(taskListPath);
     cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
       expect(store.respondentDetails()).to.deep.equal(SAVED_RESPONDENT);
@@ -514,7 +633,8 @@ describe('Create Casefile Respondent Details', () => {
     { tags: buildTags() },
     () => {
       setupRespondentDetails();
-      cy.on('window:confirm', () => false);
+      const rejectCancelConfirm = cy.stub().as('rejectCancelConfirm').returns(false);
+      cy.on('window:confirm', rejectCancelConfirm);
 
       cy.get(Page.respondentDetails.addAliases).focus();
       cy.press(Cypress.Keyboard.Keys.SPACE);
@@ -540,7 +660,8 @@ describe('Create Casefile Respondent Details', () => {
       cy.get(Page.respondentDetails.returnToCaseDetails).type('{enter}');
       cy.get(Page.respondentDetails.errorSummary).should('be.focused');
       cy.get(Page.respondentDetails.cancelLink).focus();
-      cy.get(Page.respondentDetails.cancelLink).type('{enter}');
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get('@rejectCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
       assertRouterPath(respondentPath);
     },
   );

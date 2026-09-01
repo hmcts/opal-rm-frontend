@@ -1,0 +1,238 @@
+<h1 class="govuk-heading-l">Applicant details</h1>
+
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+
+<form (submit)="handleFormSubmit($event)" [formGroup]="form">
+  <opal-lib-govuk-text-input
+    labelText="Title"
+    labelClasses="govuk-label--s"
+    inputId="applicant_title"
+    inputName="applicant_title"
+    inputClasses="govuk-input--width-10"
+    [control]="form.get('applicant_title')"
+    [errors]="formControlErrorMessages['applicant_title']"
+  />
+  <opal-lib-govuk-text-input
+    labelText="First names"
+    labelClasses="govuk-label--s"
+    inputId="applicant_first_names"
+    inputName="applicant_first_names"
+    inputClasses="govuk-input--width-20"
+    hintText="Include their middle names"
+    [control]="form.get('applicant_first_names')"
+    [errors]="formControlErrorMessages['applicant_first_names']"
+  />
+  <opal-lib-govuk-text-input
+    labelText="Last name"
+    labelClasses="govuk-label--s"
+    inputId="applicant_last_name"
+    inputName="applicant_last_name"
+    inputClasses="govuk-input--width-20"
+    [control]="form.get('applicant_last_name')"
+    [errors]="formControlErrorMessages['applicant_last_name']"
+  />
+
+  <opal-lib-govuk-checkboxes fieldSetId="applicant_add_aliases_fieldset" legendText="">
+    <div
+      opal-lib-govuk-checkboxes-item
+      labelText="Add aliases"
+      inputId="applicant_add_aliases"
+      inputName="applicant_add_aliases"
+      ariaControls="applicantAliasesConditional-conditional"
+      [control]="form.get('applicant_add_aliases')"
+    ></div>
+    @if (form.controls.applicant_add_aliases.value) {
+      <div opal-lib-govuk-checkboxes-conditional conditionalId="applicantAliasesConditional">
+        @for (
+          aliasControl of aliasControls;
+          let rowIndex = $index;
+          track aliasControl['applicant_alias_first_names'].inputId
+        ) {
+          <fieldset class="govuk-fieldset">
+            <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+              <h2 class="govuk-heading-m govuk-!-margin-0">Alias {{ rowIndex + 1 }}</h2>
+            </legend>
+            <opal-lib-govuk-text-input
+              #aliasFirstField
+              labelText="First names"
+              [inputId]="aliasControl['applicant_alias_first_names'].inputId"
+              [inputName]="aliasControl['applicant_alias_first_names'].inputName"
+              inputClasses="govuk-input--width-20"
+              [control]="
+                form.get(['applicant_aliases', rowIndex, aliasControl['applicant_alias_first_names'].controlName])
+              "
+              [errors]="formControlErrorMessages[aliasControl['applicant_alias_first_names'].controlName]"
+            />
+            <opal-lib-govuk-text-input
+              labelText="Last name"
+              [inputId]="aliasControl['applicant_alias_last_name'].inputId"
+              [inputName]="aliasControl['applicant_alias_last_name'].inputName"
+              inputClasses="govuk-input--width-20"
+              [control]="
+                form.get(['applicant_aliases', rowIndex, aliasControl['applicant_alias_last_name'].controlName])
+              "
+              [errors]="formControlErrorMessages[aliasControl['applicant_alias_last_name'].controlName]"
+            />
+          </fieldset>
+        }
+        @if (aliasControls.length > 1) {
+          <div class="govuk-!-margin-bottom-3">
+            <a
+              class="govuk-link govuk-link--no-visited-state"
+              href=""
+              (click)="removeAlias(aliasControls.length - 1, 'applicant_aliases', $event)"
+            >
+              Remove <span class="govuk-visually-hidden">alias {{ aliasControls.length }}</span>
+            </a>
+          </div>
+        }
+        @if (aliasControls.length < 5) {
+          <opal-lib-govuk-button
+            buttonId="addApplicantAlias"
+            buttonClasses="govuk-button--secondary govuk-!-margin-bottom-0"
+            type="button"
+            (buttonClickEvent)="addAlias(aliasControls.length, 'applicant_aliases')"
+          >
+            Add another alias
+          </opal-lib-govuk-button>
+        }
+      </div>
+    }
+  </opal-lib-govuk-checkboxes>
+
+  <opal-lib-moj-date-picker
+    labelText="Date of birth"
+    labelClasses="govuk-label--s"
+    inputId="applicant_date_of_birth"
+    inputName="applicant_date_of_birth"
+    inputClasses="govuk-input--width-10"
+    hintText="For example, 31/01/1980"
+    [control]="form.controls.applicant_date_of_birth"
+    [maxDate]="yesterday"
+    [errors]="formControlErrorMessages['applicant_date_of_birth']"
+    (dateChange)="setInputValue($event, 'applicant_date_of_birth')"
+  />
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <fieldset class="govuk-fieldset">
+    <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+      <h2 class="govuk-heading-m govuk-!-margin-0">Contact details</h2>
+    </legend>
+    <opal-lib-govuk-text-input
+      labelText="Main email address"
+      labelClasses="govuk-label--s"
+      inputId="applicant_main_email_address"
+      inputName="applicant_main_email_address"
+      inputClasses="govuk-input--width-20"
+      [control]="form.get('applicant_main_email_address')"
+      [errors]="formControlErrorMessages['applicant_main_email_address']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Other email address"
+      labelClasses="govuk-label--s"
+      inputId="applicant_other_email_address"
+      inputName="applicant_other_email_address"
+      inputClasses="govuk-input--width-20"
+      [control]="form.get('applicant_other_email_address')"
+      [errors]="formControlErrorMessages['applicant_other_email_address']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Main telephone number"
+      labelClasses="govuk-label--s"
+      inputId="applicant_main_telephone_number"
+      inputName="applicant_main_telephone_number"
+      inputClasses="govuk-input--width-20"
+      hintText="For international numbers include the country code"
+      [control]="form.get('applicant_main_telephone_number')"
+      [errors]="formControlErrorMessages['applicant_main_telephone_number']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Other telephone number"
+      labelClasses="govuk-label--s"
+      inputId="applicant_other_telephone_number"
+      inputName="applicant_other_telephone_number"
+      inputClasses="govuk-input--width-20"
+      hintText="For international numbers include the country code"
+      [control]="form.get('applicant_other_telephone_number')"
+      [errors]="formControlErrorMessages['applicant_other_telephone_number']"
+    />
+  </fieldset>
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <fieldset class="govuk-fieldset">
+    <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+      <h2 class="govuk-heading-m govuk-!-margin-0">Address</h2>
+    </legend>
+    <opal-lib-govuk-text-input
+      labelText="Address line 1"
+      inputId="applicant_address_line_1"
+      inputName="applicant_address_line_1"
+      [control]="form.get('applicant_address_line_1')"
+      [errors]="formControlErrorMessages['applicant_address_line_1']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Address line 2"
+      inputId="applicant_address_line_2"
+      inputName="applicant_address_line_2"
+      [control]="form.get('applicant_address_line_2')"
+      [errors]="formControlErrorMessages['applicant_address_line_2']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Address line 3"
+      inputId="applicant_address_line_3"
+      inputName="applicant_address_line_3"
+      [control]="form.get('applicant_address_line_3')"
+      [errors]="formControlErrorMessages['applicant_address_line_3']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Address line 4"
+      inputId="applicant_address_line_4"
+      inputName="applicant_address_line_4"
+      [control]="form.get('applicant_address_line_4')"
+      [errors]="formControlErrorMessages['applicant_address_line_4']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Address line 5"
+      inputId="applicant_address_line_5"
+      inputName="applicant_address_line_5"
+      [control]="form.get('applicant_address_line_5')"
+      [errors]="formControlErrorMessages['applicant_address_line_5']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Postal or zip code"
+      inputId="applicant_postal_or_zip_code"
+      inputName="applicant_postal_or_zip_code"
+      inputClasses="govuk-input--width-10"
+      [control]="form.get('applicant_postal_or_zip_code')"
+      [errors]="formControlErrorMessages['applicant_postal_or_zip_code']"
+    />
+    <opal-lib-alphagov-accessible-autocomplete
+      labelText="Country"
+      labelClasses="govuk-label--s"
+      inputId="applicant_country_id"
+      inputName="applicant_country_id"
+      [showAllValues]="true"
+      [autoCompleteItems]="countryAutocompleteItems"
+      [control]="form.get('applicant_country_id')"
+      [errors]="formControlErrorMessages['applicant_country_id']"
+    />
+  </fieldset>
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <h2 class="govuk-heading-m">Third party details</h2>
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <h2 class="govuk-heading-m">Bank details</h2>
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <h2 class="govuk-heading-m">Restricted information</h2>
+
+  <div class="govuk-button-group">
+    <button class="govuk-button govuk-!-margin-right-4" id="returnToCaseDetails" type="submit">
+      Return to case details
+    </button>
+    <span id="cancelApplicantDetails">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

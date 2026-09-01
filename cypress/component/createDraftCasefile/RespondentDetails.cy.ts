@@ -573,6 +573,43 @@ describe('Create Casefile Respondent Details', () => {
     });
   });
 
+  it('AC4. should guard alias-only addition from a saved pristine form', { tags: buildTags() }, () => {
+    setupRespondentDetails({ savedRespondent: SAVED_RESPONDENT });
+    const rejectCancelConfirm = cy.stub().as('rejectAliasAdditionConfirm').returns(false);
+    cy.on('window:confirm', rejectCancelConfirm);
+
+    cy.get(Page.respondentDetails.addAliasButton).click();
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.unsavedChanges()).to.equal(true);
+    });
+    cy.get(Page.respondentDetails.cancelLink).click();
+
+    cy.get('@rejectAliasAdditionConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+    assertRouterPath(respondentPath);
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.respondentDetails()).to.deep.equal(SAVED_RESPONDENT);
+    });
+  });
+
+  it('AC4, AC5. should guard alias-only removal and focus the remaining alias', { tags: buildTags() }, () => {
+    setupRespondentDetails({ savedRespondent: SAVED_RESPONDENT });
+    const rejectCancelConfirm = cy.stub().as('rejectAliasRemovalConfirm').returns(false);
+    cy.on('window:confirm', rejectCancelConfirm);
+
+    cy.get(Page.respondentDetails.removeAliasLink).click();
+    cy.get(Page.respondentDetails.aliasFirstName(0)).should('be.focused');
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.unsavedChanges()).to.equal(true);
+    });
+    cy.get(Page.respondentDetails.cancelLink).click();
+
+    cy.get('@rejectAliasRemovalConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+    assertRouterPath(respondentPath);
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.respondentDetails()).to.deep.equal(SAVED_RESPONDENT);
+    });
+  });
+
   it('AC5. should prevent valid Return when Countries resolves empty', { tags: buildTags() }, () => {
     setupRespondentDetails({ countries: EMPTY_COUNTRIES_RESPONSE });
 
@@ -610,6 +647,7 @@ describe('Create Casefile Respondent Details', () => {
           body: problem,
         },
         useHttpErrorInterceptor: true,
+        useAppShell: true,
       });
 
       assertRouterPath(taskListPath);
@@ -624,6 +662,11 @@ describe('Create Casefile Respondent Details', () => {
           operationId: problem.operation_id,
         });
       });
+      cy.get(Page.globalErrorBanner).should('be.visible');
+      cy.get(Page.globalErrorBannerHeading).should('have.text', problem.title);
+      cy.get(Page.globalErrorBannerContent)
+        .should('contain.text', problem.detail)
+        .and('contain.text', `Error code: ${problem.operation_id}`);
       cy.get('@appInsightsLogException').should('have.been.calledOnce');
     },
   );

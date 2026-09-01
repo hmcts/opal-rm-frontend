@@ -186,6 +186,113 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     expect(component.form.controls['respondent_main_telephone_number'].valid).toBe(true);
   });
 
+  it.each(['AB123456C', 'AB123456', '12Y12345'])(
+    'accepts approved National Insurance number format %s',
+    (nationalInsuranceNumber) => {
+      fixture.detectChanges();
+
+      const control = component.form.controls['respondent_national_insurance_number'];
+      control.setValue(nationalInsuranceNumber);
+
+      expect(control.errors).toBeNull();
+    },
+  );
+
+  it.each(['A123456', 'ABC123456', 'AB12345', 'AB123456CD', '1Y12345', '12X12345', '12Y1234', '12Y123456'])(
+    'rejects invalid National Insurance number boundary %s',
+    (nationalInsuranceNumber) => {
+      fixture.detectChanges();
+
+      const control = component.form.controls['respondent_national_insurance_number'];
+      control.setValue(nationalInsuranceNumber);
+
+      expect(control.hasError('nationalInsuranceNumberPattern')).toBe(true);
+    },
+  );
+
+  it.each([null, ''])('allows an optional National Insurance number value of %s', (nationalInsuranceNumber) => {
+    fixture.detectChanges();
+
+    const control = component.form.controls['respondent_national_insurance_number'];
+    control.setValue(nationalInsuranceNumber);
+
+    expect(control.errors).toBeNull();
+  });
+
+  it('renders the approved National Insurance number error under the preserved error key', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+      respondent_national_insurance_number: 'invalid',
+    };
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+
+    component.handleFormSubmit(new SubmitEvent('submit', { cancelable: true }));
+    fixture.detectChanges();
+
+    const message = 'Enter a National Insurance number in the format AANNNNNNA';
+    expect(formSubmitSpy).not.toHaveBeenCalled();
+    expect(
+      component.form.controls['respondent_national_insurance_number'].hasError('nationalInsuranceNumberPattern'),
+    ).toBe(true);
+    expect(component.formControlErrorMessages['respondent_national_insurance_number']).toBe(message);
+    expect(component.formErrorSummaryMessage).toContainEqual({
+      fieldId: 'respondent_national_insurance_number',
+      message,
+    });
+    expect(
+      fixture.nativeElement.querySelector('#respondent_national_insurance_number-error-message')?.textContent,
+    ).toContain(message);
+  });
+
+  it('blocks whitespace-only required text and renders each existing exact error message', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+      respondent_first_names: '   ',
+      respondent_last_name: '\t',
+      respondent_aliases: [{ firstNames: '  ', lastName: '\n' }],
+      respondent_address_line_1: '   ',
+      respondent_send_correspondence_to_third_party: true,
+      respondent_third_party_name_or_organisation: '\t',
+      respondent_third_party_relationship: '   ',
+      respondent_third_party_address_line_1: '\n',
+      respondent_third_party_country_id: 1,
+      respondent_add_employer_details: true,
+      respondent_employer_name: '   ',
+      respondent_employer_address_line_1: '\t',
+      respondent_employer_country_id: 1,
+      respondent_restricted_information: true,
+      respondent_restricted_information_reason: '   ',
+    };
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+
+    component.handleFormSubmit(new SubmitEvent('submit', { cancelable: true }));
+    fixture.detectChanges();
+
+    expect(formSubmitSpy).not.toHaveBeenCalled();
+    const expectedMessages = {
+      respondent_first_names: 'Enter respondent’s first name(s)',
+      respondent_last_name: 'Enter respondent’s last name',
+      respondent_alias_first_names_0: 'Enter alias 1 first name(s)',
+      respondent_alias_last_name_0: 'Enter alias 1 last name',
+      respondent_address_line_1: 'Enter an address',
+      respondent_third_party_name_or_organisation: 'Enter name or organisation',
+      respondent_third_party_relationship: 'Enter relationship to the respondent',
+      respondent_third_party_address_line_1: 'Enter an address',
+      respondent_employer_name: 'Enter employer name',
+      respondent_employer_address_line_1: 'Enter employer address',
+      respondent_restricted_information_reason:
+        'Enter a reason why the respondent’s personal information should not be shared',
+    } as const;
+
+    for (const [controlName, message] of Object.entries(expectedMessages)) {
+      expect(component.formControlErrorMessages[controlName]).toBe(message);
+      expect(component.formErrorSummaryMessage).toContainEqual({ fieldId: controlName, message });
+      expect(fixture.nativeElement.querySelector(`#${controlName}-error-message`)?.textContent).toContain(message);
+    }
+  });
+
   it('hydrates saved base, alias and selected branch state before first render', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
@@ -215,6 +322,7 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     ]);
     expect(component.form.controls['respondent_third_party_name_or_organisation'].enabled).toBe(true);
     expect(component.form.controls['respondent_third_party_name_or_organisation'].value).toBe('Support contact');
+    expect(component.form.pristine).toBe(true);
   });
 
   it('removes all alias summary and form errors immediately when aliases are deselected', () => {

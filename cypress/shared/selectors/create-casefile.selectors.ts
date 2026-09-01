@@ -1,5 +1,8 @@
 export const CreateCasefileSelectors = {
   heading: 'h1',
+  globalErrorBanner: '.moj-alert--error',
+  globalErrorBannerHeading: '.moj-alert--error .moj-alert__heading',
+  globalErrorBannerContent: '.moj-alert--error .moj-alert__content',
   caseTypeGroup: '#caseType',
   caseTypeLegend: '#caseType legend',
   caseTypeRadios: 'input[name="caseType"]',
@@ -69,6 +72,7 @@ export const CreateCasefileSelectors = {
     aliasFirstName: (index: number) => `#respondent_alias_first_names_${index}`,
     aliasLastName: (index: number) => `#respondent_alias_last_name_${index}`,
     addAliasButton: '#addRespondentAlias',
+    removeAliasLink: '#respondentAliasesConditional-conditional a.govuk-link',
     dateOfBirth: '#respondent_date_of_birth',
     nationalInsuranceNumber: '#respondent_national_insurance_number',
     otherPersonalInformation: '#respondent_other_personal_information',

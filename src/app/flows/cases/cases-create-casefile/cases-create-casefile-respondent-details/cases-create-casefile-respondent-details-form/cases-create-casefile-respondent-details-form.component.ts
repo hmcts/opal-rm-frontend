@@ -37,7 +37,6 @@ import { MojDatePickerComponent } from '@hmcts/opal-frontend-common/components/m
 import { EMAIL_ADDRESS_PATTERN } from '@hmcts/opal-frontend-common/constants';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import { dateOfBirthValidator } from '@hmcts/opal-frontend-common/validators/date-of-birth';
-import { nationalInsuranceNumberValidator } from '@hmcts/opal-frontend-common/validators/national-insurance-number';
 import { optionalMaxLengthValidator } from '@hmcts/opal-frontend-common/validators/optional-max-length';
 import { optionalValidDateValidator } from '@hmcts/opal-frontend-common/validators/optional-valid-date';
 import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern-validator';
@@ -48,6 +47,8 @@ import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_ERRORS } from '../consta
 import type { ICasesCreateCasefileRespondentDetailsFieldErrors } from '../interfaces/cases-create-casefile-respondent-details-field-errors.interface';
 import type { ICasesCreateCasefileRespondentDetailsFormData } from '../interfaces/cases-create-casefile-respondent-details-form-data.interface';
 import type { ICasesCreateCasefileRespondentDetailsForm } from '../interfaces/cases-create-casefile-respondent-details-form.interface';
+import { casesCreateCasefileRespondentDetailsNationalInsuranceNumberValidator } from '../validators/cases-create-casefile-respondent-details-national-insurance-number.validator';
+import { casesCreateCasefileRespondentDetailsTrimRequiredValidator } from '../validators/cases-create-casefile-respondent-details-trim-required.validator';
 
 const THIRD_PARTY_CONTROL_NAMES = [
   'respondent_third_party_name_or_organisation',
@@ -115,22 +116,24 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   private readonly conditionalBranches = [
     {
       checkbox: 'respondent_send_correspondence_to_third_party',
-      required: [
+      requiredText: [
         'respondent_third_party_name_or_organisation',
         'respondent_third_party_relationship',
         'respondent_third_party_address_line_1',
-        'respondent_third_party_country_id',
       ],
+      requiredCountry: ['respondent_third_party_country_id'],
       controls: THIRD_PARTY_CONTROL_NAMES,
     },
     {
       checkbox: 'respondent_add_employer_details',
-      required: ['respondent_employer_name', 'respondent_employer_address_line_1', 'respondent_employer_country_id'],
+      requiredText: ['respondent_employer_name', 'respondent_employer_address_line_1'],
+      requiredCountry: ['respondent_employer_country_id'],
       controls: EMPLOYER_CONTROL_NAMES,
     },
     {
       checkbox: 'respondent_restricted_information',
-      required: ['respondent_restricted_information_reason'],
+      requiredText: ['respondent_restricted_information_reason'],
+      requiredCountry: [],
       controls: ['respondent_restricted_information_reason'],
     },
   ] as const;
@@ -161,21 +164,33 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
 
     this.form = new FormGroup({
       respondent_title: new FormControl<string | null>(null, optionalMaxLengthValidator(20)),
-      respondent_first_names: new FormControl<string | null>(null, [Validators.required, Validators.maxLength(50)]),
-      respondent_last_name: new FormControl<string | null>(null, [Validators.required, Validators.maxLength(50)]),
+      respondent_first_names: new FormControl<string | null>(null, [
+        casesCreateCasefileRespondentDetailsTrimRequiredValidator,
+        Validators.maxLength(50),
+      ]),
+      respondent_last_name: new FormControl<string | null>(null, [
+        casesCreateCasefileRespondentDetailsTrimRequiredValidator,
+        Validators.maxLength(50),
+      ]),
       respondent_add_aliases: new FormControl(false, { nonNullable: true }),
       respondent_aliases: new FormArray<FormGroup>([]),
       respondent_date_of_birth: new FormControl<string | null>(null, [
         optionalValidDateValidator(),
         dateOfBirthValidator(),
       ]),
-      respondent_national_insurance_number: new FormControl<string | null>(null, nationalInsuranceNumberValidator()),
+      respondent_national_insurance_number: new FormControl<string | null>(
+        null,
+        casesCreateCasefileRespondentDetailsNationalInsuranceNumberValidator,
+      ),
       respondent_other_personal_information: new FormControl<string | null>(null, optionalMaxLengthValidator(200)),
       respondent_main_email_address: new FormControl<string | null>(null, emailValidators),
       respondent_other_email_address: new FormControl<string | null>(null, emailValidators),
       respondent_main_telephone_number: new FormControl<string | null>(null, optionalMaxLengthValidator(35)),
       respondent_other_telephone_number: new FormControl<string | null>(null, optionalMaxLengthValidator(35)),
-      respondent_address_line_1: new FormControl<string | null>(null, [Validators.required, Validators.maxLength(30)]),
+      respondent_address_line_1: new FormControl<string | null>(null, [
+        casesCreateCasefileRespondentDetailsTrimRequiredValidator,
+        Validators.maxLength(30),
+      ]),
       respondent_address_line_2: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
       respondent_address_line_3: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
       respondent_address_line_4: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
@@ -317,15 +332,22 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   private updateConditionalBranch(branch: (typeof this.conditionalBranches)[number], selected: boolean): void {
     for (const controlName of branch.controls) {
       const control = this.form.controls[controlName];
-      const isRequired = (branch.required as readonly string[]).includes(controlName);
+      const isRequiredText = (branch.requiredText as readonly string[]).includes(controlName);
+      const isRequiredCountry = (branch.requiredCountry as readonly string[]).includes(controlName);
       if (selected) {
         control.enable({ emitEvent: false });
-        if (isRequired) {
+        if (isRequiredText) {
+          control.addValidators(casesCreateCasefileRespondentDetailsTrimRequiredValidator);
+        }
+        if (isRequiredCountry) {
           control.addValidators(Validators.required);
         }
       } else {
         control.reset(null, { emitEvent: false });
-        if (isRequired) {
+        if (isRequiredText) {
+          control.removeValidators(casesCreateCasefileRespondentDetailsTrimRequiredValidator);
+        }
+        if (isRequiredCountry) {
           control.removeValidators(Validators.required);
         }
         control.setErrors(null);
@@ -362,16 +384,22 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
 
   public override addAlias(index: number, formArrayName: string): void {
     if (this.aliasControls.length < 5) {
+      this.form.markAsDirty();
       super.addAlias(index, formArrayName);
     }
   }
 
   public override removeAlias(index: number, formArrayName: string, event?: Event): void {
+    const shouldFocusRemainingAlias = this.aliasControls.length === 2;
     const removedControlNames = this.aliasFields
       .map((field) => this.aliasControls[index]?.[field]?.controlName)
       .filter((controlName): controlName is string => controlName !== undefined);
+    this.form.markAsDirty();
     super.removeAlias(index, formArrayName, event);
     this.clearAliasErrors(removedControlNames);
+    if (shouldFocusRemainingAlias) {
+      this.focusFirstAliasField();
+    }
   }
 
   public override handleFormSubmit(event: SubmitEvent): void {

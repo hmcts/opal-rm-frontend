@@ -79,6 +79,14 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     'applicant_restricted_information_reason',
   ] as const;
 
+  const thirdPartyControlNames = conditionalControlNames.slice(0, 10);
+  const requiredThirdPartyControlNames = [
+    'applicant_third_party_name_or_organisation',
+    'applicant_third_party_relationship',
+    'applicant_third_party_address_line_1',
+    'applicant_third_party_country_id',
+  ] as const;
+
   const createComponent = (): void => {
     fixture = TestBed.createComponent(CasesCreateCasefileApplicantIndividualFormComponent);
     component = fixture.componentInstance;
@@ -228,6 +236,200 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
 
     component.form.controls['applicant_country_id'].setValue(2);
     expect(component.form.controls['applicant_country_id'].errors).toBeNull();
+  });
+
+  it('reveals third-party controls from the rendered checkbox in logical keyboard order and applies requiredness', () => {
+    const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
+    fixture.detectChanges();
+    const checkbox = fixture.nativeElement.querySelector(
+      '#applicant_send_correspondence_to_third_party',
+    ) as HTMLInputElement;
+
+    checkbox.click();
+    fixture.detectChanges();
+
+    const conditional = fixture.nativeElement.querySelector(
+      '#applicantThirdPartyConditional-conditional',
+    ) as HTMLDivElement;
+    expect(checkbox.checked).toBe(true);
+    expect(checkbox.getAttribute('data-aria-controls')).toBe(conditional.id);
+    expect(checkbox.closest('.govuk-checkboxes__item')?.nextElementSibling).toBe(conditional);
+    expect(
+      Array.from(conditional.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')).map(
+        (control) => control.id,
+      ),
+    ).toEqual(thirdPartyControlNames);
+    for (const controlName of thirdPartyControlNames) {
+      const control = component.form.controls[controlName];
+      expect(control.enabled).toBe(true);
+      expect(control.hasError('required')).toBe(requiredThirdPartyControlNames.includes(controlName as never));
+    }
+    expect(component.form.dirty).toBe(true);
+    expect(unsavedChangesSpy).toHaveBeenCalledTimes(1);
+    expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
+  });
+
+  it('preserves all third-party maximum lengths when the branch becomes required', () => {
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('#applicant_send_correspondence_to_third_party') as HTMLInputElement).click();
+
+    const maximumLengths = {
+      applicant_third_party_name_or_organisation: 40,
+      applicant_third_party_relationship: 40,
+      applicant_third_party_reference: 40,
+      applicant_third_party_address_line_1: 30,
+      applicant_third_party_address_line_2: 30,
+      applicant_third_party_address_line_3: 30,
+      applicant_third_party_address_line_4: 30,
+      applicant_third_party_address_line_5: 30,
+      applicant_third_party_postal_or_zip_code: 10,
+    } as const;
+
+    for (const controlName of Object.keys(maximumLengths) as Array<keyof typeof maximumLengths>) {
+      const maximumLength = maximumLengths[controlName];
+      component.form.controls[controlName].setValue('X'.repeat(maximumLength + 1));
+      expect(component.form.controls[controlName].hasError('maxlength')).toBe(true);
+    }
+  });
+
+  it('reveals a required 250-character restricted-information Reason from the rendered checkbox', () => {
+    const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
+    fixture.detectChanges();
+    const checkbox = fixture.nativeElement.querySelector('#applicant_restricted_information') as HTMLInputElement;
+
+    checkbox.click();
+    fixture.detectChanges();
+
+    const conditional = fixture.nativeElement.querySelector(
+      '#applicantRestrictedInformationConditional-conditional',
+    ) as HTMLDivElement;
+    const reason = fixture.nativeElement.querySelector(
+      '#applicant_restricted_information_reason',
+    ) as HTMLTextAreaElement;
+    const reasonControl = component.form.controls['applicant_restricted_information_reason'];
+    expect(checkbox.checked).toBe(true);
+    expect(checkbox.getAttribute('data-aria-controls')).toBe(conditional.id);
+    expect(checkbox.closest('.govuk-checkboxes__item')?.nextElementSibling).toBe(conditional);
+    expect(conditional.querySelector('textarea')).toBe(reason);
+    expect(reasonControl.enabled).toBe(true);
+    expect(reasonControl.hasError('required')).toBe(true);
+    expect(unsavedChangesSpy).toHaveBeenCalledTimes(1);
+    reasonControl.setValue('R'.repeat(251));
+    expect(reasonControl.hasError('maxlength')).toBe(true);
+  });
+
+  it('hydrates selected third-party and restricted-information branches before first render without marking dirty', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_send_correspondence_to_third_party: true,
+      applicant_third_party_name_or_organisation: 'Support contact',
+      applicant_third_party_relationship: 'Representative',
+      applicant_third_party_reference: 'REF-123',
+      applicant_third_party_address_line_1: '2 Test Street',
+      applicant_third_party_address_line_2: 'Test Town',
+      applicant_third_party_address_line_3: 'Test County',
+      applicant_third_party_address_line_4: 'Test Region',
+      applicant_third_party_address_line_5: 'United Kingdom',
+      applicant_third_party_postal_or_zip_code: 'TE2 2ST',
+      applicant_third_party_country_id: 2,
+      applicant_restricted_information: true,
+      applicant_restricted_information_reason: 'Court order',
+    };
+
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement.querySelector('#applicant_send_correspondence_to_third_party') as HTMLInputElement)
+        .checked,
+    ).toBe(true);
+    expect((fixture.nativeElement.querySelector('#applicant_restricted_information') as HTMLInputElement).checked).toBe(
+      true,
+    );
+    expect(fixture.nativeElement.querySelector('#applicantThirdPartyConditional-conditional')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#applicantRestrictedInformationConditional-conditional')).toBeTruthy();
+    expect(component.form.controls['applicant_third_party_name_or_organisation'].value).toBe('Support contact');
+    expect(component.form.controls['applicant_third_party_country_id'].value).toBe(2);
+    expect(component.form.controls['applicant_restricted_information_reason'].value).toBe('Court order');
+    for (const controlName of [...thirdPartyControlNames, 'applicant_restricted_information_reason'] as const) {
+      expect(component.form.controls[controlName].enabled).toBe(true);
+    }
+    expect(component.form.pristine).toBe(true);
+  });
+
+  it('normalises the rendered third-party Country selection to a number before submission', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_send_correspondence_to_third_party: true,
+      applicant_third_party_name_or_organisation: 'Support contact',
+      applicant_third_party_relationship: 'Representative',
+      applicant_third_party_address_line_1: '2 Test Street',
+      applicant_third_party_country_id: null,
+    };
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+    const select = fixture.nativeElement.querySelector('#applicant_third_party_country_id') as HTMLSelectElement;
+
+    select.value = '2';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(formSubmitSpy).toHaveBeenCalledOnce();
+    const submittedCountryId = formSubmitSpy.mock.calls[0]?.[0]?.formData.applicant_third_party_country_id;
+    expect(submittedCountryId).toBe(2);
+    expect(typeof submittedCountryId).toBe('number');
+  });
+
+  it('clears, disables and removes errors for deselected rendered branches without duplicate dirty emissions', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_send_correspondence_to_third_party: true,
+      applicant_third_party_name_or_organisation: 'Support contact',
+      applicant_third_party_relationship: 'Representative',
+      applicant_third_party_reference: 'REF-123',
+      applicant_third_party_address_line_1: '2 Test Street',
+      applicant_third_party_address_line_2: 'Test Town',
+      applicant_third_party_address_line_3: 'Test County',
+      applicant_third_party_address_line_4: 'Test Region',
+      applicant_third_party_address_line_5: 'United Kingdom',
+      applicant_third_party_postal_or_zip_code: 'TE2 2ST',
+      applicant_third_party_country_id: 2,
+      applicant_restricted_information: true,
+      applicant_restricted_information_reason: 'Court order',
+    };
+    const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
+    fixture.detectChanges();
+    component.form.controls['applicant_third_party_name_or_organisation'].setValue('');
+    component.form.controls['applicant_restricted_information_reason'].setValue('   ');
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+    expect(component.formErrorSummaryMessage).toContainEqual({
+      fieldId: 'applicant_third_party_name_or_organisation',
+      message: 'Enter name or organisation',
+    });
+    expect(component.formErrorSummaryMessage).toContainEqual({
+      fieldId: 'applicant_restricted_information_reason',
+      message: 'Enter a reason',
+    });
+    unsavedChangesSpy.mockClear();
+
+    (fixture.nativeElement.querySelector('#applicant_send_correspondence_to_third_party') as HTMLInputElement).click();
+    (fixture.nativeElement.querySelector('#applicant_restricted_information') as HTMLInputElement).click();
+    fixture.detectChanges();
+
+    const deselectedControlNames = [...thirdPartyControlNames, 'applicant_restricted_information_reason'] as const;
+    for (const controlName of deselectedControlNames) {
+      expect(component.form.controls[controlName].disabled).toBe(true);
+      expect(component.form.controls[controlName].value).toBeNull();
+      expect(component.formControlErrorMessages[controlName]).toBeNull();
+    }
+    expect(
+      component.formErrorSummaryMessage.some((error) => deselectedControlNames.includes(error.fieldId as never)),
+    ).toBe(false);
+    expect(component.formErrors.some((error) => deselectedControlNames.includes(error.fieldId as never))).toBe(false);
+    expect(fixture.nativeElement.querySelector('#applicantThirdPartyConditional-conditional')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#applicantRestrictedInformationConditional-conditional')).toBeNull();
+    expect(unsavedChangesSpy).toHaveBeenCalledTimes(2);
+    expect(unsavedChangesSpy).toHaveBeenNthCalledWith(1, true);
+    expect(unsavedChangesSpy).toHaveBeenNthCalledWith(2, true);
   });
 
   it('keeps Country required when the supplied allow-list is empty', () => {

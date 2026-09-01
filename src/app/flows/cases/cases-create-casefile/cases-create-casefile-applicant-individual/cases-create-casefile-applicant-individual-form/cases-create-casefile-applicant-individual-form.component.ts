@@ -29,7 +29,9 @@ import {
   GovukCheckboxesItemComponent,
 } from '@hmcts/opal-frontend-common/components/govuk/govuk-checkboxes';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
+import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import type { IGovUkSelectOptions } from '@hmcts/opal-frontend-common/components/govuk/govuk-select/interfaces';
+import { GovukTextAreaComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-area';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { MojDatePickerComponent } from '@hmcts/opal-frontend-common/components/moj/moj-date-picker';
 import { EMAIL_ADDRESS_PATTERN } from '@hmcts/opal-frontend-common/constants';
@@ -47,6 +49,19 @@ import type { ICasesCreateCasefileApplicantIndividualFieldErrors } from '../inte
 import type { ICasesCreateCasefileApplicantIndividualFormData } from '../interfaces/cases-create-casefile-applicant-individual-form-data.interface';
 import type { ICasesCreateCasefileApplicantIndividualForm } from '../interfaces/cases-create-casefile-applicant-individual-form.interface';
 import { casesCreateCasefileApplicantIndividualTrimRequiredValidator } from '../validators/cases-create-casefile-applicant-individual-trim-required.validator';
+
+const THIRD_PARTY_CONTROL_NAMES = [
+  'applicant_third_party_name_or_organisation',
+  'applicant_third_party_relationship',
+  'applicant_third_party_reference',
+  'applicant_third_party_address_line_1',
+  'applicant_third_party_address_line_2',
+  'applicant_third_party_address_line_3',
+  'applicant_third_party_address_line_4',
+  'applicant_third_party_address_line_5',
+  'applicant_third_party_postal_or_zip_code',
+  'applicant_third_party_country_id',
+] as const;
 
 interface IApplicantAliasFormRow {
   [controlName: string]: string | null;
@@ -97,8 +112,12 @@ interface IApplicantIndividualFormControls {
   applicant_restricted_information_reason: FormControl<string | null>;
 }
 
-type ApplicantIndividualRawFormData = Omit<ICasesCreateCasefileApplicantIndividualFormData, 'applicant_aliases'> & {
+type ApplicantIndividualRawFormData = Omit<
+  ICasesCreateCasefileApplicantIndividualFormData,
+  'applicant_aliases' | 'applicant_third_party_country_id'
+> & {
   applicant_aliases: IApplicantAliasFormRow[];
+  applicant_third_party_country_id: string | number | null;
 };
 
 @Component({
@@ -112,6 +131,8 @@ type ApplicantIndividualRawFormData = Omit<ICasesCreateCasefileApplicantIndividu
     GovukCheckboxesConditionalComponent,
     GovukCheckboxesItemComponent,
     GovukErrorSummaryComponent,
+    GovukSelectComponent,
+    GovukTextAreaComponent,
     GovukTextInputComponent,
     MojDatePickerComponent,
   ],
@@ -122,7 +143,25 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
   extends AbstractFormAliasBaseComponent
   implements OnInit, OnDestroy
 {
-  private readonly aliasErrorCleanupDestroyed = new Subject<void>();
+  private readonly conditionalBranchesDestroyed = new Subject<void>();
+  private readonly conditionalBranches = [
+    {
+      checkbox: 'applicant_send_correspondence_to_third_party',
+      requiredText: [
+        'applicant_third_party_name_or_organisation',
+        'applicant_third_party_relationship',
+        'applicant_third_party_address_line_1',
+      ],
+      requiredCountry: ['applicant_third_party_country_id'],
+      controls: THIRD_PARTY_CONTROL_NAMES,
+    },
+    {
+      checkbox: 'applicant_restricted_information',
+      requiredText: ['applicant_restricted_information_reason'],
+      requiredCountry: [],
+      controls: ['applicant_restricted_information_reason'],
+    },
+  ] as const;
 
   protected override fieldErrors: ICasesCreateCasefileApplicantIndividualFieldErrors =
     CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_ERRORS;
@@ -256,6 +295,20 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
     }));
   }
 
+  private normalizeThirdPartyCountryId(value: string | number | null): number | null {
+    if (value === null || value === '') {
+      return null;
+    }
+    return Number(value);
+  }
+
+  private clearConditionalBranchErrors(controlNames: readonly string[]): void {
+    for (const controlName of controlNames) {
+      this.formControlErrorMessages[controlName] = null;
+    }
+    this.clearErrorEntries((fieldId) => controlNames.includes(fieldId));
+  }
+
   private clearErrorEntries(matches: (fieldId: string) => boolean): void {
     this.formErrorSummaryMessage = this.formErrorSummaryMessage.filter((error) => !matches(error.fieldId));
     this.formErrors = (this.formErrors ?? []).filter((error) => !matches(error.fieldId));
@@ -271,12 +324,58 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
 
   private setupAliasErrorCleanupListener(): void {
     this.form.controls.applicant_add_aliases.valueChanges
-      .pipe(takeUntil(this.aliasErrorCleanupDestroyed))
+      .pipe(takeUntil(this.conditionalBranchesDestroyed))
       .subscribe((selected) => {
         if (!selected) {
           this.clearAliasErrors();
         }
       });
+  }
+
+  private updateConditionalBranch(branch: (typeof this.conditionalBranches)[number], selected: boolean): void {
+    for (const controlName of branch.controls) {
+      const control = this.form.controls[controlName];
+      const isRequiredText = (branch.requiredText as readonly string[]).includes(controlName);
+      const isRequiredCountry = (branch.requiredCountry as readonly string[]).includes(controlName);
+      if (selected) {
+        control.enable({ emitEvent: false });
+        if (isRequiredText) {
+          control.addValidators(casesCreateCasefileApplicantIndividualTrimRequiredValidator);
+        }
+        if (isRequiredCountry) {
+          control.addValidators(Validators.required);
+        }
+      } else {
+        control.reset(null, { emitEvent: false });
+        if (isRequiredText) {
+          control.removeValidators(casesCreateCasefileApplicantIndividualTrimRequiredValidator);
+        }
+        if (isRequiredCountry) {
+          control.removeValidators(Validators.required);
+        }
+        control.setErrors(null);
+        control.disable({ emitEvent: false });
+      }
+      control.updateValueAndValidity({ emitEvent: false });
+    }
+
+    if (!selected) {
+      this.clearConditionalBranchErrors(branch.controls);
+    }
+  }
+
+  private setupConditionalBranchListeners(): void {
+    for (const branch of this.conditionalBranches) {
+      this.form.controls[branch.checkbox].valueChanges
+        .pipe(takeUntil(this.conditionalBranchesDestroyed))
+        .subscribe((selected) => this.updateConditionalBranch(branch, selected === true));
+    }
+  }
+
+  private applyInitialConditionalBranchState(): void {
+    for (const branch of this.conditionalBranches) {
+      this.updateConditionalBranch(branch, this.form.controls[branch.checkbox].value === true);
+    }
   }
 
   protected override rePopulateForm(state: ICasesCreateCasefileApplicantIndividualFormData): void {
@@ -322,6 +421,7 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
       formData: {
         ...rawValue,
         applicant_aliases: this.mapIndexedRowsToAliases(rawValue.applicant_aliases),
+        applicant_third_party_country_id: this.normalizeThirdPartyCountryId(rawValue.applicant_third_party_country_id),
       },
       nestedFlow: false,
     });
@@ -338,13 +438,15 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
     this.rePopulateForm(this.initialFormData);
     this.setUpAliasCheckboxListener('applicant_add_aliases', 'applicant_aliases');
     this.setupAliasErrorCleanupListener();
+    this.setupConditionalBranchListeners();
+    this.applyInitialConditionalBranchState();
     this.yesterday = this.dateService.getPreviousDate({ days: 1 });
     super.ngOnInit();
   }
 
   public override ngOnDestroy(): void {
-    this.aliasErrorCleanupDestroyed.next();
-    this.aliasErrorCleanupDestroyed.complete();
+    this.conditionalBranchesDestroyed.next();
+    this.conditionalBranchesDestroyed.complete();
     super.ngOnDestroy();
   }
 }

@@ -220,12 +220,124 @@
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
   <h2 class="govuk-heading-m">Third party details</h2>
+  <opal-lib-govuk-checkboxes fieldSetId="applicant_send_correspondence_to_third_party_fieldset" legendText="">
+    <div
+      opal-lib-govuk-checkboxes-item
+      labelText="Send correspondence to a third party"
+      inputId="applicant_send_correspondence_to_third_party"
+      inputName="applicant_send_correspondence_to_third_party"
+      ariaControls="applicantThirdPartyConditional-conditional"
+      [control]="form.get('applicant_send_correspondence_to_third_party')"
+    ></div>
+    @if (form.controls.applicant_send_correspondence_to_third_party.value) {
+      <div opal-lib-govuk-checkboxes-conditional conditionalId="applicantThirdPartyConditional">
+        <opal-lib-govuk-text-input
+          labelText="Name or organisation"
+          inputId="applicant_third_party_name_or_organisation"
+          inputName="applicant_third_party_name_or_organisation"
+          [control]="form.get('applicant_third_party_name_or_organisation')"
+          [errors]="formControlErrorMessages['applicant_third_party_name_or_organisation']"
+        />
+        <opal-lib-govuk-text-input
+          labelText="Relationship to the applicant"
+          inputId="applicant_third_party_relationship"
+          inputName="applicant_third_party_relationship"
+          [control]="form.get('applicant_third_party_relationship')"
+          [errors]="formControlErrorMessages['applicant_third_party_relationship']"
+        />
+        <opal-lib-govuk-text-input
+          labelText="Reference"
+          inputId="applicant_third_party_reference"
+          inputName="applicant_third_party_reference"
+          [control]="form.get('applicant_third_party_reference')"
+          [errors]="formControlErrorMessages['applicant_third_party_reference']"
+        />
+        <opal-lib-govuk-text-input
+          labelText="Address line 1"
+          inputId="applicant_third_party_address_line_1"
+          inputName="applicant_third_party_address_line_1"
+          [control]="form.get('applicant_third_party_address_line_1')"
+          [errors]="formControlErrorMessages['applicant_third_party_address_line_1']"
+        />
+        <opal-lib-govuk-text-input
+          labelText="Address line 2"
+          inputId="applicant_third_party_address_line_2"
+          inputName="applicant_third_party_address_line_2"
+          [control]="form.get('applicant_third_party_address_line_2')"
+          [errors]="formControlErrorMessages['applicant_third_party_address_line_2']"
+        />
+        <opal-lib-govuk-text-input
+          labelText="Address line 3"
+          inputId="applicant_third_party_address_line_3"
+          inputName="applicant_third_party_address_line_3"
+          [control]="form.get('applicant_third_party_address_line_3')"
+          [errors]="formControlErrorMessages['applicant_third_party_address_line_3']"
+        />
+        <opal-lib-govuk-text-input
+          labelText="Address line 4"
+          inputId="applicant_third_party_address_line_4"
+          inputName="applicant_third_party_address_line_4"
+          [control]="form.get('applicant_third_party_address_line_4')"
+          [errors]="formControlErrorMessages['applicant_third_party_address_line_4']"
+        />
+        <opal-lib-govuk-text-input
+          labelText="Address line 5"
+          inputId="applicant_third_party_address_line_5"
+          inputName="applicant_third_party_address_line_5"
+          [control]="form.get('applicant_third_party_address_line_5')"
+          [errors]="formControlErrorMessages['applicant_third_party_address_line_5']"
+        />
+        <opal-lib-govuk-text-input
+          labelText="Postal or zip code"
+          inputId="applicant_third_party_postal_or_zip_code"
+          inputName="applicant_third_party_postal_or_zip_code"
+          inputClasses="govuk-input--width-10"
+          [control]="form.get('applicant_third_party_postal_or_zip_code')"
+          [errors]="formControlErrorMessages['applicant_third_party_postal_or_zip_code']"
+        />
+        <opal-lib-govuk-select
+          labelText="Country"
+          labelClasses="govuk-label--s"
+          selectId="applicant_third_party_country_id"
+          selectName="applicant_third_party_country_id"
+          [options]="countrySelectOptions"
+          [control]="form.get('applicant_third_party_country_id')!"
+          [errors]="formControlErrorMessages['applicant_third_party_country_id']"
+        />
+      </div>
+    }
+  </opal-lib-govuk-checkboxes>
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
   <h2 class="govuk-heading-m">Bank details</h2>
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
   <h2 class="govuk-heading-m">Restricted information</h2>
+  <opal-lib-govuk-checkboxes fieldSetId="applicant_restricted_information_fieldset" legendText="">
+    <div
+      opal-lib-govuk-checkboxes-item
+      labelText="Applicant’s personal information should not be shared"
+      inputId="applicant_restricted_information"
+      inputName="applicant_restricted_information"
+      ariaControls="applicantRestrictedInformationConditional-conditional"
+      [control]="form.get('applicant_restricted_information')"
+    ></div>
+    @if (form.controls.applicant_restricted_information.value) {
+      <div opal-lib-govuk-checkboxes-conditional conditionalId="applicantRestrictedInformationConditional">
+        <opal-lib-govuk-text-area
+          labelText="Reason"
+          labelClasses="govuk-label--s"
+          inputId="applicant_restricted_information_reason"
+          inputName="applicant_restricted_information_reason"
+          [rows]="5"
+          [characterCountEnabled]="true"
+          [maxCharacterLimit]="250"
+          [control]="form.get('applicant_restricted_information_reason')"
+          [errors]="formControlErrorMessages['applicant_restricted_information_reason']"
+        />
+      </div>
+    }
+  </opal-lib-govuk-checkboxes>
 
   <div class="govuk-button-group">
     <button class="govuk-button govuk-!-margin-right-4" id="returnToCaseDetails" type="submit">

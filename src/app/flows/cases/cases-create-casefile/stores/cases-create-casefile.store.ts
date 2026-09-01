@@ -6,6 +6,7 @@ import {
 } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
+import type { ICasesCreateCasefileApplicantIndividual } from '../interfaces/cases-create-casefile-applicant-individual.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefile-task-status.type';
@@ -72,6 +73,7 @@ export const CasesCreateCasefileStore = signalStore(
 
       patchState(store, {
         caseTypeSelection,
+        applicantDetails: selectionUnchanged ? store.applicantDetails() : null,
         respondentDetails: selectionUnchanged ? store.respondentDetails() : null,
         taskStatuses,
         stateChanges: true,
@@ -84,6 +86,17 @@ export const CasesCreateCasefileStore = signalStore(
         taskStatuses: {
           ...store.taskStatuses(),
           respondent: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
+        },
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+    },
+    setApplicantDetails: (applicantDetails: ICasesCreateCasefileApplicantIndividual): void => {
+      patchState(store, {
+        applicantDetails,
+        taskStatuses: {
+          ...store.taskStatuses(),
+          applicant: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
         },
         stateChanges: true,
         unsavedChanges: false,

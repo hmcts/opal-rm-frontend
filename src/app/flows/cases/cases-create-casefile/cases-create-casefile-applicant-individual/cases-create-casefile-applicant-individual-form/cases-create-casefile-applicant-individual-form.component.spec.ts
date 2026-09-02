@@ -615,6 +615,7 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   });
 
   it('requires one international identifier and applies raw exact identifier and branch-code formats', () => {
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
       applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
@@ -635,9 +636,17 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
 
     bic.setValue('ABC 1234');
     expect(bic.hasError('internationalIdentifierPattern')).toBe(true);
+    bic.setValue('DEUTDEFF5');
+    expect(bic.hasError('internationalIdentifierPattern')).toBe(true);
     bic.setValue(null);
+    iban.setValue('A');
+    expect(iban.hasError('internationalIdentifierPattern')).toBe(true);
     iban.setValue('GB82 WEST');
     expect(iban.hasError('internationalIdentifierPattern')).toBe(true);
+    iban.setValue('GB82WEST12345698765433');
+    expect(iban.hasError('internationalIdentifierPattern')).toBe(true);
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+    expect(formSubmitSpy).not.toHaveBeenCalled();
     iban.setValue('A'.repeat(35));
     expect(iban.hasError('internationalIdentifierPattern')).toBe(true);
     iban.setValue('GB82WEST12345698765432');

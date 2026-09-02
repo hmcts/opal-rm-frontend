@@ -59,9 +59,21 @@ describe('CasesCreateCasefileApplicantIndividualBankValidator', () => {
   });
 
   describe('casesCreateCasefileApplicantIndividualBicSwiftValidator', () => {
-    it.each(['', '   ', 'ABCD1234', 'ABCDEF12345'])('accepts the optional valid BIC or SWIFT value %j', (value) => {
-      expect(casesCreateCasefileApplicantIndividualBicSwiftValidator(new FormControl(value))).toBeNull();
-    });
+    it.each(['', '   ', 'DEUTDEFF', 'DEUTDEFF500', 'deutdeff'])(
+      'accepts the optional valid BIC or SWIFT value %j',
+      (value) => {
+        expect(casesCreateCasefileApplicantIndividualBicSwiftValidator(new FormControl(value))).toBeNull();
+      },
+    );
+
+    it.each(['DEUTDEFF5', 'DEUTDEFF50', 'DE1TDEFF', 'DEUT1EFF', 'DEUTDE-F'])(
+      'rejects the structurally invalid BIC or SWIFT value %j',
+      (value) => {
+        expect(casesCreateCasefileApplicantIndividualBicSwiftValidator(new FormControl(value))).toEqual({
+          internationalIdentifierPattern: true,
+        });
+      },
+    );
 
     it.each(['ABC1234', 'ABCDEF123456', 'ABCD-123'])('returns internationalIdentifierPattern for %j', (value) => {
       expect(casesCreateCasefileApplicantIndividualBicSwiftValidator(new FormControl(value))).toEqual({
@@ -77,21 +89,29 @@ describe('CasesCreateCasefileApplicantIndividualBankValidator', () => {
   });
 
   describe('casesCreateCasefileApplicantIndividualIbanValidator', () => {
-    it.each(['', '   ', 'A', 'GB82WEST12345698765432', 'A'.repeat(34)])(
+    it.each(['', '   ', 'GB82WEST12345698765432', 'DE89370400440532013000', 'gb82west12345698765432'])(
       'accepts the optional valid IBAN value %j',
       (value) => {
         expect(casesCreateCasefileApplicantIndividualIbanValidator(new FormControl(value))).toBeNull();
       },
     );
 
-    it.each(['GB82 WEST 1234', 'A'.repeat(35), 'GB82-WEST'])(
-      'returns internationalIdentifierPattern for %j',
-      (value) => {
-        expect(casesCreateCasefileApplicantIndividualIbanValidator(new FormControl(value))).toEqual({
-          internationalIdentifierPattern: true,
-        });
-      },
-    );
+    it.each([
+      'A',
+      'G182WEST12345698765432',
+      'GBABWEST12345698765432',
+      'ZZ82WEST12345698765432',
+      'GB82WEST1234569876543',
+      'GB82WEST123456987654321',
+      'GB82WEST12345698765433',
+      'GB82 WEST 1234',
+      'A'.repeat(35),
+      'GB82-WEST',
+    ])('rejects the structurally invalid or checksum-invalid IBAN value %j', (value) => {
+      expect(casesCreateCasefileApplicantIndividualIbanValidator(new FormControl(value))).toEqual({
+        internationalIdentifierPattern: true,
+      });
+    });
 
     it('returns internationalIdentifierPattern when an otherwise valid IBAN value is wrapped in whitespace', () => {
       expect(casesCreateCasefileApplicantIndividualIbanValidator(new FormControl(' GB82WEST12345698765432 '))).toEqual({

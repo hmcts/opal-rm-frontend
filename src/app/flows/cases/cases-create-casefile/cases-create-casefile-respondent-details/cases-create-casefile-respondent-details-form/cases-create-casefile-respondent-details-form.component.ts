@@ -42,6 +42,11 @@ import { optionalValidDateValidator } from '@hmcts/opal-frontend-common/validato
 import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern-validator';
 import { Subject, takeUntil } from 'rxjs';
 import type { ICasesCreateCasefilePartyAlias } from '../../interfaces/cases-create-casefile-party-alias.interface';
+import { updateCasesCreateCasefileConditionalControls } from '../../utils/cases-create-casefile-conditional-controls';
+import {
+  createCasesCreateCasefileAddressControls,
+  createCasesCreateCasefileContactControls,
+} from '../../utils/cases-create-casefile-form-control-builders';
 import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_ALIAS } from '../constants/cases-create-casefile-respondent-details-alias.constant';
 import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_ERRORS } from '../constants/cases-create-casefile-respondent-details-field-errors.constant';
 import type { ICasesCreateCasefileRespondentDetailsFieldErrors } from '../interfaces/cases-create-casefile-respondent-details-field-errors.interface';
@@ -160,6 +165,14 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
 
   private setupForm(): void {
     const emailValidators = [optionalMaxLengthValidator(76), patternValidator(EMAIL_ADDRESS_PATTERN, 'emailPattern')];
+    const contactControls = createCasesCreateCasefileContactControls({
+      emailValidators,
+      telephoneValidators: [optionalMaxLengthValidator(35)],
+    });
+    const addressControls = createCasesCreateCasefileAddressControls({
+      requiredTextValidator: casesCreateCasefileRespondentDetailsTrimRequiredValidator,
+      countryValidators: [Validators.required, this.countrySelectionValidator(this.countryAutocompleteItems)],
+    });
     const disabled = <T>(value: T): { value: T; disabled: true } => ({ value, disabled: true });
 
     this.form = new FormGroup({
@@ -183,23 +196,17 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
         casesCreateCasefileRespondentDetailsNationalInsuranceNumberValidator,
       ),
       respondent_other_personal_information: new FormControl<string | null>(null, optionalMaxLengthValidator(200)),
-      respondent_main_email_address: new FormControl<string | null>(null, emailValidators),
-      respondent_other_email_address: new FormControl<string | null>(null, emailValidators),
-      respondent_main_telephone_number: new FormControl<string | null>(null, optionalMaxLengthValidator(35)),
-      respondent_other_telephone_number: new FormControl<string | null>(null, optionalMaxLengthValidator(35)),
-      respondent_address_line_1: new FormControl<string | null>(null, [
-        casesCreateCasefileRespondentDetailsTrimRequiredValidator,
-        Validators.maxLength(30),
-      ]),
-      respondent_address_line_2: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      respondent_address_line_3: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      respondent_address_line_4: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      respondent_address_line_5: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      respondent_postal_or_zip_code: new FormControl<string | null>(null, optionalMaxLengthValidator(10)),
-      respondent_country_id: new FormControl<number | null>(null, [
-        Validators.required,
-        this.countrySelectionValidator(this.countryAutocompleteItems),
-      ]),
+      respondent_main_email_address: contactControls.mainEmailAddress,
+      respondent_other_email_address: contactControls.otherEmailAddress,
+      respondent_main_telephone_number: contactControls.mainTelephoneNumber,
+      respondent_other_telephone_number: contactControls.otherTelephoneNumber,
+      respondent_address_line_1: addressControls.addressLine1,
+      respondent_address_line_2: addressControls.addressLine2,
+      respondent_address_line_3: addressControls.addressLine3,
+      respondent_address_line_4: addressControls.addressLine4,
+      respondent_address_line_5: addressControls.addressLine5,
+      respondent_postal_or_zip_code: addressControls.postalOrZipCode,
+      respondent_country_id: addressControls.countryId,
       respondent_send_correspondence_to_third_party: new FormControl(false, { nonNullable: true }),
       respondent_third_party_name_or_organisation: new FormControl<string | null>(
         disabled(null),
@@ -330,31 +337,15 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   }
 
   private updateConditionalBranch(branch: (typeof this.conditionalBranches)[number], selected: boolean): void {
-    for (const controlName of branch.controls) {
-      const control = this.form.controls[controlName];
-      const isRequiredText = (branch.requiredText as readonly string[]).includes(controlName);
-      const isRequiredCountry = (branch.requiredCountry as readonly string[]).includes(controlName);
-      if (selected) {
-        control.enable({ emitEvent: false });
-        if (isRequiredText) {
-          control.addValidators(casesCreateCasefileRespondentDetailsTrimRequiredValidator);
-        }
-        if (isRequiredCountry) {
-          control.addValidators(Validators.required);
-        }
-      } else {
-        control.reset(null, { emitEvent: false });
-        if (isRequiredText) {
-          control.removeValidators(casesCreateCasefileRespondentDetailsTrimRequiredValidator);
-        }
-        if (isRequiredCountry) {
-          control.removeValidators(Validators.required);
-        }
-        control.setErrors(null);
-        control.disable({ emitEvent: false });
-      }
-      control.updateValueAndValidity({ emitEvent: false });
-    }
+    updateCasesCreateCasefileConditionalControls(
+      {
+        controls: branch.controls.map((controlName) => this.form.controls[controlName]),
+        requiredTextControls: new Set(branch.requiredText.map((controlName) => this.form.controls[controlName])),
+        requiredCountryControls: new Set(branch.requiredCountry.map((controlName) => this.form.controls[controlName])),
+        requiredTextValidator: casesCreateCasefileRespondentDetailsTrimRequiredValidator,
+      },
+      selected,
+    );
 
     if (!selected) {
       this.clearConditionalBranchErrors(branch.controls);

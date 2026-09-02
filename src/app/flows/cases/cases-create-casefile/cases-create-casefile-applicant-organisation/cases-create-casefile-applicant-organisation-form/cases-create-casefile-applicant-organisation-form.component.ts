@@ -22,6 +22,11 @@ import { CASES_CREATE_CASEFILE_APPLICANT_BANK_OPTIONS } from '../../constants/ca
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
 import type { CasesCreateCasefileApplicantBankType } from '../../types/cases-create-casefile-applicant-bank-type.type';
 import {
+  createCasesCreateCasefileAddressControls,
+  createCasesCreateCasefileApplicantBankControls,
+  createCasesCreateCasefileContactControls,
+} from '../../utils/cases-create-casefile-form-control-builders';
+import {
   casesCreateCasefileApplicantBicSwiftValidator,
   casesCreateCasefileApplicantBranchSortCodeValidator,
   casesCreateCasefileApplicantIbanValidator,
@@ -124,7 +129,18 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
 
   private setupForm(): void {
     const emailValidators = [optionalMaxLengthValidator(76), patternValidator(EMAIL_ADDRESS_PATTERN, 'emailPattern')];
-    const disabled = <T>(value: T): { value: T; disabled: true } => ({ value, disabled: true });
+    const contactControls = createCasesCreateCasefileContactControls({
+      emailValidators,
+      telephoneValidators: [optionalMaxLengthValidator(35)],
+    });
+    const addressControls = createCasesCreateCasefileAddressControls({
+      requiredTextValidator: casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
+      countryValidators: [Validators.required, this.countrySelectionValidator(this.countryAutocompleteItems)],
+    });
+    const bankControls = createCasesCreateCasefileApplicantBankControls({
+      bankTypeValidators: [Validators.required],
+      nonUkAccountNumberValidators: [optionalMaxLengthValidator(20)],
+    });
 
     this.form = new FormGroup<IApplicantOrganisationFormControls>({
       applicant_organisation_name: new FormControl<string | null>(null, [
@@ -135,38 +151,29 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
         casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
         Validators.maxLength(40),
       ]),
-      applicant_main_email_address: new FormControl<string | null>(null, emailValidators),
-      applicant_other_email_address: new FormControl<string | null>(null, emailValidators),
-      applicant_main_telephone_number: new FormControl<string | null>(null, optionalMaxLengthValidator(35)),
-      applicant_other_telephone_number: new FormControl<string | null>(null, optionalMaxLengthValidator(35)),
-      applicant_address_line_1: new FormControl<string | null>(null, [
-        casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
-        Validators.maxLength(30),
-      ]),
-      applicant_address_line_2: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      applicant_address_line_3: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      applicant_address_line_4: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      applicant_address_line_5: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      applicant_postal_or_zip_code: new FormControl<string | null>(null, optionalMaxLengthValidator(10)),
-      applicant_country_id: new FormControl<number | null>(null, [
-        Validators.required,
-        this.countrySelectionValidator(this.countryAutocompleteItems),
-      ]),
-      applicant_bank_type: new FormControl<CasesCreateCasefileApplicantBankType | null>(null, Validators.required),
-      applicant_uk_bank_name_on_account: new FormControl<string | null>(disabled(null)),
-      applicant_uk_bank_sort_code: new FormControl<string | null>(disabled(null)),
-      applicant_uk_bank_account_number: new FormControl<string | null>(disabled(null)),
-      applicant_uk_bank_payment_reference: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_name_on_account: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_bic_swift_code: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_iban: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_payment_reference: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_name: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_branch_sort_code: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_account_number: new FormControl<string | null>(
-        disabled(null),
-        optionalMaxLengthValidator(20),
-      ),
+      applicant_main_email_address: contactControls.mainEmailAddress,
+      applicant_other_email_address: contactControls.otherEmailAddress,
+      applicant_main_telephone_number: contactControls.mainTelephoneNumber,
+      applicant_other_telephone_number: contactControls.otherTelephoneNumber,
+      applicant_address_line_1: addressControls.addressLine1,
+      applicant_address_line_2: addressControls.addressLine2,
+      applicant_address_line_3: addressControls.addressLine3,
+      applicant_address_line_4: addressControls.addressLine4,
+      applicant_address_line_5: addressControls.addressLine5,
+      applicant_postal_or_zip_code: addressControls.postalOrZipCode,
+      applicant_country_id: addressControls.countryId,
+      applicant_bank_type: bankControls.bankType,
+      applicant_uk_bank_name_on_account: bankControls.ukBankNameOnAccount,
+      applicant_uk_bank_sort_code: bankControls.ukBankSortCode,
+      applicant_uk_bank_account_number: bankControls.ukBankAccountNumber,
+      applicant_uk_bank_payment_reference: bankControls.ukBankPaymentReference,
+      applicant_non_uk_bank_name_on_account: bankControls.nonUkBankNameOnAccount,
+      applicant_non_uk_bank_bic_swift_code: bankControls.nonUkBankBicSwiftCode,
+      applicant_non_uk_bank_iban: bankControls.nonUkBankIban,
+      applicant_non_uk_bank_payment_reference: bankControls.nonUkBankPaymentReference,
+      applicant_non_uk_bank_name: bankControls.nonUkBankName,
+      applicant_non_uk_bank_branch_sort_code: bankControls.nonUkBankBranchSortCode,
+      applicant_non_uk_bank_account_number: bankControls.nonUkBankAccountNumber,
     });
   }
 

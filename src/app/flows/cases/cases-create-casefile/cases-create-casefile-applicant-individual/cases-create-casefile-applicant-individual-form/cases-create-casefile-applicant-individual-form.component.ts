@@ -44,6 +44,12 @@ import { Subject, takeUntil } from 'rxjs';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
 import type { ICasesCreateCasefilePartyAlias } from '../../interfaces/cases-create-casefile-party-alias.interface';
 import type { CasesCreateCasefileApplicantBankType } from '../../types/cases-create-casefile-applicant-bank-type.type';
+import { updateCasesCreateCasefileConditionalControls } from '../../utils/cases-create-casefile-conditional-controls';
+import {
+  createCasesCreateCasefileAddressControls,
+  createCasesCreateCasefileApplicantBankControls,
+  createCasesCreateCasefileContactControls,
+} from '../../utils/cases-create-casefile-form-control-builders';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_ALIAS } from '../constants/cases-create-casefile-applicant-individual-alias.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_OPTIONS } from '../../constants/cases-create-casefile-applicant-bank-options.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_ERRORS } from '../constants/cases-create-casefile-applicant-individual-field-errors.constant';
@@ -219,6 +225,18 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
 
   private setupForm(): void {
     const emailValidators = [optionalMaxLengthValidator(76), patternValidator(EMAIL_ADDRESS_PATTERN, 'emailPattern')];
+    const contactControls = createCasesCreateCasefileContactControls({
+      emailValidators,
+      telephoneValidators: [optionalMaxLengthValidator(35)],
+    });
+    const addressControls = createCasesCreateCasefileAddressControls({
+      requiredTextValidator: casesCreateCasefileApplicantIndividualTrimRequiredValidator,
+      countryValidators: [Validators.required, this.countrySelectionValidator(this.countryAutocompleteItems)],
+    });
+    const bankControls = createCasesCreateCasefileApplicantBankControls({
+      bankTypeValidators: [Validators.required],
+      nonUkAccountNumberValidators: [optionalMaxLengthValidator(20)],
+    });
     const disabled = <T>(value: T): { value: T; disabled: true } => ({ value, disabled: true });
 
     this.form = new FormGroup<IApplicantIndividualFormControls>({
@@ -237,23 +255,17 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
         optionalValidDateValidator(),
         dateOfBirthValidator(),
       ]),
-      applicant_main_email_address: new FormControl<string | null>(null, emailValidators),
-      applicant_other_email_address: new FormControl<string | null>(null, emailValidators),
-      applicant_main_telephone_number: new FormControl<string | null>(null, optionalMaxLengthValidator(35)),
-      applicant_other_telephone_number: new FormControl<string | null>(null, optionalMaxLengthValidator(35)),
-      applicant_address_line_1: new FormControl<string | null>(null, [
-        casesCreateCasefileApplicantIndividualTrimRequiredValidator,
-        Validators.maxLength(30),
-      ]),
-      applicant_address_line_2: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      applicant_address_line_3: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      applicant_address_line_4: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      applicant_address_line_5: new FormControl<string | null>(null, optionalMaxLengthValidator(30)),
-      applicant_postal_or_zip_code: new FormControl<string | null>(null, optionalMaxLengthValidator(10)),
-      applicant_country_id: new FormControl<number | null>(null, [
-        Validators.required,
-        this.countrySelectionValidator(this.countryAutocompleteItems),
-      ]),
+      applicant_main_email_address: contactControls.mainEmailAddress,
+      applicant_other_email_address: contactControls.otherEmailAddress,
+      applicant_main_telephone_number: contactControls.mainTelephoneNumber,
+      applicant_other_telephone_number: contactControls.otherTelephoneNumber,
+      applicant_address_line_1: addressControls.addressLine1,
+      applicant_address_line_2: addressControls.addressLine2,
+      applicant_address_line_3: addressControls.addressLine3,
+      applicant_address_line_4: addressControls.addressLine4,
+      applicant_address_line_5: addressControls.addressLine5,
+      applicant_postal_or_zip_code: addressControls.postalOrZipCode,
+      applicant_country_id: addressControls.countryId,
       applicant_send_correspondence_to_third_party: new FormControl(false, { nonNullable: true }),
       applicant_third_party_name_or_organisation: new FormControl<string | null>(
         disabled(null),
@@ -286,21 +298,18 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
         disabled(null),
         this.countrySelectionValidator(this.countrySelectOptions),
       ),
-      applicant_bank_type: new FormControl<CasesCreateCasefileApplicantBankType | null>(null, Validators.required),
-      applicant_uk_bank_name_on_account: new FormControl<string | null>(disabled(null)),
-      applicant_uk_bank_sort_code: new FormControl<string | null>(disabled(null)),
-      applicant_uk_bank_account_number: new FormControl<string | null>(disabled(null)),
-      applicant_uk_bank_payment_reference: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_name_on_account: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_account_number: new FormControl<string | null>(
-        disabled(null),
-        optionalMaxLengthValidator(20),
-      ),
-      applicant_non_uk_bank_payment_reference: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_bic_swift_code: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_iban: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_name: new FormControl<string | null>(disabled(null)),
-      applicant_non_uk_bank_branch_sort_code: new FormControl<string | null>(disabled(null)),
+      applicant_bank_type: bankControls.bankType,
+      applicant_uk_bank_name_on_account: bankControls.ukBankNameOnAccount,
+      applicant_uk_bank_sort_code: bankControls.ukBankSortCode,
+      applicant_uk_bank_account_number: bankControls.ukBankAccountNumber,
+      applicant_uk_bank_payment_reference: bankControls.ukBankPaymentReference,
+      applicant_non_uk_bank_name_on_account: bankControls.nonUkBankNameOnAccount,
+      applicant_non_uk_bank_account_number: bankControls.nonUkBankAccountNumber,
+      applicant_non_uk_bank_payment_reference: bankControls.nonUkBankPaymentReference,
+      applicant_non_uk_bank_bic_swift_code: bankControls.nonUkBankBicSwiftCode,
+      applicant_non_uk_bank_iban: bankControls.nonUkBankIban,
+      applicant_non_uk_bank_name: bankControls.nonUkBankName,
+      applicant_non_uk_bank_branch_sort_code: bankControls.nonUkBankBranchSortCode,
       applicant_restricted_information: new FormControl(false, { nonNullable: true }),
       applicant_restricted_information_reason: new FormControl<string | null>(
         disabled(null),
@@ -366,31 +375,15 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
   }
 
   private updateConditionalBranch(branch: (typeof this.conditionalBranches)[number], selected: boolean): void {
-    for (const controlName of branch.controls) {
-      const control = this.form.controls[controlName];
-      const isRequiredText = (branch.requiredText as readonly string[]).includes(controlName);
-      const isRequiredCountry = (branch.requiredCountry as readonly string[]).includes(controlName);
-      if (selected) {
-        control.enable({ emitEvent: false });
-        if (isRequiredText) {
-          control.addValidators(casesCreateCasefileApplicantIndividualTrimRequiredValidator);
-        }
-        if (isRequiredCountry) {
-          control.addValidators(Validators.required);
-        }
-      } else {
-        control.reset(null, { emitEvent: false });
-        if (isRequiredText) {
-          control.removeValidators(casesCreateCasefileApplicantIndividualTrimRequiredValidator);
-        }
-        if (isRequiredCountry) {
-          control.removeValidators(Validators.required);
-        }
-        control.setErrors(null);
-        control.disable({ emitEvent: false });
-      }
-      control.updateValueAndValidity({ emitEvent: false });
-    }
+    updateCasesCreateCasefileConditionalControls(
+      {
+        controls: branch.controls.map((controlName) => this.form.controls[controlName]),
+        requiredTextControls: new Set(branch.requiredText.map((controlName) => this.form.controls[controlName])),
+        requiredCountryControls: new Set(branch.requiredCountry.map((controlName) => this.form.controls[controlName])),
+        requiredTextValidator: casesCreateCasefileApplicantIndividualTrimRequiredValidator,
+      },
+      selected,
+    );
 
     if (!selected) {
       this.clearConditionalBranchErrors(branch.controls);

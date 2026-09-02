@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../constants/cases-create-casefile-applicant-bank-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
+import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from '../constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileApplicantOrganisation } from '../interfaces/cases-create-casefile-applicant-organisation.interface';
+import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases-create-casefile-interest-indexation.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { ICasesCreateCasefileApplicantIndividual } from '../interfaces/cases-create-casefile-applicant-individual.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
@@ -102,6 +104,7 @@ describe('CasesCreateCasefileStore', () => {
 
   it('starts without default business values', () => {
     expect(store.caseTypeSelection()).toBeNull();
+    expect(store.interestAndIndexation()).toBeNull();
     expect(store.caseTypeComplete()).toBe(false);
     expect(store.unsavedChanges()).toBe(false);
     expect(store.stateChanges()).toBe(false);
@@ -235,6 +238,75 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.taskStatuses().applicant).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
     expect(store.unsavedChanges()).toBe(false);
     expect(store.stateChanges()).toBe(true);
+  });
+
+  it.each([
+    { interestApplies: true, indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI },
+    { interestApplies: false, indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI },
+    { interestApplies: true, indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER },
+    { interestApplies: false, indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.NONE },
+  ] satisfies ICasesCreateCasefileInterestIndexation[])(
+    'saves Interest and indexation %o and marks the task Provided atomically',
+    (interestAndIndexation) => {
+      store.setUnsavedChanges(true);
+
+      store.setInterestAndIndexation(interestAndIndexation);
+
+      expect(store.interestAndIndexation()).toEqual(interestAndIndexation);
+      expect(store.taskStatuses().interestAndIndexation).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+      expect(store.unsavedChanges()).toBe(false);
+      expect(store.stateChanges()).toBe(true);
+    },
+  );
+
+  it('clears Interest and indexation when the Case Type changes', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setInterestAndIndexation({
+      interestApplies: true,
+      indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI,
+    });
+
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+    expect(store.interestAndIndexation()).toBeNull();
+    expect(store.taskStatuses().interestAndIndexation).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
+  });
+
+  it('preserves Interest and indexation when the Case Type selection is unchanged', () => {
+    const selection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    const interestAndIndexation: ICasesCreateCasefileInterestIndexation = {
+      interestApplies: false,
+      indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.NONE,
+    };
+    store.setCaseTypeSelection(selection);
+    store.setInterestAndIndexation(interestAndIndexation);
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.interestAndIndexation()).toEqual(interestAndIndexation);
+  });
+
+  it('clears Interest and indexation when resetting for Case Type edit', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setInterestAndIndexation({
+      interestApplies: false,
+      indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI,
+    });
+
+    store.resetForCaseTypeEdit();
+
+    expect(store.interestAndIndexation()).toBeNull();
+  });
+
+  it('clears Interest and indexation when resetting the store', () => {
+    store.setInterestAndIndexation({
+      interestApplies: true,
+      indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER,
+    });
+
+    store.resetStore();
+
+    expect(store.interestAndIndexation()).toBeNull();
   });
 
   it('clears respondent data when the Case Type changes', () => {

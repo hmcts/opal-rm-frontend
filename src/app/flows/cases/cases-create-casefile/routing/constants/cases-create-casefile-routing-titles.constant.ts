@@ -1,4 +1,15 @@
 export const CASES_CREATE_CASEFILE_ROUTING_TITLES = {
   caseType: 'Create a case',
-  taskList: 'Task List',
+  taskList: 'Case details',
+  respondentDetails: 'Respondent details',
+  applicantIndividual: 'Applicant details - Individual',
+  applicantOrganisation: 'Applicant details - Organisation',
+  centralAuthorityDetails: 'Central authority details',
+  orderDetails: 'Order details',
+  orderTermsSummary: 'Order terms',
+  interestAndIndexation: 'Interest and indexation',
+  managingPayments: 'Managing payments',
+  commentsAndNotes: 'Comments and notes',
+  checkCaseDetails: 'Check case details',
+  cancel: 'Cancel case creation',
 } as const;

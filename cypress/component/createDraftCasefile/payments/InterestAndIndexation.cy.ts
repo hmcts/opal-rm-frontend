@@ -19,10 +19,7 @@ const interestPath =
 const taskListPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
 const managingPaymentsPath =
-  '/' +
-  CASES_CREATE_CASEFILE_ROUTING_PATHS.root +
-  '/' +
-  CASES_CREATE_CASEFILE_ROUTING_PATHS.children.managingPayments;
+  '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.managingPayments;
 const UNSAVED_CHANGES_WARNING =
   'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.';
 const SAVED_INTEREST_AND_INDEXATION: ICasesCreateCasefileInterestIndexation = {
@@ -209,23 +206,29 @@ describe('Create Casefile Interest and Indexation', () => {
     assertRouterPath(taskListPath);
   });
 
-  it('AC3, RGAC2. should stay on dirty Cancel and preserve edited controls plus saved state', { tags: buildTags() }, () => {
-    const rejectCancelConfirm = cy.stub().as('rejectCancelConfirm').returns(false);
-    cy.on('window:confirm', rejectCancelConfirm);
-    setupInterestAndIndexation(SAVED_INTEREST_AND_INDEXATION);
-    choose(false, CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER);
+  it(
+    'AC3, RGAC2. should stay on dirty Cancel and preserve edited controls plus saved state',
+    { tags: buildTags() },
+    () => {
+      const rejectCancelConfirm = cy.stub().as('rejectCancelConfirm').returns(false);
+      cy.on('window:confirm', rejectCancelConfirm);
+      setupInterestAndIndexation(SAVED_INTEREST_AND_INDEXATION);
+      choose(false, CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER);
 
-    cy.get(Page.interestAndIndexation.cancelLink).click();
+      cy.get(Page.interestAndIndexation.cancelLink).click();
 
-    cy.get('@rejectCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
-    assertRouterPath(interestPath);
-    cy.get(Page.interestAndIndexation.interestRadio(false)).should('be.checked');
-    cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER)).should('be.checked');
-    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-      expect(store.interestAndIndexation()).to.deep.equal(SAVED_INTEREST_AND_INDEXATION);
-      expect(store.unsavedChanges()).to.equal(true);
-    });
-  });
+      cy.get('@rejectCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+      assertRouterPath(interestPath);
+      cy.get(Page.interestAndIndexation.interestRadio(false)).should('be.checked');
+      cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER)).should(
+        'be.checked',
+      );
+      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+        expect(store.interestAndIndexation()).to.deep.equal(SAVED_INTEREST_AND_INDEXATION);
+        expect(store.unsavedChanges()).to.equal(true);
+      });
+    },
+  );
 
   it('AC3, RGAC3. should leave on dirty Cancel and preserve only the last saved state', { tags: buildTags() }, () => {
     const acceptCancelConfirm = cy.stub().as('acceptCancelConfirm').returns(true);
@@ -244,19 +247,25 @@ describe('Create Casefile Interest and Indexation', () => {
     });
   });
 
-  it('AC3, RGAC2. should protect another route after edits and preserve the working selection when staying', { tags: buildTags() }, () => {
-    const rejectNavigationConfirm = cy.stub().as('rejectNavigationConfirm').returns(false);
-    cy.on('window:confirm', rejectNavigationConfirm);
-    setupInterestAndIndexation();
-    choose(true, CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI);
+  it(
+    'AC3, RGAC2. should protect another route after edits and preserve the working selection when staying',
+    { tags: buildTags() },
+    () => {
+      const rejectNavigationConfirm = cy.stub().as('rejectNavigationConfirm').returns(false);
+      cy.on('window:confirm', rejectNavigationConfirm);
+      setupInterestAndIndexation();
+      choose(true, CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI);
 
-    cy.get('@angularRouter').then((router: Router) => router.navigateByUrl(managingPaymentsPath));
+      cy.get('@angularRouter').then((router: Router) => router.navigateByUrl(managingPaymentsPath));
 
-    cy.get('@rejectNavigationConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
-    assertRouterPath(interestPath);
-    cy.get(Page.interestAndIndexation.interestRadio(true)).should('be.checked');
-    cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI)).should('be.checked');
-  });
+      cy.get('@rejectNavigationConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+      assertRouterPath(interestPath);
+      cy.get(Page.interestAndIndexation.interestRadio(true)).should('be.checked');
+      cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI)).should(
+        'be.checked',
+      );
+    },
+  );
 
   it('AC4. should preserve native radio keyboard behaviour and logical action order', { tags: buildTags() }, () => {
     setupInterestAndIndexation();

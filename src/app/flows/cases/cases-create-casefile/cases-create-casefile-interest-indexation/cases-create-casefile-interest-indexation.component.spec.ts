@@ -1,47 +1,122 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
+import { ActivatedRoute, Router } from '@angular/router';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createSpyObj } from '@app/testing/create-spy-obj.helper';
+import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from '../constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
+import { CasesCreateCasefileInterestIndexationFormComponent } from './cases-create-casefile-interest-indexation-form/cases-create-casefile-interest-indexation-form.component';
 import { CasesCreateCasefileInterestIndexationComponent } from './cases-create-casefile-interest-indexation.component';
 
 describe('CasesCreateCasefileInterestIndexationComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileInterestIndexationComponent>;
+  let component: CasesCreateCasefileInterestIndexationComponent;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
-  const router = { navigateByUrl: vi.fn().mockResolvedValue(true) };
+  const router = createSpyObj(Router, ['navigate']);
+  const saved = {
+    interestApplies: true,
+    indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI,
+  } as const;
+
+  const createComponent = (): void => {
+    fixture = TestBed.createComponent(CasesCreateCasefileInterestIndexationComponent);
+    component = fixture.componentInstance;
+  };
 
   beforeEach(async () => {
-    router.navigateByUrl.mockClear();
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileInterestIndexationComponent],
-      providers: [{ provide: Router, useValue: router }, CasesCreateCasefileStore],
+      providers: [
+        { provide: Router, useValue: router },
+        { provide: ActivatedRoute, useValue: { parent: null } },
+      ],
     }).compileComponents();
+
+    router['navigate'].mockReset();
     store = TestBed.inject(CasesCreateCasefileStore);
-    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
-    store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
-    fixture = TestBed.createComponent(CasesCreateCasefileInterestIndexationComponent);
-    fixture.detectChanges();
+    store.resetStore();
   });
 
-  it('renders the Interest and indexation placeholder and returns to Case details without changing state', () => {
-    const before = {
-      caseTypeSelection: store.caseTypeSelection(),
-      taskStatuses: store.taskStatuses(),
-      unsavedChanges: store.unsavedChanges(),
-      stateChanges: store.stateChanges(),
-    };
+  it('supplies empty initial values when nothing has been saved', () => {
+    createComponent();
+
+    expect(component.initialFormData).toEqual({ interestApplies: null, indexationType: null });
+  });
+
+  it('supplies the last saved state for rehydration', () => {
+    store.setInterestAndIndexation(saved);
+
+    createComponent();
+
+    expect(component.initialFormData).toEqual(saved);
+  });
+
+  it('renders and wires the typed form inside the two-thirds container', () => {
+    store.setInterestAndIndexation(saved);
+    createComponent();
+
+    fixture.detectChanges();
+
+    const child = fixture.debugElement.query(
+      (debugElement) => debugElement.componentInstance instanceof CasesCreateCasefileInterestIndexationFormComponent,
+    ).componentInstance as CasesCreateCasefileInterestIndexationFormComponent;
     expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds h1')?.textContent.trim()).toBe(
-      'Interest and indexation',
-    );
-    fixture.nativeElement.querySelector('a.govuk-back-link').click();
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/task-list');
-    expect({
-      caseTypeSelection: store.caseTypeSelection(),
-      taskStatuses: store.taskStatuses(),
-      unsavedChanges: store.unsavedChanges(),
-      stateChanges: store.stateChanges(),
-    }).toEqual(before);
+    expect(child.initialFormData).toEqual(saved);
+  });
+
+  it('saves valid data, completes the task, clears dirty state and returns to Case details', () => {
+    createComponent();
+    component.handleUnsavedChanges(true);
+
+    component.handleFormSubmit({
+      formData: {
+        interestApplies: false,
+        indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI,
+      },
+      nestedFlow: false,
+    });
+
+    expect(store.interestAndIndexation()).toEqual({ interestApplies: false, indexationType: 'CPI' });
+    expect(store.taskStatuses().interestAndIndexation).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.unsavedChanges()).toBe(false);
+    expect(store.stateChanges()).toBe(true);
+    expect(component.stateUnsavedChanges).toBe(false);
+    expect(component['canDeactivate']()).toBe(true);
+    expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
+  });
+
+  it('mirrors form dirty state into the store and parent base class', () => {
+    createComponent();
+
+    component.handleUnsavedChanges(true);
+
+    expect(store.unsavedChanges()).toBe(true);
+    expect(component.stateUnsavedChanges).toBe(true);
+    expect(component['canDeactivate']()).toBe(false);
+  });
+
+  it('routes Cancel through protected navigation without replacing the last saved state', () => {
+    store.setInterestAndIndexation(saved);
+    createComponent();
+    component.handleUnsavedChanges(true);
+
+    component.handleCancel();
+
+    expect(store.interestAndIndexation()).toEqual(saved);
+    expect(store.unsavedChanges()).toBe(true);
+    expect(component['canDeactivate']()).toBe(false);
+    expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
+  });
+
+  it('clears only transient dirty state during destruction', () => {
+    store.setInterestAndIndexation(saved);
+    createComponent();
+    component.handleUnsavedChanges(true);
+
+    component.ngOnDestroy();
+
+    expect(store.interestAndIndexation()).toEqual(saved);
+    expect(store.taskStatuses().interestAndIndexation).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.unsavedChanges()).toBe(false);
   });
 });

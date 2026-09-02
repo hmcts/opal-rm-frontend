@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CasesCreateCasefileRestrictedInformationComponent } from '../../components/cases-create-casefile-restricted-information/cases-create-casefile-restricted-information.component';
+import { CasesCreateCasefileThirdPartyComponent } from '../../components/cases-create-casefile-third-party/cases-create-casefile-third-party.component';
 import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS } from '../mocks/cases-create-casefile-respondent-details.mock';
 import type { ICasesCreateCasefileRespondentDetailsFormData } from '../interfaces/cases-create-casefile-respondent-details-form-data.interface';
 import { CasesCreateCasefileRespondentDetailsFormComponent } from './cases-create-casefile-respondent-details-form.component';
@@ -88,6 +91,43 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     expect(component.form.controls['respondent_employer_name'].disabled).toBe(true);
     expect(component.form.controls['respondent_third_party_name_or_organisation'].disabled).toBe(true);
     expect(component.form.controls['respondent_restricted_information_reason'].disabled).toBe(true);
+  });
+
+  it('passes the original form and respondent-specific contracts to the shared conditional sections', () => {
+    fixture.detectChanges();
+
+    const thirdParty = fixture.debugElement.query(By.directive(CasesCreateCasefileThirdPartyComponent))
+      .componentInstance as CasesCreateCasefileThirdPartyComponent;
+    expect(thirdParty.form).toBe(component.form);
+    expect(thirdParty.formControlErrorMessages).toBe(component.formControlErrorMessages);
+    expect(thirdParty.fieldNames).toEqual({
+      nameOrOrganisation: 'respondent_third_party_name_or_organisation',
+      relationship: 'respondent_third_party_relationship',
+      reference: 'respondent_third_party_reference',
+      addressLine1: 'respondent_third_party_address_line_1',
+      addressLine2: 'respondent_third_party_address_line_2',
+      addressLine3: 'respondent_third_party_address_line_3',
+      addressLine4: 'respondent_third_party_address_line_4',
+      addressLine5: 'respondent_third_party_address_line_5',
+      postalOrZipCode: 'respondent_third_party_postal_or_zip_code',
+      countryId: 'respondent_third_party_country_id',
+    });
+    expect(thirdParty.checkboxFieldName).toBe('respondent_send_correspondence_to_third_party');
+    expect(thirdParty.checkboxFieldsetId).toBe('respondent_send_correspondence_to_third_party_fieldset');
+    expect(thirdParty.conditionalId).toBe('respondentThirdPartyConditional');
+    expect(thirdParty.relationshipLabel).toBe('Relationship to the respondent');
+    expect(thirdParty.countrySelectOptions).toBe(component.countrySelectOptions);
+
+    const restrictedInformation = fixture.debugElement.query(
+      By.directive(CasesCreateCasefileRestrictedInformationComponent),
+    ).componentInstance as CasesCreateCasefileRestrictedInformationComponent;
+    expect(restrictedInformation.form).toBe(component.form);
+    expect(restrictedInformation.formControlErrorMessages).toBe(component.formControlErrorMessages);
+    expect(restrictedInformation.checkboxFieldName).toBe('respondent_restricted_information');
+    expect(restrictedInformation.reasonFieldName).toBe('respondent_restricted_information_reason');
+    expect(restrictedInformation.checkboxFieldsetId).toBe('respondent_restricted_information_fieldset');
+    expect(restrictedInformation.conditionalId).toBe('respondentRestrictedInformationConditional');
+    expect(restrictedInformation.checkboxLabel).toBe('Restrict the respondent’s personal information');
   });
 
   it('adds aliases up to five and clears them immediately when deselected', () => {

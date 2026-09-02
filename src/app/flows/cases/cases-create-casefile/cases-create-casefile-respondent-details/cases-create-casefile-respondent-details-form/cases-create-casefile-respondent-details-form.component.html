@@ -151,94 +151,16 @@
   />
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
-  <h2 class="govuk-heading-m">Third party details</h2>
-  <opal-lib-govuk-checkboxes fieldSetId="respondent_send_correspondence_to_third_party_fieldset" legendText="">
-    <div
-      opal-lib-govuk-checkboxes-item
-      labelText="Send correspondence to a third party"
-      inputId="respondent_send_correspondence_to_third_party"
-      inputName="respondent_send_correspondence_to_third_party"
-      ariaControls="respondentThirdPartyConditional-conditional"
-      [control]="form.get('respondent_send_correspondence_to_third_party')"
-    ></div>
-    @if (form.get('respondent_send_correspondence_to_third_party')?.value === true) {
-      <div opal-lib-govuk-checkboxes-conditional conditionalId="respondentThirdPartyConditional">
-        <opal-lib-govuk-text-input
-          labelText="Name or organisation"
-          inputId="respondent_third_party_name_or_organisation"
-          inputName="respondent_third_party_name_or_organisation"
-          [control]="form.get('respondent_third_party_name_or_organisation')"
-          [errors]="formControlErrorMessages['respondent_third_party_name_or_organisation']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Relationship to the respondent"
-          inputId="respondent_third_party_relationship"
-          inputName="respondent_third_party_relationship"
-          [control]="form.get('respondent_third_party_relationship')"
-          [errors]="formControlErrorMessages['respondent_third_party_relationship']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Reference"
-          inputId="respondent_third_party_reference"
-          inputName="respondent_third_party_reference"
-          [control]="form.get('respondent_third_party_reference')"
-          [errors]="formControlErrorMessages['respondent_third_party_reference']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 1"
-          inputId="respondent_third_party_address_line_1"
-          inputName="respondent_third_party_address_line_1"
-          [control]="form.get('respondent_third_party_address_line_1')"
-          [errors]="formControlErrorMessages['respondent_third_party_address_line_1']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 2"
-          inputId="respondent_third_party_address_line_2"
-          inputName="respondent_third_party_address_line_2"
-          [control]="form.get('respondent_third_party_address_line_2')"
-          [errors]="formControlErrorMessages['respondent_third_party_address_line_2']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 3"
-          inputId="respondent_third_party_address_line_3"
-          inputName="respondent_third_party_address_line_3"
-          [control]="form.get('respondent_third_party_address_line_3')"
-          [errors]="formControlErrorMessages['respondent_third_party_address_line_3']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 4"
-          inputId="respondent_third_party_address_line_4"
-          inputName="respondent_third_party_address_line_4"
-          [control]="form.get('respondent_third_party_address_line_4')"
-          [errors]="formControlErrorMessages['respondent_third_party_address_line_4']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 5"
-          inputId="respondent_third_party_address_line_5"
-          inputName="respondent_third_party_address_line_5"
-          [control]="form.get('respondent_third_party_address_line_5')"
-          [errors]="formControlErrorMessages['respondent_third_party_address_line_5']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Postal or zip code"
-          inputId="respondent_third_party_postal_or_zip_code"
-          inputName="respondent_third_party_postal_or_zip_code"
-          inputClasses="govuk-input--width-10"
-          [control]="form.get('respondent_third_party_postal_or_zip_code')"
-          [errors]="formControlErrorMessages['respondent_third_party_postal_or_zip_code']"
-        />
-        <opal-lib-govuk-select
-          labelText="Country"
-          labelClasses="govuk-label--s"
-          selectId="respondent_third_party_country_id"
-          selectName="respondent_third_party_country_id"
-          [options]="countrySelectOptions"
-          [control]="form.get('respondent_third_party_country_id')!"
-          [errors]="formControlErrorMessages['respondent_third_party_country_id']"
-        />
-      </div>
-    }
-  </opal-lib-govuk-checkboxes>
+  <app-cases-create-casefile-third-party
+    [form]="form"
+    [formControlErrorMessages]="formControlErrorMessages"
+    [fieldNames]="thirdPartyFieldNames"
+    checkboxFieldName="respondent_send_correspondence_to_third_party"
+    checkboxFieldsetId="respondent_send_correspondence_to_third_party_fieldset"
+    conditionalId="respondentThirdPartyConditional"
+    roleLabel="respondent"
+    [countrySelectOptions]="countrySelectOptions"
+  />
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
   <h2 class="govuk-heading-m">Employer details</h2>
@@ -340,32 +262,15 @@
   </opal-lib-govuk-checkboxes>
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
-  <h2 class="govuk-heading-m">Restricted information</h2>
-  <opal-lib-govuk-checkboxes fieldSetId="respondent_restricted_information_fieldset" legendText="">
-    <div
-      opal-lib-govuk-checkboxes-item
-      labelText="Restrict the respondent’s personal information"
-      inputId="respondent_restricted_information"
-      inputName="respondent_restricted_information"
-      ariaControls="respondentRestrictedInformationConditional-conditional"
-      [control]="form.get('respondent_restricted_information')"
-    ></div>
-    @if (form.get('respondent_restricted_information')?.value === true) {
-      <div opal-lib-govuk-checkboxes-conditional conditionalId="respondentRestrictedInformationConditional">
-        <opal-lib-govuk-text-area
-          labelText="Reason"
-          labelClasses="govuk-label--s"
-          inputId="respondent_restricted_information_reason"
-          inputName="respondent_restricted_information_reason"
-          [rows]="5"
-          [characterCountEnabled]="true"
-          [maxCharacterLimit]="250"
-          [control]="form.get('respondent_restricted_information_reason')"
-          [errors]="formControlErrorMessages['respondent_restricted_information_reason']"
-        />
-      </div>
-    }
-  </opal-lib-govuk-checkboxes>
+  <app-cases-create-casefile-restricted-information
+    [form]="form"
+    [formControlErrorMessages]="formControlErrorMessages"
+    checkboxFieldName="respondent_restricted_information"
+    reasonFieldName="respondent_restricted_information_reason"
+    checkboxFieldsetId="respondent_restricted_information_fieldset"
+    conditionalId="respondentRestrictedInformationConditional"
+    checkboxLabel="Restrict the respondent’s personal information"
+  />
 
   <div class="govuk-button-group">
     <button class="govuk-button govuk-!-margin-right-4" id="returnToCaseDetails" type="submit">

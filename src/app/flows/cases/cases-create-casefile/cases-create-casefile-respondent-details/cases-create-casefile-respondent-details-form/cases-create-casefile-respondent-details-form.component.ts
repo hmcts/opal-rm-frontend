@@ -29,7 +29,6 @@ import {
   GovukCheckboxesItemComponent,
 } from '@hmcts/opal-frontend-common/components/govuk/govuk-checkboxes';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
-import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import type { IGovUkSelectOptions } from '@hmcts/opal-frontend-common/components/govuk/govuk-select/interfaces';
 import { GovukTextAreaComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-area';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
@@ -45,6 +44,9 @@ import { CasesCreateCasefileAddressComponent } from '../../components/cases-crea
 import type { ICasesCreateCasefileAddressFieldNames } from '../../components/cases-create-casefile-address/interfaces/cases-create-casefile-address-field-names.interface';
 import { CasesCreateCasefileContactDetailsComponent } from '../../components/cases-create-casefile-contact-details/cases-create-casefile-contact-details.component';
 import type { ICasesCreateCasefileContactFieldNames } from '../../components/cases-create-casefile-contact-details/interfaces/cases-create-casefile-contact-field-names.interface';
+import { CasesCreateCasefileRestrictedInformationComponent } from '../../components/cases-create-casefile-restricted-information/cases-create-casefile-restricted-information.component';
+import { CasesCreateCasefileThirdPartyComponent } from '../../components/cases-create-casefile-third-party/cases-create-casefile-third-party.component';
+import type { ICasesCreateCasefileThirdPartyFieldNames } from '../../components/cases-create-casefile-third-party/interfaces/cases-create-casefile-third-party-field-names.interface';
 import type { ICasesCreateCasefilePartyAlias } from '../../interfaces/cases-create-casefile-party-alias.interface';
 import { updateCasesCreateCasefileConditionalControls } from '../../utils/cases-create-casefile-conditional-controls';
 import {
@@ -109,12 +111,13 @@ type IRespondentDetailsRawFormData = Omit<
     GovukCheckboxesConditionalComponent,
     GovukCheckboxesItemComponent,
     GovukErrorSummaryComponent,
-    GovukSelectComponent,
     GovukTextAreaComponent,
     GovukTextInputComponent,
     MojDatePickerComponent,
     CasesCreateCasefileContactDetailsComponent,
     CasesCreateCasefileAddressComponent,
+    CasesCreateCasefileThirdPartyComponent,
+    CasesCreateCasefileRestrictedInformationComponent,
   ],
   templateUrl: './cases-create-casefile-respondent-details-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -173,6 +176,18 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     addressLine5: 'respondent_address_line_5',
     postalOrZipCode: 'respondent_postal_or_zip_code',
     countryId: 'respondent_country_id',
+  };
+  public readonly thirdPartyFieldNames: ICasesCreateCasefileThirdPartyFieldNames = {
+    nameOrOrganisation: 'respondent_third_party_name_or_organisation',
+    relationship: 'respondent_third_party_relationship',
+    reference: 'respondent_third_party_reference',
+    addressLine1: 'respondent_third_party_address_line_1',
+    addressLine2: 'respondent_third_party_address_line_2',
+    addressLine3: 'respondent_third_party_address_line_3',
+    addressLine4: 'respondent_third_party_address_line_4',
+    addressLine5: 'respondent_third_party_address_line_5',
+    postalOrZipCode: 'respondent_third_party_postal_or_zip_code',
+    countryId: 'respondent_third_party_country_id',
   };
   public yesterday!: string;
 

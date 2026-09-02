@@ -540,6 +540,8 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
         setRenderedInputValue(controlName, value),
       ]),
     );
+    const validTelephoneValue = '+44 (0)20 CALL-US';
+    const validTelephoneInput = setRenderedInputValue('applicant_other_telephone_number', validTelephoneValue);
 
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
 
@@ -558,6 +560,8 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       { fieldId: 'applicant_bank_type', message: 'Select an option' },
     ]);
     expect(formSubmitSpy).not.toHaveBeenCalled();
+    expect(component.form.controls.applicant_other_telephone_number.value).toBe(validTelephoneValue);
+    expect(validTelephoneInput.value).toBe(validTelephoneValue);
     for (const [controlName, value] of Object.entries(enteredValues)) {
       expect(component.form.get(controlName)?.value).toBe(value);
       expect((renderedInputs[controlName] as HTMLInputElement).value).toBe(value);

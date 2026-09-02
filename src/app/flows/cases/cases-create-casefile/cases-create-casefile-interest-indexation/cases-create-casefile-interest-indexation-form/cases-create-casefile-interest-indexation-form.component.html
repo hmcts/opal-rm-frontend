@@ -1,0 +1,51 @@
+<h1 class="govuk-heading-l">Interest and indexation</h1>
+
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+
+<form (submit)="handleFormSubmit($event)">
+  <opal-lib-govuk-radio
+    fieldSetId="interestApplies"
+    legendText="Does interest apply?"
+    legendClasses="govuk-fieldset__legend--m"
+    [errors]="formControlErrorMessages['interestApplies']"
+  >
+    @for (option of options.interest; track option.key) {
+      <opal-lib-govuk-radios-item
+        [labelText]="option.label"
+        [inputId]="option.key"
+        inputName="interestApplies"
+        [inputValue]="option.value"
+        [control]="form.controls.interestApplies"
+      />
+    }
+  </opal-lib-govuk-radio>
+
+  <opal-lib-govuk-radio
+    fieldSetId="indexationType"
+    legendText="What type of indexation applies?"
+    legendClasses="govuk-fieldset__legend--m"
+    [errors]="formControlErrorMessages['indexationType']"
+  >
+    @for (option of options.indexation; track option.key) {
+      @if (option.value === 'NONE') {
+        <opal-lib-govuk-radios-divider>or</opal-lib-govuk-radios-divider>
+      }
+      <opal-lib-govuk-radios-item
+        [labelText]="option.label"
+        [inputId]="option.key"
+        inputName="indexationType"
+        [inputValue]="option.value"
+        [control]="form.controls.indexationType"
+      />
+    }
+  </opal-lib-govuk-radio>
+
+  <div class="govuk-button-group">
+    <button class="govuk-button govuk-!-margin-right-4" id="returnToCaseDetails" type="submit">
+      Return to case details
+    </button>
+    <span id="cancelInterestAndIndexation">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

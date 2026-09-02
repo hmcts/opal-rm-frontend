@@ -88,7 +88,7 @@ const destinationScenarios: DestinationScenario[] = [
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation,
     taskLinkSelector: Page.caseDetails.applicantLink,
-    heading: 'Applicant details - Organisation',
+    heading: 'Applicant details',
     prerequisiteTasks: [],
     selection: {
       caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
@@ -326,7 +326,9 @@ describe('Create Casefile Case Details Task List', () => {
             ? Page.respondentDetails.cancelLink
             : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual
               ? Page.applicantIndividual.cancelLink
-              : Page.caseDetails.backLink,
+              : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation
+                ? Page.applicantOrganisation.cancelLink
+                : Page.caseDetails.backLink,
         ).click();
         assertRouterPath(taskListPath);
         assertExactText(Page.caseDetails.heading, 'Case details');

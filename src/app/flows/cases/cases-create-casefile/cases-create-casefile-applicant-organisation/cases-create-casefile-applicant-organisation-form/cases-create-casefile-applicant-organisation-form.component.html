@@ -1,0 +1,324 @@
+<h1 class="govuk-heading-l">Applicant details</h1>
+
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+
+<form (submit)="handleFormSubmit($event)" [formGroup]="form">
+  <opal-lib-govuk-text-input
+    labelText="Organisation name"
+    labelClasses="govuk-label--s"
+    inputId="applicant_organisation_name"
+    inputName="applicant_organisation_name"
+    inputClasses="govuk-input--width-20"
+    [control]="form.get('applicant_organisation_name')"
+    [errors]="formControlErrorMessages['applicant_organisation_name']"
+  />
+  <opal-lib-govuk-text-input
+    labelText="Foreign authority reference"
+    labelClasses="govuk-label--s"
+    inputId="applicant_foreign_authority_reference"
+    inputName="applicant_foreign_authority_reference"
+    inputClasses="govuk-input--width-20"
+    [control]="form.get('applicant_foreign_authority_reference')"
+    [errors]="formControlErrorMessages['applicant_foreign_authority_reference']"
+  />
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <fieldset class="govuk-fieldset">
+    <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+      <h2 class="govuk-heading-m govuk-!-margin-0">Contact details</h2>
+    </legend>
+    <opal-lib-govuk-text-input
+      labelText="Main email address"
+      labelClasses="govuk-label--s"
+      inputId="applicant_main_email_address"
+      inputName="applicant_main_email_address"
+      inputClasses="govuk-input--width-20"
+      [control]="form.get('applicant_main_email_address')"
+      [errors]="formControlErrorMessages['applicant_main_email_address']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Other email address"
+      labelClasses="govuk-label--s"
+      inputId="applicant_other_email_address"
+      inputName="applicant_other_email_address"
+      inputClasses="govuk-input--width-20"
+      [control]="form.get('applicant_other_email_address')"
+      [errors]="formControlErrorMessages['applicant_other_email_address']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Main telephone number"
+      labelClasses="govuk-label--s"
+      inputId="applicant_main_telephone_number"
+      inputName="applicant_main_telephone_number"
+      inputClasses="govuk-input--width-20"
+      hintText="For international numbers include the country code"
+      [control]="form.get('applicant_main_telephone_number')"
+      [errors]="formControlErrorMessages['applicant_main_telephone_number']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Other telephone number"
+      labelClasses="govuk-label--s"
+      inputId="applicant_other_telephone_number"
+      inputName="applicant_other_telephone_number"
+      inputClasses="govuk-input--width-20"
+      hintText="For international numbers include the country code"
+      [control]="form.get('applicant_other_telephone_number')"
+      [errors]="formControlErrorMessages['applicant_other_telephone_number']"
+    />
+  </fieldset>
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <fieldset class="govuk-fieldset">
+    <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+      <h2 class="govuk-heading-m govuk-!-margin-0">Address</h2>
+    </legend>
+    <opal-lib-govuk-text-input
+      labelText="Address line 1"
+      inputId="applicant_address_line_1"
+      inputName="applicant_address_line_1"
+      [control]="form.get('applicant_address_line_1')"
+      [errors]="formControlErrorMessages['applicant_address_line_1']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Address line 2"
+      inputId="applicant_address_line_2"
+      inputName="applicant_address_line_2"
+      [control]="form.get('applicant_address_line_2')"
+      [errors]="formControlErrorMessages['applicant_address_line_2']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Address line 3"
+      inputId="applicant_address_line_3"
+      inputName="applicant_address_line_3"
+      [control]="form.get('applicant_address_line_3')"
+      [errors]="formControlErrorMessages['applicant_address_line_3']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Address line 4"
+      inputId="applicant_address_line_4"
+      inputName="applicant_address_line_4"
+      [control]="form.get('applicant_address_line_4')"
+      [errors]="formControlErrorMessages['applicant_address_line_4']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Address line 5"
+      inputId="applicant_address_line_5"
+      inputName="applicant_address_line_5"
+      [control]="form.get('applicant_address_line_5')"
+      [errors]="formControlErrorMessages['applicant_address_line_5']"
+    />
+    <opal-lib-govuk-text-input
+      labelText="Postal or zip code"
+      inputId="applicant_postal_or_zip_code"
+      inputName="applicant_postal_or_zip_code"
+      inputClasses="govuk-input--width-10"
+      [control]="form.get('applicant_postal_or_zip_code')"
+      [errors]="formControlErrorMessages['applicant_postal_or_zip_code']"
+    />
+    <opal-lib-alphagov-accessible-autocomplete
+      labelText="Country"
+      labelClasses="govuk-label--s"
+      inputId="applicant_country_id"
+      inputName="applicant_country_id"
+      [showAllValues]="true"
+      [autoCompleteItems]="countryAutocompleteItems"
+      [control]="form.get('applicant_country_id')"
+      [errors]="formControlErrorMessages['applicant_country_id']"
+    />
+  </fieldset>
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <fieldset class="govuk-fieldset">
+    <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+      <h2 class="govuk-heading-m govuk-!-margin-0">Bank details</h2>
+    </legend>
+    <div class="govuk-form-group" [class.govuk-form-group--error]="!!formControlErrorMessages['applicant_bank_type']">
+      <fieldset
+        id="applicant_bank_type"
+        class="govuk-fieldset"
+        [attr.aria-describedby]="
+          formControlErrorMessages['applicant_bank_type'] ? 'applicant_bank_type-error-message' : null
+        "
+      >
+        <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Select bank account type</legend>
+        @if (formControlErrorMessages['applicant_bank_type']) {
+          <p id="applicant_bank_type-error-message" class="govuk-error-message">
+            <span class="govuk-visually-hidden">Error: </span>
+            {{ formControlErrorMessages['applicant_bank_type'] }}
+          </p>
+        }
+        <div class="govuk-radios">
+          @for (option of bankOptions; track option.value) {
+            <div class="govuk-radios__item">
+              <input
+                class="govuk-radios__input"
+                [id]="'applicant_bank_type-' + option.value"
+                name="applicant_bank_type"
+                type="radio"
+                [value]="option.value"
+                [attr.value]="option.value"
+                [attr.aria-controls]="
+                  option.value === bankTypes.UK
+                    ? ukBankConditionalId
+                    : option.value === bankTypes.NON_UK
+                      ? nonUkBankConditionalId
+                      : null
+                "
+                [attr.aria-describedby]="
+                  option.value === bankTypes.UK || option.value === bankTypes.NON_UK
+                    ? 'applicant_bank_type-' + option.value + '-description'
+                    : null
+                "
+                [formControl]="form.controls.applicant_bank_type"
+              />
+              <label class="govuk-label govuk-radios__label" [for]="'applicant_bank_type-' + option.value">
+                {{ option.key }}
+              </label>
+              @if (option.value === bankTypes.UK) {
+                <span id="applicant_bank_type-uk-description" class="govuk-visually-hidden">
+                  Selecting UK bank account reveals the UK bank details fields.
+                </span>
+              } @else if (option.value === bankTypes.NON_UK) {
+                <span id="applicant_bank_type-non-uk-description" class="govuk-visually-hidden">
+                  Selecting Non-UK bank account reveals the non-UK bank details fields.
+                </span>
+              }
+            </div>
+
+            @if (option.value === bankTypes.UK) {
+              <div
+                class="govuk-radios__conditional"
+                [class.govuk-radios__conditional--hidden]="form.controls.applicant_bank_type.value !== bankTypes.UK"
+                [id]="ukBankConditionalId"
+              >
+                <opal-lib-govuk-text-input
+                  labelText="Name on account"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_uk_bank_name_on_account"
+                  inputName="applicant_uk_bank_name_on_account"
+                  inputClasses="govuk-input--width-20"
+                  [control]="form.get('applicant_uk_bank_name_on_account')"
+                  [errors]="formControlErrorMessages['applicant_uk_bank_name_on_account']"
+                />
+                <opal-lib-govuk-text-input
+                  labelText="Sort code"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_uk_bank_sort_code"
+                  inputName="applicant_uk_bank_sort_code"
+                  inputClasses="govuk-input--width-10"
+                  hintText="For example, 11-22-33 or 112233"
+                  [control]="form.get('applicant_uk_bank_sort_code')"
+                  [errors]="formControlErrorMessages['applicant_uk_bank_sort_code']"
+                />
+                <opal-lib-govuk-text-input
+                  labelText="Account number"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_uk_bank_account_number"
+                  inputName="applicant_uk_bank_account_number"
+                  inputClasses="govuk-input--width-10"
+                  [control]="form.get('applicant_uk_bank_account_number')"
+                  [errors]="formControlErrorMessages['applicant_uk_bank_account_number']"
+                />
+                <opal-lib-govuk-text-input
+                  labelText="Payment reference"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_uk_bank_payment_reference"
+                  inputName="applicant_uk_bank_payment_reference"
+                  inputClasses="govuk-input--width-20"
+                  [control]="form.get('applicant_uk_bank_payment_reference')"
+                  [errors]="formControlErrorMessages['applicant_uk_bank_payment_reference']"
+                />
+              </div>
+            }
+
+            @if (option.value === bankTypes.NON_UK) {
+              <div
+                class="govuk-radios__conditional"
+                [class.govuk-radios__conditional--hidden]="form.controls.applicant_bank_type.value !== bankTypes.NON_UK"
+                [id]="nonUkBankConditionalId"
+              >
+                <opal-lib-govuk-text-input
+                  labelText="Name on account"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_non_uk_bank_name_on_account"
+                  inputName="applicant_non_uk_bank_name_on_account"
+                  inputClasses="govuk-input--width-20"
+                  [control]="form.get('applicant_non_uk_bank_name_on_account')"
+                  [errors]="formControlErrorMessages['applicant_non_uk_bank_name_on_account']"
+                />
+                <opal-lib-govuk-text-input
+                  labelText="BIC or SWIFT code"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_non_uk_bank_bic_swift_code"
+                  inputName="applicant_non_uk_bank_bic_swift_code"
+                  inputClasses="govuk-input--width-20"
+                  [control]="form.get('applicant_non_uk_bank_bic_swift_code')"
+                  [errors]="formControlErrorMessages['applicant_non_uk_bank_bic_swift_code']"
+                />
+                <opal-lib-govuk-text-input
+                  labelText="IBAN number"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_non_uk_bank_iban"
+                  inputName="applicant_non_uk_bank_iban"
+                  inputClasses="govuk-input--width-20"
+                  [control]="form.get('applicant_non_uk_bank_iban')"
+                  [errors]="formControlErrorMessages['applicant_non_uk_bank_iban']"
+                />
+                <opal-lib-govuk-text-input
+                  labelText="Payment reference"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_non_uk_bank_payment_reference"
+                  inputName="applicant_non_uk_bank_payment_reference"
+                  inputClasses="govuk-input--width-20"
+                  [control]="form.get('applicant_non_uk_bank_payment_reference')"
+                  [errors]="formControlErrorMessages['applicant_non_uk_bank_payment_reference']"
+                />
+                <opal-lib-govuk-text-input
+                  labelText="Bank name"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_non_uk_bank_name"
+                  inputName="applicant_non_uk_bank_name"
+                  inputClasses="govuk-input--width-20"
+                  [control]="form.get('applicant_non_uk_bank_name')"
+                  [errors]="formControlErrorMessages['applicant_non_uk_bank_name']"
+                />
+                <opal-lib-govuk-text-input
+                  labelText="Branch or sort code"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_non_uk_bank_branch_sort_code"
+                  inputName="applicant_non_uk_bank_branch_sort_code"
+                  inputClasses="govuk-input--width-20"
+                  [control]="form.get('applicant_non_uk_bank_branch_sort_code')"
+                  [errors]="formControlErrorMessages['applicant_non_uk_bank_branch_sort_code']"
+                />
+                <opal-lib-govuk-text-input
+                  labelText="Account number"
+                  labelClasses="govuk-label--s"
+                  inputId="applicant_non_uk_bank_account_number"
+                  inputName="applicant_non_uk_bank_account_number"
+                  inputClasses="govuk-input--width-20"
+                  [control]="form.get('applicant_non_uk_bank_account_number')"
+                  [errors]="formControlErrorMessages['applicant_non_uk_bank_account_number']"
+                />
+              </div>
+            }
+          }
+        </div>
+      </fieldset>
+    </div>
+  </fieldset>
+
+  <div class="govuk-button-group">
+    <button
+      id="returnToCaseDetails"
+      class="govuk-button govuk-!-margin-bottom-0"
+      type="submit"
+      data-module="govuk-button"
+    >
+      Return to case details
+    </button>
+    <opal-lib-govuk-cancel-link id="cancelApplicantDetails" (linkClickEvent)="cancel.emit()">
+      Cancel
+    </opal-lib-govuk-cancel-link>
+  </div>
+</form>

@@ -1,4 +1,3 @@
-import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
 import { describe, expect, it } from 'vitest';
 import { CasesCreateCasefileApplicantIndividualComponent } from '../cases-create-casefile-applicant-individual/cases-create-casefile-applicant-individual.component';
@@ -18,8 +17,8 @@ import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-c
 import { routing } from './cases-create-casefile.routes';
 import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
 import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
+import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
-import { casesCreateCasefileInterestIndexationCanDeactivateGuard } from './guards/cases-create-casefile-interest-indexation-can-deactivate.guard';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
 const guardedRouteCases = [
@@ -58,7 +57,7 @@ describe('Create Casefile routes', () => {
   it('registers Case Type without temporary permission metadata or a flow-state guard', () => {
     const route = routing.find((candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType);
 
-    expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
     expect(route?.canActivate).toBeUndefined();
     expect(route?.loadComponent).toEqual(expect.any(Function));
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.caseType });
@@ -72,7 +71,7 @@ describe('Create Casefile routes', () => {
 
     expect(route?.loadComponent).toEqual(expect.any(Function));
     expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
-    expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.respondentDetails });
     expect(route?.resolve).toEqual({
       title: TitleResolver,
@@ -94,7 +93,7 @@ describe('Create Casefile routes', () => {
       casesCreateCasefileFlowStateGuard,
       casesCreateCasefileApplicantIndividualGuard,
     ]);
-    expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.applicantIndividual });
     expect(route?.resolve).toEqual({
       title: TitleResolver,
@@ -116,7 +115,7 @@ describe('Create Casefile routes', () => {
       casesCreateCasefileFlowStateGuard,
       casesCreateCasefileApplicantOrganisationGuard,
     ]);
-    expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.applicantOrganisation });
     expect(route?.resolve).toEqual({
       title: TitleResolver,
@@ -135,7 +134,7 @@ describe('Create Casefile routes', () => {
 
     expect(route?.loadComponent).toEqual(expect.any(Function));
     expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
-    expect(route?.canDeactivate).toEqual([casesCreateCasefileInterestIndexationCanDeactivateGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.interestAndIndexation });
     expect(route?.resolve).toEqual({ title: TitleResolver });
 

@@ -267,7 +267,7 @@ describe('Create Casefile Interest and Indexation', () => {
     },
   );
 
-  it('AC3, RGAC3. should warn once and complete external navigation after accepting', { tags: buildTags() }, () => {
+  it('AC3, RGAC2. should warn once and complete external navigation after accepting', { tags: buildTags() }, () => {
     const acceptExternalNavigationConfirm = cy.stub().as('acceptExternalNavigationConfirm').returns(true);
     cy.on('window:confirm', acceptExternalNavigationConfirm);
     setupInterestAndIndexation(SAVED_INTEREST_AND_INDEXATION);

@@ -150,7 +150,8 @@ describe('CasesCreateCasefileInterestIndexationFormComponent', () => {
   });
 
   it('retains a valid entered selection when the other group is invalid', () => {
-    component.initialFormData = { interestApplies: false, indexationType: null };
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('#interestApplies-no') as HTMLInputElement).click();
     fixture.detectChanges();
 
     component.handleFormSubmit(new SubmitEvent('submit', { cancelable: true }));

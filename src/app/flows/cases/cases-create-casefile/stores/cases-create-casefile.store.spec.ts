@@ -5,6 +5,7 @@ import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../constants/cases-c
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
+import type { ICasesCreateCasefileApplicantOrganisation } from '../interfaces/cases-create-casefile-applicant-organisation.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { ICasesCreateCasefileApplicantIndividual } from '../interfaces/cases-create-casefile-applicant-individual.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
@@ -66,6 +67,27 @@ describe('CasesCreateCasefileStore', () => {
     thirdParty: null,
     bankDetails: { type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE },
     restrictedInformation: { restricted: false, reason: null },
+  };
+
+  const organisationApplicant: ICasesCreateCasefileApplicantOrganisation = {
+    organisationName: 'Test Organisation',
+    foreignAuthorityReference: 'FA-9803',
+    contactDetails: {
+      mainEmailAddress: 'organisation@example.com',
+      otherEmailAddress: null,
+      mainTelephoneNumber: '+44 (0)20 7946 0000',
+      otherTelephoneNumber: null,
+      address: {
+        addressLine1: '1 Test Street',
+        addressLine2: 'Test Town',
+        addressLine3: null,
+        addressLine4: null,
+        addressLine5: null,
+        postalOrZipCode: 'TE1 1ST',
+        countryId: 826,
+      },
+    },
+    bankDetails: { type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE },
   };
 
   beforeEach(() => {
@@ -205,6 +227,16 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.stateChanges()).toBe(true);
   });
 
+  it('stores an Organisation applicant and marks Applicant Provided atomically', () => {
+    store.setUnsavedChanges(true);
+    store.setApplicantDetails(organisationApplicant);
+
+    expect(store.applicantDetails()).toEqual(organisationApplicant);
+    expect(store.taskStatuses().applicant).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.unsavedChanges()).toBe(false);
+    expect(store.stateChanges()).toBe(true);
+  });
+
   it('clears respondent data when the Case Type changes', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     store.setRespondentDetails(respondentDetails);
@@ -258,6 +290,7 @@ describe('CasesCreateCasefileStore', () => {
       caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
       applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
     });
+    store.setApplicantDetails(applicant);
     provide('respondent', 'applicant', 'orderDetails');
 
     store.setCaseTypeSelection({
@@ -265,6 +298,7 @@ describe('CasesCreateCasefileStore', () => {
       applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
     });
 
+    expect(store.applicantDetails()).toBeNull();
     expect(store.taskStatuses()).toEqual(CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES);
   });
 

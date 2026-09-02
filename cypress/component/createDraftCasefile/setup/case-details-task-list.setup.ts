@@ -13,7 +13,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-c
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import type { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTask } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-task.type';
-import { COUNTRIES_RESPONSE } from './respondent-details.setup';
+import { COUNTRIES_RESPONSE } from '../mocks/countries.mock';
 
 @Component({
   imports: [RouterOutlet],

@@ -45,19 +45,19 @@ import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/case
 import type { ICasesCreateCasefileApplicantAlias } from '../../interfaces/cases-create-casefile-applicant-alias.interface';
 import type { CasesCreateCasefileApplicantBankType } from '../../types/cases-create-casefile-applicant-bank-type.type';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_ALIAS } from '../constants/cases-create-casefile-applicant-individual-alias.constant';
-import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_BANK_OPTIONS } from '../constants/cases-create-casefile-applicant-individual-bank-options.constant';
+import { CASES_CREATE_CASEFILE_APPLICANT_BANK_OPTIONS } from '../../constants/cases-create-casefile-applicant-bank-options.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_ERRORS } from '../constants/cases-create-casefile-applicant-individual-field-errors.constant';
 import type { ICasesCreateCasefileApplicantIndividualFieldErrors } from '../interfaces/cases-create-casefile-applicant-individual-field-errors.interface';
 import type { ICasesCreateCasefileApplicantIndividualFormData } from '../interfaces/cases-create-casefile-applicant-individual-form-data.interface';
 import type { ICasesCreateCasefileApplicantIndividualForm } from '../interfaces/cases-create-casefile-applicant-individual-form.interface';
 import {
-  casesCreateCasefileApplicantIndividualBicSwiftValidator,
-  casesCreateCasefileApplicantIndividualBranchSortCodeValidator,
-  casesCreateCasefileApplicantIndividualIbanValidator,
-  casesCreateCasefileApplicantIndividualInternationalIdentifierRequiredValidator,
-  casesCreateCasefileApplicantIndividualUkAccountNumberValidator,
-  casesCreateCasefileApplicantIndividualUkSortCodeValidator,
-} from '../validators/cases-create-casefile-applicant-individual-bank.validator';
+  casesCreateCasefileApplicantBicSwiftValidator,
+  casesCreateCasefileApplicantBranchSortCodeValidator,
+  casesCreateCasefileApplicantIbanValidator,
+  casesCreateCasefileApplicantInternationalIdentifierRequiredValidator,
+  casesCreateCasefileApplicantUkAccountNumberValidator,
+  casesCreateCasefileApplicantUkSortCodeValidator,
+} from '../../validators/cases-create-casefile-applicant-bank.validator';
 import { casesCreateCasefileApplicantIndividualTrimRequiredValidator } from '../validators/cases-create-casefile-applicant-individual-trim-required.validator';
 
 const THIRD_PARTY_CONTROL_NAMES = [
@@ -203,7 +203,7 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
   @Input({ required: true }) public countryAutocompleteItems!: IAlphagovAccessibleAutocompleteItem[];
   @Input({ required: true }) public countrySelectOptions!: IGovUkSelectOptions[];
   public override form!: FormGroup<IApplicantIndividualFormControls>;
-  public readonly bankOptions = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_BANK_OPTIONS;
+  public readonly bankOptions = CASES_CREATE_CASEFILE_APPLICANT_BANK_OPTIONS;
   public readonly bankTypes = CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES;
   public readonly ukBankConditionalId = 'applicantUkBankConditional';
   public readonly nonUkBankConditionalId = 'applicantNonUkBankConditional';
@@ -422,11 +422,11 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
       applicant_uk_bank_name_on_account: [casesCreateCasefileApplicantIndividualTrimRequiredValidator],
       applicant_uk_bank_sort_code: [
         casesCreateCasefileApplicantIndividualTrimRequiredValidator,
-        casesCreateCasefileApplicantIndividualUkSortCodeValidator,
+        casesCreateCasefileApplicantUkSortCodeValidator,
       ],
       applicant_uk_bank_account_number: [
         casesCreateCasefileApplicantIndividualTrimRequiredValidator,
-        casesCreateCasefileApplicantIndividualUkAccountNumberValidator,
+        casesCreateCasefileApplicantUkAccountNumberValidator,
       ],
       applicant_uk_bank_payment_reference: [casesCreateCasefileApplicantIndividualTrimRequiredValidator],
     };
@@ -446,12 +446,12 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
       applicant_non_uk_bank_account_number: [optionalMaxLengthValidator(20)],
       applicant_non_uk_bank_payment_reference: [],
       applicant_non_uk_bank_bic_swift_code: [
-        casesCreateCasefileApplicantIndividualBicSwiftValidator,
-        casesCreateCasefileApplicantIndividualInternationalIdentifierRequiredValidator(ibanControl),
+        casesCreateCasefileApplicantBicSwiftValidator,
+        casesCreateCasefileApplicantInternationalIdentifierRequiredValidator(ibanControl),
       ],
-      applicant_non_uk_bank_iban: [casesCreateCasefileApplicantIndividualIbanValidator],
+      applicant_non_uk_bank_iban: [casesCreateCasefileApplicantIbanValidator],
       applicant_non_uk_bank_name: [],
-      applicant_non_uk_bank_branch_sort_code: [casesCreateCasefileApplicantIndividualBranchSortCodeValidator],
+      applicant_non_uk_bank_branch_sort_code: [casesCreateCasefileApplicantBranchSortCodeValidator],
     };
 
     for (const controlName of NON_UK_BANK_CONTROL_NAMES) {

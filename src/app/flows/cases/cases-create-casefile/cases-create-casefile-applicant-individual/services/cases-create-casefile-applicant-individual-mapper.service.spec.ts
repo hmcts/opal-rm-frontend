@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
 import type { ICasesCreateCasefileApplicantIndividual } from '../../interfaces/cases-create-casefile-applicant-individual.interface';
+import type { ICasesCreateCasefileApplicantOrganisation } from '../../interfaces/cases-create-casefile-applicant-organisation.interface';
 import type { ICasesCreateCasefileApplicantIndividualFormData } from '../interfaces/cases-create-casefile-applicant-individual-form-data.interface';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../mocks/cases-create-casefile-applicant-individual.mock';
 import { CasesCreateCasefileApplicantIndividualMapperService } from './cases-create-casefile-applicant-individual-mapper.service';
@@ -99,6 +100,27 @@ const fullyPopulatedUkApplicant: ICasesCreateCasefileApplicantIndividual = {
   },
 };
 
+const organisationApplicant: ICasesCreateCasefileApplicantOrganisation = {
+  organisationName: 'Test Organisation',
+  foreignAuthorityReference: 'FA-9803',
+  contactDetails: {
+    mainEmailAddress: 'organisation@example.com',
+    otherEmailAddress: null,
+    mainTelephoneNumber: '+44 (0)20 7946 0000',
+    otherTelephoneNumber: null,
+    address: {
+      addressLine1: '1 Test Street',
+      addressLine2: 'Test Town',
+      addressLine3: null,
+      addressLine4: null,
+      addressLine5: null,
+      postalOrZipCode: 'TE1 1ST',
+      countryId: 826,
+    },
+  },
+  bankDetails: { type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE },
+};
+
 describe('CasesCreateCasefileApplicantIndividualMapperService', () => {
   let mapper: CasesCreateCasefileApplicantIndividualMapperService;
 
@@ -152,6 +174,10 @@ describe('CasesCreateCasefileApplicantIndividualMapperService', () => {
       applicant_restricted_information: false,
       applicant_restricted_information_reason: null,
     });
+  });
+
+  it('maps an Organisation snapshot to the empty Individual form data', () => {
+    expect(mapper.toFormData(organisationApplicant)).toEqual(mapper.toFormData(null));
   });
 
   it('round-trips a fully populated UK applicant and converts ISO dates for display', () => {

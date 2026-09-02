@@ -22,6 +22,7 @@ import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/f
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import type { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 import { STARTER_USER_STATE_CASES_ONLY } from 'cypress/shared/mocks/user-state.mock';
+import { COUNTRIES_RESPONSE } from '../mocks/countries.mock';
 
 @Component({
   imports: [RouterOutlet],
@@ -36,28 +37,6 @@ const testRoutes: Routes = [
     children: routing,
   },
 ];
-
-export const APPLICANT_COUNTRIES_RESPONSE: ICasesCreateCasefileCountryReferenceDataResponse = {
-  count: 2,
-  refData: [
-    {
-      country_id: 826,
-      cjs_code: 1,
-      international_code: 'GB',
-      country_name: 'United Kingdom',
-      date_used_from: '2020-01-01',
-      active: true,
-    },
-    {
-      country_id: 250,
-      cjs_code: 2,
-      international_code: 'FR',
-      country_name: 'France',
-      date_used_from: '2020-01-01',
-      active: true,
-    },
-  ],
-};
 
 interface IApplicantIndividualSetup {
   caseTypeSelection?: CasesCreateCasefileCaseTypeSelection;
@@ -76,7 +55,7 @@ export const setupApplicantIndividual = ({
     caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
     applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
   },
-  countries = APPLICANT_COUNTRIES_RESPONSE,
+  countries = COUNTRIES_RESPONSE,
   savedApplicant = null,
   initialChildPath = CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual,
   useHttpErrorInterceptor = false,
@@ -94,7 +73,7 @@ export const setupApplicantIndividual = ({
   }
   store.setCaseTypeSelection(caseTypeSelection);
   if (savedApplicant) {
-    store.setApplicantDetails(savedApplicant);
+    store.setApplicantDetails(structuredClone(savedApplicant));
   }
 
   return cy.document().then((document) => {

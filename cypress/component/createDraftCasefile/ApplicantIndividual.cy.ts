@@ -7,10 +7,20 @@ import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from 'src/app/flows/cases/
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-task-statuses.constant';
-import type { ICasesCreateCasefileApplicantIndividual } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-applicant-individual.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/flows/cases/cases-create-casefile/services/interfaces/cases-create-casefile-country-reference-data-response.interface';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
+import {
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES,
+  APPLICANT_INDIVIDUAL_REQUIRED_ERROR_SUMMARY,
+} from './constants/applicant-individual-errors.constant';
+import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from './constants/create-casefile-test-copy.constant';
+import {
+  SAVED_APPLICANT_INDIVIDUAL,
+  VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL,
+  VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL,
+  VALID_UK_APPLICANT_INDIVIDUAL,
+} from './mocks/applicant-individual.mock';
+import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
 import { setupApplicantIndividual } from './setup/applicant-individual.setup';
 import type { CasesCreateCasefileStoreInstance, GlobalStoreInstance } from './setup/applicant-individual.setup';
 
@@ -24,62 +34,6 @@ const applicantPath =
   CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual;
 const taskListPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
-const UNSAVED_CHANGES_WARNING =
-  'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.';
-
-const SAVED_APPLICANT: ICasesCreateCasefileApplicantIndividual = {
-  title: 'Mx',
-  firstNames: 'Test',
-  lastName: 'Applicant',
-  aliases: [
-    { firstNames: 'Example', lastName: 'Alias' },
-    { firstNames: 'Second', lastName: 'Alias' },
-  ],
-  dateOfBirth: '1990-01-31',
-  contactDetails: {
-    mainEmailAddress: 'test@example.com',
-    otherEmailAddress: 'other@example.com',
-    mainTelephoneNumber: '01234567890',
-    otherTelephoneNumber: '09876543210',
-    address: {
-      addressLine1: '1 Test Street',
-      addressLine2: 'Test Area',
-      addressLine3: 'Test District',
-      addressLine4: 'Test Town',
-      addressLine5: 'Test County',
-      postalOrZipCode: 'TE1 1ST',
-      countryId: 826,
-    },
-  },
-  thirdParty: {
-    nameOrOrganisation: 'Test Support',
-    relationship: 'Representative',
-    reference: 'REF-1',
-    address: {
-      addressLine1: '2 Test Street',
-      addressLine2: 'Support Area',
-      addressLine3: 'Support District',
-      addressLine4: 'Support Town',
-      addressLine5: 'Support County',
-      postalOrZipCode: 'SU2 2ST',
-      countryId: 250,
-    },
-  },
-  bankDetails: {
-    type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK,
-    nameOnAccount: 'Test Applicant',
-    sortCode: '123456',
-    accountNumber: '12345678',
-    paymentReference: 'PAY-123',
-  },
-  restrictedInformation: {
-    restricted: true,
-    reason: 'Synthetic restricted-information reason',
-  },
-};
-
-const EMPTY_COUNTRIES_RESPONSE: ICasesCreateCasefileCountryReferenceDataResponse = { count: 0, refData: [] };
-
 const normalizeText = (text: string | null | undefined): string => text?.replace(/\s+/g, ' ').trim() ?? '';
 
 const assertInlineError = (selector: string, expectedMessage: string): void => {
@@ -120,42 +74,6 @@ const assertTabMovesTo = (selector: string): void => {
       expect($focused[0], `${selector} has focus`).to.equal($expected[0]);
     });
   });
-};
-
-const selectApplicantCountry = (countryName = 'United Kingdom', countryId = 826): void => {
-  cy.get(Page.applicantIndividual.countryAutocomplete).should('be.visible').clear().type(countryName);
-  cy.get(Page.applicantIndividual.countryOptions).contains(countryName).click();
-  cy.get(Page.applicantIndividual.countryId).should('have.value', String(countryId));
-};
-
-const fillRequiredApplicant = (): void => {
-  cy.get(Page.applicantIndividual.firstNames).type('Test');
-  cy.get(Page.applicantIndividual.lastName).type('Applicant');
-  cy.get(Page.applicantIndividual.addressLine1).type('1 Test Street');
-  selectApplicantCountry();
-};
-
-const fillUkBank = (): void => {
-  cy.get(Page.applicantIndividual.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).check();
-  cy.get(Page.applicantIndividual.ukBankNameOnAccount).type('Test Applicant');
-  cy.get(Page.applicantIndividual.ukBankSortCode).type('11-22-33');
-  cy.get(Page.applicantIndividual.ukBankAccountNumber).type('12345678');
-  cy.get(Page.applicantIndividual.ukBankPaymentReference).type('PAY-123');
-};
-
-const fillValidExpandedApplicant = (): void => {
-  fillRequiredApplicant();
-  cy.get(Page.applicantIndividual.addAliases).check();
-  cy.get(Page.applicantIndividual.aliasFirstName(0)).type('Example');
-  cy.get(Page.applicantIndividual.aliasLastName(0)).type('Alias');
-  cy.get(Page.applicantIndividual.sendCorrespondenceToThirdParty).check();
-  cy.get(Page.applicantIndividual.thirdPartyNameOrOrganisation).type('Test Support');
-  cy.get(Page.applicantIndividual.thirdPartyRelationship).type('Representative');
-  cy.get(Page.applicantIndividual.thirdPartyAddressLine1).type('2 Test Street');
-  cy.get(Page.applicantIndividual.thirdPartyCountry).select(String(250));
-  fillUkBank();
-  cy.get(Page.applicantIndividual.restrictedInformation).check();
-  cy.get(Page.applicantIndividual.restrictedInformationReason).type('Synthetic restricted-information reason');
 };
 
 describe('Create Casefile Applicant Individual', () => {
@@ -239,7 +157,7 @@ describe('Create Casefile Applicant Individual', () => {
   });
 
   it('AC1. should restore every saved applicant value and active branch', { tags: buildTags() }, () => {
-    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT });
+    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });
 
     cy.get(Page.applicantIndividual.title).should('have.value', 'Mx');
     cy.get(Page.applicantIndividual.firstNames).should('have.value', 'Test');
@@ -311,17 +229,11 @@ describe('Create Casefile Applicant Individual', () => {
   });
 
   it('AC2. should add, remove and clear aliases and stop at five', { tags: buildTags() }, () => {
-    setupApplicantIndividual();
+    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });
 
-    cy.get(Page.applicantIndividual.addAliases).check();
-    cy.get(Page.applicantIndividual.aliasFirstName(0)).should('be.focused').type('First');
-    cy.get(Page.applicantIndividual.aliasLastName(0)).type('Alias');
-    cy.get(Page.applicantIndividual.addAliasButton).click();
-    cy.get(Page.applicantIndividual.aliasFirstName(1)).should('be.focused').type('Second');
-    cy.get(Page.applicantIndividual.aliasLastName(1)).type('Alias');
     cy.get(Page.applicantIndividual.removeAliasLink).click();
     cy.get(Page.applicantIndividual.aliasFirstNames).should('have.length', 1);
-    cy.get(Page.applicantIndividual.aliasFirstName(0)).should('be.focused').and('have.value', 'First');
+    cy.get(Page.applicantIndividual.aliasFirstName(0)).should('be.focused').and('have.value', 'Example');
 
     for (let index = 1; index < 5; index += 1) {
       cy.get(Page.applicantIndividual.addAliasButton).click();
@@ -339,29 +251,34 @@ describe('Create Casefile Applicant Individual', () => {
     cy.get(Page.applicantIndividual.aliasLastName(0)).should('have.value', '');
   });
 
-  it('AC2. should require and clear third-party and restriction branches', { tags: buildTags() }, () => {
-    setupApplicantIndividual();
+  it('AC2. should require and clear preloaded third-party and restriction branches', { tags: buildTags() }, () => {
+    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });
 
-    cy.get(Page.applicantIndividual.sendCorrespondenceToThirdParty).check();
-    cy.get(Page.applicantIndividual.restrictedInformation).check();
-    cy.get(Page.applicantIndividual.returnToCaseDetails).click();
-    assertInlineError(Page.applicantIndividual.thirdPartyNameOrOrganisationError, 'Enter name or organisation');
-    assertInlineError(Page.applicantIndividual.thirdPartyRelationshipError, 'Enter relationship to the applicant');
-    assertInlineError(Page.applicantIndividual.thirdPartyAddressLine1Error, 'Enter an address');
-    assertInlineError(Page.applicantIndividual.thirdPartyCountryError, 'Select a country');
-    assertInlineError(Page.applicantIndividual.restrictedInformationReasonError, 'Enter a reason');
-
-    cy.get(Page.applicantIndividual.thirdPartyNameOrOrganisation).type('Stale third party');
-    cy.get(Page.applicantIndividual.thirdPartyRelationship).type('Stale relationship');
-    cy.get(Page.applicantIndividual.thirdPartyAddressLine1).type('Stale address');
-    cy.get(Page.applicantIndividual.thirdPartyCountry).select(String(250));
-    cy.get(Page.applicantIndividual.restrictedInformationReason).type('Stale reason');
     cy.get(Page.applicantIndividual.sendCorrespondenceToThirdParty).uncheck().check();
+    cy.get(Page.applicantIndividual.restrictedInformation).uncheck().check();
+    cy.get(Page.applicantIndividual.returnToCaseDetails).click();
+    assertInlineError(
+      Page.applicantIndividual.thirdPartyNameOrOrganisationError,
+      APPLICANT_INDIVIDUAL_ERROR_MESSAGES.thirdPartyNameOrOrganisation,
+    );
+    assertInlineError(
+      Page.applicantIndividual.thirdPartyRelationshipError,
+      APPLICANT_INDIVIDUAL_ERROR_MESSAGES.thirdPartyRelationship,
+    );
+    assertInlineError(
+      Page.applicantIndividual.thirdPartyAddressLine1Error,
+      APPLICANT_INDIVIDUAL_ERROR_MESSAGES.address,
+    );
+    assertInlineError(Page.applicantIndividual.thirdPartyCountryError, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.country);
+    assertInlineError(
+      Page.applicantIndividual.restrictedInformationReasonError,
+      APPLICANT_INDIVIDUAL_ERROR_MESSAGES.restrictedInformationReason,
+    );
+
     cy.get(Page.applicantIndividual.thirdPartyNameOrOrganisation).should('have.value', '');
     cy.get(Page.applicantIndividual.thirdPartyRelationship).should('have.value', '');
     cy.get(Page.applicantIndividual.thirdPartyAddressLine1).should('have.value', '');
     cy.get(Page.applicantIndividual.thirdPartyCountry).should('not.have.value', '250');
-    cy.get(Page.applicantIndividual.restrictedInformation).uncheck().check();
     cy.get(Page.applicantIndividual.restrictedInformationReason).should('have.value', '');
   });
 
@@ -370,9 +287,7 @@ describe('Create Casefile Applicant Individual', () => {
     const putRequestSpy = cy.spy().as('draftCasefilePut');
     cy.intercept({ method: 'POST', url: '**/draft-casefiles**' }, postRequestSpy);
     cy.intercept({ method: 'PUT', url: '**/draft-casefiles**' }, putRequestSpy);
-    setupApplicantIndividual();
-    fillRequiredApplicant();
-    fillUkBank();
+    setupApplicantIndividual({ savedApplicant: VALID_UK_APPLICANT_INDIVIDUAL });
 
     cy.get(Page.applicantIndividual.returnToCaseDetails).click();
     assertRouterPath(taskListPath);
@@ -419,19 +334,8 @@ describe('Create Casefile Applicant Individual', () => {
     cy.get('@draftCasefilePut').should('not.have.been.called');
   });
 
-  it('AC2. should save non-UK bank data by BIC and clear inactive UK values', { tags: buildTags() }, () => {
-    setupApplicantIndividual();
-    fillRequiredApplicant();
-    fillUkBank();
-    cy.get(Page.applicantIndividual.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK)).check();
-    cy.get(Page.applicantIndividual.ukBankConditional).should('not.be.visible');
-    cy.get(Page.applicantIndividual.nonUkBankConditional).should('be.visible');
-    cy.get(Page.applicantIndividual.nonUkBankNameOnAccount).type('Test Applicant');
-    cy.get(Page.applicantIndividual.nonUkBankAccountNumber).type('NONUK123');
-    cy.get(Page.applicantIndividual.nonUkBankPaymentReference).type('PAY-NONUK');
-    cy.get(Page.applicantIndividual.nonUkBankBicSwiftCode).type('ABCDEFGH');
-    cy.get(Page.applicantIndividual.nonUkBankName).type('Test Bank');
-    cy.get(Page.applicantIndividual.nonUkBankBranchSortCode).type('123456');
+  it('AC2. should save only active non-UK bank data by BIC', { tags: buildTags() }, () => {
+    setupApplicantIndividual({ savedApplicant: VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL });
 
     cy.get(Page.applicantIndividual.returnToCaseDetails).click();
     assertRouterPath(taskListPath);
@@ -450,11 +354,7 @@ describe('Create Casefile Applicant Individual', () => {
   });
 
   it('AC2. should save non-UK bank data by IBAN without inactive BIC data', { tags: buildTags() }, () => {
-    setupApplicantIndividual();
-    fillRequiredApplicant();
-    cy.get(Page.applicantIndividual.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK)).check();
-    cy.get(Page.applicantIndividual.nonUkBankNameOnAccount).type('Test Applicant');
-    cy.get(Page.applicantIndividual.nonUkBankIban).type('GB82WEST12345698765432');
+    setupApplicantIndividual({ savedApplicant: VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL });
 
     cy.get(Page.applicantIndividual.returnToCaseDetails).click();
     assertRouterPath(taskListPath);
@@ -473,9 +373,7 @@ describe('Create Casefile Applicant Individual', () => {
   });
 
   it('AC2. should save None and discard previously entered bank values', { tags: buildTags() }, () => {
-    setupApplicantIndividual();
-    fillRequiredApplicant();
-    fillUkBank();
+    setupApplicantIndividual({ savedApplicant: VALID_UK_APPLICANT_INDIVIDUAL });
     cy.get(Page.applicantIndividual.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE)).check();
     cy.get(Page.applicantIndividual.ukBankConditional).should('not.be.visible');
     cy.get(Page.applicantIndividual.nonUkBankConditional).should('not.be.visible');
@@ -500,64 +398,105 @@ describe('Create Casefile Applicant Individual', () => {
       cy.get(Page.applicantIndividual.restrictedInformation).check();
       cy.get(Page.applicantIndividual.returnToCaseDetails).click();
 
-      const expectedErrors = [
-        'Enter applicant’s first name(s)',
-        'Enter applicant’s last name',
-        'Enter alias first name(s)',
-        'Enter alias last name',
-        'Enter an address',
-        'Select a country',
-        'Enter name or organisation',
-        'Enter relationship to the applicant',
-        'Enter an address',
-        'Select a country',
-        'Enter name on account',
-        'Enter sort code',
-        'Enter account number',
-        'Enter UK bank account payment reference',
-        'Enter a reason',
-      ];
-      cy.get(Page.applicantIndividual.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
+      const expectedErrors = APPLICANT_INDIVIDUAL_REQUIRED_ERROR_SUMMARY;
+      cy.get(Page.applicantIndividual.errorSummary).should('be.focused').and('contain.text', ERROR_SUMMARY_TITLE);
       cy.get(Page.applicantIndividual.errorSummaryLinks).then(($links) => {
         expect([...$links].map((link) => normalizeText(link.textContent))).to.deep.equal(expectedErrors);
       });
       const inlineErrors: [string, string][] = [
-        [Page.applicantIndividual.firstNamesError, expectedErrors[0]],
-        [Page.applicantIndividual.lastNameError, expectedErrors[1]],
-        [Page.applicantIndividual.aliasFirstNameError(0), expectedErrors[2]],
-        [Page.applicantIndividual.aliasLastNameError(0), expectedErrors[3]],
-        [Page.applicantIndividual.addressLine1Error, expectedErrors[4]],
-        [Page.applicantIndividual.countryError, expectedErrors[5]],
-        [Page.applicantIndividual.thirdPartyNameOrOrganisationError, expectedErrors[6]],
-        [Page.applicantIndividual.thirdPartyRelationshipError, expectedErrors[7]],
-        [Page.applicantIndividual.thirdPartyAddressLine1Error, expectedErrors[8]],
-        [Page.applicantIndividual.thirdPartyCountryError, expectedErrors[9]],
-        [Page.applicantIndividual.ukBankNameOnAccountError, expectedErrors[10]],
-        [Page.applicantIndividual.ukBankSortCodeError, expectedErrors[11]],
-        [Page.applicantIndividual.ukBankAccountNumberError, expectedErrors[12]],
-        [Page.applicantIndividual.ukBankPaymentReferenceError, expectedErrors[13]],
-        [Page.applicantIndividual.restrictedInformationReasonError, expectedErrors[14]],
+        [Page.applicantIndividual.firstNamesError, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.applicantFirstNames],
+        [Page.applicantIndividual.lastNameError, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.applicantLastName],
+        [Page.applicantIndividual.aliasFirstNameError(0), APPLICANT_INDIVIDUAL_ERROR_MESSAGES.aliasFirstNames],
+        [Page.applicantIndividual.aliasLastNameError(0), APPLICANT_INDIVIDUAL_ERROR_MESSAGES.aliasLastName],
+        [Page.applicantIndividual.addressLine1Error, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.address],
+        [Page.applicantIndividual.countryError, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.country],
+        [
+          Page.applicantIndividual.thirdPartyNameOrOrganisationError,
+          APPLICANT_INDIVIDUAL_ERROR_MESSAGES.thirdPartyNameOrOrganisation,
+        ],
+        [
+          Page.applicantIndividual.thirdPartyRelationshipError,
+          APPLICANT_INDIVIDUAL_ERROR_MESSAGES.thirdPartyRelationship,
+        ],
+        [Page.applicantIndividual.thirdPartyAddressLine1Error, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.address],
+        [Page.applicantIndividual.thirdPartyCountryError, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.country],
+        [Page.applicantIndividual.ukBankNameOnAccountError, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankNameOnAccount],
+        [Page.applicantIndividual.ukBankSortCodeError, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankSortCode],
+        [Page.applicantIndividual.ukBankAccountNumberError, APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankAccountNumber],
+        [
+          Page.applicantIndividual.ukBankPaymentReferenceError,
+          APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankPaymentReference,
+        ],
+        [
+          Page.applicantIndividual.restrictedInformationReasonError,
+          APPLICANT_INDIVIDUAL_ERROR_MESSAGES.restrictedInformationReason,
+        ],
       ];
       for (const [selector, message] of inlineErrors) {
         assertInlineError(selector, message);
       }
 
       const errorSummaryFocusMappings: Array<{ message: string; controlSelector: string }> = [
-        { message: expectedErrors[0], controlSelector: Page.applicantIndividual.firstNames },
-        { message: expectedErrors[1], controlSelector: Page.applicantIndividual.lastName },
-        { message: expectedErrors[2], controlSelector: Page.applicantIndividual.aliasFirstName(0) },
-        { message: expectedErrors[3], controlSelector: Page.applicantIndividual.aliasLastName(0) },
-        { message: expectedErrors[4], controlSelector: Page.applicantIndividual.addressLine1 },
-        { message: expectedErrors[5], controlSelector: Page.applicantIndividual.countryAutocomplete },
-        { message: expectedErrors[6], controlSelector: Page.applicantIndividual.thirdPartyNameOrOrganisation },
-        { message: expectedErrors[7], controlSelector: Page.applicantIndividual.thirdPartyRelationship },
-        { message: expectedErrors[8], controlSelector: Page.applicantIndividual.thirdPartyAddressLine1 },
-        { message: expectedErrors[9], controlSelector: Page.applicantIndividual.thirdPartyCountry },
-        { message: expectedErrors[10], controlSelector: Page.applicantIndividual.ukBankNameOnAccount },
-        { message: expectedErrors[11], controlSelector: Page.applicantIndividual.ukBankSortCode },
-        { message: expectedErrors[12], controlSelector: Page.applicantIndividual.ukBankAccountNumber },
-        { message: expectedErrors[13], controlSelector: Page.applicantIndividual.ukBankPaymentReference },
-        { message: expectedErrors[14], controlSelector: Page.applicantIndividual.restrictedInformationReason },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.applicantFirstNames,
+          controlSelector: Page.applicantIndividual.firstNames,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.applicantLastName,
+          controlSelector: Page.applicantIndividual.lastName,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.aliasFirstNames,
+          controlSelector: Page.applicantIndividual.aliasFirstName(0),
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.aliasLastName,
+          controlSelector: Page.applicantIndividual.aliasLastName(0),
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.address,
+          controlSelector: Page.applicantIndividual.addressLine1,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.country,
+          controlSelector: Page.applicantIndividual.countryAutocomplete,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.thirdPartyNameOrOrganisation,
+          controlSelector: Page.applicantIndividual.thirdPartyNameOrOrganisation,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.thirdPartyRelationship,
+          controlSelector: Page.applicantIndividual.thirdPartyRelationship,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.address,
+          controlSelector: Page.applicantIndividual.thirdPartyAddressLine1,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.country,
+          controlSelector: Page.applicantIndividual.thirdPartyCountry,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankNameOnAccount,
+          controlSelector: Page.applicantIndividual.ukBankNameOnAccount,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankSortCode,
+          controlSelector: Page.applicantIndividual.ukBankSortCode,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankAccountNumber,
+          controlSelector: Page.applicantIndividual.ukBankAccountNumber,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankPaymentReference,
+          controlSelector: Page.applicantIndividual.ukBankPaymentReference,
+        },
+        {
+          message: APPLICANT_INDIVIDUAL_ERROR_MESSAGES.restrictedInformationReason,
+          controlSelector: Page.applicantIndividual.restrictedInformationReason,
+        },
       ];
       const remainingFocusMappings = [...errorSummaryFocusMappings];
       cy.get(Page.applicantIndividual.errorSummaryLinks)
@@ -578,24 +517,24 @@ describe('Create Casefile Applicant Individual', () => {
   );
 
   it('AC4, RGAC. should reject dirty Cancel, warn exactly and preserve the last save', { tags: buildTags() }, () => {
-    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT });
+    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });
     const rejectCancelConfirm = cy.stub().as('rejectCancelConfirm').returns(false);
     cy.on('window:confirm', rejectCancelConfirm);
 
-    cy.get(Page.applicantIndividual.firstNames).clear().type('Dirty working copy');
+    cy.get(Page.applicantIndividual.addAliases).uncheck();
     cy.get(Page.applicantIndividual.cancelLink).click();
 
     cy.get('@rejectCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
     assertRouterPath(applicantPath);
     cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-      expect(store.applicantDetails()).to.deep.equal(SAVED_APPLICANT);
+      expect(store.applicantDetails()).to.deep.equal(SAVED_APPLICANT_INDIVIDUAL);
       expect(store.taskStatuses().applicant).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
       expect(store.unsavedChanges()).to.equal(true);
     });
   });
 
   it('AC4, RGAC. should guard alias-only edits and preserve the last save when rejected', { tags: buildTags() }, () => {
-    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT });
+    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });
     const rejectAliasConfirm = cy.stub().as('rejectAliasConfirm').returns(false);
     cy.on('window:confirm', rejectAliasConfirm);
 
@@ -609,7 +548,7 @@ describe('Create Casefile Applicant Individual', () => {
     cy.get('@rejectAliasConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
     assertRouterPath(applicantPath);
     cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-      expect(store.applicantDetails()).to.deep.equal(SAVED_APPLICANT);
+      expect(store.applicantDetails()).to.deep.equal(SAVED_APPLICANT_INDIVIDUAL);
     });
   });
 
@@ -624,7 +563,7 @@ describe('Create Casefile Applicant Individual', () => {
     cy.get(Page.caseDetails.applicantLink).click();
     cy.wait('@getCountries').its('response.statusCode').should('equal', 200);
     assertRouterPath(taskListPath);
-    cy.get('@globalStore').then((globalStore: GlobalStoreInstance) => {
+    cy.get('@globalStore').should((globalStore: GlobalStoreInstance) => {
       expect(globalStore.bannerError()).to.deep.equal({
         error: true,
         title: GENERIC_HTTP_ERROR_TITLE,
@@ -648,15 +587,7 @@ describe('Create Casefile Applicant Individual', () => {
     'AC5. should cancel failed-Countries activation and show the correlated Problem banner',
     { tags: buildTags() },
     () => {
-      const problem = {
-        type: 'https://example.test/problems/countries-unavailable',
-        title: 'Countries service unavailable',
-        status: 503,
-        detail: 'Countries could not be loaded',
-        instance: '/opal-maintenance-service/countries',
-        operation_id: 'OP-9802-COUNTRIES',
-        retriable: true,
-      };
+      const problem = createCountriesUnavailableProblem('OP-9802-COUNTRIES');
       setupApplicantIndividual({
         initialChildPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
         countries: {
@@ -672,7 +603,7 @@ describe('Create Casefile Applicant Individual', () => {
       cy.get(Page.caseDetails.applicantLink).click();
       cy.wait('@getCountries').its('response.statusCode').should('equal', 503);
       assertRouterPath(taskListPath);
-      cy.get('@globalStore').then((globalStore: GlobalStoreInstance) => {
+      cy.get('@globalStore').should((globalStore: GlobalStoreInstance) => {
         expect(globalStore.bannerError()).to.deep.equal({
           error: true,
           title: problem.title,
@@ -688,10 +619,8 @@ describe('Create Casefile Applicant Individual', () => {
     },
   );
 
-  it('AC5. should support keyboard operation across branches, Return and Cancel', { tags: buildTags() }, () => {
+  it('AC5. should support keyboard operation across aliases, branches and Return', { tags: buildTags() }, () => {
     setupApplicantIndividual();
-    const rejectCancelConfirm = cy.stub().as('rejectKeyboardCancelConfirm').returns(false);
-    cy.on('window:confirm', rejectCancelConfirm);
 
     cy.get(Page.applicantIndividual.addAliases).focus();
     cy.press(Cypress.Keyboard.Keys.SPACE);
@@ -699,68 +628,51 @@ describe('Create Casefile Applicant Individual', () => {
     assertTabMovesTo(Page.applicantIndividual.aliasLastName(0));
     cy.get(Page.applicantIndividual.aliasLastName(0)).type('Alias');
     assertTabMovesTo(Page.applicantIndividual.addAliasButton);
-    for (const selector of [
-      Page.applicantIndividual.dateOfBirth,
-      Page.applicantIndividual.dateOfBirthCalendarButton,
-      Page.applicantIndividual.mainEmailAddress,
-      Page.applicantIndividual.otherEmailAddress,
-      Page.applicantIndividual.mainTelephoneNumber,
-      Page.applicantIndividual.otherTelephoneNumber,
-      Page.applicantIndividual.addressLine1,
-      Page.applicantIndividual.addressLine2,
-      Page.applicantIndividual.addressLine3,
-      Page.applicantIndividual.addressLine4,
-      Page.applicantIndividual.addressLine5,
-      Page.applicantIndividual.postalOrZipCode,
-      Page.applicantIndividual.countryAutocomplete,
-      Page.applicantIndividual.sendCorrespondenceToThirdParty,
-    ]) {
-      assertTabMovesTo(selector);
-    }
+    cy.get(Page.applicantIndividual.addAliasButton).type('{enter}');
+    cy.get(Page.applicantIndividual.aliasFirstName(1)).should('be.focused');
+
+    cy.get(Page.applicantIndividual.sendCorrespondenceToThirdParty).focus();
     cy.press(Cypress.Keyboard.Keys.SPACE);
-    cy.get(Page.applicantIndividual.sendCorrespondenceToThirdParty).should('be.checked');
     cy.get(Page.applicantIndividual.thirdPartyConditional).should('be.visible');
-    for (const selector of [
-      Page.applicantIndividual.thirdPartyNameOrOrganisation,
-      Page.applicantIndividual.thirdPartyRelationship,
-      Page.applicantIndividual.thirdPartyReference,
-      Page.applicantIndividual.thirdPartyAddressLine1,
-      Page.applicantIndividual.thirdPartyAddressLine2,
-      Page.applicantIndividual.thirdPartyAddressLine3,
-      Page.applicantIndividual.thirdPartyAddressLine4,
-      Page.applicantIndividual.thirdPartyAddressLine5,
-      Page.applicantIndividual.thirdPartyPostalOrZipCode,
-      Page.applicantIndividual.thirdPartyCountry,
-      Page.applicantIndividual.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK),
-    ]) {
-      assertTabMovesTo(selector);
-    }
+    cy.get(Page.applicantIndividual.sendCorrespondenceToThirdParty).should('be.focused');
+    assertTabMovesTo(Page.applicantIndividual.thirdPartyNameOrOrganisation);
+
+    cy.get(Page.applicantIndividual.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).focus();
     cy.press(Cypress.Keyboard.Keys.SPACE);
-    cy.get(Page.applicantIndividual.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).should('be.checked');
     cy.get(Page.applicantIndividual.ukBankConditional).should('be.visible');
-    for (const selector of [
-      Page.applicantIndividual.ukBankNameOnAccount,
-      Page.applicantIndividual.ukBankSortCode,
-      Page.applicantIndividual.ukBankAccountNumber,
-      Page.applicantIndividual.ukBankPaymentReference,
-      Page.applicantIndividual.restrictedInformation,
-    ]) {
-      assertTabMovesTo(selector);
-    }
+    cy.get(Page.applicantIndividual.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).should('be.focused');
+    assertTabMovesTo(Page.applicantIndividual.ukBankNameOnAccount);
+
+    cy.get(Page.applicantIndividual.restrictedInformation).focus();
     cy.press(Cypress.Keyboard.Keys.SPACE);
-    cy.get(Page.applicantIndividual.restrictedInformation).should('be.checked');
     cy.get(Page.applicantIndividual.restrictedInformationConditional).should('be.visible');
+    cy.get(Page.applicantIndividual.restrictedInformation).should('be.focused');
     assertTabMovesTo(Page.applicantIndividual.restrictedInformationReason);
-    assertTabMovesTo(Page.applicantIndividual.returnToCaseDetails);
-    assertTabMovesTo(Page.applicantIndividual.cancelLink);
+
+    cy.get(Page.applicantIndividual.returnToCaseDetails).focus().type('{enter}');
+    cy.get(Page.applicantIndividual.errorSummary).should('be.focused');
+  });
+
+  it('AC5. should support keyboard activation of Cancel with unsaved changes', { tags: buildTags() }, () => {
+    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });
+    const rejectCancelConfirm = cy.stub().as('rejectKeyboardCancelConfirm').returns(false);
+    cy.on('window:confirm', rejectCancelConfirm);
+
+    cy.get(Page.applicantIndividual.addAliases).focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(Page.applicantIndividual.aliasesConditional).should('not.exist');
+    cy.get(Page.applicantIndividual.addAliases).should('be.focused');
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.unsavedChanges()).to.equal(true);
+    });
+    cy.get(Page.applicantIndividual.cancelLink).focus().should('be.focused');
     cy.press(Cypress.Keyboard.Keys.ENTER);
     cy.get('@rejectKeyboardCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
     assertRouterPath(applicantPath);
   });
 
   it('AC5. should have no detectable Axe violations in a valid expanded state', { tags: buildTags() }, () => {
-    setupApplicantIndividual();
-    fillValidExpandedApplicant();
+    setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });
 
     cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
     cy.checkA11y();

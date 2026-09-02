@@ -6,8 +6,8 @@ import {
 } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
-import type { ICasesCreateCasefileApplicantIndividual } from '../interfaces/cases-create-casefile-applicant-individual.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
+import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefile-task-status.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
@@ -91,7 +91,7 @@ export const CasesCreateCasefileStore = signalStore(
         unsavedChanges: false,
       });
     },
-    setApplicantDetails: (applicantDetails: ICasesCreateCasefileApplicantIndividual): void => {
+    setApplicantDetails: (applicantDetails: CasesCreateCasefileApplicantDetails): void => {
       patchState(store, {
         applicantDetails,
         taskStatuses: {

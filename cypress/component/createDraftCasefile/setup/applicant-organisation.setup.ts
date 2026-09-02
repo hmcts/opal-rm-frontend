@@ -15,18 +15,16 @@ import { AppComponent } from 'src/app/app.component';
 import { CasesCreateCasefileComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile.component';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
-import type { ICasesCreateCasefileRespondentDetails } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-respondent-details.interface';
+import type { ICasesCreateCasefileApplicantOrganisation } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-applicant-organisation.interface';
 import { routing } from 'src/app/flows/cases/cases-create-casefile/routing/cases-create-casefile.routes';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/flows/cases/cases-create-casefile/services/interfaces/cases-create-casefile-country-reference-data-response.interface';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
+import type { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 import { STARTER_USER_STATE_CASES_ONLY } from 'cypress/shared/mocks/user-state.mock';
 import { COUNTRIES_RESPONSE } from '../mocks/countries.mock';
 
-@Component({
-  imports: [RouterOutlet],
-  template: '<router-outlet></router-outlet>',
-})
+@Component({ imports: [RouterOutlet], template: '<router-outlet></router-outlet>' })
 class CreateCasefileRouterHostComponent {}
 
 const testRoutes: Routes = [
@@ -37,9 +35,10 @@ const testRoutes: Routes = [
   },
 ];
 
-interface IRespondentDetailsSetup {
+interface IApplicantOrganisationSetup {
+  caseTypeSelection?: CasesCreateCasefileCaseTypeSelection;
   countries?: ICasesCreateCasefileCountryReferenceDataResponse | StaticResponse;
-  savedRespondent?: ICasesCreateCasefileRespondentDetails | null;
+  savedApplicant?: ICasesCreateCasefileApplicantOrganisation | null;
   initialChildPath?: string;
   useHttpErrorInterceptor?: boolean;
   useAppShell?: boolean;
@@ -48,13 +47,17 @@ interface IRespondentDetailsSetup {
 export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCasefileStore>;
 export type GlobalStoreInstance = InstanceType<typeof GlobalStore>;
 
-export const setupRespondentDetails = ({
+export const setupApplicantOrganisation = ({
+  caseTypeSelection = {
+    caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+    applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
+  },
   countries = COUNTRIES_RESPONSE,
-  savedRespondent = null,
-  initialChildPath = CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails,
+  savedApplicant = null,
+  initialChildPath = CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation,
   useHttpErrorInterceptor = false,
   useAppShell = false,
-}: IRespondentDetailsSetup = {}) => {
+}: IApplicantOrganisationSetup = {}) => {
   const countriesResponse = 'refData' in countries ? { statusCode: 200, body: countries } : countries;
   cy.intercept('GET', '**/opal-maintenance-service/countries?active=true', countriesResponse).as('getCountries');
 
@@ -65,12 +68,9 @@ export const setupRespondentDetails = ({
     globalStore.setAuthenticated(true);
     globalStore.setUserState(STARTER_USER_STATE_CASES_ONLY);
   }
-  store.setCaseTypeSelection({
-    caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
-    applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
-  });
-  if (savedRespondent) {
-    store.setRespondentDetails(structuredClone(savedRespondent));
+  store.setCaseTypeSelection(caseTypeSelection);
+  if (savedApplicant) {
+    store.setApplicantDetails(structuredClone(savedApplicant));
   }
 
   return cy.document().then((document) => {

@@ -4,6 +4,7 @@ import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-casefile-routing-titles.constant';
 import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
+import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
@@ -67,9 +68,13 @@ export const routing: Routes = [
       import('../cases-create-casefile-applicant-organisation/cases-create-casefile-applicant-organisation.component').then(
         (component) => component.CasesCreateCasefileApplicantOrganisationComponent,
       ),
-    canActivate: [casesCreateCasefileFlowStateGuard],
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileApplicantOrganisationGuard],
+    canDeactivate: [canDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.applicantOrganisation },
-    resolve: { title: TitleResolver },
+    resolve: {
+      title: TitleResolver,
+      countries: fetchCasesCreateCasefileCountriesResolver,
+    },
   },
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.centralAuthorityDetails,

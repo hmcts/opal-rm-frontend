@@ -1,0 +1,33 @@
+export const APPLICANT_INDIVIDUAL_ERROR_MESSAGES = {
+  applicantFirstNames: 'Enter applicant’s first name(s)',
+  applicantLastName: 'Enter applicant’s last name',
+  aliasFirstNames: 'Enter alias first name(s)',
+  aliasLastName: 'Enter alias last name',
+  address: 'Enter an address',
+  country: 'Select a country',
+  thirdPartyNameOrOrganisation: 'Enter name or organisation',
+  thirdPartyRelationship: 'Enter relationship to the applicant',
+  bankNameOnAccount: 'Enter name on account',
+  bankSortCode: 'Enter sort code',
+  bankAccountNumber: 'Enter account number',
+  bankPaymentReference: 'Enter UK bank account payment reference',
+  restrictedInformationReason: 'Enter a reason',
+} as const;
+
+export const APPLICANT_INDIVIDUAL_REQUIRED_ERROR_SUMMARY = [
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.applicantFirstNames,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.applicantLastName,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.aliasFirstNames,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.aliasLastName,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.address,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.country,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.thirdPartyNameOrOrganisation,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.thirdPartyRelationship,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.address,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.country,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankNameOnAccount,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankSortCode,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankAccountNumber,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.bankPaymentReference,
+  APPLICANT_INDIVIDUAL_ERROR_MESSAGES.restrictedInformationReason,
+];

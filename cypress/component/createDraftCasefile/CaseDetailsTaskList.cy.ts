@@ -7,6 +7,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-c
 import type { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTask } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-task.type';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
+import { CASE_DETAILS_TASK_LIST_COPY } from './constants/case-details-task-list-copy.constant';
 import { setupCaseDetailsTaskList } from './setup/case-details-task-list.setup';
 import type { CasesCreateCasefileStoreInstance } from './setup/case-details-task-list.setup';
 
@@ -88,7 +89,7 @@ const destinationScenarios: DestinationScenario[] = [
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation,
     taskLinkSelector: Page.caseDetails.applicantLink,
-    heading: 'Applicant details - Organisation',
+    heading: 'Applicant details',
     prerequisiteTasks: [],
     selection: {
       caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
@@ -217,10 +218,10 @@ describe('Create Casefile Case Details Task List', () => {
       assertStatus(Page.caseDetails.respondentStatus, CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
       assertStatus(Page.caseDetails.applicantStatus, CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
       assertStatus(Page.caseDetails.centralAuthorityStatus, CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
-      assertStatus(Page.caseDetails.orderDetailsStatus, 'Cannot start yet');
-      assertStatus(Page.caseDetails.orderTermsStatus, 'Cannot start yet');
-      assertStatus(Page.caseDetails.interestAndIndexationStatus, 'Cannot start yet');
-      assertStatus(Page.caseDetails.managingPaymentsStatus, 'Cannot start yet');
+      assertStatus(Page.caseDetails.orderDetailsStatus, CASE_DETAILS_TASK_LIST_COPY.cannotStartYet);
+      assertStatus(Page.caseDetails.orderTermsStatus, CASE_DETAILS_TASK_LIST_COPY.cannotStartYet);
+      assertStatus(Page.caseDetails.interestAndIndexationStatus, CASE_DETAILS_TASK_LIST_COPY.cannotStartYet);
+      assertStatus(Page.caseDetails.managingPaymentsStatus, CASE_DETAILS_TASK_LIST_COPY.cannotStartYet);
       assertStatus(Page.caseDetails.commentsAndNotesStatus, CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
       cy.get(Page.caseDetails.respondentStatus).find('.govuk-tag').should('have.class', 'govuk-tag--purple');
       cy.get(Page.caseDetails.centralAuthorityStatus).find('.govuk-tag').should('have.class', 'govuk-tag--grey');
@@ -228,10 +229,7 @@ describe('Create Casefile Case Details Task List', () => {
       cy.get(Page.caseDetails.orderTermsLink).should('not.exist');
       cy.get(Page.caseDetails.interestAndIndexationLink).should('not.exist');
       cy.get(Page.caseDetails.managingPaymentsLink).should('not.exist');
-      assertExactText(
-        Page.caseDetails.blockingGuidance,
-        'You cannot proceed until all required sections have been completed.',
-      );
+      assertExactText(Page.caseDetails.blockingGuidance, CASE_DETAILS_TASK_LIST_COPY.blockingGuidance);
       cy.get(Page.caseDetails.checkCaseButton).should('not.exist');
       assertExactText(Page.caseDetails.cancelLink, 'Cancel case creation');
     },
@@ -326,7 +324,9 @@ describe('Create Casefile Case Details Task List', () => {
             ? Page.respondentDetails.cancelLink
             : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual
               ? Page.applicantIndividual.cancelLink
-              : Page.caseDetails.backLink,
+              : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation
+                ? Page.applicantOrganisation.cancelLink
+                : Page.caseDetails.backLink,
         ).click();
         assertRouterPath(taskListPath);
         assertExactText(Page.caseDetails.heading, 'Case details');

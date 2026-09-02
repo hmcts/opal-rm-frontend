@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Location } from '@angular/common';
 import { AppComponent } from './app.component';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NavigationEnd, Router, RouterModule, provideRouter } from '@angular/router';
@@ -27,6 +28,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSpyObj } from './testing/create-spy-obj.helper';
 import { Component } from '@angular/core';
 import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from './constants/route-data.constant';
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 
 const mockTokenExpiry: ISessionTokenExpiry = SESSION_TOKEN_EXPIRY_MOCK;
 
@@ -40,6 +42,12 @@ const testRoutes = [
   { path: 'dashboard', component: DummyDashboardRouteComponent },
   { path: 'dashboard/:dashboardType', component: DummyDashboardRouteComponent },
   { path: 'hidden', component: DummyDashboardRouteComponent, data: PRIMARY_NAV_HIDDEN_ROUTE_DATA },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.root,
+    component: DummyDashboardRouteComponent,
+    data: PRIMARY_NAV_HIDDEN_ROUTE_DATA,
+    children: [{ path: ':child', component: DummyDashboardRouteComponent }],
+  },
   { path: 'sign-in', component: DummyDashboardRouteComponent },
   { path: 'test', component: DummyDashboardRouteComponent },
 ];
@@ -348,6 +356,21 @@ describe('AppComponent - browser', () => {
     expect(hasPrimaryNavigation(fixture)).toBe(false);
   });
 
+  it('should hide primary navigation throughout Create Casefile and restore it after leaving', async () => {
+    globalStore.setAuthenticated(true);
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+
+    fixture.detectChanges();
+    await router.navigateByUrl(`/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/case-type`);
+    fixture.detectChanges();
+    expect(hasPrimaryNavigation(fixture)).toBe(false);
+
+    await router.navigateByUrl('/dashboard/cases');
+    fixture.detectChanges();
+    expect(hasPrimaryNavigation(fixture)).toBe(true);
+  });
+
   it('should show primary navigation on dashboard routes when the user is authenticated and active', async () => {
     globalStore.setAuthenticated(true);
     const fixture = TestBed.createComponent(AppComponent);
@@ -449,11 +472,70 @@ describe('AppComponent - browser', () => {
     expect(component.activeNavigationItem()).toBe('reports');
   });
 
-  it('should not hide primary navigation for the initial pre-navigation URL in the starter shell', () => {
+  it.each([
+    `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}`,
+    `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/case-type`,
+    `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/task-list?source=dashboard#summary`,
+  ])('should hide primary navigation for the initial Create Casefile URL %s', (url) => {
+    const fixture = TestBed.createComponent(AppComponent);
+
+    expect(fixture.componentInstance['isPrimaryNavigationHiddenForInitialUrl'](url)).toBe(true);
+  });
+
+  it.each(['/dashboard/cases', '/cases/create-casefiles/case-type', '/sign-in'])(
+    'should keep primary navigation visible for unrelated initial URL %s',
+    (url) => {
+      const fixture = TestBed.createComponent(AppComponent);
+
+      expect(fixture.componentInstance['isPrimaryNavigationHiddenForInitialUrl'](url)).toBe(false);
+    },
+  );
+
+  it('should use Location.path before document location for the initial URL', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const component = fixture.componentInstance;
+    const location = TestBed.inject(Location);
+    vi.spyOn(location, 'path').mockReturnValue('/cases/create-casefile/case-type?source=test#top');
 
-    expect(component['isPrimaryNavigationHiddenForInitialUrl']()).toBe(false);
+    expect(component['getCurrentUrlBeforeInitialNavigation']()).toBe(
+      '/cases/create-casefile/case-type?source=test#top',
+    );
+  });
+
+  it('should use document location when Location.path is empty', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+    const location = TestBed.inject(Location);
+    vi.spyOn(location, 'path').mockReturnValue('');
+    Object.defineProperty(component, 'document', {
+      configurable: true,
+      value: { location: { pathname: '/cases/create-casefile/task-list', search: '?from=test', hash: '#top' } },
+    });
+
+    expect(component['getCurrentUrlBeforeInitialNavigation']()).toBe('/cases/create-casefile/task-list?from=test#top');
+  });
+
+  it('should use router.url when document location is unavailable', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+    const location = TestBed.inject(Location);
+    vi.spyOn(location, 'path').mockReturnValue('');
+    Object.defineProperty(component, 'document', { configurable: true, value: { location: null } });
+    Object.defineProperty(component['router'], 'url', { configurable: true, value: '/fallback' });
+
+    expect(component['getCurrentUrlBeforeInitialNavigation']()).toBe('/fallback');
+  });
+
+  it('should read initial primary navigation visibility from the current URL before navigation', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+    Object.defineProperty(component['router'], 'navigated', { value: false, configurable: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.spyOn<any, any>(component, 'getCurrentUrlBeforeInitialNavigation').mockReturnValue(
+      `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/case-type`,
+    );
+
+    expect(component['getInitialPrimaryNavigationHidden']()).toBe(true);
   });
 
   it('should read initial primary navigation visibility from the router tree after navigation', () => {

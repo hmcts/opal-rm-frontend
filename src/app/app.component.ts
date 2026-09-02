@@ -1,6 +1,6 @@
 import { Component, NgZone, OnDestroy, OnInit, PLATFORM_ID, inject, DOCUMENT, computed } from '@angular/core';
 import { Observable, Subject, filter, from, map, of, startWith, takeUntil, takeWhile, tap, timer } from 'rxjs';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { CommonModule, isPlatformBrowser, Location } from '@angular/common';
 import {
   ActivatedRouteSnapshot,
   NavigationCancel,
@@ -41,6 +41,7 @@ import { NAVIGATION_BAR_CONFIGURATION } from './constants/navigation-bar-configu
 import { toSignal } from '@angular/core/rxjs-interop';
 import { DASHBOARD_PAGE_DEFAULT_TAB } from './pages/dashboard/constants/dashboard-config-default-tab.constant';
 import { HIDE_PRIMARY_NAV_ROUTE_DATA_KEY } from './constants/route-data.constant';
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 
 @Component({
   selector: 'app-root',
@@ -63,6 +64,7 @@ import { HIDE_PRIMARY_NAV_ROUTE_DATA_KEY } from './constants/route-data.constant
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly document = inject(DOCUMENT);
+  private readonly location = inject(Location);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly ngZone = inject(NgZone);
   private readonly ngUnsubscribe = new Subject<void>();
@@ -268,22 +270,43 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Falls back to the current URL before the first route tree exists in non-blocking initial navigation.
+   * Uses the current URL before non-blocking initial navigation has produced a route tree.
    */
   private getInitialPrimaryNavigationHidden(): boolean {
     if (this.router.navigated) {
       return this.isPrimaryNavigationHidden(this.router.routerState.snapshot.root);
     }
 
-    return this.isPrimaryNavigationHiddenForInitialUrl();
+    return this.isPrimaryNavigationHiddenForInitialUrl(this.getCurrentUrlBeforeInitialNavigation());
   }
 
   /**
-   * There are no non-dashboard journey routes in opal-rm-frontend today, so no initial URL pattern hides
-   * the primary navigation before the router has built an activated route tree.
+   * Reads the browser URL before route recognition, with server-safe fallbacks for test and SSR contexts.
    */
-  private isPrimaryNavigationHiddenForInitialUrl(): boolean {
-    return false;
+  private getCurrentUrlBeforeInitialNavigation(): string {
+    const locationPath = this.location.path(true);
+
+    if (locationPath) {
+      return locationPath;
+    }
+
+    const documentLocation = this.document.location;
+
+    if (!documentLocation) {
+      return this.router.url;
+    }
+
+    return `${documentLocation.pathname}${documentLocation.search}${documentLocation.hash}`;
+  }
+
+  /**
+   * Identifies Create Casefile URLs that need the navigation hidden before the route tree exists.
+   */
+  private isPrimaryNavigationHiddenForInitialUrl(url: string): boolean {
+    const path = url.split('#')[0].split('?')[0];
+    const journeyRoot = `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}`;
+
+    return path === journeyRoot || path.startsWith(`${journeyRoot}/`);
   }
 
   /**

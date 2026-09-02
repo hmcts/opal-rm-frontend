@@ -4,6 +4,7 @@ import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/case
 import type { ICasesCreateCasefileApplicantAddress } from '../../interfaces/cases-create-casefile-applicant-address.interface';
 import type { ICasesCreateCasefileApplicantIndividual } from '../../interfaces/cases-create-casefile-applicant-individual.interface';
 import type { CasesCreateCasefileApplicantBankDetails } from '../../types/cases-create-casefile-applicant-bank-details.type';
+import type { CasesCreateCasefileApplicantDetails } from '../../types/cases-create-casefile-applicant-details.type';
 import type { ICasesCreateCasefileApplicantIndividualFormData } from '../interfaces/cases-create-casefile-applicant-individual-form-data.interface';
 
 const optional = (value: string | null): string | null => {
@@ -140,9 +141,9 @@ export class CasesCreateCasefileApplicantIndividualMapperService {
   }
 
   public toFormData(
-    saved: ICasesCreateCasefileApplicantIndividual | null,
+    saved: CasesCreateCasefileApplicantDetails | null,
   ): ICasesCreateCasefileApplicantIndividualFormData {
-    if (saved === null) {
+    if (saved === null || 'organisationName' in saved) {
       return { ...EMPTY_FORM_DATA, applicant_aliases: [] };
     }
 

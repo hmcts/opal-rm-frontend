@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
+import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../constants/cases-create-casefile-applicant-bank-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
+import type { ICasesCreateCasefileApplicantIndividual } from '../interfaces/cases-create-casefile-applicant-individual.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
 import { CasesCreateCasefileStore } from './cases-create-casefile.store';
@@ -40,6 +42,32 @@ describe('CasesCreateCasefileStore', () => {
     restrictedInformation: { restricted: false, reason: null },
   };
 
+  const applicant: ICasesCreateCasefileApplicantIndividual = {
+    title: 'Dr',
+    firstNames: 'Test',
+    lastName: 'Applicant',
+    aliases: [{ firstNames: 'Example', lastName: 'Alias' }],
+    dateOfBirth: '1990-01-31',
+    contactDetails: {
+      mainEmailAddress: 'test@example.com',
+      otherEmailAddress: null,
+      mainTelephoneNumber: '01234567890',
+      otherTelephoneNumber: null,
+      address: {
+        addressLine1: '1 Test Street',
+        addressLine2: null,
+        addressLine3: null,
+        addressLine4: null,
+        addressLine5: null,
+        postalOrZipCode: 'TE1 1ST',
+        countryId: 826,
+      },
+    },
+    thirdParty: null,
+    bankDetails: { type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE },
+    restrictedInformation: { restricted: false, reason: null },
+  };
+
   beforeEach(() => {
     TestBed.configureTestingModule({});
     store = TestBed.inject(CasesCreateCasefileStore);
@@ -59,6 +87,10 @@ describe('CasesCreateCasefileStore', () => {
 
   it('starts without respondent details', () => {
     expect(store.respondentDetails()).toBeNull();
+  });
+
+  it('starts without applicant details', () => {
+    expect(store.applicantDetails()).toBeNull();
   });
 
   it('starts mandatory tasks as Required and optional tasks as Optional', () => {
@@ -162,6 +194,17 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.stateChanges()).toBe(true);
   });
 
+  it('saves applicant details and marks the task Provided atomically', () => {
+    store.setUnsavedChanges(true);
+
+    store.setApplicantDetails(applicant);
+
+    expect(store.applicantDetails()).toEqual(applicant);
+    expect(store.taskStatuses().applicant).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.unsavedChanges()).toBe(false);
+    expect(store.stateChanges()).toBe(true);
+  });
+
   it('clears respondent data when the Case Type changes', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     store.setRespondentDetails(respondentDetails);
@@ -180,6 +223,25 @@ describe('CasesCreateCasefileStore', () => {
     store.setCaseTypeSelection(selection);
 
     expect(store.respondentDetails()).toEqual(respondentDetails);
+  });
+
+  it('preserves applicant data when the Case Type selection is unchanged', () => {
+    const selection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    store.setCaseTypeSelection(selection);
+    store.setApplicantDetails(applicant);
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.applicantDetails()).toEqual(applicant);
+  });
+
+  it('clears applicant data when the Case Type changes', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setApplicantDetails(applicant);
+
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+    expect(store.applicantDetails()).toBeNull();
   });
 
   it('resets task progress when the submitted Case Type changes', () => {
@@ -305,6 +367,15 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.unsavedChanges()).toBe(true);
   });
 
+  it('clears applicant data when resetting for Case Type edit', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setApplicantDetails(applicant);
+
+    store.resetForCaseTypeEdit();
+
+    expect(store.applicantDetails()).toBeNull();
+  });
+
   it('resets the complete journey state', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     provide('respondent', 'centralAuthority');
@@ -317,5 +388,13 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.unsavedChanges()).toBe(false);
     expect(store.stateChanges()).toBe(false);
     expect(store.taskStatuses()).toEqual(CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES);
+  });
+
+  it('clears applicant data when resetting the store', () => {
+    store.setApplicantDetails(applicant);
+
+    store.resetStore();
+
+    expect(store.applicantDetails()).toBeNull();
   });
 });

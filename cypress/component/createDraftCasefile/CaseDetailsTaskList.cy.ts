@@ -82,7 +82,7 @@ const destinationScenarios: DestinationScenario[] = [
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual,
     taskLinkSelector: Page.caseDetails.applicantLink,
-    heading: 'Applicant details - Individual',
+    heading: 'Applicant details',
     prerequisiteTasks: [],
   },
   {
@@ -252,8 +252,9 @@ describe('Create Casefile Case Details Task List', () => {
           createJourneyPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual),
         );
         cy.get(Page.caseDetails.applicantLink).click();
+        cy.wait('@getCountries');
         assertRouterPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual);
-        assertExactText(Page.caseDetails.heading, 'Applicant details - Individual');
+        assertExactText(Page.caseDetails.heading, 'Applicant details');
       },
     );
   }
@@ -311,7 +312,10 @@ describe('Create Casefile Case Details Task List', () => {
         setupCaseDetailsTaskList({ selection, providedTasks: scenario.prerequisiteTasks });
 
         cy.get(scenario.taskLinkSelector).click();
-        if (scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails) {
+        if (
+          scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails ||
+          scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual
+        ) {
           cy.wait('@getCountries');
         }
         assertRouterPath(scenario.childPath);
@@ -320,7 +324,9 @@ describe('Create Casefile Case Details Task List', () => {
         cy.get(
           scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails
             ? Page.respondentDetails.cancelLink
-            : Page.caseDetails.backLink,
+            : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual
+              ? Page.applicantIndividual.cancelLink
+              : Page.caseDetails.backLink,
         ).click();
         assertRouterPath(taskListPath);
         assertExactText(Page.caseDetails.heading, 'Case details');

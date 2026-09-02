@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CasesCreateCasefileBankDetailsComponent } from '../../components/cases-create-casefile-bank-details/cases-create-casefile-bank-details.component';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from '../mocks/cases-create-casefile-applicant-organisation.mock';
 import { CasesCreateCasefileApplicantOrganisationFormComponent } from './cases-create-casefile-applicant-organisation-form.component';
@@ -184,6 +186,63 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       expect(component.form.controls[controlName].validator).toBeNull();
     }
     expect(component.form.pristine).toBe(true);
+  });
+
+  it('passes the original form and organisation bank layout to the shared Bank details section', () => {
+    fixture.detectChanges();
+
+    const bankDetails = fixture.debugElement.query(By.directive(CasesCreateCasefileBankDetailsComponent))
+      .componentInstance as CasesCreateCasefileBankDetailsComponent;
+    expect(bankDetails.form).toBe(component.form);
+    expect(bankDetails.formControlErrorMessages).toBe(component.formControlErrorMessages);
+    expect(bankDetails.fieldNames).toEqual({
+      bankType: 'applicant_bank_type',
+      ukNameOnAccount: 'applicant_uk_bank_name_on_account',
+      ukSortCode: 'applicant_uk_bank_sort_code',
+      ukAccountNumber: 'applicant_uk_bank_account_number',
+      ukPaymentReference: 'applicant_uk_bank_payment_reference',
+      nonUkNameOnAccount: 'applicant_non_uk_bank_name_on_account',
+      nonUkAccountNumber: 'applicant_non_uk_bank_account_number',
+      nonUkPaymentReference: 'applicant_non_uk_bank_payment_reference',
+      nonUkBicSwiftCode: 'applicant_non_uk_bank_bic_swift_code',
+      nonUkIban: 'applicant_non_uk_bank_iban',
+      nonUkBankName: 'applicant_non_uk_bank_name',
+      nonUkBranchSortCode: 'applicant_non_uk_bank_branch_sort_code',
+    });
+    expect(bankDetails.bankOptions).toBe(component.bankOptions);
+    expect(bankDetails.bankTypes).toBe(component.bankTypes);
+    expect(bankDetails.ukBankConditionalId).toBe('applicantUkBankConditional');
+    expect(bankDetails.nonUkBankConditionalId).toBe('applicantNonUkBankConditional');
+    expect(bankDetails.layout).toEqual({
+      headingMode: 'fieldset',
+      nonUkFieldOrder: [
+        'nonUkNameOnAccount',
+        'nonUkBicSwiftCode',
+        'nonUkIban',
+        'nonUkPaymentReference',
+        'nonUkBankName',
+        'nonUkBranchSortCode',
+        'nonUkAccountNumber',
+      ],
+    });
+
+    const bankHeading = Array.from(fixture.nativeElement.querySelectorAll('h2') as NodeListOf<HTMLHeadingElement>).find(
+      (heading) => heading.textContent?.trim() === 'Bank details',
+    );
+    expect(bankHeading?.closest('legend')).not.toBeNull();
+    expect(
+      Array.from(
+        fixture.nativeElement.querySelectorAll('#applicantNonUkBankConditional input') as NodeListOf<HTMLInputElement>,
+      ).map(({ id }) => id),
+    ).toEqual([
+      'applicant_non_uk_bank_name_on_account',
+      'applicant_non_uk_bank_bic_swift_code',
+      'applicant_non_uk_bank_iban',
+      'applicant_non_uk_bank_payment_reference',
+      'applicant_non_uk_bank_name',
+      'applicant_non_uk_bank_branch_sort_code',
+      'applicant_non_uk_bank_account_number',
+    ]);
   });
 
   it('renders the complete control set in the approved DOM order', async () => {

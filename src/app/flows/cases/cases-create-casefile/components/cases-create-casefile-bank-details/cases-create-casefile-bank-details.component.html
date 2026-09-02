@@ -1,0 +1,207 @@
+@if (layout.headingMode === 'fieldset') {
+  <fieldset class="govuk-fieldset">
+    <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+      <h2 class="govuk-heading-m govuk-!-margin-0">Bank details</h2>
+    </legend>
+    <ng-container [ngTemplateOutlet]="bankAccountType"></ng-container>
+  </fieldset>
+} @else {
+  <h2 class="govuk-heading-m">Bank details</h2>
+  <ng-container [ngTemplateOutlet]="bankAccountType"></ng-container>
+}
+
+<ng-template #bankAccountType>
+  <div class="govuk-form-group" [class.govuk-form-group--error]="!!formControlErrorMessages[fieldNames.bankType]">
+    <fieldset
+      [id]="fieldNames.bankType"
+      class="govuk-fieldset"
+      [attr.aria-describedby]="
+        formControlErrorMessages[fieldNames.bankType] ? fieldNames.bankType + '-error-message' : null
+      "
+    >
+      <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Select bank account type</legend>
+      @if (formControlErrorMessages[fieldNames.bankType]) {
+        <p [id]="fieldNames.bankType + '-error-message'" class="govuk-error-message">
+          <span class="govuk-visually-hidden">Error: </span>
+          {{ formControlErrorMessages[fieldNames.bankType] }}
+        </p>
+      }
+
+      <div class="govuk-radios">
+        @for (option of bankOptions; track option.value) {
+          <div class="govuk-radios__item">
+            <input
+              class="govuk-radios__input"
+              [id]="fieldNames.bankType + '-' + option.value"
+              [attr.name]="fieldNames.bankType"
+              type="radio"
+              [value]="option.value"
+              [attr.value]="option.value"
+              [attr.aria-controls]="
+                option.value === bankTypes.UK
+                  ? ukBankConditionalId
+                  : option.value === bankTypes.NON_UK
+                    ? nonUkBankConditionalId
+                    : null
+              "
+              [attr.aria-describedby]="
+                option.value === bankTypes.UK || option.value === bankTypes.NON_UK
+                  ? fieldNames.bankType + '-' + option.value + '-description'
+                  : null
+              "
+              [formControl]="bankTypeControl"
+            />
+            <label class="govuk-label govuk-radios__label" [for]="fieldNames.bankType + '-' + option.value">
+              {{ option.key }}
+            </label>
+            @if (option.value === bankTypes.UK) {
+              <span [id]="fieldNames.bankType + '-uk-description'" class="govuk-visually-hidden">
+                Selecting UK bank account reveals the UK bank details fields.
+              </span>
+            } @else if (option.value === bankTypes.NON_UK) {
+              <span [id]="fieldNames.bankType + '-non-uk-description'" class="govuk-visually-hidden">
+                Selecting Non-UK bank account reveals the non-UK bank details fields.
+              </span>
+            }
+          </div>
+
+          @if (option.value === bankTypes.UK) {
+            <div
+              class="govuk-radios__conditional"
+              [class.govuk-radios__conditional--hidden]="bankTypeControl.value !== bankTypes.UK"
+              [id]="ukBankConditionalId"
+            >
+              <opal-lib-govuk-text-input
+                labelText="Name on account"
+                labelClasses="govuk-label--s"
+                [inputId]="fieldNames.ukNameOnAccount"
+                [inputName]="fieldNames.ukNameOnAccount"
+                inputClasses="govuk-input--width-20"
+                [control]="form.get(fieldNames.ukNameOnAccount)"
+                [errors]="formControlErrorMessages[fieldNames.ukNameOnAccount]"
+              />
+              <opal-lib-govuk-text-input
+                labelText="Sort code"
+                labelClasses="govuk-label--s"
+                [inputId]="fieldNames.ukSortCode"
+                [inputName]="fieldNames.ukSortCode"
+                inputClasses="govuk-input--width-10"
+                hintText="For example, 11-22-33 or 112233"
+                [control]="form.get(fieldNames.ukSortCode)"
+                [errors]="formControlErrorMessages[fieldNames.ukSortCode]"
+              />
+              <opal-lib-govuk-text-input
+                labelText="Account number"
+                labelClasses="govuk-label--s"
+                [inputId]="fieldNames.ukAccountNumber"
+                [inputName]="fieldNames.ukAccountNumber"
+                inputClasses="govuk-input--width-10"
+                [control]="form.get(fieldNames.ukAccountNumber)"
+                [errors]="formControlErrorMessages[fieldNames.ukAccountNumber]"
+              />
+              <opal-lib-govuk-text-input
+                labelText="Payment reference"
+                labelClasses="govuk-label--s"
+                [inputId]="fieldNames.ukPaymentReference"
+                [inputName]="fieldNames.ukPaymentReference"
+                inputClasses="govuk-input--width-20"
+                [control]="form.get(fieldNames.ukPaymentReference)"
+                [errors]="formControlErrorMessages[fieldNames.ukPaymentReference]"
+              />
+            </div>
+          }
+
+          @if (option.value === bankTypes.NON_UK) {
+            <div
+              class="govuk-radios__conditional"
+              [class.govuk-radios__conditional--hidden]="bankTypeControl.value !== bankTypes.NON_UK"
+              [id]="nonUkBankConditionalId"
+            >
+              @for (fieldName of layout.nonUkFieldOrder; track fieldName) {
+                @switch (fieldName) {
+                  @case ('nonUkNameOnAccount') {
+                    <opal-lib-govuk-text-input
+                      labelText="Name on account"
+                      labelClasses="govuk-label--s"
+                      [inputId]="fieldNames.nonUkNameOnAccount"
+                      [inputName]="fieldNames.nonUkNameOnAccount"
+                      inputClasses="govuk-input--width-20"
+                      [control]="form.get(fieldNames.nonUkNameOnAccount)"
+                      [errors]="formControlErrorMessages[fieldNames.nonUkNameOnAccount]"
+                    />
+                  }
+                  @case ('nonUkAccountNumber') {
+                    <opal-lib-govuk-text-input
+                      labelText="Account number"
+                      labelClasses="govuk-label--s"
+                      [inputId]="fieldNames.nonUkAccountNumber"
+                      [inputName]="fieldNames.nonUkAccountNumber"
+                      inputClasses="govuk-input--width-20"
+                      [control]="form.get(fieldNames.nonUkAccountNumber)"
+                      [errors]="formControlErrorMessages[fieldNames.nonUkAccountNumber]"
+                    />
+                  }
+                  @case ('nonUkPaymentReference') {
+                    <opal-lib-govuk-text-input
+                      labelText="Payment reference"
+                      labelClasses="govuk-label--s"
+                      [inputId]="fieldNames.nonUkPaymentReference"
+                      [inputName]="fieldNames.nonUkPaymentReference"
+                      inputClasses="govuk-input--width-20"
+                      [control]="form.get(fieldNames.nonUkPaymentReference)"
+                      [errors]="formControlErrorMessages[fieldNames.nonUkPaymentReference]"
+                    />
+                  }
+                  @case ('nonUkBicSwiftCode') {
+                    <opal-lib-govuk-text-input
+                      labelText="BIC or SWIFT code"
+                      labelClasses="govuk-label--s"
+                      [inputId]="fieldNames.nonUkBicSwiftCode"
+                      [inputName]="fieldNames.nonUkBicSwiftCode"
+                      inputClasses="govuk-input--width-20"
+                      [control]="form.get(fieldNames.nonUkBicSwiftCode)"
+                      [errors]="formControlErrorMessages[fieldNames.nonUkBicSwiftCode]"
+                    />
+                  }
+                  @case ('nonUkIban') {
+                    <opal-lib-govuk-text-input
+                      labelText="IBAN number"
+                      labelClasses="govuk-label--s"
+                      [inputId]="fieldNames.nonUkIban"
+                      [inputName]="fieldNames.nonUkIban"
+                      inputClasses="govuk-input--width-20"
+                      [control]="form.get(fieldNames.nonUkIban)"
+                      [errors]="formControlErrorMessages[fieldNames.nonUkIban]"
+                    />
+                  }
+                  @case ('nonUkBankName') {
+                    <opal-lib-govuk-text-input
+                      labelText="Bank name"
+                      labelClasses="govuk-label--s"
+                      [inputId]="fieldNames.nonUkBankName"
+                      [inputName]="fieldNames.nonUkBankName"
+                      inputClasses="govuk-input--width-20"
+                      [control]="form.get(fieldNames.nonUkBankName)"
+                      [errors]="formControlErrorMessages[fieldNames.nonUkBankName]"
+                    />
+                  }
+                  @case ('nonUkBranchSortCode') {
+                    <opal-lib-govuk-text-input
+                      labelText="Branch or sort code"
+                      labelClasses="govuk-label--s"
+                      [inputId]="fieldNames.nonUkBranchSortCode"
+                      [inputName]="fieldNames.nonUkBranchSortCode"
+                      inputClasses="govuk-input--width-20"
+                      [control]="form.get(fieldNames.nonUkBranchSortCode)"
+                      [errors]="formControlErrorMessages[fieldNames.nonUkBranchSortCode]"
+                    />
+                  }
+                }
+              }
+            </div>
+          }
+        }
+      </div>
+    </fieldset>
+  </div>
+</ng-template>

@@ -19,6 +19,8 @@ import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern
 import { Subject, takeUntil } from 'rxjs';
 import { CasesCreateCasefileAddressComponent } from '../../components/cases-create-casefile-address/cases-create-casefile-address.component';
 import type { ICasesCreateCasefileAddressFieldNames } from '../../components/cases-create-casefile-address/interfaces/cases-create-casefile-address-field-names.interface';
+import { CasesCreateCasefileBankDetailsComponent } from '../../components/cases-create-casefile-bank-details/cases-create-casefile-bank-details.component';
+import type { ICasesCreateCasefileBankDetailsFieldNames } from '../../components/cases-create-casefile-bank-details/interfaces/cases-create-casefile-bank-details-field-names.interface';
 import { CasesCreateCasefileContactDetailsComponent } from '../../components/cases-create-casefile-contact-details/cases-create-casefile-contact-details.component';
 import type { ICasesCreateCasefileContactFieldNames } from '../../components/cases-create-casefile-contact-details/interfaces/cases-create-casefile-contact-field-names.interface';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_OPTIONS } from '../../constants/cases-create-casefile-applicant-bank-options.constant';
@@ -99,6 +101,7 @@ interface IApplicantOrganisationFormControls {
     GovukTextInputComponent,
     CasesCreateCasefileContactDetailsComponent,
     CasesCreateCasefileAddressComponent,
+    CasesCreateCasefileBankDetailsComponent,
   ],
   templateUrl: './cases-create-casefile-applicant-organisation-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -132,10 +135,36 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
     postalOrZipCode: 'applicant_postal_or_zip_code',
     countryId: 'applicant_country_id',
   };
+  public readonly bankFieldNames: ICasesCreateCasefileBankDetailsFieldNames = {
+    bankType: 'applicant_bank_type',
+    ukNameOnAccount: 'applicant_uk_bank_name_on_account',
+    ukSortCode: 'applicant_uk_bank_sort_code',
+    ukAccountNumber: 'applicant_uk_bank_account_number',
+    ukPaymentReference: 'applicant_uk_bank_payment_reference',
+    nonUkNameOnAccount: 'applicant_non_uk_bank_name_on_account',
+    nonUkAccountNumber: 'applicant_non_uk_bank_account_number',
+    nonUkPaymentReference: 'applicant_non_uk_bank_payment_reference',
+    nonUkBicSwiftCode: 'applicant_non_uk_bank_bic_swift_code',
+    nonUkIban: 'applicant_non_uk_bank_iban',
+    nonUkBankName: 'applicant_non_uk_bank_name',
+    nonUkBranchSortCode: 'applicant_non_uk_bank_branch_sort_code',
+  };
   public readonly bankOptions = CASES_CREATE_CASEFILE_APPLICANT_BANK_OPTIONS;
   public readonly bankTypes = CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES;
   public readonly ukBankConditionalId = 'applicantUkBankConditional';
   public readonly nonUkBankConditionalId = 'applicantNonUkBankConditional';
+  public readonly bankLayout = {
+    headingMode: 'fieldset',
+    nonUkFieldOrder: [
+      'nonUkNameOnAccount',
+      'nonUkBicSwiftCode',
+      'nonUkIban',
+      'nonUkPaymentReference',
+      'nonUkBankName',
+      'nonUkBranchSortCode',
+      'nonUkAccountNumber',
+    ],
+  } as const;
 
   private countrySelectionValidator(options: ReadonlyArray<{ value: string | number }>): ValidatorFn {
     const countryIds = new Set(options.map((option) => String(option.value)));

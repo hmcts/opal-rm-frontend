@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CasesCreateCasefileBankDetailsComponent } from '../../components/cases-create-casefile-bank-details/cases-create-casefile-bank-details.component';
 import { CasesCreateCasefileRestrictedInformationComponent } from '../../components/cases-create-casefile-restricted-information/cases-create-casefile-restricted-information.component';
 import { CasesCreateCasefileThirdPartyComponent } from '../../components/cases-create-casefile-third-party/cases-create-casefile-third-party.component';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
@@ -183,6 +184,63 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     expect(restrictedInformation.checkboxFieldsetId).toBe('applicant_restricted_information_fieldset');
     expect(restrictedInformation.conditionalId).toBe('applicantRestrictedInformationConditional');
     expect(restrictedInformation.checkboxLabel).toBe('Applicant’s personal information should not be shared');
+  });
+
+  it('passes the original form and individual bank layout to the shared Bank details section', () => {
+    fixture.detectChanges();
+
+    const bankDetails = fixture.debugElement.query(By.directive(CasesCreateCasefileBankDetailsComponent))
+      .componentInstance as CasesCreateCasefileBankDetailsComponent;
+    expect(bankDetails.form).toBe(component.form);
+    expect(bankDetails.formControlErrorMessages).toBe(component.formControlErrorMessages);
+    expect(bankDetails.fieldNames).toEqual({
+      bankType: 'applicant_bank_type',
+      ukNameOnAccount: 'applicant_uk_bank_name_on_account',
+      ukSortCode: 'applicant_uk_bank_sort_code',
+      ukAccountNumber: 'applicant_uk_bank_account_number',
+      ukPaymentReference: 'applicant_uk_bank_payment_reference',
+      nonUkNameOnAccount: 'applicant_non_uk_bank_name_on_account',
+      nonUkAccountNumber: 'applicant_non_uk_bank_account_number',
+      nonUkPaymentReference: 'applicant_non_uk_bank_payment_reference',
+      nonUkBicSwiftCode: 'applicant_non_uk_bank_bic_swift_code',
+      nonUkIban: 'applicant_non_uk_bank_iban',
+      nonUkBankName: 'applicant_non_uk_bank_name',
+      nonUkBranchSortCode: 'applicant_non_uk_bank_branch_sort_code',
+    });
+    expect(bankDetails.bankOptions).toBe(component.bankOptions);
+    expect(bankDetails.bankTypes).toBe(component.bankTypes);
+    expect(bankDetails.ukBankConditionalId).toBe('applicantUkBankConditional');
+    expect(bankDetails.nonUkBankConditionalId).toBe('applicantNonUkBankConditional');
+    expect(bankDetails.layout).toEqual({
+      headingMode: 'heading',
+      nonUkFieldOrder: [
+        'nonUkNameOnAccount',
+        'nonUkAccountNumber',
+        'nonUkPaymentReference',
+        'nonUkBicSwiftCode',
+        'nonUkIban',
+        'nonUkBankName',
+        'nonUkBranchSortCode',
+      ],
+    });
+
+    const bankHeading = Array.from(fixture.nativeElement.querySelectorAll('h2') as NodeListOf<HTMLHeadingElement>).find(
+      (heading) => heading.textContent?.trim() === 'Bank details',
+    );
+    expect(bankHeading?.closest('legend')).toBeNull();
+    expect(
+      Array.from(
+        fixture.nativeElement.querySelectorAll('#applicantNonUkBankConditional input') as NodeListOf<HTMLInputElement>,
+      ).map(({ id }) => id),
+    ).toEqual([
+      'applicant_non_uk_bank_name_on_account',
+      'applicant_non_uk_bank_account_number',
+      'applicant_non_uk_bank_payment_reference',
+      'applicant_non_uk_bank_bic_swift_code',
+      'applicant_non_uk_bank_iban',
+      'applicant_non_uk_bank_name',
+      'applicant_non_uk_bank_branch_sort_code',
+    ]);
   });
 
   it('renders the required sections and actions in their exact order with free-text Title', () => {

@@ -27,6 +27,7 @@ const taskListPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
 const UNSAVED_CHANGES_WARNING =
   'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.';
+const DRAFT_CASEFILE_WRITE_URL = /\/draft-casefiles(?:[/?#]|$)/;
 
 const SAVED_APPLICANT: ICasesCreateCasefileApplicantOrganisation = {
   organisationName: 'Test Organisation',
@@ -430,6 +431,7 @@ describe('Create Casefile Applicant Organisation', () => {
     'AC3, EMAC. should show required and representative format and length errors, focus and link the summary, and retain valid values',
     { tags: buildTags() },
     () => {
+      const bankTypeRequiredError = 'Select an option';
       setupApplicantOrganisation();
       cy.get(Page.applicantOrganisation.mainEmailAddress).type('not-an-email');
       cy.get(Page.applicantOrganisation.otherEmailAddress).type('valid@example.com');
@@ -438,6 +440,20 @@ describe('Create Casefile Applicant Organisation', () => {
       cy.get(Page.applicantOrganisation.addressLine2).type('A'.repeat(31));
       cy.get(Page.applicantOrganisation.addressLine3).type('Retained district');
       cy.get(Page.applicantOrganisation.postalOrZipCode).type('1'.repeat(11));
+      cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
+
+      assertInlineError(Page.applicantOrganisation.bankTypeError, bankTypeRequiredError);
+      cy.get(Page.applicantOrganisation.errorSummaryLinks)
+        .contains(bankTypeRequiredError)
+        .should(($link) => {
+          expect(normalizeText($link.text())).to.equal(bankTypeRequiredError);
+        })
+        .click();
+      cy.get(Page.applicantOrganisation.bankTypeRadios)
+        .first()
+        .should('be.focused')
+        .and('have.value', CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK);
+
       cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).check();
       cy.get(Page.applicantOrganisation.ukBankSortCode).type('11 22 33');
       cy.get(Page.applicantOrganisation.ukBankAccountNumber).type('12345');
@@ -609,8 +625,12 @@ describe('Create Casefile Applicant Organisation', () => {
   it('AC4. should make no POST or PUT Draft Casefile request on a valid Return', { tags: buildTags() }, () => {
     const postRequestSpy = cy.spy().as('draftCasefilePost');
     const putRequestSpy = cy.spy().as('draftCasefilePut');
-    cy.intercept({ method: 'POST', url: '**/draft-casefiles*' }, postRequestSpy);
-    cy.intercept({ method: 'PUT', url: '**/draft-casefiles*' }, putRequestSpy);
+    expect(DRAFT_CASEFILE_WRITE_URL.test('/draft-casefiles'), 'matches the Draft Casefile collection URL').to.equal(
+      true,
+    );
+    expect(DRAFT_CASEFILE_WRITE_URL.test('/draft-casefiles/123'), 'matches a Draft Casefile item URL').to.equal(true);
+    cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
+    cy.intercept({ method: 'PUT', url: DRAFT_CASEFILE_WRITE_URL }, putRequestSpy);
     setupApplicantOrganisation();
     fillRequiredApplicant();
     cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE)).check();

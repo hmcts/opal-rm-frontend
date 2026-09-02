@@ -26,7 +26,6 @@ const guardedRouteCases = [
   ['centralAuthorityDetails', 'Central authority details'],
   ['orderDetails', 'Order details'],
   ['orderTermsSummary', 'Order terms'],
-  ['interestAndIndexation', 'Interest and indexation'],
   ['managingPayments', 'Managing payments'],
   ['commentsAndNotes', 'Comments and notes'],
   ['checkCaseDetails', 'Check case details'],
@@ -126,6 +125,22 @@ describe('Create Casefile routes', () => {
     const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
 
     expect(component?.name).toBe(CasesCreateCasefileApplicantOrganisationComponent.name);
+  });
+
+  it('registers Interest and indexation with flow and unsaved-change guards and no permission metadata', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.interestAndIndexation,
+    );
+
+    expect(route?.loadComponent).toEqual(expect.any(Function));
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
+    expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.interestAndIndexation });
+    expect(route?.resolve).toEqual({ title: TitleResolver });
+
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
+
+    expect(component?.name).toBe(CasesCreateCasefileInterestIndexationComponent.name);
   });
 
   it.each(guardedRouteCases)(

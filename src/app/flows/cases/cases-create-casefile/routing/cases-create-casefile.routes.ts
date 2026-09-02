@@ -113,6 +113,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileInterestIndexationComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [canDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.interestAndIndexation },
     resolve: { title: TitleResolver },
   },

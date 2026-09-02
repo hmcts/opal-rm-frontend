@@ -17,12 +17,12 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './constants/cases-create-ca
 import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-casefile-routing-titles.constant';
 import { routing } from './cases-create-casefile.routes';
 import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
+import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
 const guardedRouteCases = [
   ['taskList', 'Case details'],
-  ['applicantOrganisation', 'Applicant details - Organisation'],
   ['centralAuthorityDetails', 'Central authority details'],
   ['orderDetails', 'Order details'],
   ['orderTermsSummary', 'Order terms'],
@@ -36,7 +36,6 @@ const guardedRouteCases = [
 const expectedComponents = {
   taskList: CasesCreateCasefileTaskListComponent,
   applicantIndividual: CasesCreateCasefileApplicantIndividualComponent,
-  applicantOrganisation: CasesCreateCasefileApplicantOrganisationComponent,
   centralAuthorityDetails: CasesCreateCasefileCentralAuthorityComponent,
   orderDetails: CasesCreateCasefileOrderDetailsComponent,
   orderTermsSummary: CasesCreateCasefileOrderTermsSummaryComponent,
@@ -105,6 +104,28 @@ describe('Create Casefile routes', () => {
     const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
 
     expect(component?.name).toBe(CasesCreateCasefileApplicantIndividualComponent.name);
+  });
+
+  it('registers Organisation applicant with ordered flow guards, unsaved-change protection and active Countries', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation,
+    );
+
+    expect(route?.loadComponent).toEqual(expect.any(Function));
+    expect(route?.canActivate).toEqual([
+      casesCreateCasefileFlowStateGuard,
+      casesCreateCasefileApplicantOrganisationGuard,
+    ]);
+    expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.applicantOrganisation });
+    expect(route?.resolve).toEqual({
+      title: TitleResolver,
+      countries: fetchCasesCreateCasefileCountriesResolver,
+    });
+
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
+
+    expect(component?.name).toBe(CasesCreateCasefileApplicantOrganisationComponent.name);
   });
 
   it.each(guardedRouteCases)(

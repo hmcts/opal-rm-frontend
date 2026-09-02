@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, RouterOutlet } from '@angular/router';
 import type { Routes } from '@angular/router';
+import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
 import { mount } from 'cypress/angular';
 import { CasesCreateCasefileComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile.component';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
@@ -14,12 +15,19 @@ import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casef
 @Component({ imports: [RouterOutlet], template: '<router-outlet />' })
 class CreateCasefileRouterHostComponent {}
 
+@Component({ template: '<p>External destination</p>' })
+class ExternalDestinationComponent {}
+
+export const externalDestinationPath = '/external-destination';
+
 const testRoutes: Routes = [
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.root,
     component: CasesCreateCasefileComponent,
     children: routing,
+    canDeactivate: [canDeactivateGuard],
   },
+  { path: externalDestinationPath.slice(1), component: ExternalDestinationComponent },
 ];
 
 export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCasefileStore>;

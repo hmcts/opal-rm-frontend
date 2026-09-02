@@ -19,6 +19,7 @@ import { routing } from './cases-create-casefile.routes';
 import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
 import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
+import { casesCreateCasefileInterestIndexationCanDeactivateGuard } from './guards/cases-create-casefile-interest-indexation-can-deactivate.guard';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
 const guardedRouteCases = [
@@ -134,7 +135,7 @@ describe('Create Casefile routes', () => {
 
     expect(route?.loadComponent).toEqual(expect.any(Function));
     expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
-    expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileInterestIndexationCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.interestAndIndexation });
     expect(route?.resolve).toEqual({ title: TitleResolver });
 

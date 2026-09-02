@@ -6,7 +6,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-c
 import type { CasesCreateCasefileIndexationType } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-indexation-type.type';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
 import { setupInterestAndIndexation } from './setup/interest-and-indexation.setup';
-import type { CasesCreateCasefileStoreInstance } from './setup/interest-and-indexation.setup';
+import { externalDestinationPath, type CasesCreateCasefileStoreInstance } from './setup/interest-and-indexation.setup';
 
 const STORY_TAG = '@JIRA-STORY:PO-9814';
 const EPIC_TAG = '@JIRA-EPIC:PO-6506';
@@ -266,6 +266,18 @@ describe('Create Casefile Interest and Indexation', () => {
       );
     },
   );
+
+  it('AC3, RGAC3. should warn once and complete external navigation after accepting', { tags: buildTags() }, () => {
+    const acceptExternalNavigationConfirm = cy.stub().as('acceptExternalNavigationConfirm').returns(true);
+    cy.on('window:confirm', acceptExternalNavigationConfirm);
+    setupInterestAndIndexation(SAVED_INTEREST_AND_INDEXATION);
+    choose(false, CASES_CREATE_CASEFILE_INDEXATION_TYPES.NONE);
+
+    cy.get('@angularRouter').then((router: Router) => router.navigateByUrl(externalDestinationPath));
+
+    cy.get('@acceptExternalNavigationConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+    assertRouterPath(externalDestinationPath);
+  });
 
   it('AC4. should preserve native radio keyboard behaviour and logical action order', { tags: buildTags() }, () => {
     setupInterestAndIndexation();

@@ -6,6 +6,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-c
 import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
 import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
+import { casesCreateCasefileInterestIndexationCanDeactivateGuard } from './guards/cases-create-casefile-interest-indexation-can-deactivate.guard';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
 export const routing: Routes = [
@@ -113,7 +114,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileInterestIndexationComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
-    canDeactivate: [canDeactivateGuard],
+    canDeactivate: [casesCreateCasefileInterestIndexationCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.interestAndIndexation },
     resolve: { title: TitleResolver },
   },

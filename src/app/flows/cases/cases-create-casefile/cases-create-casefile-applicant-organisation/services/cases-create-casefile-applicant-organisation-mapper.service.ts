@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
-import type { ICasesCreateCasefileApplicantAddress } from '../../interfaces/cases-create-casefile-applicant-address.interface';
 import type { ICasesCreateCasefileApplicantOrganisation } from '../../interfaces/cases-create-casefile-applicant-organisation.interface';
 import type { CasesCreateCasefileApplicantBankDetails } from '../../types/cases-create-casefile-applicant-bank-details.type';
 import type { CasesCreateCasefileApplicantDetails } from '../../types/cases-create-casefile-applicant-details.type';
+import { mapCasesCreateCasefileAddress } from '../../utils/cases-create-casefile-address-mapper';
 import type { ICasesCreateCasefileApplicantOrganisationFormData } from '../interfaces/cases-create-casefile-applicant-organisation-form-data.interface';
 
 const optional = (value: string | null): string | null => {
@@ -17,13 +17,6 @@ const requiredString = (value: string | null, description: string): string => {
     throw new Error(`Required ${description} is missing`);
   }
   return trimmed;
-};
-
-const requiredId = (value: number | null, description: string): number => {
-  if (value === null) {
-    throw new Error(`Required ${description} is missing`);
-  }
-  return value;
 };
 
 const isOrganisationApplicant = (
@@ -60,20 +53,6 @@ const EMPTY_FORM_DATA: ICasesCreateCasefileApplicantOrganisationFormData = {
 
 @Injectable({ providedIn: 'root' })
 export class CasesCreateCasefileApplicantOrganisationMapperService {
-  private buildAddress(
-    formData: ICasesCreateCasefileApplicantOrganisationFormData,
-  ): ICasesCreateCasefileApplicantAddress {
-    return {
-      addressLine1: requiredString(formData.applicant_address_line_1, 'applicant address line 1'),
-      addressLine2: optional(formData.applicant_address_line_2),
-      addressLine3: optional(formData.applicant_address_line_3),
-      addressLine4: optional(formData.applicant_address_line_4),
-      addressLine5: optional(formData.applicant_address_line_5),
-      postalOrZipCode: optional(formData.applicant_postal_or_zip_code),
-      countryId: requiredId(formData.applicant_country_id, 'applicant country'),
-    };
-  }
-
   private buildBankDetails(
     formData: ICasesCreateCasefileApplicantOrganisationFormData,
   ): CasesCreateCasefileApplicantBankDetails {
@@ -167,7 +146,18 @@ export class CasesCreateCasefileApplicantOrganisationMapperService {
         otherEmailAddress: optional(formData.applicant_other_email_address),
         mainTelephoneNumber: optional(formData.applicant_main_telephone_number),
         otherTelephoneNumber: optional(formData.applicant_other_telephone_number),
-        address: this.buildAddress(formData),
+        address: mapCasesCreateCasefileAddress(
+          {
+            addressLine1: formData.applicant_address_line_1,
+            addressLine2: formData.applicant_address_line_2,
+            addressLine3: formData.applicant_address_line_3,
+            addressLine4: formData.applicant_address_line_4,
+            addressLine5: formData.applicant_address_line_5,
+            postalOrZipCode: formData.applicant_postal_or_zip_code,
+            countryId: formData.applicant_country_id,
+          },
+          'applicant',
+        ),
       },
       bankDetails: this.buildBankDetails(formData),
     };

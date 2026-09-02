@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
-import type { ICasesCreateCasefileRespondentAddress } from '../../interfaces/cases-create-casefile-respondent-address.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../../interfaces/cases-create-casefile-respondent-details.interface';
+import { mapCasesCreateCasefileAddress } from '../../utils/cases-create-casefile-address-mapper';
 import type { ICasesCreateCasefileRespondentDetailsFormData } from '../interfaces/cases-create-casefile-respondent-details-form-data.interface';
 
 const optional = (value: string | null): string | null => {
@@ -15,13 +15,6 @@ const requiredString = (value: string | null, description: string): string => {
     throw new Error(`Required ${description} is missing`);
   }
   return trimmed;
-};
-
-const requiredId = (value: number | null, description: string): number => {
-  if (value === null) {
-    throw new Error(`Required ${description} is missing`);
-  }
-  return value;
 };
 
 const EMPTY_FORM_DATA: ICasesCreateCasefileRespondentDetailsFormData = {
@@ -74,27 +67,6 @@ const EMPTY_FORM_DATA: ICasesCreateCasefileRespondentDetailsFormData = {
 @Injectable({ providedIn: 'root' })
 export class CasesCreateCasefileRespondentDetailsMapperService {
   private readonly dateService = inject(DateService);
-
-  private buildAddress(
-    addressLine1: string | null,
-    addressLine2: string | null,
-    addressLine3: string | null,
-    addressLine4: string | null,
-    addressLine5: string | null,
-    postalOrZipCode: string | null,
-    countryId: number | null,
-    description: string,
-  ): ICasesCreateCasefileRespondentAddress {
-    return {
-      addressLine1: requiredString(addressLine1, `${description} address line 1`),
-      addressLine2: optional(addressLine2),
-      addressLine3: optional(addressLine3),
-      addressLine4: optional(addressLine4),
-      addressLine5: optional(addressLine5),
-      postalOrZipCode: optional(postalOrZipCode),
-      countryId: requiredId(countryId, `${description} country`),
-    };
-  }
 
   public toFormData(
     saved: ICasesCreateCasefileRespondentDetails | null,
@@ -166,14 +138,16 @@ export class CasesCreateCasefileRespondentDetailsMapperService {
           ),
           relationship: requiredString(formData.respondent_third_party_relationship, 'third-party relationship'),
           reference: optional(formData.respondent_third_party_reference),
-          address: this.buildAddress(
-            formData.respondent_third_party_address_line_1,
-            formData.respondent_third_party_address_line_2,
-            formData.respondent_third_party_address_line_3,
-            formData.respondent_third_party_address_line_4,
-            formData.respondent_third_party_address_line_5,
-            formData.respondent_third_party_postal_or_zip_code,
-            formData.respondent_third_party_country_id,
+          address: mapCasesCreateCasefileAddress(
+            {
+              addressLine1: formData.respondent_third_party_address_line_1,
+              addressLine2: formData.respondent_third_party_address_line_2,
+              addressLine3: formData.respondent_third_party_address_line_3,
+              addressLine4: formData.respondent_third_party_address_line_4,
+              addressLine5: formData.respondent_third_party_address_line_5,
+              postalOrZipCode: formData.respondent_third_party_postal_or_zip_code,
+              countryId: formData.respondent_third_party_country_id,
+            },
             'third-party',
           ),
         }
@@ -185,14 +159,16 @@ export class CasesCreateCasefileRespondentDetailsMapperService {
           employeeReference: optional(formData.respondent_employee_reference),
           emailAddress: optional(formData.respondent_employer_email_address),
           telephoneNumber: optional(formData.respondent_employer_telephone_number),
-          address: this.buildAddress(
-            formData.respondent_employer_address_line_1,
-            formData.respondent_employer_address_line_2,
-            formData.respondent_employer_address_line_3,
-            formData.respondent_employer_address_line_4,
-            formData.respondent_employer_address_line_5,
-            formData.respondent_employer_postal_or_zip_code,
-            formData.respondent_employer_country_id,
+          address: mapCasesCreateCasefileAddress(
+            {
+              addressLine1: formData.respondent_employer_address_line_1,
+              addressLine2: formData.respondent_employer_address_line_2,
+              addressLine3: formData.respondent_employer_address_line_3,
+              addressLine4: formData.respondent_employer_address_line_4,
+              addressLine5: formData.respondent_employer_address_line_5,
+              postalOrZipCode: formData.respondent_employer_postal_or_zip_code,
+              countryId: formData.respondent_employer_country_id,
+            },
             'employer',
           ),
         }
@@ -218,14 +194,16 @@ export class CasesCreateCasefileRespondentDetailsMapperService {
         otherEmailAddress: optional(formData.respondent_other_email_address),
         mainTelephoneNumber: optional(formData.respondent_main_telephone_number),
         otherTelephoneNumber: optional(formData.respondent_other_telephone_number),
-        address: this.buildAddress(
-          formData.respondent_address_line_1,
-          formData.respondent_address_line_2,
-          formData.respondent_address_line_3,
-          formData.respondent_address_line_4,
-          formData.respondent_address_line_5,
-          formData.respondent_postal_or_zip_code,
-          formData.respondent_country_id,
+        address: mapCasesCreateCasefileAddress(
+          {
+            addressLine1: formData.respondent_address_line_1,
+            addressLine2: formData.respondent_address_line_2,
+            addressLine3: formData.respondent_address_line_3,
+            addressLine4: formData.respondent_address_line_4,
+            addressLine5: formData.respondent_address_line_5,
+            postalOrZipCode: formData.respondent_postal_or_zip_code,
+            countryId: formData.respondent_country_id,
+          },
           'respondent',
         ),
       },

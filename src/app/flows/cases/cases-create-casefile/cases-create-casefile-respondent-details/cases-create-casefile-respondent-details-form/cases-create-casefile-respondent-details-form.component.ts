@@ -41,7 +41,7 @@ import { optionalMaxLengthValidator } from '@hmcts/opal-frontend-common/validato
 import { optionalValidDateValidator } from '@hmcts/opal-frontend-common/validators/optional-valid-date';
 import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern-validator';
 import { Subject, takeUntil } from 'rxjs';
-import type { ICasesCreateCasefileRespondentAlias } from '../../interfaces/cases-create-casefile-respondent-alias.interface';
+import type { ICasesCreateCasefilePartyAlias } from '../../interfaces/cases-create-casefile-party-alias.interface';
 import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_ALIAS } from '../constants/cases-create-casefile-respondent-details-alias.constant';
 import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_ERRORS } from '../constants/cases-create-casefile-respondent-details-field-errors.constant';
 import type { ICasesCreateCasefileRespondentDetailsFieldErrors } from '../interfaces/cases-create-casefile-respondent-details-field-errors.interface';
@@ -278,14 +278,14 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     this.aliasControlsValidation = CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_ALIAS;
   }
 
-  private mapAliasesToIndexedRows(aliases: ICasesCreateCasefileRespondentAlias[]): IRespondentAliasFormRow[] {
+  private mapAliasesToIndexedRows(aliases: ICasesCreateCasefilePartyAlias[]): IRespondentAliasFormRow[] {
     return aliases.map((alias, index) => ({
       [`respondent_alias_first_names_${index}`]: alias.firstNames,
       [`respondent_alias_last_name_${index}`]: alias.lastName,
     }));
   }
 
-  private mapIndexedRowsToAliases(rows: IRespondentAliasFormRow[]): ICasesCreateCasefileRespondentAlias[] {
+  private mapIndexedRowsToAliases(rows: IRespondentAliasFormRow[]): ICasesCreateCasefilePartyAlias[] {
     return rows.map((row, index) => ({
       firstNames: row[`respondent_alias_first_names_${index}`]!,
       lastName: row[`respondent_alias_last_name_${index}`]!,

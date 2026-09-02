@@ -1,4 +1,4 @@
-export interface ICasesCreateCasefileApplicantAddress {
+export interface ICasesCreateCasefilePartyAddress {
   addressLine1: string;
   addressLine2: string | null;
   addressLine3: string | null;

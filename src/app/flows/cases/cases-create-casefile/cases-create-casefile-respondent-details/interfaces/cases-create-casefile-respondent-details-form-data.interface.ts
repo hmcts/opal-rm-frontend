@@ -1,11 +1,11 @@
-import type { ICasesCreateCasefileRespondentAlias } from '../../interfaces/cases-create-casefile-respondent-alias.interface';
+import type { ICasesCreateCasefilePartyAlias } from '../../interfaces/cases-create-casefile-party-alias.interface';
 
 export interface ICasesCreateCasefileRespondentDetailsFormData {
   respondent_title: string | null;
   respondent_first_names: string | null;
   respondent_last_name: string | null;
   respondent_add_aliases: boolean;
-  respondent_aliases: ICasesCreateCasefileRespondentAlias[];
+  respondent_aliases: ICasesCreateCasefilePartyAlias[];
   respondent_date_of_birth: string | null;
   respondent_national_insurance_number: string | null;
   respondent_other_personal_information: string | null;

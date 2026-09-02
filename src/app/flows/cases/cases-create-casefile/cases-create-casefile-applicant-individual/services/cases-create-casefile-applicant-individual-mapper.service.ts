@@ -1,10 +1,10 @@
 import { inject, Injectable } from '@angular/core';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
-import type { ICasesCreateCasefileApplicantAddress } from '../../interfaces/cases-create-casefile-applicant-address.interface';
 import type { ICasesCreateCasefileApplicantIndividual } from '../../interfaces/cases-create-casefile-applicant-individual.interface';
 import type { CasesCreateCasefileApplicantBankDetails } from '../../types/cases-create-casefile-applicant-bank-details.type';
 import type { CasesCreateCasefileApplicantDetails } from '../../types/cases-create-casefile-applicant-details.type';
+import { mapCasesCreateCasefileAddress } from '../../utils/cases-create-casefile-address-mapper';
 import type { ICasesCreateCasefileApplicantIndividualFormData } from '../interfaces/cases-create-casefile-applicant-individual-form-data.interface';
 
 const optional = (value: string | null): string | null => {
@@ -18,13 +18,6 @@ const requiredString = (value: string | null, description: string): string => {
     throw new Error(`Required ${description} is missing`);
   }
   return trimmed;
-};
-
-const requiredId = (value: number | null, description: string): number => {
-  if (value === null) {
-    throw new Error(`Required ${description} is missing`);
-  }
-  return value;
 };
 
 const EMPTY_FORM_DATA: ICasesCreateCasefileApplicantIndividualFormData = {
@@ -75,27 +68,6 @@ const EMPTY_FORM_DATA: ICasesCreateCasefileApplicantIndividualFormData = {
 @Injectable({ providedIn: 'root' })
 export class CasesCreateCasefileApplicantIndividualMapperService {
   private readonly dateService = inject(DateService);
-
-  private buildAddress(
-    addressLine1: string | null,
-    addressLine2: string | null,
-    addressLine3: string | null,
-    addressLine4: string | null,
-    addressLine5: string | null,
-    postalOrZipCode: string | null,
-    countryId: number | null,
-    description: string,
-  ): ICasesCreateCasefileApplicantAddress {
-    return {
-      addressLine1: requiredString(addressLine1, `${description} address line 1`),
-      addressLine2: optional(addressLine2),
-      addressLine3: optional(addressLine3),
-      addressLine4: optional(addressLine4),
-      addressLine5: optional(addressLine5),
-      postalOrZipCode: optional(postalOrZipCode),
-      countryId: requiredId(countryId, `${description} country`),
-    };
-  }
 
   private buildBankDetails(
     formData: ICasesCreateCasefileApplicantIndividualFormData,
@@ -212,14 +184,16 @@ export class CasesCreateCasefileApplicantIndividualMapperService {
           ),
           relationship: requiredString(formData.applicant_third_party_relationship, 'third-party relationship'),
           reference: optional(formData.applicant_third_party_reference),
-          address: this.buildAddress(
-            formData.applicant_third_party_address_line_1,
-            formData.applicant_third_party_address_line_2,
-            formData.applicant_third_party_address_line_3,
-            formData.applicant_third_party_address_line_4,
-            formData.applicant_third_party_address_line_5,
-            formData.applicant_third_party_postal_or_zip_code,
-            formData.applicant_third_party_country_id,
+          address: mapCasesCreateCasefileAddress(
+            {
+              addressLine1: formData.applicant_third_party_address_line_1,
+              addressLine2: formData.applicant_third_party_address_line_2,
+              addressLine3: formData.applicant_third_party_address_line_3,
+              addressLine4: formData.applicant_third_party_address_line_4,
+              addressLine5: formData.applicant_third_party_address_line_5,
+              postalOrZipCode: formData.applicant_third_party_postal_or_zip_code,
+              countryId: formData.applicant_third_party_country_id,
+            },
             'third-party',
           ),
         }
@@ -241,14 +215,16 @@ export class CasesCreateCasefileApplicantIndividualMapperService {
         otherEmailAddress: optional(formData.applicant_other_email_address),
         mainTelephoneNumber: optional(formData.applicant_main_telephone_number),
         otherTelephoneNumber: optional(formData.applicant_other_telephone_number),
-        address: this.buildAddress(
-          formData.applicant_address_line_1,
-          formData.applicant_address_line_2,
-          formData.applicant_address_line_3,
-          formData.applicant_address_line_4,
-          formData.applicant_address_line_5,
-          formData.applicant_postal_or_zip_code,
-          formData.applicant_country_id,
+        address: mapCasesCreateCasefileAddress(
+          {
+            addressLine1: formData.applicant_address_line_1,
+            addressLine2: formData.applicant_address_line_2,
+            addressLine3: formData.applicant_address_line_3,
+            addressLine4: formData.applicant_address_line_4,
+            addressLine5: formData.applicant_address_line_5,
+            postalOrZipCode: formData.applicant_postal_or_zip_code,
+            countryId: formData.applicant_country_id,
+          },
           'applicant',
         ),
       },

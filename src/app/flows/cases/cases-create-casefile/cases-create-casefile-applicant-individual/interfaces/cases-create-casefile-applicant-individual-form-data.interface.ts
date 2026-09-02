@@ -1,4 +1,4 @@
-import type { ICasesCreateCasefileApplicantAlias } from '../../interfaces/cases-create-casefile-applicant-alias.interface';
+import type { ICasesCreateCasefilePartyAlias } from '../../interfaces/cases-create-casefile-party-alias.interface';
 import type { CasesCreateCasefileApplicantBankType } from '../../types/cases-create-casefile-applicant-bank-type.type';
 
 export interface ICasesCreateCasefileApplicantIndividualFormData {
@@ -6,7 +6,7 @@ export interface ICasesCreateCasefileApplicantIndividualFormData {
   applicant_first_names: string | null;
   applicant_last_name: string | null;
   applicant_add_aliases: boolean;
-  applicant_aliases: ICasesCreateCasefileApplicantAlias[];
+  applicant_aliases: ICasesCreateCasefilePartyAlias[];
   applicant_date_of_birth: string | null;
   applicant_main_email_address: string | null;
   applicant_other_email_address: string | null;

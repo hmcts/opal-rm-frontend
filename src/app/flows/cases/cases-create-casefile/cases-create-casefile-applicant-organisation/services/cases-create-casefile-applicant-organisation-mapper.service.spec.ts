@@ -155,4 +155,13 @@ describe('CasesCreateCasefileApplicantOrganisationMapperService', () => {
   ])('throws when required $description is missing', ({ description, formData }) => {
     expect(() => mapper.toApplicantDetails(formData)).toThrowError(`Required ${description} is missing`);
   });
+
+  it('rejects an invalid runtime applicant bank discriminator', () => {
+    const formData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
+      applicant_bank_type: 'INVALID',
+    } as never;
+
+    expect(() => mapper.toApplicantDetails(formData)).toThrowError('Unsupported applicant bank type: INVALID');
+  });
 });

@@ -791,6 +791,18 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     });
   });
 
+  it('does not add a sixth alias when the maximum number of rows already exists', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      applicant_aliases: Array.from({ length: 5 }, () => ({ firstNames: 'Alternative', lastName: 'Applicant' })),
+    };
+    fixture.detectChanges();
+
+    component.addAlias(5, 'applicant_aliases');
+
+    expect(component.aliasControls).toHaveLength(5);
+  });
+
   it('uses the rendered Remove link to clear only removed errors, emit dirty state and focus the remaining row', async () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,

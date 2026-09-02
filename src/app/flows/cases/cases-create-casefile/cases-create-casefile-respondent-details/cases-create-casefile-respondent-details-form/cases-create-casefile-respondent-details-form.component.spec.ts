@@ -367,6 +367,23 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     expect(component.aliasControls).toHaveLength(1);
   });
 
+  it('cleans up a single removed alias without trying to focus a remaining row', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+      respondent_aliases: [{ firstNames: 'Alternative', lastName: 'Respondent' }],
+    };
+    const focusFirstAliasFieldSpy = vi.spyOn(
+      component as unknown as { focusFirstAliasField: () => void },
+      'focusFirstAliasField',
+    );
+    fixture.detectChanges();
+
+    component.removeAlias(0, 'respondent_aliases');
+
+    expect(component.aliasControls).toHaveLength(0);
+    expect(focusFirstAliasFieldSpy).not.toHaveBeenCalled();
+  });
+
   it('shows exact error-summary content when Return is submitted invalid', () => {
     fixture.detectChanges();
 

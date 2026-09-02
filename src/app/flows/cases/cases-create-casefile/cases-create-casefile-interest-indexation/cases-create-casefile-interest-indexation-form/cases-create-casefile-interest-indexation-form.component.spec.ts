@@ -193,4 +193,16 @@ describe('CasesCreateCasefileInterestIndexationFormComponent', () => {
     (fixture.nativeElement.querySelector('#cancelInterestAndIndexation a') as HTMLAnchorElement).click();
     expect(cancelSpy).toHaveBeenCalledOnce();
   });
+
+  it('does not emit a valid submission when required raw values are unexpectedly null', () => {
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    component.form.controls.interestApplies.clearValidators();
+    component.form.controls.indexationType.clearValidators();
+    component.form.controls.interestApplies.setValue(null);
+    component.form.controls.indexationType.setValue(null);
+
+    component.handleFormSubmit(new SubmitEvent('submit'));
+
+    expect(formSubmitSpy).not.toHaveBeenCalled();
+  });
 });

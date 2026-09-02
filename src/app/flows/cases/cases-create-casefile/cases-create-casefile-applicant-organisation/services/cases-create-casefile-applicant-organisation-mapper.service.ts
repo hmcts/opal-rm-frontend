@@ -107,10 +107,8 @@ export class CasesCreateCasefileApplicantOrganisationMapperService {
         return { type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE };
       case null:
         throw new Error('Required applicant bank type is missing');
-      default: {
-        const exhaustiveBankType: never = formData.applicant_bank_type;
-        return exhaustiveBankType;
-      }
+      default:
+        throw new Error(`Unsupported applicant bank type: ${String(formData.applicant_bank_type)}`);
     }
   }
 

@@ -367,6 +367,12 @@ describe('CasesCreateCasefileApplicantIndividualMapperService', () => {
     ).toThrowError('Required applicant bank type is missing');
   });
 
+  it('rejects an invalid runtime applicant bank discriminator', () => {
+    const formData = { ...validUkFormData, applicant_bank_type: 'INVALID' } as never;
+
+    expect(() => mapper.toApplicantDetails(formData)).toThrowError('Unsupported applicant bank type: INVALID');
+  });
+
   it('maps the shared applicant fixture to its canonical saved state', () => {
     expect(mapper.toApplicantDetails(CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData)).toEqual(
       CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.saved,

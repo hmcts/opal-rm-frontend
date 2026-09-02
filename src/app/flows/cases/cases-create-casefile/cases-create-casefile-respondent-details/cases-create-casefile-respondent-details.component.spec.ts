@@ -66,6 +66,20 @@ describe('CasesCreateCasefileRespondentDetailsComponent', () => {
     ]);
   });
 
+  it('retains the Select option when the Countries response has no entries', () => {
+    const refData = countriesResponse.refData;
+    countriesResponse.refData = [];
+
+    try {
+      component = createComponent();
+
+      expect(component.countryAutocompleteItems).toEqual([]);
+      expect(component.countrySelectOptions).toEqual([{ name: 'Select', value: '' }]);
+    } finally {
+      countriesResponse.refData = refData;
+    }
+  });
+
   it('rehydrates the last saved respondent through the mapper', () => {
     store.setRespondentDetails(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
     component = createComponent();

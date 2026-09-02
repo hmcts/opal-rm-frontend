@@ -306,4 +306,13 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
       }),
     ).toThrowError('Required respondent first names is missing');
   });
+
+  it('rejects an unexpectedly missing required respondent country', () => {
+    expect(() =>
+      mapper.toRespondentDetails({
+        ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+        respondent_country_id: null,
+      }),
+    ).toThrowError('Required respondent country is missing');
+  });
 });

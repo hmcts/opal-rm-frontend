@@ -19,7 +19,7 @@ Use this guide when writing or updating Cypress component specs in `opal-rm-fron
 - Allow the helper to seed valid initial state when rehydration is in scope, and expose repeatedly asserted fixtures, stores, or spies through named Cypress aliases.
 - Stub only boundaries that are intentionally outside the component test. A router spy is appropriate when asserting a navigation request; use a real router-outlet setup when route rendering, guards, resolvers, or destination rendering are the behaviour under test.
 - Do not add a production destination placeholder merely to make a component test navigate.
-- Keep scenario data and assertions in the spec. Setup helpers own mounting, providers, representative document-shell setup, initial state, and reusable aliases.
+- Keep scenario choices and assertions in the spec, and keep reusable data definitions under the feature's `mocks/**` or `constants/**` folder. Setup helpers own mounting, providers, representative document-shell setup, initial-state seeding, and reusable aliases.
 
 ## Spec style and naming
 
@@ -28,6 +28,7 @@ Use this guide when writing or updating Cypress component specs in `opal-rm-fron
 - Give every test an Acceptance-Criteria-led name in the form `AC1. should ...`.
 - When one test proves more than one criterion, use a clear combined prefix such as `AC1, AC3. should ...`.
 - Keep each test focused on one coherent behaviour. Group genuinely different behavioural branches with nested `describe(...)` blocks when that improves readability.
+- Split scenarios that require different initial state or have independent failure modes. Do not combine several conditional branches, invalid submission, unsaved-change state, navigation guards, and Cancel confirmation into one large keyboard test.
 
 Example:
 
@@ -75,14 +76,47 @@ it('AC1. should render the approved choices', { tags: buildTags('@JIRA-TEST-KEY:
 - Keep router creation or stubbing in the setup helper and navigation assertions in the spec.
 - When a test says that data is saved, assert the real store state rather than inferring success only from navigation.
 - Assert relevant lifecycle effects when they are part of the behaviour, such as dirty-state clearing, saved-state flags, stale conditional values being removed, or valid state being rehydrated.
+- Before expecting an unsaved-changes confirmation, establish dirty state explicitly and assert it through the real store or component state.
+- Prefer mounting saved state and making one representative user change when testing dirty-state navigation. Do not depend on an invalid submission implicitly establishing the dirty-state precondition.
 
 ## Mocks and intercepts
 
-- Keep reusable API fixtures beside the feature under `mocks/**` and reusable intercept wiring under `intercept/**` or `setup/**`.
+- Keep all reusable scenario data beside the feature under `mocks/**`. This includes saved form or store state, expected submitted state, API responses, error responses, and problem-detail bodies, not only HTTP fixtures.
+- Name feature-local mock files with the `*.mock.ts` suffix. Do not place large mock objects in specs or setup helpers.
+- Keep repeated expected validation and error text under the feature's `constants/**` folder in a suitably named `*.constant.ts` file. Use named properties rather than repeated string literals or positional array indexes.
+- Keep reusable intercept wiring under `intercept/**` or `setup/**`.
 - Keep intercept helpers focused on request wiring and canned responses. Put request-body, header, call-count, prohibited-request, and navigation assertions in the spec.
 - A one-off intercept used by one scenario may remain in that spec when extracting it would hide the behaviour being asserted.
 - Narrow negative network assertions to the prohibited endpoint and method. Do not use a catch-all intercept that also captures Cypress, reporting, asset, or unrelated application traffic.
-- Reuse existing state, store, and API mocks where they represent the scenario accurately. Clone mutable mocks so one test cannot contaminate another.
+- Reuse existing state, store, and API mocks where they represent the scenario accurately. Setup helpers should import the mocks, seed the requested state, and clone mutable values with `structuredClone(...)` so one test cannot contaminate another.
+
+## Efficient form setup
+
+- Prefer mounting the component with representative form or store state already populated when the scenario is concerned with rendering, submission, clearing conditional data, network boundaries, accessibility, or reflow.
+- Allow the feature setup helper to accept small, typed state overrides instead of populating a large form through the DOM in every scenario.
+- Do not populate large forms with repeated `.type()` commands when typing is not the behaviour under test. Do not apply `{ delay: 0 }` as the default workaround; seed the component through its setup helper instead.
+- Retain `.type()` only when the scenario needs to prove text entry, input transformation, autocomplete behaviour, validation caused by typing, or a deliberate keyboard interaction.
+- Use direct control interactions such as `.check()` and `.select()` only when that interaction or its resulting state is relevant to the scenario.
+
+## Keyboard interaction and dynamic content
+
+- Use `cy.press(Cypress.Keyboard.Keys.TAB)` to prove native focus movement and `cy.press(Cypress.Keyboard.Keys.SPACE)` to prove checkbox activation. Calling `.focus()` may establish the starting point, but must not replace the keyboard movement being asserted.
+- Do not use `.click()` as a substitute when the scenario claims to prove keyboard activation.
+- Angular conditional content can be inserted after the key command completes. After revealing a conditional control, wait for the first new control to be visible, assert that the originating control still has focus, then press Tab and assert that focus moves to the revealed control.
+- Use element-bound `.type('{enter}')` when a focused button must be activated with Enter and a global `cy.press(ENTER)` does not invoke the button action reliably. This is keyboard activation, not bulk form population.
+- For a focused link, prefer `cy.press(Cypress.Keyboard.Keys.ENTER)` and assert the resulting navigation, confirmation, or emitted behaviour.
+- Keep keyboard scenarios focused. Prefer separate tests for conditional focus movement, Return or submission behaviour, and Cancel with unsaved changes when those paths need different setup or assertions.
+
+Example for dynamically revealed content:
+
+```ts
+cy.get(ExampleSelectors.revealCheckbox).focus();
+cy.press(Cypress.Keyboard.Keys.SPACE);
+cy.get(ExampleSelectors.revealedInput).should('be.visible');
+cy.get(ExampleSelectors.revealCheckbox).should('be.focused');
+cy.press(Cypress.Keyboard.Keys.TAB);
+cy.get(ExampleSelectors.revealedInput).should('be.focused');
+```
 
 ## Scenario coverage
 

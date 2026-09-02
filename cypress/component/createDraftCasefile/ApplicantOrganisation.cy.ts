@@ -656,7 +656,7 @@ describe('Create Casefile Applicant Organisation', () => {
       cy.get(Page.caseDetails.applicantLink).click();
       cy.wait('@getCountries').its('response.statusCode').should('equal', 200);
       assertRouterPath(taskListPath);
-      cy.get('@globalStore').then((globalStore: GlobalStoreInstance) => {
+      cy.get('@globalStore').should((globalStore: GlobalStoreInstance) => {
         expect(globalStore.bannerError()).to.deep.equal({
           error: true,
           title: GENERIC_HTTP_ERROR_TITLE,

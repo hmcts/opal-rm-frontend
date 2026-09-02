@@ -9,7 +9,6 @@ import {
   Validators,
 } from '@angular/forms';
 import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
-import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
@@ -18,6 +17,10 @@ import { EMAIL_ADDRESS_PATTERN } from '@hmcts/opal-frontend-common/constants';
 import { optionalMaxLengthValidator } from '@hmcts/opal-frontend-common/validators/optional-max-length';
 import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern-validator';
 import { Subject, takeUntil } from 'rxjs';
+import { CasesCreateCasefileAddressComponent } from '../../components/cases-create-casefile-address/cases-create-casefile-address.component';
+import type { ICasesCreateCasefileAddressFieldNames } from '../../components/cases-create-casefile-address/interfaces/cases-create-casefile-address-field-names.interface';
+import { CasesCreateCasefileContactDetailsComponent } from '../../components/cases-create-casefile-contact-details/cases-create-casefile-contact-details.component';
+import type { ICasesCreateCasefileContactFieldNames } from '../../components/cases-create-casefile-contact-details/interfaces/cases-create-casefile-contact-field-names.interface';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_OPTIONS } from '../../constants/cases-create-casefile-applicant-bank-options.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
 import type { CasesCreateCasefileApplicantBankType } from '../../types/cases-create-casefile-applicant-bank-type.type';
@@ -91,10 +94,11 @@ interface IApplicantOrganisationFormControls {
   selector: 'app-cases-create-casefile-applicant-organisation-form',
   imports: [
     ReactiveFormsModule,
-    AlphagovAccessibleAutocompleteComponent,
     GovukCancelLinkComponent,
     GovukErrorSummaryComponent,
     GovukTextInputComponent,
+    CasesCreateCasefileContactDetailsComponent,
+    CasesCreateCasefileAddressComponent,
   ],
   templateUrl: './cases-create-casefile-applicant-organisation-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -113,6 +117,21 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
   @Input({ required: true }) public initialFormData!: ICasesCreateCasefileApplicantOrganisationFormData;
   @Input({ required: true }) public countryAutocompleteItems!: IAlphagovAccessibleAutocompleteItem[];
   public override form!: FormGroup<IApplicantOrganisationFormControls>;
+  public readonly contactDetailsFieldNames: ICasesCreateCasefileContactFieldNames = {
+    mainEmailAddress: 'applicant_main_email_address',
+    otherEmailAddress: 'applicant_other_email_address',
+    mainTelephoneNumber: 'applicant_main_telephone_number',
+    otherTelephoneNumber: 'applicant_other_telephone_number',
+  };
+  public readonly addressFieldNames: ICasesCreateCasefileAddressFieldNames = {
+    addressLine1: 'applicant_address_line_1',
+    addressLine2: 'applicant_address_line_2',
+    addressLine3: 'applicant_address_line_3',
+    addressLine4: 'applicant_address_line_4',
+    addressLine5: 'applicant_address_line_5',
+    postalOrZipCode: 'applicant_postal_or_zip_code',
+    countryId: 'applicant_country_id',
+  };
   public readonly bankOptions = CASES_CREATE_CASEFILE_APPLICANT_BANK_OPTIONS;
   public readonly bankTypes = CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES;
   public readonly ukBankConditionalId = 'applicantUkBankConditional';

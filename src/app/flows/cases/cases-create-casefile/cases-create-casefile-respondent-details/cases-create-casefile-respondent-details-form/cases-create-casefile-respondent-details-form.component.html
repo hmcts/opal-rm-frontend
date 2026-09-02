@@ -136,109 +136,19 @@
   />
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
-  <fieldset class="govuk-fieldset">
-    <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
-      <h2 class="govuk-heading-m govuk-!-margin-0">Contact details</h2>
-    </legend>
-    <opal-lib-govuk-text-input
-      labelText="Main email address"
-      labelClasses="govuk-label--s"
-      inputId="respondent_main_email_address"
-      inputName="respondent_main_email_address"
-      inputClasses="govuk-input--width-20"
-      [control]="form.get('respondent_main_email_address')"
-      [errors]="formControlErrorMessages['respondent_main_email_address']"
-    />
-    <opal-lib-govuk-text-input
-      labelText="Other email address"
-      labelClasses="govuk-label--s"
-      inputId="respondent_other_email_address"
-      inputName="respondent_other_email_address"
-      inputClasses="govuk-input--width-20"
-      [control]="form.get('respondent_other_email_address')"
-      [errors]="formControlErrorMessages['respondent_other_email_address']"
-    />
-    <opal-lib-govuk-text-input
-      labelText="Main telephone number"
-      labelClasses="govuk-label--s"
-      inputId="respondent_main_telephone_number"
-      inputName="respondent_main_telephone_number"
-      inputClasses="govuk-input--width-20"
-      hintText="For international numbers include the country code"
-      [control]="form.get('respondent_main_telephone_number')"
-      [errors]="formControlErrorMessages['respondent_main_telephone_number']"
-    />
-    <opal-lib-govuk-text-input
-      labelText="Other telephone number"
-      labelClasses="govuk-label--s"
-      inputId="respondent_other_telephone_number"
-      inputName="respondent_other_telephone_number"
-      inputClasses="govuk-input--width-20"
-      hintText="For international numbers include the country code"
-      [control]="form.get('respondent_other_telephone_number')"
-      [errors]="formControlErrorMessages['respondent_other_telephone_number']"
-    />
-  </fieldset>
+  <app-cases-create-casefile-contact-details
+    [form]="form"
+    [formControlErrorMessages]="formControlErrorMessages"
+    [fieldNames]="contactDetailsFieldNames"
+  />
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
-  <fieldset class="govuk-fieldset">
-    <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
-      <h2 class="govuk-heading-m govuk-!-margin-0">Address</h2>
-    </legend>
-    <opal-lib-govuk-text-input
-      labelText="Address line 1"
-      inputId="respondent_address_line_1"
-      inputName="respondent_address_line_1"
-      [control]="form.get('respondent_address_line_1')"
-      [errors]="formControlErrorMessages['respondent_address_line_1']"
-    />
-    <opal-lib-govuk-text-input
-      labelText="Address line 2"
-      inputId="respondent_address_line_2"
-      inputName="respondent_address_line_2"
-      [control]="form.get('respondent_address_line_2')"
-      [errors]="formControlErrorMessages['respondent_address_line_2']"
-    />
-    <opal-lib-govuk-text-input
-      labelText="Address line 3"
-      inputId="respondent_address_line_3"
-      inputName="respondent_address_line_3"
-      [control]="form.get('respondent_address_line_3')"
-      [errors]="formControlErrorMessages['respondent_address_line_3']"
-    />
-    <opal-lib-govuk-text-input
-      labelText="Address line 4"
-      inputId="respondent_address_line_4"
-      inputName="respondent_address_line_4"
-      [control]="form.get('respondent_address_line_4')"
-      [errors]="formControlErrorMessages['respondent_address_line_4']"
-    />
-    <opal-lib-govuk-text-input
-      labelText="Address line 5"
-      inputId="respondent_address_line_5"
-      inputName="respondent_address_line_5"
-      [control]="form.get('respondent_address_line_5')"
-      [errors]="formControlErrorMessages['respondent_address_line_5']"
-    />
-    <opal-lib-govuk-text-input
-      labelText="Postal or zip code"
-      inputId="respondent_postal_or_zip_code"
-      inputName="respondent_postal_or_zip_code"
-      inputClasses="govuk-input--width-10"
-      [control]="form.get('respondent_postal_or_zip_code')"
-      [errors]="formControlErrorMessages['respondent_postal_or_zip_code']"
-    />
-    <opal-lib-alphagov-accessible-autocomplete
-      labelText="Country"
-      labelClasses="govuk-label--s"
-      inputId="respondent_country_id"
-      inputName="respondent_country_id"
-      [showAllValues]="true"
-      [autoCompleteItems]="countryAutocompleteItems"
-      [control]="form.get('respondent_country_id')"
-      [errors]="formControlErrorMessages['respondent_country_id']"
-    />
-  </fieldset>
+  <app-cases-create-casefile-address
+    [form]="form"
+    [formControlErrorMessages]="formControlErrorMessages"
+    [fieldNames]="addressFieldNames"
+    [countryAutocompleteItems]="countryAutocompleteItems"
+  />
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
   <h2 class="govuk-heading-m">Third party details</h2>

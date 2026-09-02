@@ -41,6 +41,10 @@ import { optionalMaxLengthValidator } from '@hmcts/opal-frontend-common/validato
 import { optionalValidDateValidator } from '@hmcts/opal-frontend-common/validators/optional-valid-date';
 import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern-validator';
 import { Subject, takeUntil } from 'rxjs';
+import { CasesCreateCasefileAddressComponent } from '../../components/cases-create-casefile-address/cases-create-casefile-address.component';
+import type { ICasesCreateCasefileAddressFieldNames } from '../../components/cases-create-casefile-address/interfaces/cases-create-casefile-address-field-names.interface';
+import { CasesCreateCasefileContactDetailsComponent } from '../../components/cases-create-casefile-contact-details/cases-create-casefile-contact-details.component';
+import type { ICasesCreateCasefileContactFieldNames } from '../../components/cases-create-casefile-contact-details/interfaces/cases-create-casefile-contact-field-names.interface';
 import type { ICasesCreateCasefilePartyAlias } from '../../interfaces/cases-create-casefile-party-alias.interface';
 import { updateCasesCreateCasefileConditionalControls } from '../../utils/cases-create-casefile-conditional-controls';
 import {
@@ -109,6 +113,8 @@ type IRespondentDetailsRawFormData = Omit<
     GovukTextAreaComponent,
     GovukTextInputComponent,
     MojDatePickerComponent,
+    CasesCreateCasefileContactDetailsComponent,
+    CasesCreateCasefileAddressComponent,
   ],
   templateUrl: './cases-create-casefile-respondent-details-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -153,6 +159,21 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   @Input({ required: true }) public initialFormData!: ICasesCreateCasefileRespondentDetailsFormData;
   @Input({ required: true }) public countryAutocompleteItems!: IAlphagovAccessibleAutocompleteItem[];
   @Input({ required: true }) public countrySelectOptions!: IGovUkSelectOptions[];
+  public readonly contactDetailsFieldNames: ICasesCreateCasefileContactFieldNames = {
+    mainEmailAddress: 'respondent_main_email_address',
+    otherEmailAddress: 'respondent_other_email_address',
+    mainTelephoneNumber: 'respondent_main_telephone_number',
+    otherTelephoneNumber: 'respondent_other_telephone_number',
+  };
+  public readonly addressFieldNames: ICasesCreateCasefileAddressFieldNames = {
+    addressLine1: 'respondent_address_line_1',
+    addressLine2: 'respondent_address_line_2',
+    addressLine3: 'respondent_address_line_3',
+    addressLine4: 'respondent_address_line_4',
+    addressLine5: 'respondent_address_line_5',
+    postalOrZipCode: 'respondent_postal_or_zip_code',
+    countryId: 'respondent_country_id',
+  };
   public yesterday!: string;
 
   private countrySelectionValidator(options: ReadonlyArray<{ value: string | number }>): ValidatorFn {

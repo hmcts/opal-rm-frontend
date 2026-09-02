@@ -1,0 +1,30 @@
+export const RESPONDENT_DETAILS_ERROR_MESSAGES = {
+  respondentFirstNames: 'Enter respondent’s first name(s)',
+  respondentLastName: 'Enter respondent’s last name',
+  aliasFirstNames: (aliasNumber: number): string => `Enter alias ${aliasNumber} first name(s)`,
+  aliasLastName: (aliasNumber: number): string => `Enter alias ${aliasNumber} last name`,
+  address: 'Enter an address',
+  country: 'Select a country',
+  thirdPartyNameOrOrganisation: 'Enter name or organisation',
+  thirdPartyRelationship: 'Enter relationship to the respondent',
+  employerName: 'Enter employer name',
+  employerAddress: 'Enter employer address',
+  restrictedInformationReason: 'Enter a reason why the respondent’s personal information should not be shared',
+} as const;
+
+export const RESPONDENT_DETAILS_REQUIRED_ERROR_SUMMARY = [
+  RESPONDENT_DETAILS_ERROR_MESSAGES.respondentFirstNames,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.respondentLastName,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.aliasFirstNames(1),
+  RESPONDENT_DETAILS_ERROR_MESSAGES.aliasLastName(1),
+  RESPONDENT_DETAILS_ERROR_MESSAGES.address,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.country,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.thirdPartyNameOrOrganisation,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.thirdPartyRelationship,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.address,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.country,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.employerName,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.employerAddress,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.country,
+  RESPONDENT_DETAILS_ERROR_MESSAGES.restrictedInformationReason,
+];

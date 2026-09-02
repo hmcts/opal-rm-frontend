@@ -1,0 +1,30 @@
+export const APPLICANT_ORGANISATION_ERROR_MESSAGES = {
+  bankTypeRequired: 'Select an option',
+  organisationName: 'Enter organisation name',
+  foreignAuthorityReference: 'Enter a foreign authority reference number',
+  mainEmailFormat: 'Enter an email address in the correct format, like name@example.com',
+  mainTelephoneMaxLength: 'Main telephone number must be 35 characters or fewer',
+  address: 'Enter an address',
+  addressLine2MaxLength: 'Address line 2 must be 30 characters or fewer',
+  postalOrZipCodeMaxLength: 'Postal or zip code must be 10 characters or fewer',
+  country: 'Select a country',
+  bankNameOnAccount: 'Enter name on account',
+  bankSortCode: 'Enter correct sort code',
+  bankAccountNumber: 'Account number must be between 6 and 8 numbers',
+  bankPaymentReference: 'Enter UK bank account payment reference',
+} as const;
+
+export const APPLICANT_ORGANISATION_REQUIRED_ERROR_SUMMARY = [
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.organisationName,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.foreignAuthorityReference,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.mainEmailFormat,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.mainTelephoneMaxLength,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.address,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.addressLine2MaxLength,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.postalOrZipCodeMaxLength,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.country,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.bankNameOnAccount,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.bankSortCode,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.bankAccountNumber,
+  APPLICANT_ORGANISATION_ERROR_MESSAGES.bankPaymentReference,
+];

@@ -4,10 +4,15 @@ import {
   GENERIC_HTTP_ERROR_TITLE,
 } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-task-statuses.constant';
-import type { ICasesCreateCasefileRespondentDetails } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-respondent-details.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/flows/cases/cases-create-casefile/services/interfaces/cases-create-casefile-country-reference-data-response.interface';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
+import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from './constants/create-casefile-test-copy.constant';
+import {
+  RESPONDENT_DETAILS_ERROR_MESSAGES,
+  RESPONDENT_DETAILS_REQUIRED_ERROR_SUMMARY,
+} from './constants/respondent-details-errors.constant';
+import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
+import { REQUIRED_RESPONDENT, SAVED_RESPONDENT, VALID_EXPANDED_RESPONDENT } from './mocks/respondent-details.mock';
 import { setupRespondentDetails } from './setup/respondent-details.setup';
 import type { CasesCreateCasefileStoreInstance, GlobalStoreInstance } from './setup/respondent-details.setup';
 
@@ -18,130 +23,6 @@ const respondentPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails;
 const taskListPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
-const UNSAVED_CHANGES_WARNING =
-  'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.';
-
-const SAVED_RESPONDENT: ICasesCreateCasefileRespondentDetails = {
-  title: 'Mx',
-  firstNames: 'Test',
-  lastName: 'Respondent',
-  aliases: [
-    { firstNames: 'Example', lastName: 'Alias' },
-    { firstNames: 'Second', lastName: 'Alias' },
-  ],
-  dateOfBirth: '1990-01-31',
-  nationalInsuranceNumber: 'QQ123456C',
-  otherPersonalInformation: 'Synthetic test information',
-  contactDetails: {
-    mainEmailAddress: 'test@example.com',
-    otherEmailAddress: 'other@example.com',
-    mainTelephoneNumber: '01234567890',
-    otherTelephoneNumber: '09876543210',
-    address: {
-      addressLine1: '1 Test Street',
-      addressLine2: 'Test Area',
-      addressLine3: 'Test District',
-      addressLine4: 'Test Town',
-      addressLine5: 'Test County',
-      postalOrZipCode: 'TE1 1ST',
-      countryId: 826,
-    },
-  },
-  thirdParty: {
-    nameOrOrganisation: 'Test Support',
-    relationship: 'Representative',
-    reference: 'REF-1',
-    address: {
-      addressLine1: '2 Test Street',
-      addressLine2: 'Support Area',
-      addressLine3: 'Support District',
-      addressLine4: 'Support Town',
-      addressLine5: 'Support County',
-      postalOrZipCode: 'SU2 2ST',
-      countryId: 250,
-    },
-  },
-  employer: {
-    employerName: 'Test Employer',
-    employeeReference: 'EMP-1',
-    emailAddress: 'employer@example.com',
-    telephoneNumber: '01111111111',
-    address: {
-      addressLine1: '3 Test Street',
-      addressLine2: 'Employer Area',
-      addressLine3: 'Employer District',
-      addressLine4: 'Employer Town',
-      addressLine5: 'Employer County',
-      postalOrZipCode: 'EM3 3ST',
-      countryId: 826,
-    },
-  },
-  restrictedInformation: {
-    restricted: true,
-    reason: 'Synthetic restricted-information reason',
-  },
-};
-
-const SUBMITTED_RESPONDENT: ICasesCreateCasefileRespondentDetails = {
-  title: null,
-  firstNames: 'Test',
-  lastName: 'Respondent',
-  aliases: [{ firstNames: 'Example', lastName: 'Alias' }],
-  dateOfBirth: null,
-  nationalInsuranceNumber: null,
-  otherPersonalInformation: null,
-  contactDetails: {
-    mainEmailAddress: null,
-    otherEmailAddress: null,
-    mainTelephoneNumber: null,
-    otherTelephoneNumber: null,
-    address: {
-      addressLine1: '1 Test Street',
-      addressLine2: null,
-      addressLine3: null,
-      addressLine4: null,
-      addressLine5: null,
-      postalOrZipCode: null,
-      countryId: 826,
-    },
-  },
-  thirdParty: {
-    nameOrOrganisation: 'Test Support',
-    relationship: 'Representative',
-    reference: null,
-    address: {
-      addressLine1: '2 Test Street',
-      addressLine2: null,
-      addressLine3: null,
-      addressLine4: null,
-      addressLine5: null,
-      postalOrZipCode: null,
-      countryId: 250,
-    },
-  },
-  employer: {
-    employerName: 'Test Employer',
-    employeeReference: null,
-    emailAddress: null,
-    telephoneNumber: null,
-    address: {
-      addressLine1: '3 Test Street',
-      addressLine2: null,
-      addressLine3: null,
-      addressLine4: null,
-      addressLine5: null,
-      postalOrZipCode: null,
-      countryId: 826,
-    },
-  },
-  restrictedInformation: {
-    restricted: true,
-    reason: 'Synthetic restricted-information reason',
-  },
-};
-
-const EMPTY_COUNTRIES_RESPONSE: ICasesCreateCasefileCountryReferenceDataResponse = { count: 0, refData: [] };
-
 const normalizeText = (text: string | null | undefined): string => text?.replace(/\s+/g, ' ').trim() ?? '';
 
 const assertInlineError = (selector: string, expectedMessage: string): void => {
@@ -173,59 +54,6 @@ const assertDocumentOrder = (selectors: string[]): void => {
       ).to.equal(true);
     }
   });
-};
-
-const selectAutocomplete = (
-  inputSelector: string,
-  optionSelector: string,
-  hiddenValueSelector: string,
-  countryName: string,
-  countryId: number,
-): void => {
-  cy.get(inputSelector).should('be.visible').clear().type(countryName);
-  cy.get(optionSelector).contains(countryName).click();
-  cy.get(hiddenValueSelector).should('have.value', String(countryId));
-};
-
-const fillRequiredIdentityAndAddress = (): void => {
-  cy.get(Page.respondentDetails.firstNames).type('Test');
-  cy.get(Page.respondentDetails.lastName).type('Respondent');
-  cy.get(Page.respondentDetails.addressLine1).type('1 Test Street');
-  selectAutocomplete(
-    Page.respondentDetails.countryAutocomplete,
-    Page.respondentDetails.countryOptions,
-    Page.respondentDetails.countryId,
-    'United Kingdom',
-    826,
-  );
-};
-
-const fillValidExpandedRespondent = (): void => {
-  fillRequiredIdentityAndAddress();
-
-  cy.get(Page.respondentDetails.addAliases).check();
-  cy.get(Page.respondentDetails.aliasFirstName(0)).type('Example');
-  cy.get(Page.respondentDetails.aliasLastName(0)).type('Alias');
-
-  cy.get(Page.respondentDetails.sendCorrespondenceToThirdParty).check();
-  cy.get(Page.respondentDetails.thirdPartyNameOrOrganisation).type('Test Support');
-  cy.get(Page.respondentDetails.thirdPartyRelationship).type('Representative');
-  cy.get(Page.respondentDetails.thirdPartyAddressLine1).type('2 Test Street');
-  cy.get(Page.respondentDetails.thirdPartyCountry).select(String(250));
-
-  cy.get(Page.respondentDetails.addEmployerDetails).check();
-  cy.get(Page.respondentDetails.employerName).type('Test Employer');
-  cy.get(Page.respondentDetails.employerAddressLine1).type('3 Test Street');
-  selectAutocomplete(
-    Page.respondentDetails.employerCountryAutocomplete,
-    Page.respondentDetails.employerCountryOptions,
-    Page.respondentDetails.employerCountryId,
-    'United Kingdom',
-    826,
-  );
-
-  cy.get(Page.respondentDetails.restrictedInformation).check();
-  cy.get(Page.respondentDetails.restrictedInformationReason).type('Synthetic restricted-information reason');
 };
 
 describe('Create Casefile Respondent Details', () => {
@@ -381,18 +209,11 @@ describe('Create Casefile Respondent Details', () => {
     'AC2. should add at most five aliases and clear them when Add aliases is deselected',
     { tags: buildTags() },
     () => {
-      setupRespondentDetails();
+      setupRespondentDetails({ savedRespondent: SAVED_RESPONDENT });
 
-      cy.get(Page.respondentDetails.addAliases).check();
-      cy.get(Page.respondentDetails.aliasFirstName(0)).should('be.focused').type('First');
-      cy.get(Page.respondentDetails.aliasLastName(0)).type('Alias');
-      for (let index = 1; index < 5; index += 1) {
+      for (let index = 2; index < 5; index += 1) {
         cy.get(Page.respondentDetails.addAliasButton).click();
         cy.get(Page.respondentDetails.aliasFirstName(index)).should('be.focused');
-        if (index === 1) {
-          cy.get(Page.respondentDetails.aliasFirstName(index)).type('Second');
-          cy.get(Page.respondentDetails.aliasLastName(index)).type('Alias');
-        }
       }
       cy.get(Page.respondentDetails.aliasFirstNames).should('have.length', 5);
       cy.get(Page.respondentDetails.aliasLastNames).should('have.length', 5);
@@ -414,50 +235,45 @@ describe('Create Casefile Respondent Details', () => {
   );
 
   it(
-    'AC2. should reveal, require and clear third-party, employer and restricted branches independently',
+    'AC2. should require and clear preloaded third-party, employer and restricted branches independently',
     { tags: buildTags() },
     () => {
-      setupRespondentDetails();
+      setupRespondentDetails({ savedRespondent: SAVED_RESPONDENT });
 
-      cy.get(Page.respondentDetails.sendCorrespondenceToThirdParty).check();
-      cy.get(Page.respondentDetails.returnToCaseDetails).click();
-      assertInlineError(Page.respondentDetails.thirdPartyNameOrOrganisationError, 'Enter name or organisation');
-      assertInlineError(Page.respondentDetails.thirdPartyRelationshipError, 'Enter relationship to the respondent');
-      assertInlineError(Page.respondentDetails.thirdPartyAddressLine1Error, 'Enter an address');
-      assertInlineError(Page.respondentDetails.thirdPartyCountryError, 'Select a country');
-      cy.get(Page.respondentDetails.thirdPartyNameOrOrganisation).type('Stale third party');
-      cy.get(Page.respondentDetails.thirdPartyCountry).select(String(250));
       cy.get(Page.respondentDetails.sendCorrespondenceToThirdParty).uncheck().check();
+      cy.get(Page.respondentDetails.returnToCaseDetails).click();
+      assertInlineError(
+        Page.respondentDetails.thirdPartyNameOrOrganisationError,
+        RESPONDENT_DETAILS_ERROR_MESSAGES.thirdPartyNameOrOrganisation,
+      );
+      assertInlineError(
+        Page.respondentDetails.thirdPartyRelationshipError,
+        RESPONDENT_DETAILS_ERROR_MESSAGES.thirdPartyRelationship,
+      );
+      assertInlineError(Page.respondentDetails.thirdPartyAddressLine1Error, RESPONDENT_DETAILS_ERROR_MESSAGES.address);
+      assertInlineError(Page.respondentDetails.thirdPartyCountryError, RESPONDENT_DETAILS_ERROR_MESSAGES.country);
       cy.get(Page.respondentDetails.thirdPartyNameOrOrganisation).should('have.value', '');
       cy.get(Page.respondentDetails.thirdPartyCountry).should('not.have.value', '250');
       cy.get(Page.respondentDetails.sendCorrespondenceToThirdParty).uncheck();
 
-      cy.get(Page.respondentDetails.addEmployerDetails).check();
-      cy.get(Page.respondentDetails.returnToCaseDetails).click();
-      assertInlineError(Page.respondentDetails.employerNameError, 'Enter employer name');
-      assertInlineError(Page.respondentDetails.employerAddressLine1Error, 'Enter employer address');
-      assertInlineError(Page.respondentDetails.employerCountryError, 'Select a country');
-      cy.get(Page.respondentDetails.employerName).type('Stale employer');
-      selectAutocomplete(
-        Page.respondentDetails.employerCountryAutocomplete,
-        Page.respondentDetails.employerCountryOptions,
-        Page.respondentDetails.employerCountryId,
-        'France',
-        250,
-      );
       cy.get(Page.respondentDetails.addEmployerDetails).uncheck().check();
+      cy.get(Page.respondentDetails.returnToCaseDetails).click();
+      assertInlineError(Page.respondentDetails.employerNameError, RESPONDENT_DETAILS_ERROR_MESSAGES.employerName);
+      assertInlineError(
+        Page.respondentDetails.employerAddressLine1Error,
+        RESPONDENT_DETAILS_ERROR_MESSAGES.employerAddress,
+      );
+      assertInlineError(Page.respondentDetails.employerCountryError, RESPONDENT_DETAILS_ERROR_MESSAGES.country);
       cy.get(Page.respondentDetails.employerName).should('have.value', '');
       cy.get(Page.respondentDetails.employerCountryAutocomplete).should('have.value', '');
       cy.get(Page.respondentDetails.addEmployerDetails).uncheck();
 
-      cy.get(Page.respondentDetails.restrictedInformation).check();
+      cy.get(Page.respondentDetails.restrictedInformation).uncheck().check();
       cy.get(Page.respondentDetails.returnToCaseDetails).click();
       assertInlineError(
         Page.respondentDetails.restrictedInformationReasonError,
-        'Enter a reason why the respondent’s personal information should not be shared',
+        RESPONDENT_DETAILS_ERROR_MESSAGES.restrictedInformationReason,
       );
-      cy.get(Page.respondentDetails.restrictedInformationReason).type('Stale reason');
-      cy.get(Page.respondentDetails.restrictedInformation).uncheck().check();
       cy.get(Page.respondentDetails.restrictedInformationReason).should('have.value', '');
     },
   );
@@ -471,55 +287,71 @@ describe('Create Casefile Respondent Details', () => {
     cy.get(Page.respondentDetails.restrictedInformation).check();
     cy.get(Page.respondentDetails.returnToCaseDetails).click();
 
-    cy.get(Page.respondentDetails.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
-    const expectedErrors = [
-      'Enter respondent’s first name(s)',
-      'Enter respondent’s last name',
-      'Enter alias 1 first name(s)',
-      'Enter alias 1 last name',
-      'Enter an address',
-      'Select a country',
-      'Enter name or organisation',
-      'Enter relationship to the respondent',
-      'Enter an address',
-      'Select a country',
-      'Enter employer name',
-      'Enter employer address',
-      'Select a country',
-      'Enter a reason why the respondent’s personal information should not be shared',
-    ];
+    cy.get(Page.respondentDetails.errorSummary).should('be.focused').and('contain.text', ERROR_SUMMARY_TITLE);
     cy.get(Page.respondentDetails.errorSummaryLinks).then(($links) => {
-      expect([...$links].map((link) => normalizeText(link.textContent))).to.deep.equal(expectedErrors);
+      expect([...$links].map((link) => normalizeText(link.textContent))).to.deep.equal(
+        RESPONDENT_DETAILS_REQUIRED_ERROR_SUMMARY,
+      );
     });
-    assertInlineError(Page.respondentDetails.firstNamesError, expectedErrors[0]);
-    assertInlineError(Page.respondentDetails.lastNameError, expectedErrors[1]);
-    assertInlineError(Page.respondentDetails.aliasFirstNameError(0), expectedErrors[2]);
-    assertInlineError(Page.respondentDetails.aliasLastNameError(0), expectedErrors[3]);
-    assertInlineError(Page.respondentDetails.addressLine1Error, expectedErrors[4]);
-    assertInlineError(Page.respondentDetails.countryError, expectedErrors[5]);
-    assertInlineError(Page.respondentDetails.thirdPartyNameOrOrganisationError, expectedErrors[6]);
-    assertInlineError(Page.respondentDetails.thirdPartyRelationshipError, expectedErrors[7]);
-    assertInlineError(Page.respondentDetails.thirdPartyAddressLine1Error, expectedErrors[8]);
-    assertInlineError(Page.respondentDetails.thirdPartyCountryError, expectedErrors[9]);
-    assertInlineError(Page.respondentDetails.employerNameError, expectedErrors[10]);
-    assertInlineError(Page.respondentDetails.employerAddressLine1Error, expectedErrors[11]);
-    assertInlineError(Page.respondentDetails.employerCountryError, expectedErrors[12]);
-    assertInlineError(Page.respondentDetails.restrictedInformationReasonError, expectedErrors[13]);
+    const errorMappings: Array<{ selector: string; message: string }> = [
+      {
+        selector: Page.respondentDetails.firstNamesError,
+        message: RESPONDENT_DETAILS_ERROR_MESSAGES.respondentFirstNames,
+      },
+      { selector: Page.respondentDetails.lastNameError, message: RESPONDENT_DETAILS_ERROR_MESSAGES.respondentLastName },
+      {
+        selector: Page.respondentDetails.aliasFirstNameError(0),
+        message: RESPONDENT_DETAILS_ERROR_MESSAGES.aliasFirstNames(1),
+      },
+      {
+        selector: Page.respondentDetails.aliasLastNameError(0),
+        message: RESPONDENT_DETAILS_ERROR_MESSAGES.aliasLastName(1),
+      },
+      { selector: Page.respondentDetails.addressLine1Error, message: RESPONDENT_DETAILS_ERROR_MESSAGES.address },
+      { selector: Page.respondentDetails.countryError, message: RESPONDENT_DETAILS_ERROR_MESSAGES.country },
+      {
+        selector: Page.respondentDetails.thirdPartyNameOrOrganisationError,
+        message: RESPONDENT_DETAILS_ERROR_MESSAGES.thirdPartyNameOrOrganisation,
+      },
+      {
+        selector: Page.respondentDetails.thirdPartyRelationshipError,
+        message: RESPONDENT_DETAILS_ERROR_MESSAGES.thirdPartyRelationship,
+      },
+      {
+        selector: Page.respondentDetails.thirdPartyAddressLine1Error,
+        message: RESPONDENT_DETAILS_ERROR_MESSAGES.address,
+      },
+      { selector: Page.respondentDetails.thirdPartyCountryError, message: RESPONDENT_DETAILS_ERROR_MESSAGES.country },
+      { selector: Page.respondentDetails.employerNameError, message: RESPONDENT_DETAILS_ERROR_MESSAGES.employerName },
+      {
+        selector: Page.respondentDetails.employerAddressLine1Error,
+        message: RESPONDENT_DETAILS_ERROR_MESSAGES.employerAddress,
+      },
+      { selector: Page.respondentDetails.employerCountryError, message: RESPONDENT_DETAILS_ERROR_MESSAGES.country },
+      {
+        selector: Page.respondentDetails.restrictedInformationReasonError,
+        message: RESPONDENT_DETAILS_ERROR_MESSAGES.restrictedInformationReason,
+      },
+    ];
+    for (const { selector, message } of errorMappings) {
+      assertInlineError(selector, message);
+    }
   });
 
-  it('AC3. should focus the exact control when a summary link is selected', { tags: buildTags() }, () => {
-    setupRespondentDetails();
+  it('AC3. should focus the exact alias control when its summary link is selected', { tags: buildTags() }, () => {
+    setupRespondentDetails({ savedRespondent: VALID_EXPANDED_RESPONDENT });
 
-    cy.get(Page.respondentDetails.addAliases).check();
-    cy.get(Page.respondentDetails.aliasFirstName(0)).type('Example');
-    cy.get(Page.respondentDetails.aliasLastName(0)).type('Alias');
     cy.get(Page.respondentDetails.addAliasButton).click();
     cy.get(Page.respondentDetails.returnToCaseDetails).click();
-    cy.contains(Page.respondentDetails.errorSummaryLinks, /^Enter alias 2 first name\(s\)$/).click();
+    cy.contains(Page.respondentDetails.errorSummaryLinks, RESPONDENT_DETAILS_ERROR_MESSAGES.aliasFirstNames(2)).click();
     cy.get(Page.respondentDetails.aliasFirstName(1)).should('be.focused');
+  });
+
+  it('AC3. should focus the Country autocomplete when its summary link is selected', { tags: buildTags() }, () => {
+    setupRespondentDetails();
 
     cy.get(Page.respondentDetails.returnToCaseDetails).click();
-    cy.contains(Page.respondentDetails.errorSummaryLinks, /^Select a country$/).click();
+    cy.contains(Page.respondentDetails.errorSummaryLinks, RESPONDENT_DETAILS_ERROR_MESSAGES.country).click();
     cy.get(Page.respondentDetails.countryAutocomplete).should('be.focused');
   });
 
@@ -527,14 +359,13 @@ describe('Create Casefile Respondent Details', () => {
     'AC4. should save canonical Country IDs locally, mark Respondent Provided and return to Case details',
     { tags: buildTags() },
     () => {
-      setupRespondentDetails();
-      fillValidExpandedRespondent();
+      setupRespondentDetails({ savedRespondent: VALID_EXPANDED_RESPONDENT });
 
       cy.get(Page.respondentDetails.returnToCaseDetails).click();
       assertRouterPath(taskListPath);
       cy.get(Page.caseDetails.heading).should('have.text', 'Case details');
       cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-        expect(store.respondentDetails()).to.deep.equal(SUBMITTED_RESPONDENT);
+        expect(store.respondentDetails()).to.deep.equal(VALID_EXPANDED_RESPONDENT);
         expect(store.taskStatuses().respondent).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
         expect(store.unsavedChanges()).to.equal(false);
         expect(store.stateChanges()).to.equal(true);
@@ -552,8 +383,7 @@ describe('Create Casefile Respondent Details', () => {
       putRequestSpy(request);
       request.continue();
     });
-    setupRespondentDetails();
-    fillRequiredIdentityAndAddress();
+    setupRespondentDetails({ savedRespondent: REQUIRED_RESPONDENT });
 
     cy.get(Page.respondentDetails.returnToCaseDetails).click();
     assertRouterPath(taskListPath);
@@ -566,7 +396,7 @@ describe('Create Casefile Respondent Details', () => {
     const acceptCancelConfirm = cy.stub().as('acceptCancelConfirm').returns(true);
     cy.on('window:confirm', acceptCancelConfirm);
 
-    cy.get(Page.respondentDetails.firstNames).clear().type('Dirty working copy');
+    cy.get(Page.respondentDetails.addAliases).uncheck();
     cy.get(Page.respondentDetails.cancelLink).click();
     cy.get('@acceptCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
     assertRouterPath(taskListPath);
@@ -649,15 +479,7 @@ describe('Create Casefile Respondent Details', () => {
     'AC5. should prevent respondent activation when Countries fails and preserve the task-list route',
     { tags: buildTags() },
     () => {
-      const problem = {
-        type: 'https://example.test/problems/countries-unavailable',
-        title: 'Countries service unavailable',
-        status: 503,
-        detail: 'Countries could not be loaded',
-        instance: '/opal-maintenance-service/countries',
-        operation_id: 'OP-9801-COUNTRIES',
-        retriable: true,
-      };
+      const problem = createCountriesUnavailableProblem('OP-9801-COUNTRIES');
       setupRespondentDetails({
         initialChildPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
         countries: {
@@ -690,47 +512,62 @@ describe('Create Casefile Respondent Details', () => {
     },
   );
 
-  it(
-    'AC5. should support keyboard operation through aliases, conditions, Return and Cancel',
-    { tags: buildTags() },
-    () => {
-      setupRespondentDetails();
-      const rejectCancelConfirm = cy.stub().as('rejectCancelConfirm').returns(false);
-      cy.on('window:confirm', rejectCancelConfirm);
+  it('AC5. should support keyboard operation through aliases, conditions and Return', { tags: buildTags() }, () => {
+    setupRespondentDetails();
 
-      cy.get(Page.respondentDetails.addAliases).focus();
-      cy.press(Cypress.Keyboard.Keys.SPACE);
-      cy.get(Page.respondentDetails.aliasFirstName(0)).should('be.focused').type('Example');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(Page.respondentDetails.aliasLastName(0)).should('be.focused').type('Alias');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(Page.respondentDetails.addAliasButton).should('be.focused');
-      cy.get(Page.respondentDetails.addAliasButton).type('{enter}');
-      cy.get(Page.respondentDetails.aliasFirstName(1)).should('be.focused');
+    cy.get(Page.respondentDetails.addAliases).focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(Page.respondentDetails.aliasFirstName(0)).should('be.focused').type('Example');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(Page.respondentDetails.aliasLastName(0)).should('be.focused').type('Alias');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(Page.respondentDetails.addAliasButton).should('be.focused');
+    cy.get(Page.respondentDetails.addAliasButton).type('{enter}');
+    cy.get(Page.respondentDetails.aliasFirstName(1)).should('be.focused');
 
-      cy.get(Page.respondentDetails.sendCorrespondenceToThirdParty).focus().type(' ');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(Page.respondentDetails.thirdPartyNameOrOrganisation).should('be.focused');
-      cy.get(Page.respondentDetails.addEmployerDetails).focus().type(' ');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(Page.respondentDetails.employerName).should('be.focused');
-      cy.get(Page.respondentDetails.restrictedInformation).focus().type(' ');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(Page.respondentDetails.restrictedInformationReason).should('be.focused');
+    cy.get(Page.respondentDetails.sendCorrespondenceToThirdParty).focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(Page.respondentDetails.thirdPartyNameOrOrganisation).should('be.visible');
+    cy.get(Page.respondentDetails.sendCorrespondenceToThirdParty).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(Page.respondentDetails.thirdPartyNameOrOrganisation).should('be.focused');
+    cy.get(Page.respondentDetails.addEmployerDetails).focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(Page.respondentDetails.employerName).should('be.visible');
+    cy.get(Page.respondentDetails.addEmployerDetails).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(Page.respondentDetails.employerName).should('be.focused');
+    cy.get(Page.respondentDetails.restrictedInformation).focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(Page.respondentDetails.restrictedInformationReason).should('be.visible');
+    cy.get(Page.respondentDetails.restrictedInformation).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(Page.respondentDetails.restrictedInformationReason).should('be.focused');
 
-      cy.get(Page.respondentDetails.returnToCaseDetails).focus();
-      cy.get(Page.respondentDetails.returnToCaseDetails).type('{enter}');
-      cy.get(Page.respondentDetails.errorSummary).should('be.focused');
-      cy.get(Page.respondentDetails.cancelLink).focus();
-      cy.press(Cypress.Keyboard.Keys.ENTER);
-      cy.get('@rejectCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
-      assertRouterPath(respondentPath);
-    },
-  );
+    cy.get(Page.respondentDetails.returnToCaseDetails).focus().type('{enter}');
+    cy.get(Page.respondentDetails.errorSummary).should('be.focused');
+  });
+
+  it('AC5. should support keyboard activation of Cancel with unsaved changes', { tags: buildTags() }, () => {
+    setupRespondentDetails({ savedRespondent: SAVED_RESPONDENT });
+    const rejectCancelConfirm = cy.stub().as('rejectCancelConfirm').returns(false);
+    cy.on('window:confirm', rejectCancelConfirm);
+
+    cy.get(Page.respondentDetails.addAliases).focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(Page.respondentDetails.aliasesConditional).should('not.exist');
+    cy.get(Page.respondentDetails.addAliases).should('be.focused');
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.unsavedChanges()).to.equal(true);
+    });
+    cy.get(Page.respondentDetails.cancelLink).focus().should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get('@rejectCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+    assertRouterPath(respondentPath);
+  });
 
   it('AC5. should have no detected Axe violations in a valid expanded state', { tags: buildTags() }, () => {
-    setupRespondentDetails();
-    fillValidExpandedRespondent();
+    setupRespondentDetails({ savedRespondent: VALID_EXPANDED_RESPONDENT });
 
     cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
     cy.checkA11y();

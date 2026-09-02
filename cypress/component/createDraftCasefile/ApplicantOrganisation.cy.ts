@@ -7,11 +7,22 @@ import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from 'src/app/flows/cases/
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-task-statuses.constant';
-import type { ICasesCreateCasefileApplicantOrganisation } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-applicant-organisation.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/flows/cases/cases-create-casefile/services/interfaces/cases-create-casefile-country-reference-data-response.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
+import {
+  APPLICANT_ORGANISATION_ERROR_MESSAGES,
+  APPLICANT_ORGANISATION_REQUIRED_ERROR_SUMMARY,
+} from './constants/applicant-organisation-errors.constant';
+import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from './constants/create-casefile-test-copy.constant';
+import {
+  SAVED_APPLICANT_ORGANISATION,
+  VALID_NONE_APPLICANT_ORGANISATION,
+  VALID_NON_UK_BIC_APPLICANT_ORGANISATION,
+  VALID_NON_UK_IBAN_APPLICANT_ORGANISATION,
+  VALID_UK_APPLICANT_ORGANISATION,
+} from './mocks/applicant-organisation.mock';
+import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
 import { setupApplicantOrganisation } from './setup/applicant-organisation.setup';
 import type { CasesCreateCasefileStoreInstance, GlobalStoreInstance } from './setup/applicant-organisation.setup';
 
@@ -25,38 +36,7 @@ const applicantPath =
   CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation;
 const taskListPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
-const UNSAVED_CHANGES_WARNING =
-  'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.';
 const DRAFT_CASEFILE_WRITE_URL = /\/draft-casefiles(?:[/?#]|$)/;
-
-const SAVED_APPLICANT: ICasesCreateCasefileApplicantOrganisation = {
-  organisationName: 'Test Organisation',
-  foreignAuthorityReference: 'FA-9803',
-  contactDetails: {
-    mainEmailAddress: 'main@example.com',
-    otherEmailAddress: 'other@example.com',
-    mainTelephoneNumber: '01234567890',
-    otherTelephoneNumber: '09876543210',
-    address: {
-      addressLine1: '1 Test Street',
-      addressLine2: 'Test Area',
-      addressLine3: 'Test District',
-      addressLine4: 'Test Town',
-      addressLine5: 'Test County',
-      postalOrZipCode: 'TE1 1ST',
-      countryId: 826,
-    },
-  },
-  bankDetails: {
-    type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK,
-    nameOnAccount: 'Test Organisation',
-    sortCode: '112233',
-    accountNumber: '12345678',
-    paymentReference: 'PAY-9803',
-  },
-};
-
-const EMPTY_COUNTRIES_RESPONSE: ICasesCreateCasefileCountryReferenceDataResponse = { count: 0, refData: [] };
 
 const normalizeText = (text: string | null | undefined): string => text?.replace(/\s+/g, ' ').trim() ?? '';
 
@@ -98,32 +78,6 @@ const assertTabMovesTo = (selector: string): void => {
       expect($focused[0], `${selector} has focus`).to.equal($expected[0]);
     });
   });
-};
-
-const selectApplicantCountry = (countryName = 'United Kingdom', countryId = 826): void => {
-  cy.get(Page.applicantOrganisation.countryAutocomplete).should('be.visible').clear().type(countryName);
-  cy.get(Page.applicantOrganisation.countryOptions).contains(countryName).click();
-  cy.get(Page.applicantOrganisation.countryId).should('have.value', String(countryId));
-};
-
-const fillRequiredApplicant = (): void => {
-  cy.get(Page.applicantOrganisation.organisationName).type('Test Organisation');
-  cy.get(Page.applicantOrganisation.foreignAuthorityReference).type('FA-9803');
-  cy.get(Page.applicantOrganisation.addressLine1).type('1 Test Street');
-  selectApplicantCountry();
-};
-
-const fillUkBank = (sortCode = '112233'): void => {
-  cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).check();
-  cy.get(Page.applicantOrganisation.ukBankNameOnAccount).type('Test Organisation');
-  cy.get(Page.applicantOrganisation.ukBankSortCode).type(sortCode);
-  cy.get(Page.applicantOrganisation.ukBankAccountNumber).type('12345678');
-  cy.get(Page.applicantOrganisation.ukBankPaymentReference).type('PAY-9803');
-};
-
-const fillValidUkApplicant = (): void => {
-  fillRequiredApplicant();
-  fillUkBank();
 };
 
 const assertOrganisationRouteBlocked = (selection: CasesCreateCasefileCaseTypeSelection): void => {
@@ -197,7 +151,7 @@ describe('Create Casefile Applicant Organisation', () => {
   );
 
   it('AC1. should restore every saved Organisation, contact, address and UK-bank value', { tags: buildTags() }, () => {
-    setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT });
+    setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT_ORGANISATION });
 
     cy.get(Page.applicantOrganisation.organisationName).should('have.value', 'Test Organisation');
     cy.get(Page.applicantOrganisation.foreignAuthorityReference).should('have.value', 'FA-9803');
@@ -308,9 +262,7 @@ describe('Create Casefile Applicant Organisation', () => {
     'AC2, AC4. should save a valid UK applicant with digit-only sort code and Applicant Provided',
     { tags: buildTags() },
     () => {
-      setupApplicantOrganisation();
-      fillRequiredApplicant();
-      fillUkBank('112233');
+      setupApplicantOrganisation({ savedApplicant: VALID_UK_APPLICANT_ORGANISATION });
 
       cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
       assertRouterPath(taskListPath);
@@ -352,15 +304,7 @@ describe('Create Casefile Applicant Organisation', () => {
   );
 
   it('AC2. should save a valid non-UK applicant by BIC with optional fields', { tags: buildTags() }, () => {
-    setupApplicantOrganisation();
-    fillRequiredApplicant();
-    cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK)).check();
-    cy.get(Page.applicantOrganisation.nonUkBankNameOnAccount).type('Test Organisation');
-    cy.get(Page.applicantOrganisation.nonUkBankBicSwiftCode).type('EXAMGB2L');
-    cy.get(Page.applicantOrganisation.nonUkBankPaymentReference).type('PAY-NONUK');
-    cy.get(Page.applicantOrganisation.nonUkBankName).type('Test Bank');
-    cy.get(Page.applicantOrganisation.nonUkBankBranchSortCode).type('123456');
-    cy.get(Page.applicantOrganisation.nonUkBankAccountNumber).type('NONUK123');
+    setupApplicantOrganisation({ savedApplicant: VALID_NON_UK_BIC_APPLICANT_ORGANISATION });
 
     cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
     assertRouterPath(taskListPath);
@@ -382,16 +326,7 @@ describe('Create Casefile Applicant Organisation', () => {
     'AC2. should save a valid non-UK applicant by IBAN and exclude inactive BIC and UK values',
     { tags: buildTags() },
     () => {
-      setupApplicantOrganisation();
-      fillRequiredApplicant();
-      fillUkBank();
-      cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK)).check();
-      cy.get(Page.applicantOrganisation.nonUkBankNameOnAccount).type('Stale non-UK name');
-      cy.get(Page.applicantOrganisation.nonUkBankBicSwiftCode).type('EXAMGB2L');
-      cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).check();
-      cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK)).check();
-      cy.get(Page.applicantOrganisation.nonUkBankNameOnAccount).type('Test Organisation');
-      cy.get(Page.applicantOrganisation.nonUkBankIban).type('GB29NWBK60161331926819');
+      setupApplicantOrganisation({ savedApplicant: VALID_NON_UK_IBAN_APPLICANT_ORGANISATION });
 
       cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
       assertRouterPath(taskListPath);
@@ -411,9 +346,7 @@ describe('Create Casefile Applicant Organisation', () => {
   );
 
   it('AC2. should save None and discard previously entered bank values', { tags: buildTags() }, () => {
-    setupApplicantOrganisation();
-    fillRequiredApplicant();
-    fillUkBank();
+    setupApplicantOrganisation({ savedApplicant: VALID_UK_APPLICANT_ORGANISATION });
     cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE)).check();
     cy.get(Page.applicantOrganisation.ukBankConditional).should('not.be.visible');
     cy.get(Page.applicantOrganisation.nonUkBankConditional).should('not.be.visible');
@@ -431,7 +364,6 @@ describe('Create Casefile Applicant Organisation', () => {
     'AC3, EMAC. should show required and representative format and length errors, focus and link the summary, and retain valid values',
     { tags: buildTags() },
     () => {
-      const bankTypeRequiredError = 'Select an option';
       setupApplicantOrganisation();
       cy.get(Page.applicantOrganisation.mainEmailAddress).type('not-an-email');
       cy.get(Page.applicantOrganisation.otherEmailAddress).type('valid@example.com');
@@ -442,11 +374,14 @@ describe('Create Casefile Applicant Organisation', () => {
       cy.get(Page.applicantOrganisation.postalOrZipCode).type('1'.repeat(11));
       cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
 
-      assertInlineError(Page.applicantOrganisation.bankTypeError, bankTypeRequiredError);
+      assertInlineError(
+        Page.applicantOrganisation.bankTypeError,
+        APPLICANT_ORGANISATION_ERROR_MESSAGES.bankTypeRequired,
+      );
       cy.get(Page.applicantOrganisation.errorSummaryLinks)
-        .contains(bankTypeRequiredError)
+        .contains(APPLICANT_ORGANISATION_ERROR_MESSAGES.bankTypeRequired)
         .should(($link) => {
-          expect(normalizeText($link.text())).to.equal(bankTypeRequiredError);
+          expect(normalizeText($link.text())).to.equal(APPLICANT_ORGANISATION_ERROR_MESSAGES.bankTypeRequired);
         })
         .click();
       cy.get(Page.applicantOrganisation.bankTypeRadios)
@@ -459,21 +394,8 @@ describe('Create Casefile Applicant Organisation', () => {
       cy.get(Page.applicantOrganisation.ukBankAccountNumber).type('12345');
       cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
 
-      const expectedErrors = [
-        'Enter organisation name',
-        'Enter a foreign authority reference number',
-        'Enter an email address in the correct format, like name@example.com',
-        'Main telephone number must be 35 characters or fewer',
-        'Enter an address',
-        'Address line 2 must be 30 characters or fewer',
-        'Postal or zip code must be 10 characters or fewer',
-        'Select a country',
-        'Enter name on account',
-        'Enter correct sort code',
-        'Account number must be between 6 and 8 numbers',
-        'Enter UK bank account payment reference',
-      ];
-      cy.get(Page.applicantOrganisation.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
+      const expectedErrors = APPLICANT_ORGANISATION_REQUIRED_ERROR_SUMMARY;
+      cy.get(Page.applicantOrganisation.errorSummary).should('be.focused').and('contain.text', ERROR_SUMMARY_TITLE);
       cy.get(Page.applicantOrganisation.errorSummaryLinks).then(($links) => {
         expect([...$links].map((link) => normalizeText(link.textContent))).to.deep.equal(expectedErrors);
       });
@@ -482,62 +404,62 @@ describe('Create Casefile Applicant Organisation', () => {
         {
           inlineSelector: Page.applicantOrganisation.organisationNameError,
           controlSelector: Page.applicantOrganisation.organisationName,
-          message: expectedErrors[0],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.organisationName,
         },
         {
           inlineSelector: Page.applicantOrganisation.foreignAuthorityReferenceError,
           controlSelector: Page.applicantOrganisation.foreignAuthorityReference,
-          message: expectedErrors[1],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.foreignAuthorityReference,
         },
         {
           inlineSelector: Page.applicantOrganisation.mainEmailAddressError,
           controlSelector: Page.applicantOrganisation.mainEmailAddress,
-          message: expectedErrors[2],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.mainEmailFormat,
         },
         {
           inlineSelector: Page.applicantOrganisation.mainTelephoneNumberError,
           controlSelector: Page.applicantOrganisation.mainTelephoneNumber,
-          message: expectedErrors[3],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.mainTelephoneMaxLength,
         },
         {
           inlineSelector: Page.applicantOrganisation.addressLine1Error,
           controlSelector: Page.applicantOrganisation.addressLine1,
-          message: expectedErrors[4],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.address,
         },
         {
           inlineSelector: Page.applicantOrganisation.addressLine2Error,
           controlSelector: Page.applicantOrganisation.addressLine2,
-          message: expectedErrors[5],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.addressLine2MaxLength,
         },
         {
           inlineSelector: Page.applicantOrganisation.postalOrZipCodeError,
           controlSelector: Page.applicantOrganisation.postalOrZipCode,
-          message: expectedErrors[6],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.postalOrZipCodeMaxLength,
         },
         {
           inlineSelector: Page.applicantOrganisation.countryError,
           controlSelector: Page.applicantOrganisation.countryAutocomplete,
-          message: expectedErrors[7],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.country,
         },
         {
           inlineSelector: Page.applicantOrganisation.ukBankNameOnAccountError,
           controlSelector: Page.applicantOrganisation.ukBankNameOnAccount,
-          message: expectedErrors[8],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.bankNameOnAccount,
         },
         {
           inlineSelector: Page.applicantOrganisation.ukBankSortCodeError,
           controlSelector: Page.applicantOrganisation.ukBankSortCode,
-          message: expectedErrors[9],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.bankSortCode,
         },
         {
           inlineSelector: Page.applicantOrganisation.ukBankAccountNumberError,
           controlSelector: Page.applicantOrganisation.ukBankAccountNumber,
-          message: expectedErrors[10],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.bankAccountNumber,
         },
         {
           inlineSelector: Page.applicantOrganisation.ukBankPaymentReferenceError,
           controlSelector: Page.applicantOrganisation.ukBankPaymentReference,
-          message: expectedErrors[11],
+          message: APPLICANT_ORGANISATION_ERROR_MESSAGES.bankPaymentReference,
         },
       ];
       for (const mapping of errorMappings) {
@@ -581,20 +503,20 @@ describe('Create Casefile Applicant Organisation', () => {
     'AC4, RGAC. should reject dirty Cancel with the exact warning and preserve edited controls plus the last saved applicant',
     { tags: buildTags() },
     () => {
-      setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT });
+      setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT_ORGANISATION });
       const rejectCancelConfirm = cy.stub().as('rejectCancelConfirm').returns(false);
       cy.on('window:confirm', rejectCancelConfirm);
 
-      cy.get(Page.applicantOrganisation.organisationName).clear().type('Dirty working copy');
-      cy.get(Page.applicantOrganisation.otherEmailAddress).clear().type('edited@example.com');
+      cy.get(Page.applicantOrganisation.organisationName).clear();
+      cy.get(Page.applicantOrganisation.otherEmailAddress).clear();
       cy.get(Page.applicantOrganisation.cancelLink).click();
 
       cy.get('@rejectCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
       assertRouterPath(applicantPath);
-      cy.get(Page.applicantOrganisation.organisationName).should('have.value', 'Dirty working copy');
-      cy.get(Page.applicantOrganisation.otherEmailAddress).should('have.value', 'edited@example.com');
+      cy.get(Page.applicantOrganisation.organisationName).should('have.value', '');
+      cy.get(Page.applicantOrganisation.otherEmailAddress).should('have.value', '');
       cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-        expect(store.applicantDetails()).to.deep.equal(SAVED_APPLICANT);
+        expect(store.applicantDetails()).to.deep.equal(SAVED_APPLICANT_ORGANISATION);
         expect(store.taskStatuses().applicant).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
         expect(store.unsavedChanges()).to.equal(true);
       });
@@ -605,17 +527,17 @@ describe('Create Casefile Applicant Organisation', () => {
     'AC4, RGAC. should accept dirty Cancel, leave the route and preserve only the last saved applicant',
     { tags: buildTags() },
     () => {
-      setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT });
+      setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT_ORGANISATION });
       const acceptCancelConfirm = cy.stub().as('acceptCancelConfirm').returns(true);
       cy.on('window:confirm', acceptCancelConfirm);
 
-      cy.get(Page.applicantOrganisation.organisationName).clear().type('Discarded working copy');
+      cy.get(Page.applicantOrganisation.organisationName).clear();
       cy.get(Page.applicantOrganisation.cancelLink).click();
 
       cy.get('@acceptCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
       assertRouterPath(taskListPath);
       cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-        expect(store.applicantDetails()).to.deep.equal(SAVED_APPLICANT);
+        expect(store.applicantDetails()).to.deep.equal(SAVED_APPLICANT_ORGANISATION);
         expect(store.taskStatuses().applicant).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
         expect(store.unsavedChanges()).to.equal(false);
       });
@@ -631,9 +553,7 @@ describe('Create Casefile Applicant Organisation', () => {
     expect(DRAFT_CASEFILE_WRITE_URL.test('/draft-casefiles/123'), 'matches a Draft Casefile item URL').to.equal(true);
     cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
     cy.intercept({ method: 'PUT', url: DRAFT_CASEFILE_WRITE_URL }, putRequestSpy);
-    setupApplicantOrganisation();
-    fillRequiredApplicant();
-    cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE)).check();
+    setupApplicantOrganisation({ savedApplicant: VALID_NONE_APPLICANT_ORGANISATION });
 
     cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
 
@@ -681,15 +601,7 @@ describe('Create Casefile Applicant Organisation', () => {
     'AC5. should display correlated Problem title, detail and operation ID after failed Countries activation',
     { tags: buildTags() },
     () => {
-      const problem = {
-        type: 'https://example.test/problems/countries-unavailable',
-        title: 'Countries service unavailable',
-        status: 503,
-        detail: 'Countries could not be loaded',
-        instance: '/opal-maintenance-service/countries',
-        operation_id: 'OP-9803-COUNTRIES',
-        retriable: true,
-      };
+      const problem = createCountriesUnavailableProblem('OP-9803-COUNTRIES');
       setupApplicantOrganisation({
         initialChildPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
         countries: {
@@ -722,12 +634,10 @@ describe('Create Casefile Applicant Organisation', () => {
   );
 
   it(
-    'AC5. should traverse base controls, the active UK branch, Return and Cancel by keyboard',
+    'AC5. should traverse base controls and the active UK branch, then activate Return by keyboard',
     { tags: buildTags() },
     () => {
       setupApplicantOrganisation();
-      const rejectCancelConfirm = cy.stub().as('rejectUkKeyboardCancelConfirm').returns(false);
-      cy.on('window:confirm', rejectCancelConfirm);
 
       cy.get(Page.applicantOrganisation.organisationName).focus();
       for (const selector of [
@@ -748,23 +658,22 @@ describe('Create Casefile Applicant Organisation', () => {
         assertTabMovesTo(selector);
       }
       cy.press(Cypress.Keyboard.Keys.SPACE);
-      cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).should(
-        'be.checked',
-      );
       cy.get(Page.applicantOrganisation.ukBankConditional).should('be.visible');
-      cy.get(Page.applicantOrganisation.ukBankNameOnAccount).should('be.enabled');
+      cy.get(Page.applicantOrganisation.ukBankNameOnAccount).should('be.visible').and('be.enabled');
+      cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).should(
+        'be.focused',
+      );
       for (const selector of [
         Page.applicantOrganisation.ukBankNameOnAccount,
         Page.applicantOrganisation.ukBankSortCode,
         Page.applicantOrganisation.ukBankAccountNumber,
         Page.applicantOrganisation.ukBankPaymentReference,
-        Page.applicantOrganisation.returnToCaseDetails,
-        Page.applicantOrganisation.cancelLink,
       ]) {
         assertTabMovesTo(selector);
       }
-      cy.press(Cypress.Keyboard.Keys.ENTER);
-      cy.get('@rejectUkKeyboardCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+      assertTabMovesTo(Page.applicantOrganisation.returnToCaseDetails);
+      cy.get(Page.applicantOrganisation.returnToCaseDetails).type('{enter}');
+      cy.get(Page.applicantOrganisation.errorSummary).should('be.focused');
       assertRouterPath(applicantPath);
     },
   );
@@ -774,16 +683,14 @@ describe('Create Casefile Applicant Organisation', () => {
     { tags: buildTags() },
     () => {
       setupApplicantOrganisation();
-      const rejectCancelConfirm = cy.stub().as('rejectNonUkKeyboardCancelConfirm').returns(false);
-      cy.on('window:confirm', rejectCancelConfirm);
 
       cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).focus();
       cy.press(Cypress.Keyboard.Keys.DOWN);
-      cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK)).should(
-        'be.checked',
-      );
       cy.get(Page.applicantOrganisation.nonUkBankConditional).should('be.visible');
-      cy.get(Page.applicantOrganisation.nonUkBankNameOnAccount).should('be.enabled');
+      cy.get(Page.applicantOrganisation.nonUkBankNameOnAccount).should('be.visible').and('be.enabled');
+      cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK)).should(
+        'be.focused',
+      );
       for (const selector of [
         Page.applicantOrganisation.ukBankNameOnAccount,
         Page.applicantOrganisation.ukBankSortCode,
@@ -800,33 +707,49 @@ describe('Create Casefile Applicant Organisation', () => {
         Page.applicantOrganisation.nonUkBankName,
         Page.applicantOrganisation.nonUkBankBranchSortCode,
         Page.applicantOrganisation.nonUkBankAccountNumber,
-        Page.applicantOrganisation.returnToCaseDetails,
-        Page.applicantOrganisation.cancelLink,
       ]) {
         assertTabMovesTo(selector);
       }
-      cy.press(Cypress.Keyboard.Keys.ENTER);
-      cy.get('@rejectNonUkKeyboardCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
-      assertRouterPath(applicantPath);
+      assertTabMovesTo(Page.applicantOrganisation.returnToCaseDetails);
     },
   );
 
-  it(
-    'AC5. should have no detectable Axe violations in valid expanded and validation-error states',
-    { tags: buildTags() },
-    () => {
-      setupApplicantOrganisation();
-      fillValidUkApplicant();
+  it('AC5. should support keyboard activation of Cancel with unsaved changes', { tags: buildTags() }, () => {
+    setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT_ORGANISATION });
+    const rejectCancelConfirm = cy.stub().as('rejectKeyboardCancelConfirm').returns(false);
+    cy.on('window:confirm', rejectCancelConfirm);
 
-      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-      cy.checkA11y();
+    cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).focus();
+    cy.press(Cypress.Keyboard.Keys.DOWN);
+    cy.get(Page.applicantOrganisation.nonUkBankConditional).should('be.visible');
+    cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK)).should(
+      'be.focused',
+    );
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.unsavedChanges()).to.equal(true);
+    });
+    cy.get(Page.applicantOrganisation.cancelLink).focus().should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get('@rejectKeyboardCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+    assertRouterPath(applicantPath);
+  });
 
-      cy.get(Page.applicantOrganisation.organisationName).clear();
-      cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
-      cy.get(Page.applicantOrganisation.errorSummary).should('be.focused');
-      cy.checkA11y();
-    },
-  );
+  it('AC5. should have no detectable Axe violations in a valid expanded state', { tags: buildTags() }, () => {
+    setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT_ORGANISATION });
+
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+  });
+
+  it('AC5. should have no detectable Axe violations in the validation-error state', { tags: buildTags() }, () => {
+    setupApplicantOrganisation();
+    cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).check();
+    cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
+    cy.get(Page.applicantOrganisation.errorSummary).should('be.focused');
+
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+  });
 
   it(
     'AC5. should retain content and operation at 320 CSS pixels without horizontal document overflow',

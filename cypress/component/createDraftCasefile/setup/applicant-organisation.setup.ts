@@ -15,13 +15,14 @@ import { AppComponent } from 'src/app/app.component';
 import { CasesCreateCasefileComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile.component';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
+import type { ICasesCreateCasefileApplicantOrganisation } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-applicant-organisation.interface';
 import { routing } from 'src/app/flows/cases/cases-create-casefile/routing/cases-create-casefile.routes';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/flows/cases/cases-create-casefile/services/interfaces/cases-create-casefile-country-reference-data-response.interface';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
-import type { CasesCreateCasefileApplicantDetails } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 import { STARTER_USER_STATE_CASES_ONLY } from 'cypress/shared/mocks/user-state.mock';
+import { COUNTRIES_RESPONSE } from '../mocks/countries.mock';
 
 @Component({ imports: [RouterOutlet], template: '<router-outlet></router-outlet>' })
 class CreateCasefileRouterHostComponent {}
@@ -34,32 +35,10 @@ const testRoutes: Routes = [
   },
 ];
 
-export const APPLICANT_ORGANISATION_COUNTRIES_RESPONSE: ICasesCreateCasefileCountryReferenceDataResponse = {
-  count: 2,
-  refData: [
-    {
-      country_id: 826,
-      cjs_code: 1,
-      international_code: 'GB',
-      country_name: 'United Kingdom',
-      date_used_from: '2020-01-01',
-      active: true,
-    },
-    {
-      country_id: 250,
-      cjs_code: 2,
-      international_code: 'FR',
-      country_name: 'France',
-      date_used_from: '2020-01-01',
-      active: true,
-    },
-  ],
-};
-
 interface IApplicantOrganisationSetup {
   caseTypeSelection?: CasesCreateCasefileCaseTypeSelection;
   countries?: ICasesCreateCasefileCountryReferenceDataResponse | StaticResponse;
-  savedApplicant?: CasesCreateCasefileApplicantDetails | null;
+  savedApplicant?: ICasesCreateCasefileApplicantOrganisation | null;
   initialChildPath?: string;
   useHttpErrorInterceptor?: boolean;
   useAppShell?: boolean;
@@ -73,7 +52,7 @@ export const setupApplicantOrganisation = ({
     caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
     applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
   },
-  countries = APPLICANT_ORGANISATION_COUNTRIES_RESPONSE,
+  countries = COUNTRIES_RESPONSE,
   savedApplicant = null,
   initialChildPath = CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation,
   useHttpErrorInterceptor = false,
@@ -91,7 +70,7 @@ export const setupApplicantOrganisation = ({
   }
   store.setCaseTypeSelection(caseTypeSelection);
   if (savedApplicant) {
-    store.setApplicantDetails(savedApplicant);
+    store.setApplicantDetails(structuredClone(savedApplicant));
   }
 
   return cy.document().then((document) => {

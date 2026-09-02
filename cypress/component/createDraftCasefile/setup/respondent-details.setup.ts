@@ -21,6 +21,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-c
 import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/flows/cases/cases-create-casefile/services/interfaces/cases-create-casefile-country-reference-data-response.interface';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import { STARTER_USER_STATE_CASES_ONLY } from 'cypress/shared/mocks/user-state.mock';
+import { COUNTRIES_RESPONSE } from '../mocks/countries.mock';
 
 @Component({
   imports: [RouterOutlet],
@@ -35,28 +36,6 @@ const testRoutes: Routes = [
     children: routing,
   },
 ];
-
-export const COUNTRIES_RESPONSE: ICasesCreateCasefileCountryReferenceDataResponse = {
-  count: 2,
-  refData: [
-    {
-      country_id: 826,
-      cjs_code: 1,
-      international_code: 'GB',
-      country_name: 'United Kingdom',
-      date_used_from: '2020-01-01',
-      active: true,
-    },
-    {
-      country_id: 250,
-      cjs_code: 2,
-      international_code: 'FR',
-      country_name: 'France',
-      date_used_from: '2020-01-01',
-      active: true,
-    },
-  ],
-};
 
 interface IRespondentDetailsSetup {
   countries?: ICasesCreateCasefileCountryReferenceDataResponse | StaticResponse;
@@ -91,7 +70,7 @@ export const setupRespondentDetails = ({
     applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
   });
   if (savedRespondent) {
-    store.setRespondentDetails(savedRespondent);
+    store.setRespondentDetails(structuredClone(savedRespondent));
   }
 
   return cy.document().then((document) => {

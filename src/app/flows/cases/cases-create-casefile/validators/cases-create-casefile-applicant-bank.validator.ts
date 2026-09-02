@@ -115,7 +115,7 @@ const hasValidIbanChecksum = (value: string): boolean => {
   return remainder === 1;
 };
 
-export const casesCreateCasefileApplicantIndividualUkSortCodeValidator: ValidatorFn = (control) => {
+export const casesCreateCasefileApplicantUkSortCodeValidator: ValidatorFn = (control) => {
   const value = stringValue(control);
   const digitsOnly = value.replaceAll('-', '');
 
@@ -130,7 +130,7 @@ export const casesCreateCasefileApplicantIndividualUkSortCodeValidator: Validato
   return UK_SORT_CODE_PATTERN.test(value) ? null : { ukSortCodePattern: true };
 };
 
-export const casesCreateCasefileApplicantIndividualUkAccountNumberValidator: ValidatorFn = (control) => {
+export const casesCreateCasefileApplicantUkAccountNumberValidator: ValidatorFn = (control) => {
   const value = stringValue(control);
 
   if (!NUMERIC_PATTERN.test(value)) {
@@ -140,13 +140,13 @@ export const casesCreateCasefileApplicantIndividualUkAccountNumberValidator: Val
   return value.length >= 6 && value.length <= 8 ? null : { ukAccountNumberLength: true };
 };
 
-export const casesCreateCasefileApplicantIndividualBicSwiftValidator: ValidatorFn = (control) => {
+export const casesCreateCasefileApplicantBicSwiftValidator: ValidatorFn = (control) => {
   const value = stringValue(control);
 
   return value.trim() === '' || BIC_SWIFT_PATTERN.test(value) ? null : { internationalIdentifierPattern: true };
 };
 
-export const casesCreateCasefileApplicantIndividualIbanValidator: ValidatorFn = (control) => {
+export const casesCreateCasefileApplicantIbanValidator: ValidatorFn = (control) => {
   const value = stringValue(control);
 
   if (value.trim() === '') {
@@ -164,7 +164,7 @@ export const casesCreateCasefileApplicantIndividualIbanValidator: ValidatorFn = 
     : { internationalIdentifierPattern: true };
 };
 
-export const casesCreateCasefileApplicantIndividualBranchSortCodeValidator: ValidatorFn = (control) => {
+export const casesCreateCasefileApplicantBranchSortCodeValidator: ValidatorFn = (control) => {
   const value = stringValue(control);
 
   if (value.trim() === '') {
@@ -178,7 +178,7 @@ export const casesCreateCasefileApplicantIndividualBranchSortCodeValidator: Vali
   return value.length <= 12 ? null : { branchSortCodeLength: true };
 };
 
-export const casesCreateCasefileApplicantIndividualInternationalIdentifierRequiredValidator =
+export const casesCreateCasefileApplicantInternationalIdentifierRequiredValidator =
   (ibanControl: AbstractControl): ValidatorFn =>
   (bicSwiftControl): ValidationErrors | null =>
     (bicSwiftControl.value?.trim() ?? '') === '' && (ibanControl.value?.trim() ?? '') === ''

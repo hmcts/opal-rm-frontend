@@ -420,7 +420,6 @@ describe('CasesCreateCasefileStore', () => {
     ],
     ['REMO Out without Applicant Type', { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT }, true],
     ['REMO Out (CMS) without Applicant Type', { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS }, true],
-    ['null', null as unknown as CasesCreateCasefileCaseTypeSelection, false],
     [
       'REMO In without Applicant Type',
       { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN } as unknown as CasesCreateCasefileCaseTypeSelection,

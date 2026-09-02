@@ -16,12 +16,8 @@ import { isCasesCreateCasefileCaseTypeSelectionValid } from '../utils/cases-crea
 
 const areCaseTypeSelectionsEqual = (
   currentSelection: CasesCreateCasefileCaseTypeSelection | null,
-  nextSelection: CasesCreateCasefileCaseTypeSelection | null,
+  nextSelection: CasesCreateCasefileCaseTypeSelection,
 ): boolean => {
-  if (nextSelection === null) {
-    return false;
-  }
-
   if (currentSelection?.caseType !== nextSelection.caseType) {
     return false;
   }
@@ -70,7 +66,7 @@ export const CasesCreateCasefileStore = signalStore(
     };
   }),
   withMethods((store) => ({
-    setCaseTypeSelection: (caseTypeSelection: CasesCreateCasefileCaseTypeSelection | null): void => {
+    setCaseTypeSelection: (caseTypeSelection: CasesCreateCasefileCaseTypeSelection): void => {
       const selectionUnchanged = areCaseTypeSelectionsEqual(store.caseTypeSelection(), caseTypeSelection);
       const taskStatuses = selectionUnchanged
         ? store.taskStatuses()

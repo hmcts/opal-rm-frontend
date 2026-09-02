@@ -467,6 +467,49 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     });
   });
 
+  it('describes and controls both bank detail reveals without unsupported expanded state', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const revealOptions = [
+      {
+        bankType: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK,
+        conditionalId: 'applicantUkBankConditional',
+        description: 'Selecting UK bank account reveals the UK bank details fields.',
+      },
+      {
+        bankType: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+        conditionalId: 'applicantNonUkBankConditional',
+        description: 'Selecting Non-UK bank account reveals the non-UK bank details fields.',
+      },
+    ] as const;
+
+    for (const { bankType, conditionalId, description } of revealOptions) {
+      const radio = fixture.nativeElement.querySelector(`#applicant_bank_type-${bankType}`) as HTMLInputElement;
+      const conditional = fixture.nativeElement.querySelector(`#${conditionalId}`) as HTMLDivElement;
+      const descriptionId = `applicant_bank_type-${bankType}-description`;
+      const descriptionElement = fixture.nativeElement.querySelector(`#${descriptionId}`) as HTMLSpanElement;
+
+      expect(radio.getAttribute('aria-controls')).toBe(conditionalId);
+      expect(radio.getAttribute('aria-describedby')).toBe(descriptionId);
+      expect(radio.hasAttribute('aria-expanded')).toBe(false);
+      expect(descriptionElement.classList.contains('govuk-visually-hidden')).toBe(true);
+      expect(descriptionElement.textContent?.trim()).toBe(description);
+      expect(conditional.classList.contains('govuk-radios__conditional--hidden')).toBe(true);
+
+      selectBankType(bankType);
+      await fixture.whenStable();
+
+      expect(conditional.classList.contains('govuk-radios__conditional--hidden')).toBe(false);
+      expect(radio.hasAttribute('aria-expanded')).toBe(false);
+    }
+
+    const noneRadio = fixture.nativeElement.querySelector('#applicant_bank_type-none') as HTMLInputElement;
+    expect(noneRadio.hasAttribute('aria-controls')).toBe(false);
+    expect(noneRadio.hasAttribute('aria-describedby')).toBe(false);
+    expect(noneRadio.hasAttribute('aria-expanded')).toBe(false);
+  });
+
   it('enables only the UK branch and accepts both exact sort-code formats with 6-to-8 digit account numbers', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,

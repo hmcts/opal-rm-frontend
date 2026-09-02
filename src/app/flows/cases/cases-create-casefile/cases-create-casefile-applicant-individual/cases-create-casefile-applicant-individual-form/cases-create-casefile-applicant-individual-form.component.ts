@@ -29,10 +29,6 @@ import {
   GovukCheckboxesItemComponent,
 } from '@hmcts/opal-frontend-common/components/govuk/govuk-checkboxes';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
-import {
-  GovukRadioComponent,
-  GovukRadiosItemComponent,
-} from '@hmcts/opal-frontend-common/components/govuk/govuk-radio';
 import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import type { IGovUkSelectOptions } from '@hmcts/opal-frontend-common/components/govuk/govuk-select/interfaces';
 import { GovukTextAreaComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-area';
@@ -164,8 +160,6 @@ type ApplicantIndividualRawFormData = Omit<
     GovukCheckboxesConditionalComponent,
     GovukCheckboxesItemComponent,
     GovukErrorSummaryComponent,
-    GovukRadioComponent,
-    GovukRadiosItemComponent,
     GovukSelectComponent,
     GovukTextAreaComponent,
     GovukTextInputComponent,

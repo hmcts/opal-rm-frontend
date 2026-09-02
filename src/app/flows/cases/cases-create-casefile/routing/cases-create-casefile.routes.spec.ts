@@ -17,10 +17,10 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './constants/cases-create-ca
 import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-casefile-routing-titles.constant';
 import { routing } from './cases-create-casefile.routes';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
+import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
 const guardedRouteCases = [
   ['taskList', 'Case details'],
-  ['respondentDetails', 'Respondent details'],
   ['applicantIndividual', 'Applicant details - Individual'],
   ['applicantOrganisation', 'Applicant details - Organisation'],
   ['centralAuthorityDetails', 'Central authority details'],
@@ -35,7 +35,6 @@ const guardedRouteCases = [
 
 const expectedComponents = {
   taskList: CasesCreateCasefileTaskListComponent,
-  respondentDetails: CasesCreateCasefileRespondentDetailsComponent,
   applicantIndividual: CasesCreateCasefileApplicantIndividualComponent,
   applicantOrganisation: CasesCreateCasefileApplicantOrganisationComponent,
   centralAuthorityDetails: CasesCreateCasefileCentralAuthorityComponent,
@@ -65,6 +64,25 @@ describe('Create Casefile routes', () => {
     expect(route?.loadComponent).toEqual(expect.any(Function));
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.caseType });
     expect(route?.resolve).toEqual({ title: TitleResolver });
+  });
+
+  it('registers Respondent details with flow and unsaved-change guards and resolves active Countries', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails,
+    );
+
+    expect(route?.loadComponent).toEqual(expect.any(Function));
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
+    expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.respondentDetails });
+    expect(route?.resolve).toEqual({
+      title: TitleResolver,
+      countries: fetchCasesCreateCasefileCountriesResolver,
+    });
+
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
+
+    expect(component?.name).toBe(CasesCreateCasefileRespondentDetailsComponent.name);
   });
 
   it.each(guardedRouteCases)(

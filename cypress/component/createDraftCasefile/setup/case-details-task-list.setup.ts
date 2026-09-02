@@ -1,3 +1,4 @@
+import { provideHttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, RouterOutlet } from '@angular/router';
@@ -12,6 +13,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-c
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import type { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTask } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-task.type';
+import { COUNTRIES_RESPONSE } from './respondent-details.setup';
 
 @Component({
   imports: [RouterOutlet],
@@ -43,6 +45,10 @@ export const setupCaseDetailsTaskList = ({
   providedTasks = [],
   initialChildPath = CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
 }: ICaseDetailsTaskListSetup = {}) => {
+  cy.intercept('GET', '**/opal-maintenance-service/countries?active=true', {
+    statusCode: 200,
+    body: COUNTRIES_RESPONSE,
+  }).as('getCountries');
   const store = new CasesCreateCasefileStore();
   if (selection) {
     store.setCaseTypeSelection(selection);
@@ -55,7 +61,11 @@ export const setupCaseDetailsTaskList = ({
     document.querySelector('[data-cy-root]')?.setAttribute('role', 'main');
 
     return mount(CreateCasefileRouterHostComponent, {
-      providers: [provideRouter(testRoutes), { provide: CasesCreateCasefileStore, useValue: store }],
+      providers: [
+        provideRouter(testRoutes),
+        provideHttpClient(),
+        { provide: CasesCreateCasefileStore, useValue: store },
+      ],
     }).then(() => {
       const router = TestBed.inject(Router);
       const initialUrl = '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + initialChildPath;

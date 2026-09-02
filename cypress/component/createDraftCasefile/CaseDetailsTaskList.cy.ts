@@ -35,7 +35,7 @@ const assertExactText = (selector: string, expectedText: string): void => {
 };
 
 const assertRouterPath = (childPath: string): void => {
-  cy.get('@angularRouter').then((router: Router) => {
+  cy.get('@angularRouter').should((router: Router) => {
     expect(router.url).to.equal(createJourneyPath(childPath));
   });
 };
@@ -311,10 +311,17 @@ describe('Create Casefile Case Details Task List', () => {
         setupCaseDetailsTaskList({ selection, providedTasks: scenario.prerequisiteTasks });
 
         cy.get(scenario.taskLinkSelector).click();
+        if (scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails) {
+          cy.wait('@getCountries');
+        }
         assertRouterPath(scenario.childPath);
         assertExactText(Page.caseDetails.heading, scenario.heading);
         assertStoreState(selection, scenario.prerequisiteTasks);
-        cy.get(Page.caseDetails.backLink).click();
+        cy.get(
+          scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails
+            ? Page.respondentDetails.cancelLink
+            : Page.caseDetails.backLink,
+        ).click();
         assertRouterPath(taskListPath);
         assertExactText(Page.caseDetails.heading, 'Case details');
         assertStoreState(selection, scenario.prerequisiteTasks);
@@ -497,7 +504,8 @@ describe('Create Casefile Case Details Task List', () => {
     setupCaseDetailsTaskList({ providedTasks: mandatoryTasks });
 
     cy.get(Page.caseDetails.respondentLink).click();
-    cy.get(Page.caseDetails.backLink).click();
+    cy.wait('@getCountries');
+    cy.get(Page.respondentDetails.cancelLink).click();
     cy.get(Page.caseDetails.orderTermsLink).click();
     cy.get(Page.caseDetails.backLink).click();
     cy.get(Page.caseDetails.checkCaseButton).click();

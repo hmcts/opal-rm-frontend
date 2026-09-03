@@ -4,6 +4,21 @@ OPAL RM Frontend is an Angular SSR application with a Node server that proxies i
 
 Use Yarn 4 through Corepack. Treat `.nvmrc` and `package.json#packageManager` as the authoritative Node and Yarn versions.
 
+## CRITICAL: Master protection and branch upstream safety
+
+- Never push, merge, or commit directly to `master`.
+- Never run a plain `git push` or use an IDE or GUI "Sync Changes" operation.
+- Before any pull or push, verify the current branch and its upstream with
+  `git branch --show-current` and `git rev-parse --abbrev-ref '@{upstream}'`.
+- If a feature branch tracks `origin/master`, stop immediately. Do not pull,
+  push, or sync until the upstream configuration is corrected.
+- Create feature and stacked branches with `--no-track`.
+- A pull-request base does not require the local branch to track that base
+  branch.
+- Push only when explicitly requested, using a fully specified destination
+  whose branch name matches the local branch.
+- Never push a feature branch to `refs/heads/master`.
+
 ## Before making changes
 
 - Read the ticket and its Acceptance Criteria when the task is ticketed.

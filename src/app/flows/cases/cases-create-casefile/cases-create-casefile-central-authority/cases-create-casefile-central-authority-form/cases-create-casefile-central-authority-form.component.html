@@ -1,0 +1,42 @@
+<h1 class="govuk-heading-l">Central authority details</h1>
+
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+
+<form (submit)="handleFormSubmit($event)">
+  <opal-lib-govuk-text-input
+    labelText="REMO reference"
+    labelClasses="govuk-label--s"
+    [inputId]="fieldNames.remoReference"
+    [inputName]="fieldNames.remoReference"
+    inputClasses="govuk-input--width-20"
+    [control]="form.controls[fieldNames.remoReference]"
+    [errors]="formControlErrorMessages[fieldNames.remoReference]"
+  />
+  <opal-lib-govuk-text-input
+    labelText="Central authority reference"
+    labelClasses="govuk-label--s"
+    [inputId]="fieldNames.centralAuthorityReference"
+    [inputName]="fieldNames.centralAuthorityReference"
+    inputClasses="govuk-input--width-20"
+    [control]="form.controls[fieldNames.centralAuthorityReference]"
+    [errors]="formControlErrorMessages[fieldNames.centralAuthorityReference]"
+  />
+  <opal-lib-alphagov-accessible-autocomplete
+    labelText="Central Authority"
+    labelClasses="govuk-label--s"
+    [inputId]="fieldNames.majorCreditorId"
+    [inputName]="fieldNames.majorCreditorId"
+    [showAllValues]="true"
+    [autoCompleteItems]="centralAuthorityAutocompleteItems"
+    [control]="form.controls[fieldNames.majorCreditorId]"
+    [errors]="formControlErrorMessages[fieldNames.majorCreditorId]"
+  />
+  <div class="govuk-button-group">
+    <button class="govuk-button govuk-!-margin-right-4" id="returnToCaseDetails" type="submit">
+      Return to case details
+    </button>
+    <span id="cancelCentralAuthority">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

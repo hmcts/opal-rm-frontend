@@ -223,6 +223,8 @@ describe('Create Casefile Comments and notes', () => {
       cy.viewport(width, 900);
       setupCommentsAndNotes();
       if (width === 320) {
+        cy.get(Page.commentsAndNotes.comment).type('a'.repeat(250));
+        assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 0 characters remaining');
         cy.get(Page.commentsAndNotes.note).type('b'.repeat(1000));
         assertNormalizedText(Page.commentsAndNotes.noteCounter, 'You have 0 characters remaining');
       }

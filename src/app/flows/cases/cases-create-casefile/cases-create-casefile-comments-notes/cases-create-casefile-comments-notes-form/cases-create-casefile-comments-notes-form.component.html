@@ -7,27 +7,31 @@
 <opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
 
 <form (submit)="handleFormSubmit($event)">
-  <app-cases-create-casefile-character-count-textarea
+  <opal-lib-govuk-text-area
     labelText="Add comment"
+    labelClasses="govuk-label--m"
     hintText="For example, terms that affect the case, which will appear on the respondent account’s ‘At a glance’ view"
     [inputId]="fieldNames.comment"
     [inputName]="fieldNames.comment"
     [control]="form.controls[fieldNames.comment]"
     [errors]="formControlErrorMessages[fieldNames.comment]"
     [rows]="5"
+    [characterCountEnabled]="true"
     [maxCharacterLimit]="250"
   />
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
 
-  <app-cases-create-casefile-character-count-textarea
+  <opal-lib-govuk-text-area
     labelText="Add account notes"
+    labelClasses="govuk-label--m"
     hintText="You can view notes in the respondent account’s history after the case is published"
     [inputId]="fieldNames.note"
     [inputName]="fieldNames.note"
     [control]="form.controls[fieldNames.note]"
     [errors]="formControlErrorMessages[fieldNames.note]"
     [rows]="5"
+    [characterCountEnabled]="true"
     [maxCharacterLimit]="1000"
   />
 

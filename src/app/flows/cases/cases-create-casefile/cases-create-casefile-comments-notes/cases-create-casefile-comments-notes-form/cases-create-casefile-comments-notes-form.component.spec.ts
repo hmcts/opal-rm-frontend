@@ -82,7 +82,14 @@ describe('CasesCreateCasefileCommentsNotesFormComponent', () => {
       'You can view notes in the respondent account’s history after the case is published',
     );
     expect(textareas).toHaveLength(2);
-    expect([...textareas].every((textarea) => !textarea.hasAttribute('maxlength'))).toBe(true);
+    expect(textareas[0].getAttribute('maxlength')).toBe('250');
+    expect(textareas[1].getAttribute('maxlength')).toBe('1000');
+    expect(fixture.nativeElement.querySelector(`#${FIELD_NAMES.comment}-with-hint-info`)?.textContent.trim()).toBe(
+      'You can enter up to 250 characters',
+    );
+    expect(fixture.nativeElement.querySelector(`#${FIELD_NAMES.note}-with-hint-info`)?.textContent.trim()).toBe(
+      'You can enter up to 1000 characters',
+    );
     expect(fixture.nativeElement.querySelector('.govuk-section-break--visible')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#returnToCaseDetails')?.textContent.trim()).toBe(
       'Return to case details',

@@ -3,8 +3,7 @@ import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES } from 'src/app/flows/
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-task-statuses.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
-import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
-import { COMMENTS_AND_NOTES_ERROR_MESSAGES } from './constants/comments-and-notes-errors.constant';
+import { UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
 import { REPLACEMENT_COMMENTS_AND_NOTES, SAVED_COMMENTS_AND_NOTES } from './mocks/comments-and-notes.mock';
 import { setupCommentsAndNotes, type CasesCreateCasefileStoreInstance } from './setup/comments-and-notes.setup';
 
@@ -29,21 +28,9 @@ const assertRouterPath = (expectedPath: string): void => {
   cy.get('@angularRouter').should((router: Router) => expect(router.url).to.equal(expectedPath));
 };
 
-const assertInlineError = (selector: string, expectedMessage: string): void => {
-  cy.get(selector).then(($error) => {
-    const error = $error[0].cloneNode(true) as HTMLElement;
-    error.querySelector('.govuk-visually-hidden')?.remove();
-    expect(normalizeText(error.textContent)).to.equal(expectedMessage);
-  });
-};
-
-const setTextareaValue = (selector: string, value: string): void => {
-  cy.get(selector).invoke('val', value).trigger('input');
-};
-
 describe('Create Casefile Comments and notes', () => {
   it(
-    'AC1. should render exact accessible content with canonical IDs and no native maxlength',
+    'AC1. should render exact accessible content with canonical IDs and native maxlength',
     { tags: buildTags() },
     () => {
       setupCommentsAndNotes();
@@ -65,7 +52,7 @@ describe('Create Casefile Comments and notes', () => {
         'name',
         CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment,
       );
-      cy.get(Page.commentsAndNotes.comment).should('not.have.attr', 'maxlength');
+      cy.get(Page.commentsAndNotes.comment).should('have.attr', 'maxlength', '250');
       cy.get(Page.commentsAndNotes.comment).should(
         'have.attr',
         'aria-describedby',
@@ -76,7 +63,7 @@ describe('Create Casefile Comments and notes', () => {
         'name',
         CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note,
       );
-      cy.get(Page.commentsAndNotes.note).should('not.have.attr', 'maxlength');
+      cy.get(Page.commentsAndNotes.note).should('have.attr', 'maxlength', '1000');
       assertNormalizedText(Page.commentsAndNotes.commentLimit, 'You can enter up to 250 characters');
       assertNormalizedText(Page.commentsAndNotes.noteLimit, 'You can enter up to 1000 characters');
       cy.get(Page.commentsAndNotes.sectionBreak).should('exist');
@@ -101,67 +88,13 @@ describe('Create Casefile Comments and notes', () => {
     );
   });
 
-  it(
-    'AC1, AC3. should show boundary, singular, zero and negative live counts without truncating',
-    { tags: buildTags() },
-    () => {
-      setupCommentsAndNotes();
-
-      setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(249));
-      assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 1 character remaining');
-      setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(250));
-      assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 0 characters remaining');
-      setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(251));
-      cy.get(Page.commentsAndNotes.comment).should('have.value', 'a'.repeat(251));
-      assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have -1 characters remaining');
-
-      setTextareaValue(Page.commentsAndNotes.note, 'b'.repeat(1001));
-      cy.get(Page.commentsAndNotes.note).should('have.value', 'b'.repeat(1001));
-      assertNormalizedText(Page.commentsAndNotes.noteCounter, 'You have -1 characters remaining');
-    },
-  );
-
-  it(
-    'AC3, EMAC1. should reject both over-limit values, focus the summary, retain text and avoid POST',
-    { tags: buildTags() },
-    () => {
-      const postRequestSpy = cy.spy().as('invalidDraftCasefilePost');
-      cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
-      setupCommentsAndNotes();
-      setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(251));
-      setTextareaValue(Page.commentsAndNotes.note, 'b'.repeat(1001));
-
-      cy.get(Page.commentsAndNotes.returnToCaseDetails).click();
-
-      assertInlineError(Page.commentsAndNotes.commentError, COMMENTS_AND_NOTES_ERROR_MESSAGES.comment);
-      assertInlineError(Page.commentsAndNotes.noteError, COMMENTS_AND_NOTES_ERROR_MESSAGES.note);
-      cy.get(Page.commentsAndNotes.errorSummary)
-        .should('be.focused')
-        .and('contain.text', ERROR_SUMMARY_TITLE)
-        .and('contain.text', COMMENTS_AND_NOTES_ERROR_MESSAGES.comment)
-        .and('contain.text', COMMENTS_AND_NOTES_ERROR_MESSAGES.note);
-      cy.get(Page.commentsAndNotes.comment).should('have.value', 'a'.repeat(251));
-      cy.get(Page.commentsAndNotes.note).should('have.value', 'b'.repeat(1001));
-      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-        expect(store.commentsAndNotes()).to.equal(null);
-        expect(store.taskStatuses().commentsAndNotes).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
-      });
-      cy.get('@invalidDraftCasefilePost').should('not.have.been.called');
-      assertRouterPath(commentsAndNotesPath);
-    },
-  );
-
-  it('AC3, EMAC1a. should move each summary error link to its textarea', { tags: buildTags() }, () => {
+  it('AC1, AC3. should stop user input and counters at the approved limits', { tags: buildTags() }, () => {
     setupCommentsAndNotes();
-    setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(251));
-    setTextareaValue(Page.commentsAndNotes.note, 'b'.repeat(1001));
-    cy.get(Page.commentsAndNotes.returnToCaseDetails).click();
 
-    cy.get(Page.commentsAndNotes.errorSummaryLinks).contains(COMMENTS_AND_NOTES_ERROR_MESSAGES.comment).click();
-    cy.get(Page.commentsAndNotes.comment).should('be.focused');
-    cy.get(Page.commentsAndNotes.returnToCaseDetails).click();
-    cy.get(Page.commentsAndNotes.errorSummaryLinks).contains(COMMENTS_AND_NOTES_ERROR_MESSAGES.note).click();
-    cy.get(Page.commentsAndNotes.note).should('be.focused');
+    cy.get(Page.commentsAndNotes.comment).type('a'.repeat(251)).should('have.value', 'a'.repeat(250));
+    assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 0 characters remaining');
+    cy.get(Page.commentsAndNotes.note).type('b'.repeat(1001)).should('have.value', 'b'.repeat(1000));
+    assertNormalizedText(Page.commentsAndNotes.noteCounter, 'You have 0 characters remaining');
   });
 
   it('AC2. should save blank values as null, keep Optional and avoid POST', { tags: buildTags() }, () => {
@@ -169,7 +102,7 @@ describe('Create Casefile Comments and notes', () => {
     cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
     setupCommentsAndNotes({ savedCommentsAndNotes: SAVED_COMMENTS_AND_NOTES });
     cy.get(Page.commentsAndNotes.comment).clear();
-    setTextareaValue(Page.commentsAndNotes.note, '   ');
+    cy.get(Page.commentsAndNotes.note).invoke('val', '   ').trigger('input');
 
     cy.get(Page.commentsAndNotes.returnToCaseDetails).click();
 
@@ -285,23 +218,13 @@ describe('Create Casefile Comments and notes', () => {
     cy.checkA11y();
   });
 
-  it('AC3, AC5. should have no detected Axe violations in the error state', { tags: buildTags() }, () => {
-    setupCommentsAndNotes();
-    setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(251));
-    cy.get(Page.commentsAndNotes.returnToCaseDetails).click();
-
-    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-    cy.checkA11y();
-  });
-
   for (const width of [1280, 320]) {
     it(`AC5. should reflow without horizontal page overflow at ${width}px`, { tags: buildTags() }, () => {
       cy.viewport(width, 900);
       setupCommentsAndNotes();
       if (width === 320) {
-        setTextareaValue(Page.commentsAndNotes.note, 'b'.repeat(1001));
-        cy.get(Page.commentsAndNotes.returnToCaseDetails).click();
-        cy.get(Page.commentsAndNotes.errorSummary).should('contain.text', ERROR_SUMMARY_TITLE);
+        cy.get(Page.commentsAndNotes.note).type('b'.repeat(1000));
+        assertNormalizedText(Page.commentsAndNotes.noteCounter, 'You have 0 characters remaining');
       }
 
       cy.document().then((document) => {

@@ -4,7 +4,7 @@ import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/component
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
 import { GovukInsetTextComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-inset-text';
-import { CasesCreateCasefileCharacterCountTextareaComponent } from '../cases-create-casefile-character-count-textarea/cases-create-casefile-character-count-textarea.component';
+import { GovukTextAreaComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-area';
 import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_ERRORS } from '../constants/cases-create-casefile-comments-notes-field-errors.constant';
 import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES } from '../constants/cases-create-casefile-comments-notes-field-names.constant';
 import type { ICasesCreateCasefileCommentsNotesFieldErrors } from '../interfaces/cases-create-casefile-comments-notes-field-errors.interface';
@@ -18,7 +18,7 @@ import type { ICasesCreateCasefileCommentsNotesForm } from '../interfaces/cases-
     GovukCancelLinkComponent,
     GovukErrorSummaryComponent,
     GovukInsetTextComponent,
-    CasesCreateCasefileCharacterCountTextareaComponent,
+    GovukTextAreaComponent,
   ],
   templateUrl: './cases-create-casefile-comments-notes-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

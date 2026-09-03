@@ -124,7 +124,7 @@ async function setupE2eNodeEvents(
           rules: [
             {
               test: /\.ts$/,
-              exclude: [/node_modules/, /src/],
+              exclude: [/node_modules/],
               use: [
                 {
                   loader: 'ts-loader',

@@ -76,4 +76,43 @@ describe('CasesCreateCasefileCharacterCountTextareaComponent', () => {
       'Comment must be 250 characters or fewer',
     );
   });
+
+  it('stops tracking the former control when a new control is assigned', () => {
+    render();
+    const firstControl = control;
+    const secondControl = new FormControl<string | null>('b');
+
+    component.control = secondControl;
+    fixture.detectChanges();
+
+    firstControl.setValue('a'.repeat(249));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.govuk-character-count__status')?.textContent.trim()).toBe(
+      'You have 249 characters remaining',
+    );
+
+    secondControl.setValue('b'.repeat(2));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.govuk-character-count__status')?.textContent.trim()).toBe(
+      'You have 248 characters remaining',
+    );
+  });
+
+  it('updates the remaining count when the character limit changes after render', () => {
+    render();
+
+    control.setValue('a'.repeat(150));
+    fixture.detectChanges();
+    component.maxCharacterLimit = 100;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector(`#${component.inputId}-with-hint-info`)?.textContent.trim()).toBe(
+      'You can enter up to 100 characters',
+    );
+    expect(fixture.nativeElement.querySelector('.govuk-character-count__status')?.textContent.trim()).toBe(
+      'You have -50 characters remaining',
+    );
+  });
 });

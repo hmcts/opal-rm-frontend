@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, Input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-cases-create-casefile-character-count-textarea',
@@ -11,6 +12,8 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 export class CasesCreateCasefileCharacterCountTextareaComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly controlValue = signal('');
+  private readonly maxCharacterLimitValue = signal(0);
+  private controlSubscription?: Subscription;
   private formControl!: FormControl<string | null>;
 
   @Input({ required: true }) public labelText!: string;
@@ -18,14 +21,23 @@ export class CasesCreateCasefileCharacterCountTextareaComponent {
   @Input({ required: true }) public inputId!: string;
   @Input({ required: true }) public inputName!: string;
   @Input({ required: true }) public rows!: number;
-  @Input({ required: true }) public maxCharacterLimit!: number;
+  @Input({ required: true })
+  public set maxCharacterLimit(maxCharacterLimit: number) {
+    this.maxCharacterLimitValue.set(maxCharacterLimit);
+  }
+
+  public get maxCharacterLimit(): number {
+    return this.maxCharacterLimitValue();
+  }
+
   @Input() public errors: string | null = null;
 
   @Input({ required: true })
   public set control(control: FormControl<string | null>) {
+    this.controlSubscription?.unsubscribe();
     this.formControl = control;
     this.controlValue.set(control.value ?? '');
-    control.valueChanges
+    this.controlSubscription = control.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => this.controlValue.set(value ?? ''));
   }
@@ -34,7 +46,7 @@ export class CasesCreateCasefileCharacterCountTextareaComponent {
     return this.formControl;
   }
 
-  public readonly remainingCharacterCount = computed(() => this.maxCharacterLimit - this.controlValue().length);
+  public readonly remainingCharacterCount = computed(() => this.maxCharacterLimitValue() - this.controlValue().length);
 
   public get describedBy(): string {
     return [

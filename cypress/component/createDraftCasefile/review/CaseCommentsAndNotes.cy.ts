@@ -42,39 +42,43 @@ const setTextareaValue = (selector: string, value: string): void => {
 };
 
 describe('Create Casefile Comments and notes', () => {
-  it('AC1. should render exact accessible content with canonical IDs and no native maxlength', { tags: buildTags() }, () => {
-    setupCommentsAndNotes();
+  it(
+    'AC1. should render exact accessible content with canonical IDs and no native maxlength',
+    { tags: buildTags() },
+    () => {
+      setupCommentsAndNotes();
 
-    cy.get(Page.commentsAndNotes.heading).should('have.text', 'Comments and notes');
-    assertNormalizedText(Page.commentsAndNotes.inset, 'These will be added to the respondent account only.');
-    assertNormalizedText(Page.commentsAndNotes.commentLabel, 'Add comment');
-    assertNormalizedText(
-      Page.commentsAndNotes.commentHint,
-      "For example, terms that affect the case, which will appear on the respondent account’s ‘At a glance’ view",
-    );
-    assertNormalizedText(Page.commentsAndNotes.noteLabel, 'Add account notes');
-    assertNormalizedText(
-      Page.commentsAndNotes.noteHint,
-      'You can view notes in the respondent account’s history after the case is published',
-    );
-    cy.get(Page.commentsAndNotes.comment)
-      .should('have.attr', 'name', CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment)
-      .and('not.have.attr', 'maxlength')
-      .and(
-        'have.attr',
-        'aria-describedby',
-        `${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-hint ${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-with-hint-info`,
+      cy.get(Page.commentsAndNotes.heading).should('have.text', 'Comments and notes');
+      assertNormalizedText(Page.commentsAndNotes.inset, 'These will be added to the respondent account only.');
+      assertNormalizedText(Page.commentsAndNotes.commentLabel, 'Add comment');
+      assertNormalizedText(
+        Page.commentsAndNotes.commentHint,
+        'For example, terms that affect the case, which will appear on the respondent account’s ‘At a glance’ view',
       );
-    cy.get(Page.commentsAndNotes.note)
-      .should('have.attr', 'name', CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note)
-      .and('not.have.attr', 'maxlength');
-    assertNormalizedText(Page.commentsAndNotes.commentLimit, 'You can enter up to 250 characters');
-    assertNormalizedText(Page.commentsAndNotes.noteLimit, 'You can enter up to 1000 characters');
-    cy.get(Page.commentsAndNotes.sectionBreak).should('exist');
-    assertNormalizedText(Page.commentsAndNotes.returnToCaseDetails, 'Return to case details');
-    assertNormalizedText(Page.commentsAndNotes.cancelLink, 'Cancel');
-    cy.get('.govuk-back-link').should('not.exist');
-  });
+      assertNormalizedText(Page.commentsAndNotes.noteLabel, 'Add account notes');
+      assertNormalizedText(
+        Page.commentsAndNotes.noteHint,
+        'You can view notes in the respondent account’s history after the case is published',
+      );
+      cy.get(Page.commentsAndNotes.comment)
+        .should('have.attr', 'name', CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment)
+        .and('not.have.attr', 'maxlength')
+        .and(
+          'have.attr',
+          'aria-describedby',
+          `${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-hint ${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-with-hint-info`,
+        );
+      cy.get(Page.commentsAndNotes.note)
+        .should('have.attr', 'name', CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note)
+        .and('not.have.attr', 'maxlength');
+      assertNormalizedText(Page.commentsAndNotes.commentLimit, 'You can enter up to 250 characters');
+      assertNormalizedText(Page.commentsAndNotes.noteLimit, 'You can enter up to 1000 characters');
+      cy.get(Page.commentsAndNotes.sectionBreak).should('exist');
+      assertNormalizedText(Page.commentsAndNotes.returnToCaseDetails, 'Return to case details');
+      assertNormalizedText(Page.commentsAndNotes.cancelLink, 'Cancel');
+      cy.get('.govuk-back-link').should('not.exist');
+    },
+  );
 
   it('AC1. should restore both saved values and their live remaining counts', { tags: buildTags() }, () => {
     setupCommentsAndNotes({ savedCommentsAndNotes: SAVED_COMMENTS_AND_NOTES });
@@ -91,47 +95,55 @@ describe('Create Casefile Comments and notes', () => {
     );
   });
 
-  it('AC1, AC3. should show boundary, singular, zero and negative live counts without truncating', { tags: buildTags() }, () => {
-    setupCommentsAndNotes();
+  it(
+    'AC1, AC3. should show boundary, singular, zero and negative live counts without truncating',
+    { tags: buildTags() },
+    () => {
+      setupCommentsAndNotes();
 
-    setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(249));
-    assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 1 character remaining');
-    setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(250));
-    assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 0 characters remaining');
-    setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(251));
-    cy.get(Page.commentsAndNotes.comment).should('have.value', 'a'.repeat(251));
-    assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have -1 characters remaining');
+      setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(249));
+      assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 1 character remaining');
+      setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(250));
+      assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 0 characters remaining');
+      setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(251));
+      cy.get(Page.commentsAndNotes.comment).should('have.value', 'a'.repeat(251));
+      assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have -1 characters remaining');
 
-    setTextareaValue(Page.commentsAndNotes.note, 'b'.repeat(1001));
-    cy.get(Page.commentsAndNotes.note).should('have.value', 'b'.repeat(1001));
-    assertNormalizedText(Page.commentsAndNotes.noteCounter, 'You have -1 characters remaining');
-  });
+      setTextareaValue(Page.commentsAndNotes.note, 'b'.repeat(1001));
+      cy.get(Page.commentsAndNotes.note).should('have.value', 'b'.repeat(1001));
+      assertNormalizedText(Page.commentsAndNotes.noteCounter, 'You have -1 characters remaining');
+    },
+  );
 
-  it('AC3, EMAC1. should reject both over-limit values, focus the summary, retain text and avoid POST', { tags: buildTags() }, () => {
-    const postRequestSpy = cy.spy().as('invalidDraftCasefilePost');
-    cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
-    setupCommentsAndNotes();
-    setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(251));
-    setTextareaValue(Page.commentsAndNotes.note, 'b'.repeat(1001));
+  it(
+    'AC3, EMAC1. should reject both over-limit values, focus the summary, retain text and avoid POST',
+    { tags: buildTags() },
+    () => {
+      const postRequestSpy = cy.spy().as('invalidDraftCasefilePost');
+      cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
+      setupCommentsAndNotes();
+      setTextareaValue(Page.commentsAndNotes.comment, 'a'.repeat(251));
+      setTextareaValue(Page.commentsAndNotes.note, 'b'.repeat(1001));
 
-    cy.get(Page.commentsAndNotes.returnToCaseDetails).click();
+      cy.get(Page.commentsAndNotes.returnToCaseDetails).click();
 
-    assertInlineError(Page.commentsAndNotes.commentError, COMMENTS_AND_NOTES_ERROR_MESSAGES.comment);
-    assertInlineError(Page.commentsAndNotes.noteError, COMMENTS_AND_NOTES_ERROR_MESSAGES.note);
-    cy.get(Page.commentsAndNotes.errorSummary)
-      .should('be.focused')
-      .and('contain.text', ERROR_SUMMARY_TITLE)
-      .and('contain.text', COMMENTS_AND_NOTES_ERROR_MESSAGES.comment)
-      .and('contain.text', COMMENTS_AND_NOTES_ERROR_MESSAGES.note);
-    cy.get(Page.commentsAndNotes.comment).should('have.value', 'a'.repeat(251));
-    cy.get(Page.commentsAndNotes.note).should('have.value', 'b'.repeat(1001));
-    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-      expect(store.commentsAndNotes()).to.equal(null);
-      expect(store.taskStatuses().commentsAndNotes).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
-    });
-    cy.get('@invalidDraftCasefilePost').should('not.have.been.called');
-    assertRouterPath(commentsAndNotesPath);
-  });
+      assertInlineError(Page.commentsAndNotes.commentError, COMMENTS_AND_NOTES_ERROR_MESSAGES.comment);
+      assertInlineError(Page.commentsAndNotes.noteError, COMMENTS_AND_NOTES_ERROR_MESSAGES.note);
+      cy.get(Page.commentsAndNotes.errorSummary)
+        .should('be.focused')
+        .and('contain.text', ERROR_SUMMARY_TITLE)
+        .and('contain.text', COMMENTS_AND_NOTES_ERROR_MESSAGES.comment)
+        .and('contain.text', COMMENTS_AND_NOTES_ERROR_MESSAGES.note);
+      cy.get(Page.commentsAndNotes.comment).should('have.value', 'a'.repeat(251));
+      cy.get(Page.commentsAndNotes.note).should('have.value', 'b'.repeat(1001));
+      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+        expect(store.commentsAndNotes()).to.equal(null);
+        expect(store.taskStatuses().commentsAndNotes).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
+      });
+      cy.get('@invalidDraftCasefilePost').should('not.have.been.called');
+      assertRouterPath(commentsAndNotesPath);
+    },
+  );
 
   it('AC3, EMAC1a. should move each summary error link to its textarea', { tags: buildTags() }, () => {
     setupCommentsAndNotes();
@@ -244,17 +256,21 @@ describe('Create Casefile Comments and notes', () => {
     cy.get(Page.commentsAndNotes.comment).should('have.value', 'Unsaved edit');
   });
 
-  it('AC5. should support native editing and logical comment, note, Return, Cancel tab order', { tags: buildTags() }, () => {
-    setupCommentsAndNotes();
+  it(
+    'AC5. should support native editing and logical comment, note, Return, Cancel tab order',
+    { tags: buildTags() },
+    () => {
+      setupCommentsAndNotes();
 
-    cy.get(Page.commentsAndNotes.comment).focus().type('Keyboard comment').should('be.focused');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(Page.commentsAndNotes.note).should('be.focused').type('Keyboard note');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(Page.commentsAndNotes.returnToCaseDetails).should('be.focused');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(Page.commentsAndNotes.cancelLink).should('be.focused');
-  });
+      cy.get(Page.commentsAndNotes.comment).focus().type('Keyboard comment').should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(Page.commentsAndNotes.note).should('be.focused').type('Keyboard note');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(Page.commentsAndNotes.returnToCaseDetails).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(Page.commentsAndNotes.cancelLink).should('be.focused');
+    },
+  );
 
   it('AC5. should have no detected Axe violations in a representative valid state', { tags: buildTags() }, () => {
     setupCommentsAndNotes({ savedCommentsAndNotes: SAVED_COMMENTS_AND_NOTES });

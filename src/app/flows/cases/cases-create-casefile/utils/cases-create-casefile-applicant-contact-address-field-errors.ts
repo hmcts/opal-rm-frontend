@@ -1,5 +1,3 @@
-import type { IAbstractFormControlErrorMessage } from '@hmcts/opal-frontend-common/components/abstract/interfaces';
-import type { IAbstractFormBaseFieldError } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base/interfaces';
 import { CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS } from '../constants/cases-create-casefile-applicant-field-errors.constant';
 
 export const CASES_CREATE_CASEFILE_APPLICANT_CONTACT_ADDRESS_ERROR_KEYS = [
@@ -19,24 +17,25 @@ export const CASES_CREATE_CASEFILE_APPLICANT_CONTACT_ADDRESS_ERROR_KEYS = [
 export type CasesCreateCasefileApplicantContactAddressErrorKey =
   (typeof CASES_CREATE_CASEFILE_APPLICANT_CONTACT_ADDRESS_ERROR_KEYS)[number];
 
+type CasesCreateCasefileApplicantContactAddressFieldError =
+  (typeof CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress)[CasesCreateCasefileApplicantContactAddressErrorKey];
+
 export const createCasesCreateCasefileApplicantContactAddressFieldErrors = <
   TFieldNames extends Record<CasesCreateCasefileApplicantContactAddressErrorKey, string>,
 >(
   fieldNames: TFieldNames,
 ): Record<
   TFieldNames[CasesCreateCasefileApplicantContactAddressErrorKey],
-  IAbstractFormControlErrorMessage & IAbstractFormBaseFieldError
+  CasesCreateCasefileApplicantContactAddressFieldError
 > => {
   const fieldErrors = {} as Record<
     TFieldNames[CasesCreateCasefileApplicantContactAddressErrorKey],
-    IAbstractFormControlErrorMessage & IAbstractFormBaseFieldError
+    CasesCreateCasefileApplicantContactAddressFieldError
   >;
 
   for (const fieldName of CASES_CREATE_CASEFILE_APPLICANT_CONTACT_ADDRESS_ERROR_KEYS) {
     const canonicalFieldName = fieldNames[fieldName] as TFieldNames[CasesCreateCasefileApplicantContactAddressErrorKey];
-    fieldErrors[canonicalFieldName] = CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress[
-      fieldName
-    ] as unknown as IAbstractFormControlErrorMessage & IAbstractFormBaseFieldError;
+    fieldErrors[canonicalFieldName] = CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress[fieldName];
   }
 
   return fieldErrors;

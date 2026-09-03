@@ -4,6 +4,7 @@ import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../constants/cases-create-casefile-applicant-bank-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from '../constants/cases-create-casefile-indexation-types.constant';
+import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from '../constants/cases-create-casefile-payment-arrangements.constant';
 import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileApplicantOrganisation } from '../interfaces/cases-create-casefile-applicant-organisation.interface';
@@ -11,6 +12,7 @@ import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { ICasesCreateCasefileApplicantIndividual } from '../interfaces/cases-create-casefile-applicant-individual.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
+import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
 import { CasesCreateCasefileStore } from './cases-create-casefile.store';
 
@@ -105,6 +107,7 @@ describe('CasesCreateCasefileStore', () => {
   it('starts without default business values', () => {
     expect(store.caseTypeSelection()).toBeNull();
     expect(store.interestAndIndexation()).toBeNull();
+    expect(store.paymentArrangement()).toBeNull();
     expect(store.caseTypeComplete()).toBe(false);
     expect(store.unsavedChanges()).toBe(false);
     expect(store.stateChanges()).toBe(false);
@@ -258,6 +261,62 @@ describe('CasesCreateCasefileStore', () => {
       expect(store.stateChanges()).toBe(true);
     },
   );
+
+  it.each([
+    CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT,
+    CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.DIRECT,
+  ] satisfies CasesCreateCasefilePaymentArrangement[])(
+    'saves payment arrangement %s and marks Managing payments Provided atomically',
+    (paymentArrangement) => {
+      store.setUnsavedChanges(true);
+
+      store.setPaymentArrangement(paymentArrangement);
+
+      expect(store.paymentArrangement()).toBe(paymentArrangement);
+      expect(store.taskStatuses().managingPayments).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+      expect(store.unsavedChanges()).toBe(false);
+      expect(store.stateChanges()).toBe(true);
+    },
+  );
+
+  it('clears the payment arrangement when the Case Type changes', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setPaymentArrangement(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT);
+
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+    expect(store.paymentArrangement()).toBeNull();
+    expect(store.taskStatuses().managingPayments).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
+  });
+
+  it('preserves the payment arrangement when the Case Type selection is unchanged', () => {
+    const selection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    store.setCaseTypeSelection(selection);
+    store.setPaymentArrangement(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.DIRECT);
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.paymentArrangement()).toBe(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.DIRECT);
+    expect(store.taskStatuses().managingPayments).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+  });
+
+  it('clears the payment arrangement when resetting for Case Type edit', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setPaymentArrangement(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT);
+
+    store.resetForCaseTypeEdit();
+
+    expect(store.paymentArrangement()).toBeNull();
+  });
+
+  it('clears the payment arrangement when resetting the store', () => {
+    store.setPaymentArrangement(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.DIRECT);
+
+    store.resetStore();
+
+    expect(store.paymentArrangement()).toBeNull();
+    expect(store.taskStatuses().managingPayments).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
+  });
 
   it('clears Interest and indexation when the Case Type changes', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });

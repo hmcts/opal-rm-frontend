@@ -10,6 +10,7 @@ import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
+import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
 import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefile-task-status.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
 import { isCasesCreateCasefileCaseTypeSelectionValid } from '../utils/cases-create-casefile-case-type-selection';
@@ -77,6 +78,7 @@ export const CasesCreateCasefileStore = signalStore(
         applicantDetails: selectionUnchanged ? store.applicantDetails() : null,
         respondentDetails: selectionUnchanged ? store.respondentDetails() : null,
         interestAndIndexation: selectionUnchanged ? store.interestAndIndexation() : null,
+        paymentArrangement: selectionUnchanged ? store.paymentArrangement() : null,
         taskStatuses,
         stateChanges: true,
         unsavedChanges: false,
@@ -110,6 +112,17 @@ export const CasesCreateCasefileStore = signalStore(
         taskStatuses: {
           ...store.taskStatuses(),
           interestAndIndexation: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
+        },
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+    },
+    setPaymentArrangement: (paymentArrangement: CasesCreateCasefilePaymentArrangement): void => {
+      patchState(store, {
+        paymentArrangement,
+        taskStatuses: {
+          ...store.taskStatuses(),
+          managingPayments: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
         },
         stateChanges: true,
         unsavedChanges: false,

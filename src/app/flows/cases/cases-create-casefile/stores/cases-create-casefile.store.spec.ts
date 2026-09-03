@@ -8,6 +8,7 @@ import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from '../constants/cases-c
 import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileApplicantOrganisation } from '../interfaces/cases-create-casefile-applicant-organisation.interface';
+import type { ICasesCreateCasefileCommentsNotes } from '../interfaces/cases-create-casefile-comments-notes.interface';
 import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases-create-casefile-interest-indexation.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { ICasesCreateCasefileApplicantIndividual } from '../interfaces/cases-create-casefile-applicant-individual.interface';
@@ -108,6 +109,7 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.caseTypeSelection()).toBeNull();
     expect(store.interestAndIndexation()).toBeNull();
     expect(store.paymentArrangement()).toBeNull();
+    expect(store.commentsAndNotes()).toBeNull();
     expect(store.caseTypeComplete()).toBe(false);
     expect(store.unsavedChanges()).toBe(false);
     expect(store.stateChanges()).toBe(false);
@@ -278,6 +280,86 @@ describe('CasesCreateCasefileStore', () => {
       expect(store.stateChanges()).toBe(true);
     },
   );
+
+  it.each([
+    [{ comment: 'Important account comment', note: null }, 'comment only'],
+    [{ comment: null, note: 'Internal account note' }, 'note only'],
+    [{ comment: 'Important account comment', note: 'Internal account note' }, 'both values'],
+  ] satisfies [ICasesCreateCasefileCommentsNotes, string][])(
+    'saves %s and marks Comments and notes Provided atomically',
+    (commentsAndNotes, _description) => {
+      void _description;
+      store.setUnsavedChanges(true);
+
+      store.setCommentsAndNotes(commentsAndNotes);
+
+      expect(store.commentsAndNotes()).toEqual(commentsAndNotes);
+      expect(store.taskStatuses().commentsAndNotes).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+      expect(store.unsavedChanges()).toBe(false);
+      expect(store.stateChanges()).toBe(true);
+    },
+  );
+
+  it('normalizes blank values to null and restores the Optional task status', () => {
+    store.setCommentsAndNotes({ comment: 'Previously saved', note: 'Previously saved' });
+    store.setUnsavedChanges(true);
+
+    store.setCommentsAndNotes({ comment: '', note: '   ' });
+
+    expect(store.commentsAndNotes()).toEqual({ comment: null, note: null });
+    expect(store.taskStatuses().commentsAndNotes).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
+    expect(store.unsavedChanges()).toBe(false);
+    expect(store.stateChanges()).toBe(true);
+  });
+
+  it('retains entered whitespace around a non-empty value and replaces both saved fields', () => {
+    store.setCommentsAndNotes({ comment: 'Old comment', note: 'Old note' });
+
+    store.setCommentsAndNotes({ comment: '  New comment  ', note: '  New note  ' });
+
+    expect(store.commentsAndNotes()).toEqual({ comment: '  New comment  ', note: '  New note  ' });
+  });
+
+  it('clears Comments and notes when the Case Type changes', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setCommentsAndNotes({ comment: 'Saved comment', note: 'Saved note' });
+
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+    expect(store.commentsAndNotes()).toBeNull();
+    expect(store.taskStatuses().commentsAndNotes).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
+  });
+
+  it('preserves Comments and notes when the Case Type selection is unchanged', () => {
+    const selection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    const commentsAndNotes = { comment: 'Saved comment', note: 'Saved note' };
+    store.setCaseTypeSelection(selection);
+    store.setCommentsAndNotes(commentsAndNotes);
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.commentsAndNotes()).toEqual(commentsAndNotes);
+    expect(store.taskStatuses().commentsAndNotes).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+  });
+
+  it('clears Comments and notes when resetting for Case Type edit', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setCommentsAndNotes({ comment: 'Saved comment', note: 'Saved note' });
+
+    store.resetForCaseTypeEdit();
+
+    expect(store.commentsAndNotes()).toBeNull();
+    expect(store.taskStatuses().commentsAndNotes).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
+  });
+
+  it('clears Comments and notes when resetting the store', () => {
+    store.setCommentsAndNotes({ comment: 'Saved comment', note: 'Saved note' });
+
+    store.resetStore();
+
+    expect(store.commentsAndNotes()).toBeNull();
+    expect(store.taskStatuses().commentsAndNotes).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
+  });
 
   it('clears the payment arrangement when the Case Type changes', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });

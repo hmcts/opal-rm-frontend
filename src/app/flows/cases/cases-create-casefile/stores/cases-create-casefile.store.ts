@@ -8,6 +8,7 @@ import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-case
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileCommentsNotes } from '../interfaces/cases-create-casefile-comments-notes.interface';
 import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases-create-casefile-interest-indexation.interface';
+import type { ICasesCreateCasefileCentralAuthorityDetails } from '../interfaces/cases-create-casefile-central-authority-details.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
@@ -81,6 +82,7 @@ export const CasesCreateCasefileStore = signalStore(
         applicantDetails: selectionUnchanged ? store.applicantDetails() : null,
         respondentDetails: selectionUnchanged ? store.respondentDetails() : null,
         interestAndIndexation: selectionUnchanged ? store.interestAndIndexation() : null,
+        centralAuthorityDetails: selectionUnchanged ? store.centralAuthorityDetails() : null,
         paymentArrangement: selectionUnchanged ? store.paymentArrangement() : null,
         commentsAndNotes: selectionUnchanged ? store.commentsAndNotes() : null,
         taskStatuses,
@@ -116,6 +118,29 @@ export const CasesCreateCasefileStore = signalStore(
         taskStatuses: {
           ...store.taskStatuses(),
           interestAndIndexation: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
+        },
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+    },
+    setCentralAuthorityDetails: (details: ICasesCreateCasefileCentralAuthorityDetails): void => {
+      const centralAuthorityDetails: ICasesCreateCasefileCentralAuthorityDetails = {
+        remoReference: normalizeOptionalText(details.remoReference),
+        centralAuthorityReference: normalizeOptionalText(details.centralAuthorityReference),
+        majorCreditor: details.majorCreditor,
+      };
+      const provided =
+        centralAuthorityDetails.remoReference !== null ||
+        centralAuthorityDetails.centralAuthorityReference !== null ||
+        centralAuthorityDetails.majorCreditor !== null;
+
+      patchState(store, {
+        centralAuthorityDetails,
+        taskStatuses: {
+          ...store.taskStatuses(),
+          centralAuthority: provided
+            ? CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED
+            : CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL,
         },
         stateChanges: true,
         unsavedChanges: false,

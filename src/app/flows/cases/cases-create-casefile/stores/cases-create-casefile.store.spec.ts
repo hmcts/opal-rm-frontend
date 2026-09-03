@@ -11,6 +11,7 @@ import type { ICasesCreateCasefileApplicantOrganisation } from '../interfaces/ca
 import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases-create-casefile-interest-indexation.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { ICasesCreateCasefileApplicantIndividual } from '../interfaces/cases-create-casefile-applicant-individual.interface';
+import type { IOpalMaintenanceMajorCreditorReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-item.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
@@ -92,6 +93,25 @@ describe('CasesCreateCasefileStore', () => {
       },
     },
     bankDetails: { type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE },
+  };
+
+  const majorCreditor: IOpalMaintenanceMajorCreditorReferenceDataItem = {
+    major_creditor_id: 901,
+    business_unit_id: 77,
+    major_creditor_code: '0123',
+    name: 'Central Authority One',
+    address_line_1: '1 Test Street',
+    address_line_2: null,
+    address_line_3: null,
+    address_line_4: null,
+    address_line_5: null,
+    postcode: null,
+    country_id: null,
+    country_name: null,
+    contact_name: null,
+    contact_email: null,
+    active: true,
+    central_authority: true,
   };
 
   beforeEach(() => {
@@ -276,6 +296,62 @@ describe('CasesCreateCasefileStore', () => {
       expect(store.taskStatuses().managingPayments).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
       expect(store.unsavedChanges()).toBe(false);
       expect(store.stateChanges()).toBe(true);
+    },
+  );
+
+  it('normalizes whitespace-only Central Authority references and keeps the optional task Optional', () => {
+    store.setCentralAuthorityDetails({ remoReference: '   ', centralAuthorityReference: '\t', majorCreditor: null });
+
+    expect(store.centralAuthorityDetails()).toEqual({
+      remoReference: null,
+      centralAuthorityReference: null,
+      majorCreditor: null,
+    });
+    expect(store.taskStatuses().centralAuthority).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
+  });
+
+  it.each([
+    { remoReference: ' REMO-1 ', centralAuthorityReference: null, majorCreditor: null },
+    { remoReference: null, centralAuthorityReference: ' CA-1 ', majorCreditor: null },
+    { remoReference: null, centralAuthorityReference: null, majorCreditor },
+  ])('marks Central Authority Provided when any value is present', (details) => {
+    store.setCentralAuthorityDetails(details);
+
+    expect(store.centralAuthorityDetails()).toEqual(details);
+    expect(store.taskStatuses().centralAuthority).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+    expect(store.unsavedChanges()).toBe(false);
+  });
+
+  it('clears Central Authority details when Case Type changes', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setCentralAuthorityDetails({ remoReference: 'REMO-1', centralAuthorityReference: null, majorCreditor });
+
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+    expect(store.centralAuthorityDetails()).toBeNull();
+    expect(store.taskStatuses().centralAuthority).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
+  });
+
+  it('preserves Central Authority details when Case Type is unchanged', () => {
+    const selection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    const details = { remoReference: 'REMO-1', centralAuthorityReference: 'CA-1', majorCreditor };
+    store.setCaseTypeSelection(selection);
+    store.setCentralAuthorityDetails(details);
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.centralAuthorityDetails()).toEqual(details);
+  });
+
+  it.each(['resetForCaseTypeEdit', 'resetStore'] as const)(
+    'clears Central Authority details on %s',
+    (method) => {
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+      store.setCentralAuthorityDetails({ remoReference: null, centralAuthorityReference: null, majorCreditor });
+
+      store[method]();
+
+      expect(store.centralAuthorityDetails()).toBeNull();
     },
   );
 

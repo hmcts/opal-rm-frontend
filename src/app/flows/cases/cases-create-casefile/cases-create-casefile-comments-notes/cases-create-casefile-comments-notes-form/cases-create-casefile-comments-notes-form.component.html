@@ -1,0 +1,42 @@
+<h1 class="govuk-heading-l">Comments and notes</h1>
+
+<opal-lib-govuk-inset-text insetTextId="commentsAndNotesInset">
+  These will be added to the respondent account only.
+</opal-lib-govuk-inset-text>
+
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+
+<form (submit)="handleFormSubmit($event)">
+  <app-cases-create-casefile-character-count-textarea
+    labelText="Add comment"
+    hintText="For example, terms that affect the case, which will appear on the respondent account’s ‘At a glance’ view"
+    [inputId]="fieldNames.comment"
+    [inputName]="fieldNames.comment"
+    [control]="form.controls[fieldNames.comment]"
+    [errors]="formControlErrorMessages[fieldNames.comment]"
+    [rows]="5"
+    [maxCharacterLimit]="250"
+  />
+
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+
+  <app-cases-create-casefile-character-count-textarea
+    labelText="Add account notes"
+    hintText="You can view notes in the respondent account’s history after the case is published"
+    [inputId]="fieldNames.note"
+    [inputName]="fieldNames.note"
+    [control]="form.controls[fieldNames.note]"
+    [errors]="formControlErrorMessages[fieldNames.note]"
+    [rows]="5"
+    [maxCharacterLimit]="1000"
+  />
+
+  <div class="govuk-button-group">
+    <button class="govuk-button govuk-!-margin-right-4" id="returnToCaseDetails" type="submit">
+      Return to case details
+    </button>
+    <span id="cancelCommentsAndNotes">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

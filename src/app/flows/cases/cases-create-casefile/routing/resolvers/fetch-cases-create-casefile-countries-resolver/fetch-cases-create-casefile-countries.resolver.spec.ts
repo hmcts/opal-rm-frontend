@@ -9,14 +9,14 @@ import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { firstValueFrom, Observable, of, throwError } from 'rxjs';
-import { CasesCreateCasefileCountryService } from '../../../services/cases-create-casefile-country.service';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from '../../../services/interfaces/cases-create-casefile-country-reference-data-response.interface';
+import { OpalMaintenanceService } from '../../../../services/opal-maintenance-service/opal-maintenance.service';
+import type { IOpalMaintenanceCountryReferenceDataResponse } from '../../../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { fetchCasesCreateCasefileCountriesResolver } from './fetch-cases-create-casefile-countries.resolver';
 
 describe('fetchCasesCreateCasefileCountriesResolver', () => {
   const route = {} as ActivatedRouteSnapshot;
   const state = {} as RouterStateSnapshot;
-  const countriesResponse: ICasesCreateCasefileCountryReferenceDataResponse = {
+  const countriesResponse: IOpalMaintenanceCountryReferenceDataResponse = {
     count: 1,
     refData: [
       {
@@ -39,7 +39,7 @@ describe('fetchCasesCreateCasefileCountriesResolver', () => {
     countryService.getCountries.mockReturnValue(of(countriesResponse));
     TestBed.configureTestingModule({
       providers: [
-        { provide: CasesCreateCasefileCountryService, useValue: countryService },
+        { provide: OpalMaintenanceService, useValue: countryService },
         { provide: GlobalStore, useValue: globalStore },
       ],
     });
@@ -47,7 +47,7 @@ describe('fetchCasesCreateCasefileCountriesResolver', () => {
 
   it('resolves the unmodified active-Countries response', async () => {
     await expect(
-      firstValueFrom(executeResolver(route, state) as Observable<ICasesCreateCasefileCountryReferenceDataResponse>),
+      firstValueFrom(executeResolver(route, state) as Observable<IOpalMaintenanceCountryReferenceDataResponse>),
     ).resolves.toEqual(countriesResponse);
     expect(countryService.getCountries).toHaveBeenCalledWith(true);
   });
@@ -63,7 +63,7 @@ describe('fetchCasesCreateCasefileCountriesResolver', () => {
     countryService.getCountries.mockReturnValue(of({ count: 0, refData: [] }));
 
     const result = await firstValueFrom(
-      executeResolver(route, state) as Observable<ICasesCreateCasefileCountryReferenceDataResponse>,
+      executeResolver(route, state) as Observable<IOpalMaintenanceCountryReferenceDataResponse>,
       { defaultValue: null },
     );
 

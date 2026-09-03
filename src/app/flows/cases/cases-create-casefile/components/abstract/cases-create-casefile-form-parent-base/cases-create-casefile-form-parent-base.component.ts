@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
 import type { IGovUkSelectOptions } from '@hmcts/opal-frontend-common/components/govuk/govuk-select/interfaces';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from '../../../services/interfaces/cases-create-casefile-country-reference-data-response.interface';
+import type { IOpalMaintenanceCountryReferenceDataResponse } from '../../../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { CasesCreateCasefileStore } from '../../../stores/cases-create-casefile.store';
 
 @Directive()
@@ -12,9 +12,7 @@ export abstract class CasesCreateCasefileFormParentBaseComponent
   implements OnDestroy
 {
   private readonly route = inject(ActivatedRoute);
-  private readonly countries = this.route.snapshot.data[
-    'countries'
-  ] as ICasesCreateCasefileCountryReferenceDataResponse;
+  private readonly countries = this.route.snapshot.data['countries'] as IOpalMaintenanceCountryReferenceDataResponse;
   protected readonly store = inject(CasesCreateCasefileStore);
 
   public readonly countryAutocompleteItems: IAlphagovAccessibleAutocompleteItem[] = this.countries.refData.map(

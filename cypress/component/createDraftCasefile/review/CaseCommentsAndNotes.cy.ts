@@ -22,7 +22,7 @@ const DRAFT_CASEFILE_WRITE_URL = /\/draft-casefiles(?:[/?#]|$)/;
 const normalizeText = (text: string | null | undefined): string => text?.replace(/\s+/g, ' ').trim() ?? '';
 
 const assertNormalizedText = (selector: string, expectedText: string): void => {
-  cy.get(selector).then(($element) => expect(normalizeText($element.text())).to.equal(expectedText));
+  cy.get(selector).should(($element) => expect(normalizeText($element.text())).to.equal(expectedText));
 };
 
 const assertRouterPath = (expectedPath: string): void => {
@@ -60,17 +60,23 @@ describe('Create Casefile Comments and notes', () => {
         Page.commentsAndNotes.noteHint,
         'You can view notes in the respondent account’s history after the case is published',
       );
-      cy.get(Page.commentsAndNotes.comment)
-        .should('have.attr', 'name', CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment)
-        .and('not.have.attr', 'maxlength')
-        .and(
-          'have.attr',
-          'aria-describedby',
-          `${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-hint ${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-with-hint-info`,
-        );
-      cy.get(Page.commentsAndNotes.note)
-        .should('have.attr', 'name', CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note)
-        .and('not.have.attr', 'maxlength');
+      cy.get(Page.commentsAndNotes.comment).should(
+        'have.attr',
+        'name',
+        CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment,
+      );
+      cy.get(Page.commentsAndNotes.comment).should('not.have.attr', 'maxlength');
+      cy.get(Page.commentsAndNotes.comment).should(
+        'have.attr',
+        'aria-describedby',
+        `${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-hint ${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-with-hint-info`,
+      );
+      cy.get(Page.commentsAndNotes.note).should(
+        'have.attr',
+        'name',
+        CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note,
+      );
+      cy.get(Page.commentsAndNotes.note).should('not.have.attr', 'maxlength');
       assertNormalizedText(Page.commentsAndNotes.commentLimit, 'You can enter up to 250 characters');
       assertNormalizedText(Page.commentsAndNotes.noteLimit, 'You can enter up to 1000 characters');
       cy.get(Page.commentsAndNotes.sectionBreak).should('exist');

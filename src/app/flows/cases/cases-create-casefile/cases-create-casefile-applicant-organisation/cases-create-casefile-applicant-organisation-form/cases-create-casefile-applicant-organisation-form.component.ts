@@ -196,6 +196,7 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
     this.bankBranchController = createCasesCreateCasefileApplicantBankBranchController({
       controls: this.bankControls,
       fieldNames: this.bankFieldNames,
+      nonUkFieldOrder: this.bankLayout.nonUkFieldOrder,
       requiredTextValidator: casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
       clearErrors: (fieldNames) => this.clearBankBranchErrors(fieldNames),
       destroy$: this.bankBranchesDestroyed,

@@ -49,6 +49,28 @@ const NON_UK_FIELD_NAMES = [
   FIELD_NAMES.nonUkAccountNumber,
 ] as const;
 
+const INDIVIDUAL_NON_UK_FIELD_ORDER = [
+  'nonUkNameOnAccount',
+  'nonUkAccountNumber',
+  'nonUkPaymentReference',
+  'nonUkBicSwiftCode',
+  'nonUkIban',
+  'nonUkBankName',
+  'nonUkBranchSortCode',
+] as const;
+
+const ORGANISATION_NON_UK_FIELD_ORDER = [
+  'nonUkNameOnAccount',
+  'nonUkBicSwiftCode',
+  'nonUkIban',
+  'nonUkPaymentReference',
+  'nonUkBankName',
+  'nonUkBranchSortCode',
+  'nonUkAccountNumber',
+] as const;
+
+type NonUkFieldName = (typeof ORGANISATION_NON_UK_FIELD_ORDER)[number];
+
 const requiredTextValidator: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() !== '' ? null : { required: true };
 
@@ -68,13 +90,17 @@ describe('createCasesCreateCasefileApplicantBankBranchController', () => {
     clearErrors = vi.fn();
   });
 
-  const createController = () =>
+  const createController = (
+    nonUkFieldOrder:
+      typeof INDIVIDUAL_NON_UK_FIELD_ORDER | typeof ORGANISATION_NON_UK_FIELD_ORDER = ORGANISATION_NON_UK_FIELD_ORDER,
+  ) =>
     createCasesCreateCasefileApplicantBankBranchController({
       controls,
       fieldNames: FIELD_NAMES,
       requiredTextValidator,
       clearErrors,
       destroy$,
+      nonUkFieldOrder,
     });
 
   const ukControls = () => [
@@ -93,6 +119,16 @@ describe('createCasesCreateCasefileApplicantBankBranchController', () => {
     controls.nonUkBankBranchSortCode,
     controls.nonUkBankAccountNumber,
   ];
+
+  const nonUkControlsByFieldName = (): Record<NonUkFieldName, ReturnType<typeof nonUkControls>[number]> => ({
+    nonUkNameOnAccount: controls.nonUkBankNameOnAccount,
+    nonUkAccountNumber: controls.nonUkBankAccountNumber,
+    nonUkPaymentReference: controls.nonUkBankPaymentReference,
+    nonUkBicSwiftCode: controls.nonUkBankBicSwiftCode,
+    nonUkIban: controls.nonUkBankIban,
+    nonUkBankName: controls.nonUkBankName,
+    nonUkBranchSortCode: controls.nonUkBankBranchSortCode,
+  });
 
   it('keeps both branches inactive for an initial null selection without emitting reset changes', () => {
     const controller = createController();
@@ -137,7 +173,7 @@ describe('createCasesCreateCasefileApplicantBankBranchController', () => {
     }
   });
 
-  it('preserves inactive reset and active enable-validator-validity operation order', () => {
+  it('preserves inactive reset and active validator-enable-validity operation order', () => {
     const controller = createController();
     const activeControl = controls.ukBankNameOnAccount;
     const inactiveControl = controls.nonUkBankNameOnAccount;
@@ -159,8 +195,30 @@ describe('createCasesCreateCasefileApplicantBankBranchController', () => {
     expect(setErrors.mock.invocationCallOrder[0]).toBeLessThan(disable.mock.invocationCallOrder[0]);
     expect(disable.mock.invocationCallOrder[0]).toBeLessThan(inactiveValidity.mock.invocationCallOrder.at(-1)!);
     expect(enable).toHaveBeenCalledWith({ emitEvent: false });
-    expect(enable.mock.invocationCallOrder[0]).toBeLessThan(setValidators.mock.invocationCallOrder[0]);
-    expect(setValidators.mock.invocationCallOrder[0]).toBeLessThan(activeValidity.mock.invocationCallOrder.at(-1)!);
+    expect(setValidators.mock.invocationCallOrder[0]).toBeLessThan(enable.mock.invocationCallOrder[0]);
+    expect(enable.mock.invocationCallOrder[0]).toBeLessThan(activeValidity.mock.invocationCallOrder.at(-1)!);
+  });
+
+  it.each([
+    ['Applicant Individual', INDIVIDUAL_NON_UK_FIELD_ORDER],
+    ['Applicant Organisation', ORGANISATION_NON_UK_FIELD_ORDER],
+  ] as const)('activates the %s non-UK controls in its baseline semantic order', (_page, nonUkFieldOrder) => {
+    const controlsByFieldName = nonUkControlsByFieldName();
+    const validatorSpies = Object.entries(controlsByFieldName).map(([fieldName, control]) => ({
+      fieldName,
+      setValidators: vi.spyOn(control, 'setValidators'),
+    }));
+    const controller = createController(nonUkFieldOrder);
+
+    controller.applySelection(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK);
+
+    const activationOrder = validatorSpies
+      .sort(
+        (left, right) =>
+          left.setValidators.mock.invocationCallOrder[0] - right.setValidators.mock.invocationCallOrder[0],
+      )
+      .map(({ fieldName }) => fieldName);
+    expect(activationOrder).toEqual(nonUkFieldOrder);
   });
 
   it('enables the non-UK branch with its exact validator composition', () => {

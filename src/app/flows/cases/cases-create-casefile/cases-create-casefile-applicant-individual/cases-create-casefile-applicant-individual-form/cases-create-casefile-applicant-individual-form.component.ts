@@ -353,6 +353,7 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
     this.bankBranchController = createCasesCreateCasefileApplicantBankBranchController({
       controls: this.bankControls,
       fieldNames: this.bankFieldNames,
+      nonUkFieldOrder: this.bankLayout.nonUkFieldOrder,
       requiredTextValidator: casesCreateCasefileApplicantIndividualTrimRequiredValidator,
       clearErrors: (fieldNames) => this.clearConditionalBranchErrors(fieldNames),
       destroy$: this.partyAliasConditionalDestroyed$,

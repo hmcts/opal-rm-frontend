@@ -14,9 +14,31 @@ import {
 } from '../validators/cases-create-casefile-applicant-bank.validator';
 import type { ICasesCreateCasefileApplicantBankControls } from './cases-create-casefile-form-control-builders';
 
+type CasesCreateCasefileApplicantNonUkBankFieldName = keyof Pick<
+  ICasesCreateCasefileBankDetailsFieldNames,
+  | 'nonUkNameOnAccount'
+  | 'nonUkAccountNumber'
+  | 'nonUkPaymentReference'
+  | 'nonUkBicSwiftCode'
+  | 'nonUkIban'
+  | 'nonUkBankName'
+  | 'nonUkBranchSortCode'
+>;
+
+type CasesCreateCasefileApplicantNonUkBankFieldOrder = readonly [
+  CasesCreateCasefileApplicantNonUkBankFieldName,
+  CasesCreateCasefileApplicantNonUkBankFieldName,
+  CasesCreateCasefileApplicantNonUkBankFieldName,
+  CasesCreateCasefileApplicantNonUkBankFieldName,
+  CasesCreateCasefileApplicantNonUkBankFieldName,
+  CasesCreateCasefileApplicantNonUkBankFieldName,
+  CasesCreateCasefileApplicantNonUkBankFieldName,
+];
+
 export interface ICasesCreateCasefileApplicantBankBranchControllerConfig {
   controls: ICasesCreateCasefileApplicantBankControls;
   fieldNames: ICasesCreateCasefileBankDetailsFieldNames;
+  nonUkFieldOrder: CasesCreateCasefileApplicantNonUkBankFieldOrder;
   requiredTextValidator: ValidatorFn;
   clearErrors: (fieldNames: readonly string[]) => void;
   destroy$: Observable<void>;
@@ -49,8 +71,8 @@ const resetAndDisableBranch = (
 
 const enableBranch = (branch: readonly IBankBranchControl[]): void => {
   for (const { control, validators } of branch) {
-    control.enable({ emitEvent: false });
     control.setValidators(validators);
+    control.enable({ emitEvent: false });
     control.updateValueAndValidity({ emitEvent: false });
   }
 };
@@ -82,13 +104,23 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
       validators: [requiredTextValidator],
     },
   ];
-  const nonUkBranch: readonly IBankBranchControl[] = [
-    {
+  const nonUkBranchByFieldName: Record<CasesCreateCasefileApplicantNonUkBankFieldName, IBankBranchControl> = {
+    nonUkNameOnAccount: {
       control: controls.nonUkBankNameOnAccount,
       fieldName: fieldNames.nonUkNameOnAccount,
       validators: [requiredTextValidator],
     },
-    {
+    nonUkAccountNumber: {
+      control: controls.nonUkBankAccountNumber,
+      fieldName: fieldNames.nonUkAccountNumber,
+      validators: nonUkAccountNumberValidator,
+    },
+    nonUkPaymentReference: {
+      control: controls.nonUkBankPaymentReference,
+      fieldName: fieldNames.nonUkPaymentReference,
+      validators: [],
+    },
+    nonUkBicSwiftCode: {
       control: controls.nonUkBankBicSwiftCode,
       fieldName: fieldNames.nonUkBicSwiftCode,
       validators: [
@@ -96,32 +128,23 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
         casesCreateCasefileApplicantInternationalIdentifierRequiredValidator(controls.nonUkBankIban),
       ],
     },
-    {
+    nonUkIban: {
       control: controls.nonUkBankIban,
       fieldName: fieldNames.nonUkIban,
       validators: [casesCreateCasefileApplicantIbanValidator],
     },
-    {
-      control: controls.nonUkBankPaymentReference,
-      fieldName: fieldNames.nonUkPaymentReference,
-      validators: [],
-    },
-    {
+    nonUkBankName: {
       control: controls.nonUkBankName,
       fieldName: fieldNames.nonUkBankName,
       validators: [],
     },
-    {
+    nonUkBranchSortCode: {
       control: controls.nonUkBankBranchSortCode,
       fieldName: fieldNames.nonUkBranchSortCode,
       validators: [casesCreateCasefileApplicantBranchSortCodeValidator],
     },
-    {
-      control: controls.nonUkBankAccountNumber,
-      fieldName: fieldNames.nonUkAccountNumber,
-      validators: nonUkAccountNumberValidator,
-    },
-  ];
+  };
+  const nonUkBranch = config.nonUkFieldOrder.map((fieldName) => nonUkBranchByFieldName[fieldName]);
   let connected = false;
 
   const applySelection = (selection: CasesCreateCasefileApplicantBankType | null): void => {

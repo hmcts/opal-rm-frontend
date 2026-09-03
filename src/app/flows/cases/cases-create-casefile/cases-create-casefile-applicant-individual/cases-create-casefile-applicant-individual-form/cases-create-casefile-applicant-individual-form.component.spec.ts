@@ -1038,6 +1038,28 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     expect(component.aliasControls).toHaveLength(5);
   });
 
+  it('removes one of three aliases when its form row is missing an indexed field', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      create_casefile_applicant_individual_aliases: [
+        { firstNames: 'First', lastName: 'Alias' },
+        { firstNames: 'Second', lastName: 'Alias' },
+        { firstNames: 'Third', lastName: 'Alias' },
+      ],
+    };
+    fixture.detectChanges();
+    const aliasRows = component.form.controls['create_casefile_applicant_individual_aliases'];
+    aliasRows.at(1).removeControl('create_casefile_applicant_individual_alias_last_name_1');
+
+    component.removeAlias(1, 'create_casefile_applicant_individual_aliases');
+
+    expect(component.aliasControls).toHaveLength(2);
+    expect(aliasRows).toHaveLength(2);
+    expect(aliasRows.at(0).get('create_casefile_applicant_individual_alias_first_names_0')?.value).toBe('First');
+    expect(aliasRows.at(1).get('create_casefile_applicant_individual_alias_first_names_2')?.value).toBe('Third');
+    expect(component.form.dirty).toBe(true);
+  });
+
   it('uses the rendered Remove link to clear only removed errors, emit dirty state and focus the remaining row', async () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,

@@ -472,6 +472,18 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.unsavedChanges()).toBe(true);
   });
 
+  it('discards an invalid saved Case Type selection when returning to Case Type', () => {
+    const invalidSelection = { caseType: 'Unsupported' } as unknown as CasesCreateCasefileCaseTypeSelection;
+    store.setCaseTypeSelection(invalidSelection);
+
+    store.resetForCaseTypeEdit();
+
+    expect(store.caseTypeSelection()).toBeNull();
+    expect(store.unsavedChanges()).toBe(false);
+    expect(store.taskStatuses()).toEqual(CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES);
+    expect(store.stateChanges()).toBe(false);
+  });
+
   it('clears applicant data when resetting for Case Type edit', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     store.setApplicantDetails(applicant);

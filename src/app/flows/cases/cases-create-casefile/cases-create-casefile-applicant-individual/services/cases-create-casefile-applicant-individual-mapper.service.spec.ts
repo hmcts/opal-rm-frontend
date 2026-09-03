@@ -185,6 +185,12 @@ describe('CasesCreateCasefileApplicantIndividualMapperService', () => {
     expect(mapper.toApplicantDetails(mapper.toFormData(fullyPopulatedUkApplicant))).toEqual(fullyPopulatedUkApplicant);
   });
 
+  it('maps a saved applicant without a date of birth to a null form value', () => {
+    const formData = mapper.toFormData({ ...fullyPopulatedUkApplicant, dateOfBirth: null });
+
+    expect(formData.create_casefile_applicant_individual_date_of_birth).toBeNull();
+  });
+
   it('round-trips a fully populated non-UK applicant', () => {
     const formData: ICasesCreateCasefileApplicantIndividualFormData = {
       ...validUkFormData,

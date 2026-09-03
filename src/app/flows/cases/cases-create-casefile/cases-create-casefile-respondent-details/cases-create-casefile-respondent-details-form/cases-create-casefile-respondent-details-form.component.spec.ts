@@ -458,7 +458,7 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     ).toBe(false);
   });
 
-  it('removes only the last alias summary and form errors when the last row is removed', () => {
+  it('removes only the last alias errors and focuses the remaining alias when exactly two rows exist', async () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
       create_casefile_respondent_details_aliases: [
@@ -478,6 +478,11 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     expect(component.formErrorSummaryMessage.some((error) => error.fieldId.endsWith('_1'))).toBe(false);
     expect(component.formErrors.some((error) => error.fieldId.endsWith('_1'))).toBe(false);
     expect(component.aliasControls).toHaveLength(1);
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(
+        fixture.nativeElement.querySelector('#create_casefile_respondent_details_alias_first_names_0'),
+      );
+    });
   });
 
   it('cleans up a single removed alias without trying to focus a remaining row', () => {

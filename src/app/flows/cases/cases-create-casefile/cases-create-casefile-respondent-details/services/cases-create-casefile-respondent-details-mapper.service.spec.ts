@@ -193,6 +193,14 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
     expect(mapper.toRespondentDetails(mapper.toFormData(fullyPopulatedSaved))).toEqual(fullyPopulatedSaved);
   });
 
+  it('round-trips a respondent without a date of birth as null', () => {
+    const saved = { ...fullyPopulatedSaved, dateOfBirth: null };
+    const formData = mapper.toFormData(saved);
+
+    expect(formData.create_casefile_respondent_details_date_of_birth).toBeNull();
+    expect(mapper.toRespondentDetails(formData).dateOfBirth).toBeNull();
+  });
+
   it('maps valid display data to one canonical respondent snapshot', () => {
     expect(mapper.toRespondentDetails(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData)).toEqual(
       CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved,

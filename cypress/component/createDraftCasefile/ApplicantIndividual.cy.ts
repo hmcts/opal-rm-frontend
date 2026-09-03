@@ -3,6 +3,7 @@ import {
   GENERIC_HTTP_ERROR_MESSAGE,
   GENERIC_HTTP_ERROR_TITLE,
 } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
+import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-applicant-individual/constants/cases-create-casefile-applicant-individual-field-names.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-bank-types.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
@@ -76,6 +77,32 @@ const assertTabMovesTo = (selector: string): void => {
   });
 };
 
+const assertCanonicalIdentifierContract = (
+  prefix: string,
+  expectedControlNames: readonly string[],
+  submitSelector: string,
+  errorLinksSelector: string,
+): void => {
+  cy.get('form input, form select, form textarea').then(($controls) => {
+    const controls = [...$controls] as HTMLElement[];
+    const ids = controls.map((control) => control.id);
+    const names = controls.map((control) => control.getAttribute('name') ?? '');
+
+    expect(ids.every((id) => id.startsWith(prefix))).to.equal(true);
+    expect(names.every((name) => name.startsWith(prefix))).to.equal(true);
+    expect(new Set(ids).size).to.equal(ids.length);
+    expect(expectedControlNames.every((name) => names.includes(name))).to.equal(true);
+  });
+  cy.get(submitSelector).click();
+  cy.get(errorLinksSelector).each(($link) => {
+    cy.wrap($link).click();
+    cy.focused().should(($focused) => {
+      const targetId = $focused.attr('id') ?? '';
+      expect(targetId.startsWith(prefix)).to.equal(true);
+      expect(Cypress.$(`#${targetId}`)).to.have.length(1);
+    });
+  });
+};
 describe('Create Casefile Applicant Individual', () => {
   it('AC1. should render all empty controls in the documented REMO In Individual order', { tags: buildTags() }, () => {
     setupApplicantIndividual();
@@ -155,6 +182,28 @@ describe('Create Casefile Applicant Individual', () => {
       Page.applicantIndividual.cancelLink,
     ]);
   });
+
+  it(
+    'AC1, AC2. should use canonical unique control identifiers with exact error targets',
+    { tags: buildTags() },
+    () => {
+      setupApplicantIndividual();
+      cy.get(Page.applicantIndividual.addAliases).check();
+      cy.get(Page.applicantIndividual.sendCorrespondenceToThirdParty).check();
+      cy.get(Page.applicantIndividual.restrictedInformation).check();
+
+      const controlFieldNames = Object.entries(CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_NAMES)
+        .filter(([key]) => !['aliases', 'aliasFirstNames', 'aliasLastName'].includes(key))
+        .map(([, value]) => value);
+
+      assertCanonicalIdentifierContract(
+        'create_casefile_applicant_individual_',
+        controlFieldNames,
+        Page.applicantIndividual.returnToCaseDetails,
+        Page.applicantIndividual.errorSummaryLinks,
+      );
+    },
+  );
 
   it('AC1. should restore every saved applicant value and active branch', { tags: buildTags() }, () => {
     setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });

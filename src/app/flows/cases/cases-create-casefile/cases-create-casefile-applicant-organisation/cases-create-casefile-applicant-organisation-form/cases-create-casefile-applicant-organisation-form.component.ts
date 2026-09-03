@@ -40,56 +40,57 @@ import {
   casesCreateCasefileApplicantUkSortCodeValidator,
 } from '../../validators/cases-create-casefile-applicant-bank.validator';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS } from '../constants/cases-create-casefile-applicant-organisation-field-errors.constant';
+import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_NAMES as FIELD_NAMES } from '../constants/cases-create-casefile-applicant-organisation-field-names.constant';
 import type { ICasesCreateCasefileApplicantOrganisationFieldErrors } from '../interfaces/cases-create-casefile-applicant-organisation-field-errors.interface';
 import type { ICasesCreateCasefileApplicantOrganisationFormData } from '../interfaces/cases-create-casefile-applicant-organisation-form-data.interface';
 import type { ICasesCreateCasefileApplicantOrganisationForm } from '../interfaces/cases-create-casefile-applicant-organisation-form.interface';
 import { casesCreateCasefileApplicantOrganisationTrimRequiredValidator } from '../validators/cases-create-casefile-applicant-organisation-trim-required.validator';
 
 const UK_BANK_CONTROL_NAMES = [
-  'applicant_uk_bank_name_on_account',
-  'applicant_uk_bank_sort_code',
-  'applicant_uk_bank_account_number',
-  'applicant_uk_bank_payment_reference',
+  'create_casefile_applicant_organisation_uk_bank_name_on_account',
+  'create_casefile_applicant_organisation_uk_bank_sort_code',
+  'create_casefile_applicant_organisation_uk_bank_account_number',
+  'create_casefile_applicant_organisation_uk_bank_payment_reference',
 ] as const;
 
 const NON_UK_BANK_CONTROL_NAMES = [
-  'applicant_non_uk_bank_name_on_account',
-  'applicant_non_uk_bank_bic_swift_code',
-  'applicant_non_uk_bank_iban',
-  'applicant_non_uk_bank_payment_reference',
-  'applicant_non_uk_bank_name',
-  'applicant_non_uk_bank_branch_sort_code',
-  'applicant_non_uk_bank_account_number',
+  'create_casefile_applicant_organisation_non_uk_bank_name_on_account',
+  'create_casefile_applicant_organisation_non_uk_bank_bic_swift_code',
+  'create_casefile_applicant_organisation_non_uk_bank_iban',
+  'create_casefile_applicant_organisation_non_uk_bank_payment_reference',
+  'create_casefile_applicant_organisation_non_uk_bank_name',
+  'create_casefile_applicant_organisation_non_uk_bank_branch_sort_code',
+  'create_casefile_applicant_organisation_non_uk_bank_account_number',
 ] as const;
 
 type BankControlName = (typeof UK_BANK_CONTROL_NAMES)[number] | (typeof NON_UK_BANK_CONTROL_NAMES)[number];
 
 interface IApplicantOrganisationFormControls {
-  applicant_organisation_name: FormControl<string | null>;
-  applicant_foreign_authority_reference: FormControl<string | null>;
-  applicant_main_email_address: FormControl<string | null>;
-  applicant_other_email_address: FormControl<string | null>;
-  applicant_main_telephone_number: FormControl<string | null>;
-  applicant_other_telephone_number: FormControl<string | null>;
-  applicant_address_line_1: FormControl<string | null>;
-  applicant_address_line_2: FormControl<string | null>;
-  applicant_address_line_3: FormControl<string | null>;
-  applicant_address_line_4: FormControl<string | null>;
-  applicant_address_line_5: FormControl<string | null>;
-  applicant_postal_or_zip_code: FormControl<string | null>;
-  applicant_country_id: FormControl<number | null>;
-  applicant_bank_type: FormControl<CasesCreateCasefileApplicantBankType | null>;
-  applicant_uk_bank_name_on_account: FormControl<string | null>;
-  applicant_uk_bank_sort_code: FormControl<string | null>;
-  applicant_uk_bank_account_number: FormControl<string | null>;
-  applicant_uk_bank_payment_reference: FormControl<string | null>;
-  applicant_non_uk_bank_name_on_account: FormControl<string | null>;
-  applicant_non_uk_bank_bic_swift_code: FormControl<string | null>;
-  applicant_non_uk_bank_iban: FormControl<string | null>;
-  applicant_non_uk_bank_payment_reference: FormControl<string | null>;
-  applicant_non_uk_bank_name: FormControl<string | null>;
-  applicant_non_uk_bank_branch_sort_code: FormControl<string | null>;
-  applicant_non_uk_bank_account_number: FormControl<string | null>;
+  create_casefile_applicant_organisation_name: FormControl<string | null>;
+  create_casefile_applicant_organisation_foreign_authority_reference: FormControl<string | null>;
+  create_casefile_applicant_organisation_main_email_address: FormControl<string | null>;
+  create_casefile_applicant_organisation_other_email_address: FormControl<string | null>;
+  create_casefile_applicant_organisation_main_telephone_number: FormControl<string | null>;
+  create_casefile_applicant_organisation_other_telephone_number: FormControl<string | null>;
+  create_casefile_applicant_organisation_address_line_1: FormControl<string | null>;
+  create_casefile_applicant_organisation_address_line_2: FormControl<string | null>;
+  create_casefile_applicant_organisation_address_line_3: FormControl<string | null>;
+  create_casefile_applicant_organisation_address_line_4: FormControl<string | null>;
+  create_casefile_applicant_organisation_address_line_5: FormControl<string | null>;
+  create_casefile_applicant_organisation_postal_or_zip_code: FormControl<string | null>;
+  create_casefile_applicant_organisation_country_id: FormControl<number | null>;
+  create_casefile_applicant_organisation_bank_type: FormControl<CasesCreateCasefileApplicantBankType | null>;
+  create_casefile_applicant_organisation_uk_bank_name_on_account: FormControl<string | null>;
+  create_casefile_applicant_organisation_uk_bank_sort_code: FormControl<string | null>;
+  create_casefile_applicant_organisation_uk_bank_account_number: FormControl<string | null>;
+  create_casefile_applicant_organisation_uk_bank_payment_reference: FormControl<string | null>;
+  create_casefile_applicant_organisation_non_uk_bank_name_on_account: FormControl<string | null>;
+  create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: FormControl<string | null>;
+  create_casefile_applicant_organisation_non_uk_bank_iban: FormControl<string | null>;
+  create_casefile_applicant_organisation_non_uk_bank_payment_reference: FormControl<string | null>;
+  create_casefile_applicant_organisation_non_uk_bank_name: FormControl<string | null>;
+  create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: FormControl<string | null>;
+  create_casefile_applicant_organisation_non_uk_bank_account_number: FormControl<string | null>;
 }
 
 @Component({
@@ -120,34 +121,35 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
   @Input({ required: true }) public initialFormData!: ICasesCreateCasefileApplicantOrganisationFormData;
   @Input({ required: true }) public countryAutocompleteItems!: IAlphagovAccessibleAutocompleteItem[];
   public override form!: FormGroup<IApplicantOrganisationFormControls>;
+  public readonly fieldNames = FIELD_NAMES;
   public readonly contactDetailsFieldNames: ICasesCreateCasefileContactFieldNames = {
-    mainEmailAddress: 'applicant_main_email_address',
-    otherEmailAddress: 'applicant_other_email_address',
-    mainTelephoneNumber: 'applicant_main_telephone_number',
-    otherTelephoneNumber: 'applicant_other_telephone_number',
+    mainEmailAddress: FIELD_NAMES.mainEmailAddress,
+    otherEmailAddress: FIELD_NAMES.otherEmailAddress,
+    mainTelephoneNumber: FIELD_NAMES.mainTelephoneNumber,
+    otherTelephoneNumber: FIELD_NAMES.otherTelephoneNumber,
   };
   public readonly addressFieldNames: ICasesCreateCasefileAddressFieldNames = {
-    addressLine1: 'applicant_address_line_1',
-    addressLine2: 'applicant_address_line_2',
-    addressLine3: 'applicant_address_line_3',
-    addressLine4: 'applicant_address_line_4',
-    addressLine5: 'applicant_address_line_5',
-    postalOrZipCode: 'applicant_postal_or_zip_code',
-    countryId: 'applicant_country_id',
+    addressLine1: FIELD_NAMES.addressLine1,
+    addressLine2: FIELD_NAMES.addressLine2,
+    addressLine3: FIELD_NAMES.addressLine3,
+    addressLine4: FIELD_NAMES.addressLine4,
+    addressLine5: FIELD_NAMES.addressLine5,
+    postalOrZipCode: FIELD_NAMES.postalOrZipCode,
+    countryId: FIELD_NAMES.countryId,
   };
   public readonly bankFieldNames: ICasesCreateCasefileBankDetailsFieldNames = {
-    bankType: 'applicant_bank_type',
-    ukNameOnAccount: 'applicant_uk_bank_name_on_account',
-    ukSortCode: 'applicant_uk_bank_sort_code',
-    ukAccountNumber: 'applicant_uk_bank_account_number',
-    ukPaymentReference: 'applicant_uk_bank_payment_reference',
-    nonUkNameOnAccount: 'applicant_non_uk_bank_name_on_account',
-    nonUkAccountNumber: 'applicant_non_uk_bank_account_number',
-    nonUkPaymentReference: 'applicant_non_uk_bank_payment_reference',
-    nonUkBicSwiftCode: 'applicant_non_uk_bank_bic_swift_code',
-    nonUkIban: 'applicant_non_uk_bank_iban',
-    nonUkBankName: 'applicant_non_uk_bank_name',
-    nonUkBranchSortCode: 'applicant_non_uk_bank_branch_sort_code',
+    bankType: FIELD_NAMES.bankType,
+    ukNameOnAccount: FIELD_NAMES.ukBankNameOnAccount,
+    ukSortCode: FIELD_NAMES.ukBankSortCode,
+    ukAccountNumber: FIELD_NAMES.ukBankAccountNumber,
+    ukPaymentReference: FIELD_NAMES.ukBankPaymentReference,
+    nonUkNameOnAccount: FIELD_NAMES.nonUkBankNameOnAccount,
+    nonUkAccountNumber: FIELD_NAMES.nonUkBankAccountNumber,
+    nonUkPaymentReference: FIELD_NAMES.nonUkBankPaymentReference,
+    nonUkBicSwiftCode: FIELD_NAMES.nonUkBankBicSwiftCode,
+    nonUkIban: FIELD_NAMES.nonUkBankIban,
+    nonUkBankName: FIELD_NAMES.nonUkBankName,
+    nonUkBranchSortCode: FIELD_NAMES.nonUkBankBranchSortCode,
   };
   public readonly bankOptions = CASES_CREATE_CASEFILE_APPLICANT_BANK_OPTIONS;
   public readonly bankTypes = CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES;
@@ -191,37 +193,37 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
     });
 
     this.form = new FormGroup<IApplicantOrganisationFormControls>({
-      applicant_organisation_name: new FormControl<string | null>(null, [
+      create_casefile_applicant_organisation_name: new FormControl<string | null>(null, [
         casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
         Validators.maxLength(80),
       ]),
-      applicant_foreign_authority_reference: new FormControl<string | null>(null, [
+      create_casefile_applicant_organisation_foreign_authority_reference: new FormControl<string | null>(null, [
         casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
         Validators.maxLength(40),
       ]),
-      applicant_main_email_address: contactControls.mainEmailAddress,
-      applicant_other_email_address: contactControls.otherEmailAddress,
-      applicant_main_telephone_number: contactControls.mainTelephoneNumber,
-      applicant_other_telephone_number: contactControls.otherTelephoneNumber,
-      applicant_address_line_1: addressControls.addressLine1,
-      applicant_address_line_2: addressControls.addressLine2,
-      applicant_address_line_3: addressControls.addressLine3,
-      applicant_address_line_4: addressControls.addressLine4,
-      applicant_address_line_5: addressControls.addressLine5,
-      applicant_postal_or_zip_code: addressControls.postalOrZipCode,
-      applicant_country_id: addressControls.countryId,
-      applicant_bank_type: bankControls.bankType,
-      applicant_uk_bank_name_on_account: bankControls.ukBankNameOnAccount,
-      applicant_uk_bank_sort_code: bankControls.ukBankSortCode,
-      applicant_uk_bank_account_number: bankControls.ukBankAccountNumber,
-      applicant_uk_bank_payment_reference: bankControls.ukBankPaymentReference,
-      applicant_non_uk_bank_name_on_account: bankControls.nonUkBankNameOnAccount,
-      applicant_non_uk_bank_bic_swift_code: bankControls.nonUkBankBicSwiftCode,
-      applicant_non_uk_bank_iban: bankControls.nonUkBankIban,
-      applicant_non_uk_bank_payment_reference: bankControls.nonUkBankPaymentReference,
-      applicant_non_uk_bank_name: bankControls.nonUkBankName,
-      applicant_non_uk_bank_branch_sort_code: bankControls.nonUkBankBranchSortCode,
-      applicant_non_uk_bank_account_number: bankControls.nonUkBankAccountNumber,
+      create_casefile_applicant_organisation_main_email_address: contactControls.mainEmailAddress,
+      create_casefile_applicant_organisation_other_email_address: contactControls.otherEmailAddress,
+      create_casefile_applicant_organisation_main_telephone_number: contactControls.mainTelephoneNumber,
+      create_casefile_applicant_organisation_other_telephone_number: contactControls.otherTelephoneNumber,
+      create_casefile_applicant_organisation_address_line_1: addressControls.addressLine1,
+      create_casefile_applicant_organisation_address_line_2: addressControls.addressLine2,
+      create_casefile_applicant_organisation_address_line_3: addressControls.addressLine3,
+      create_casefile_applicant_organisation_address_line_4: addressControls.addressLine4,
+      create_casefile_applicant_organisation_address_line_5: addressControls.addressLine5,
+      create_casefile_applicant_organisation_postal_or_zip_code: addressControls.postalOrZipCode,
+      create_casefile_applicant_organisation_country_id: addressControls.countryId,
+      create_casefile_applicant_organisation_bank_type: bankControls.bankType,
+      create_casefile_applicant_organisation_uk_bank_name_on_account: bankControls.ukBankNameOnAccount,
+      create_casefile_applicant_organisation_uk_bank_sort_code: bankControls.ukBankSortCode,
+      create_casefile_applicant_organisation_uk_bank_account_number: bankControls.ukBankAccountNumber,
+      create_casefile_applicant_organisation_uk_bank_payment_reference: bankControls.ukBankPaymentReference,
+      create_casefile_applicant_organisation_non_uk_bank_name_on_account: bankControls.nonUkBankNameOnAccount,
+      create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: bankControls.nonUkBankBicSwiftCode,
+      create_casefile_applicant_organisation_non_uk_bank_iban: bankControls.nonUkBankIban,
+      create_casefile_applicant_organisation_non_uk_bank_payment_reference: bankControls.nonUkBankPaymentReference,
+      create_casefile_applicant_organisation_non_uk_bank_name: bankControls.nonUkBankName,
+      create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: bankControls.nonUkBankBranchSortCode,
+      create_casefile_applicant_organisation_non_uk_bank_account_number: bankControls.nonUkBankAccountNumber,
     });
   }
 
@@ -251,16 +253,20 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
 
   private enableUkBankBranch(): void {
     const validators: Record<(typeof UK_BANK_CONTROL_NAMES)[number], ValidatorFn[]> = {
-      applicant_uk_bank_name_on_account: [casesCreateCasefileApplicantOrganisationTrimRequiredValidator],
-      applicant_uk_bank_sort_code: [
+      create_casefile_applicant_organisation_uk_bank_name_on_account: [
+        casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
+      ],
+      create_casefile_applicant_organisation_uk_bank_sort_code: [
         casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
         casesCreateCasefileApplicantUkSortCodeValidator,
       ],
-      applicant_uk_bank_account_number: [
+      create_casefile_applicant_organisation_uk_bank_account_number: [
         casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
         casesCreateCasefileApplicantUkAccountNumberValidator,
       ],
-      applicant_uk_bank_payment_reference: [casesCreateCasefileApplicantOrganisationTrimRequiredValidator],
+      create_casefile_applicant_organisation_uk_bank_payment_reference: [
+        casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
+      ],
     };
 
     for (const controlName of UK_BANK_CONTROL_NAMES) {
@@ -272,18 +278,22 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
   }
 
   private enableNonUkBankBranch(): void {
-    const ibanControl = this.form.controls.applicant_non_uk_bank_iban;
+    const ibanControl = this.form.controls.create_casefile_applicant_organisation_non_uk_bank_iban;
     const validators: Record<(typeof NON_UK_BANK_CONTROL_NAMES)[number], ValidatorFn[]> = {
-      applicant_non_uk_bank_name_on_account: [casesCreateCasefileApplicantOrganisationTrimRequiredValidator],
-      applicant_non_uk_bank_bic_swift_code: [
+      create_casefile_applicant_organisation_non_uk_bank_name_on_account: [
+        casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
+      ],
+      create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: [
         casesCreateCasefileApplicantBicSwiftValidator,
         casesCreateCasefileApplicantInternationalIdentifierRequiredValidator(ibanControl),
       ],
-      applicant_non_uk_bank_iban: [casesCreateCasefileApplicantIbanValidator],
-      applicant_non_uk_bank_payment_reference: [],
-      applicant_non_uk_bank_name: [],
-      applicant_non_uk_bank_branch_sort_code: [casesCreateCasefileApplicantBranchSortCodeValidator],
-      applicant_non_uk_bank_account_number: [optionalMaxLengthValidator(20)],
+      create_casefile_applicant_organisation_non_uk_bank_iban: [casesCreateCasefileApplicantIbanValidator],
+      create_casefile_applicant_organisation_non_uk_bank_payment_reference: [],
+      create_casefile_applicant_organisation_non_uk_bank_name: [],
+      create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: [
+        casesCreateCasefileApplicantBranchSortCodeValidator,
+      ],
+      create_casefile_applicant_organisation_non_uk_bank_account_number: [optionalMaxLengthValidator(20)],
     };
 
     for (const controlName of NON_UK_BANK_CONTROL_NAMES) {
@@ -309,13 +319,15 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
   }
 
   private setupBankBranchListeners(): void {
-    this.form.controls.applicant_bank_type.valueChanges
+    this.form.controls.create_casefile_applicant_organisation_bank_type.valueChanges
       .pipe(takeUntil(this.bankBranchesDestroyed))
       .subscribe((bankType) => this.updateBankBranch(bankType));
-    this.form.controls.applicant_non_uk_bank_iban.valueChanges
+    this.form.controls.create_casefile_applicant_organisation_non_uk_bank_iban.valueChanges
       .pipe(takeUntil(this.bankBranchesDestroyed))
       .subscribe(() =>
-        this.form.controls.applicant_non_uk_bank_bic_swift_code.updateValueAndValidity({ emitEvent: false }),
+        this.form.controls.create_casefile_applicant_organisation_non_uk_bank_bic_swift_code.updateValueAndValidity({
+          emitEvent: false,
+        }),
       );
   }
 
@@ -340,7 +352,7 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
     this.setInitialErrorMessages();
     this.rePopulateForm(this.initialFormData);
     this.setupBankBranchListeners();
-    this.updateBankBranch(this.form.controls.applicant_bank_type.value);
+    this.updateBankBranch(this.form.controls.create_casefile_applicant_organisation_bank_type.value);
     super.ngOnInit();
   }
 

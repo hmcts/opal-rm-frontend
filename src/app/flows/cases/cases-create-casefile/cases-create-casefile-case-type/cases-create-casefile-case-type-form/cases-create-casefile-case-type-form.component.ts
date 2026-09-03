@@ -9,6 +9,7 @@ import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../../constants/cases-create-c
 import { CasesCreateCasefileApplicantType } from '../../types/cases-create-casefile-applicant-type.type';
 import { CasesCreateCasefileCaseType } from '../../types/cases-create-casefile-case-type.type';
 import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_ERRORS } from '../constants/cases-create-casefile-case-type-field-errors.constant';
+import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from '../constants/cases-create-casefile-case-type-field-names.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPE_OPTIONS } from '../constants/cases-create-casefile-case-type-options.constant';
 import { ICasesCreateCasefileCaseTypeFieldErrors } from '../interfaces/cases-create-casefile-case-type-field-errors.interface';
 import { ICasesCreateCasefileCaseTypeFormData } from '../interfaces/cases-create-casefile-case-type-form-data.interface';
@@ -32,20 +33,29 @@ export class CasesCreateCasefileCaseTypeFormComponent extends AbstractFormBaseCo
   public readonly caseTypeOptions = CASES_CREATE_CASEFILE_CASE_TYPE_OPTIONS;
   public readonly applicantTypes = Object.values(CASES_CREATE_CASEFILE_APPLICANT_TYPES);
   public readonly caseTypes = CASES_CREATE_CASEFILE_CASE_TYPES;
+  public readonly fieldNames = CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES;
   public readonly applicantTypeConditionalId = 'applicantTypeConditional';
 
   public get caseTypeControl(): FormControl<CasesCreateCasefileCaseType | null> {
-    return this.form.controls['caseType'] as FormControl<CasesCreateCasefileCaseType | null>;
+    return this.form.controls[
+      CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.caseType
+    ] as FormControl<CasesCreateCasefileCaseType | null>;
   }
 
   public get applicantTypeControl(): FormControl<CasesCreateCasefileApplicantType | null> {
-    return this.form.controls['applicantType'] as FormControl<CasesCreateCasefileApplicantType | null>;
+    return this.form.controls[
+      CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.applicantType
+    ] as FormControl<CasesCreateCasefileApplicantType | null>;
   }
 
   private setupForm(): void {
     this.form = new FormGroup({
-      caseType: new FormControl<CasesCreateCasefileCaseType | null>(null, Validators.required),
-      applicantType: new FormControl<CasesCreateCasefileApplicantType | null>({ value: null, disabled: true }),
+      [CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.caseType]: new FormControl<CasesCreateCasefileCaseType | null>(
+        null,
+        Validators.required,
+      ),
+      [CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.applicantType]:
+        new FormControl<CasesCreateCasefileApplicantType | null>({ value: null, disabled: true }),
     });
   }
 
@@ -64,9 +74,10 @@ export class CasesCreateCasefileCaseTypeFormComponent extends AbstractFormBaseCo
   }
 
   private clearApplicantTypeErrors(): void {
-    this.formControlErrorMessages['applicantType'] = null;
-    this.formErrorSummaryMessage = this.formErrorSummaryMessage.filter((error) => error.fieldId !== 'applicantType');
-    this.formErrors = (this.formErrors ?? []).filter((error) => error.fieldId !== 'applicantType');
+    const { applicantType } = CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES;
+    this.formControlErrorMessages[applicantType] = null;
+    this.formErrorSummaryMessage = this.formErrorSummaryMessage.filter((error) => error.fieldId !== applicantType);
+    this.formErrors = (this.formErrors ?? []).filter((error) => error.fieldId !== applicantType);
   }
 
   private setupCaseTypeListener(): void {
@@ -96,7 +107,10 @@ export class CasesCreateCasefileCaseTypeFormComponent extends AbstractFormBaseCo
     this.rePopulateForm(this.initialFormData);
     this.updateApplicantTypeRequirement(this.caseTypeControl.value);
     if (this.caseTypeControl.value === CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN) {
-      this.applicantTypeControl.setValue(this.initialFormData.applicantType, { emitEvent: false });
+      this.applicantTypeControl.setValue(
+        this.initialFormData[CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.applicantType],
+        { emitEvent: false },
+      );
     }
     super.ngOnInit();
   }

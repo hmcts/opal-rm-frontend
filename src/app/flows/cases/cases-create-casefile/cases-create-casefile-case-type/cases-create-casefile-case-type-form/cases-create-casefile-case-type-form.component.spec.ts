@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../../constants/cases-create-casefile-case-types.constant';
+import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES as FIELD_NAMES } from '../constants/cases-create-casefile-case-type-field-names.constant';
 import { CasesCreateCasefileCaseTypeFormComponent } from './cases-create-casefile-case-type-form.component';
 
 describe('CasesCreateCasefileCaseTypeFormComponent', () => {
@@ -17,24 +18,48 @@ describe('CasesCreateCasefileCaseTypeFormComponent', () => {
 
     fixture = TestBed.createComponent(CasesCreateCasefileCaseTypeFormComponent);
     component = fixture.componentInstance;
-    component.initialFormData = { caseType: null, applicantType: null };
+    component.initialFormData = { [FIELD_NAMES.caseType]: null, [FIELD_NAMES.applicantType]: null };
     fixture.detectChanges();
+  });
+
+  it('uses canonical, unique identifiers for every form control and error-summary target', () => {
+    component.caseTypeControl.setValue(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN);
+    component.handleFormSubmit(new SubmitEvent('submit'));
+    fixture.detectChanges();
+
+    const controls = Array.from(
+      fixture.nativeElement.querySelectorAll('input, select, textarea') as NodeListOf<HTMLElement>,
+    );
+    const ids = controls.map((control) => control.id);
+    const names = controls.map((control) => control.getAttribute('name') ?? '');
+
+    expect(ids.every((id) => id.startsWith('create_casefile_case_type_'))).toBe(true);
+    expect(names.every((name) => name.startsWith('create_casefile_case_type_'))).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const controlName of Object.keys(component.form.controls)) {
+      expect(names).toContain(controlName);
+    }
+    for (const error of component.formErrorSummaryMessage) {
+      expect(fixture.nativeElement.querySelectorAll(`[id="${error.fieldId}"]`)).toHaveLength(1);
+    }
   });
 
   it('starts with no default values and Applicant Type disabled', () => {
     expect(component.caseTypeControl.value).toBeNull();
     expect(component.applicantTypeControl.value).toBeNull();
     expect(component.applicantTypeControl.disabled).toBe(true);
-    expect(fixture.nativeElement.querySelector('input[name="caseType"]:checked')).toBeNull();
+    expect(fixture.nativeElement.querySelector(`input[name="${FIELD_NAMES.caseType}"]:checked`)).toBeNull();
   });
 
   it('describes and controls the Applicant Type reveal without unsupported expanded state', () => {
-    const remoInRadio = fixture.nativeElement.querySelector('#caseType-remo-in') as HTMLInputElement;
+    const remoInRadio = fixture.nativeElement.querySelector(`#${FIELD_NAMES.caseType}-remo-in`) as HTMLInputElement;
     const conditional = fixture.nativeElement.querySelector('#applicantTypeConditional') as HTMLDivElement;
-    const description = fixture.nativeElement.querySelector('#caseType-remo-in-description') as HTMLSpanElement;
+    const description = fixture.nativeElement.querySelector(
+      `#${FIELD_NAMES.caseType}-remo-in-description`,
+    ) as HTMLSpanElement;
 
     expect(remoInRadio.getAttribute('aria-controls')).toBe('applicantTypeConditional');
-    expect(remoInRadio.getAttribute('aria-describedby')).toBe('caseType-remo-in-description');
+    expect(remoInRadio.getAttribute('aria-describedby')).toBe(`${FIELD_NAMES.caseType}-remo-in-description`);
     expect(remoInRadio.hasAttribute('aria-expanded')).toBe(false);
     expect(description.textContent?.trim()).toBe('Selecting REMO In reveals the required applicant type field.');
     expect(conditional.classList.contains('govuk-radios__conditional--hidden')).toBe(true);
@@ -69,8 +94,8 @@ describe('CasesCreateCasefileCaseTypeFormComponent', () => {
     fixture = TestBed.createComponent(CasesCreateCasefileCaseTypeFormComponent);
     component = fixture.componentInstance;
     component.initialFormData = {
-      caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
-      applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
+      [FIELD_NAMES.caseType]: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+      [FIELD_NAMES.applicantType]: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
     };
     fixture.detectChanges();
 
@@ -86,14 +111,16 @@ describe('CasesCreateCasefileCaseTypeFormComponent', () => {
     component.handleFormSubmit(event);
 
     expect(event.defaultPrevented).toBe(true);
-    expect(component.formControlErrorMessages['caseType']).toBe('Select a case type');
-    expect(component.formErrorSummaryMessage).toEqual([{ fieldId: 'caseType', message: 'Select a case type' }]);
+    expect(component.formControlErrorMessages[FIELD_NAMES.caseType]).toBe('Select a case type');
+    expect(component.formErrorSummaryMessage).toEqual([
+      { fieldId: FIELD_NAMES.caseType, message: 'Select a case type' },
+    ]);
   });
 
   it('shows the exact Applicant Type validation error', () => {
     component.caseTypeControl.setValue(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN);
     component.handleFormSubmit(new SubmitEvent('submit'));
-    expect(component.formControlErrorMessages['applicantType']).toBe('Select applicant type');
+    expect(component.formControlErrorMessages[FIELD_NAMES.applicantType]).toBe('Select applicant type');
   });
 
   it('clears Applicant Type errors when switching outbound', () => {
@@ -102,17 +129,17 @@ describe('CasesCreateCasefileCaseTypeFormComponent', () => {
 
     component.caseTypeControl.setValue(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT);
 
-    expect(component.formControlErrorMessages['applicantType']).toBeNull();
+    expect(component.formControlErrorMessages[FIELD_NAMES.applicantType]).toBeNull();
     expect(component.formErrorSummaryMessage).not.toContainEqual({
-      fieldId: 'applicantType',
+      fieldId: FIELD_NAMES.applicantType,
       message: 'Select applicant type',
     });
 
     component.caseTypeControl.setValue(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN);
 
-    expect(component.formControlErrorMessages['applicantType']).toBeNull();
+    expect(component.formControlErrorMessages[FIELD_NAMES.applicantType]).toBeNull();
     expect(component.formErrorSummaryMessage).not.toContainEqual({
-      fieldId: 'applicantType',
+      fieldId: FIELD_NAMES.applicantType,
       message: 'Select applicant type',
     });
   });
@@ -127,7 +154,10 @@ describe('CasesCreateCasefileCaseTypeFormComponent', () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(formSubmitSpy).toHaveBeenCalledWith({
-      formData: { caseType: 'REMO In', applicantType: 'Individual' },
+      formData: {
+        [FIELD_NAMES.caseType]: 'REMO In',
+        [FIELD_NAMES.applicantType]: 'Individual',
+      },
       nestedFlow: false,
     });
   });
@@ -139,7 +169,10 @@ describe('CasesCreateCasefileCaseTypeFormComponent', () => {
     component.handleFormSubmit(new SubmitEvent('submit'));
 
     expect(formSubmitSpy).toHaveBeenCalledWith({
-      formData: { caseType: 'REMO Out', applicantType: null },
+      formData: {
+        [FIELD_NAMES.caseType]: 'REMO Out',
+        [FIELD_NAMES.applicantType]: null,
+      },
       nestedFlow: false,
     });
   });

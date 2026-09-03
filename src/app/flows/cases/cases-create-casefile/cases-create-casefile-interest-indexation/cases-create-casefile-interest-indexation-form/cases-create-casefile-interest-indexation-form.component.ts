@@ -10,6 +10,7 @@ import {
 } from '@hmcts/opal-frontend-common/components/govuk/govuk-radio';
 import type { CasesCreateCasefileIndexationType } from '../../types/cases-create-casefile-indexation-type.type';
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_ERRORS } from '../constants/cases-create-casefile-interest-indexation-field-errors.constant';
+import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from '../constants/cases-create-casefile-interest-indexation-field-names.constant';
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_OPTIONS } from '../constants/cases-create-casefile-interest-indexation-options.constant';
 import type { ICasesCreateCasefileInterestIndexationFieldErrors } from '../interfaces/cases-create-casefile-interest-indexation-field-errors.interface';
 import type { ICasesCreateCasefileInterestIndexationFormData } from '../interfaces/cases-create-casefile-interest-indexation-form-data.interface';
@@ -38,9 +39,14 @@ export class CasesCreateCasefileInterestIndexationFormComponent extends Abstract
 
   @Input({ required: true }) public initialFormData!: ICasesCreateCasefileInterestIndexationFormData;
   public readonly options = CASES_CREATE_CASEFILE_INTEREST_INDEXATION_OPTIONS;
+  public readonly fieldNames = CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES;
   public override form = new FormGroup({
-    interestApplies: new FormControl<boolean | null>(null, Validators.required),
-    indexationType: new FormControl<CasesCreateCasefileIndexationType | null>(null, Validators.required),
+    [CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.interestApplies]: new FormControl<boolean | null>(
+      null,
+      Validators.required,
+    ),
+    [CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.indexationType]:
+      new FormControl<CasesCreateCasefileIndexationType | null>(null, Validators.required),
   });
 
   public override handleFormSubmit(event: SubmitEvent): void {
@@ -51,7 +57,10 @@ export class CasesCreateCasefileInterestIndexationFormComponent extends Abstract
       return;
     }
 
-    const { interestApplies, indexationType } = this.form.getRawValue();
+    const {
+      [CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.interestApplies]: interestApplies,
+      [CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.indexationType]: indexationType,
+    } = this.form.getRawValue();
     if (interestApplies === null || indexationType === null) {
       return;
     }
@@ -59,7 +68,13 @@ export class CasesCreateCasefileInterestIndexationFormComponent extends Abstract
     this.handleErrorMessages();
     this.formSubmitted = true;
     this.unsavedChanges.emit(this.hasUnsavedChanges());
-    this.formSubmit.emit({ formData: { interestApplies, indexationType }, nestedFlow: false });
+    this.formSubmit.emit({
+      formData: {
+        [CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.interestApplies]: interestApplies,
+        [CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.indexationType]: indexationType,
+      },
+      nestedFlow: false,
+    });
   }
 
   public override ngOnInit(): void {

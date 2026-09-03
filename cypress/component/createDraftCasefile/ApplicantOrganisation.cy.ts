@@ -3,6 +3,7 @@ import {
   GENERIC_HTTP_ERROR_MESSAGE,
   GENERIC_HTTP_ERROR_TITLE,
 } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
+import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-applicant-organisation/constants/cases-create-casefile-applicant-organisation-field-names.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-bank-types.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
@@ -89,7 +90,49 @@ const assertOrganisationRouteBlocked = (selection: CasesCreateCasefileCaseTypeSe
   cy.get(Page.caseDetails.heading).should('have.text', 'Case details');
 };
 
+const assertCanonicalIdentifierContract = (
+  prefix: string,
+  expectedControlNames: readonly string[],
+  submitSelector: string,
+  errorLinksSelector: string,
+): void => {
+  cy.get('form input, form select, form textarea').then(($controls) => {
+    const controls = [...$controls] as HTMLElement[];
+    const ids = controls.map((control) => control.id);
+    const names = controls.map((control) => control.getAttribute('name') ?? '');
+
+    expect(ids.every((id) => id.startsWith(prefix))).to.equal(true);
+    expect(names.every((name) => name.startsWith(prefix))).to.equal(true);
+    expect(new Set(ids).size).to.equal(ids.length);
+    expect(expectedControlNames.every((name) => names.includes(name))).to.equal(true);
+  });
+  cy.get(submitSelector).click();
+  cy.get(errorLinksSelector).each(($link) => {
+    cy.wrap($link).click();
+    cy.focused().should(($focused) => {
+      const targetId = $focused.attr('id') ?? '';
+      expect(targetId.startsWith(prefix)).to.equal(true);
+      expect(Cypress.$(`#${targetId}`)).to.have.length(1);
+    });
+  });
+};
+
 describe('Create Casefile Applicant Organisation', () => {
+  it(
+    'AC1, AC2. should use canonical unique control identifiers with exact error targets',
+    { tags: buildTags() },
+    () => {
+      setupApplicantOrganisation();
+
+      assertCanonicalIdentifierContract(
+        'create_casefile_applicant_organisation_',
+        Object.values(CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_NAMES),
+        Page.applicantOrganisation.returnToCaseDetails,
+        Page.applicantOrganisation.errorSummaryLinks,
+      );
+    },
+  );
+
   it(
     'AC1. should render every empty control in the documented REMO In Organisation order',
     { tags: buildTags() },

@@ -6,47 +6,47 @@
   <opal-lib-govuk-text-input
     labelText="Title"
     labelClasses="govuk-label--s"
-    inputId="applicant_title"
-    inputName="applicant_title"
+    inputId="create_casefile_applicant_individual_title"
+    inputName="create_casefile_applicant_individual_title"
     inputClasses="govuk-input--width-10"
-    [control]="form.get('applicant_title')"
-    [errors]="formControlErrorMessages['applicant_title']"
+    [control]="form.get('create_casefile_applicant_individual_title')"
+    [errors]="formControlErrorMessages['create_casefile_applicant_individual_title']"
   />
   <opal-lib-govuk-text-input
     labelText="First names"
     labelClasses="govuk-label--s"
-    inputId="applicant_first_names"
-    inputName="applicant_first_names"
+    inputId="create_casefile_applicant_individual_first_names"
+    inputName="create_casefile_applicant_individual_first_names"
     inputClasses="govuk-input--width-20"
     hintText="Include their middle names"
-    [control]="form.get('applicant_first_names')"
-    [errors]="formControlErrorMessages['applicant_first_names']"
+    [control]="form.get('create_casefile_applicant_individual_first_names')"
+    [errors]="formControlErrorMessages['create_casefile_applicant_individual_first_names']"
   />
   <opal-lib-govuk-text-input
     labelText="Last name"
     labelClasses="govuk-label--s"
-    inputId="applicant_last_name"
-    inputName="applicant_last_name"
+    inputId="create_casefile_applicant_individual_last_name"
+    inputName="create_casefile_applicant_individual_last_name"
     inputClasses="govuk-input--width-20"
-    [control]="form.get('applicant_last_name')"
-    [errors]="formControlErrorMessages['applicant_last_name']"
+    [control]="form.get('create_casefile_applicant_individual_last_name')"
+    [errors]="formControlErrorMessages['create_casefile_applicant_individual_last_name']"
   />
 
-  <opal-lib-govuk-checkboxes fieldSetId="applicant_add_aliases_fieldset" legendText="">
+  <opal-lib-govuk-checkboxes fieldSetId="create_casefile_applicant_individual_add_aliases_fieldset" legendText="">
     <div
       opal-lib-govuk-checkboxes-item
       labelText="Add aliases"
-      inputId="applicant_add_aliases"
-      inputName="applicant_add_aliases"
+      inputId="create_casefile_applicant_individual_add_aliases"
+      inputName="create_casefile_applicant_individual_add_aliases"
       ariaControls="applicantAliasesConditional-conditional"
-      [control]="form.get('applicant_add_aliases')"
+      [control]="form.get('create_casefile_applicant_individual_add_aliases')"
     ></div>
-    @if (form.controls.applicant_add_aliases.value) {
+    @if (form.controls.create_casefile_applicant_individual_add_aliases.value) {
       <div opal-lib-govuk-checkboxes-conditional conditionalId="applicantAliasesConditional">
         @for (
           aliasControl of aliasControls;
           let rowIndex = $index;
-          track aliasControl['applicant_alias_first_names'].inputId
+          track aliasControl['create_casefile_applicant_individual_alias_first_names'].inputId
         ) {
           <fieldset class="govuk-fieldset">
             <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
@@ -55,23 +55,39 @@
             <opal-lib-govuk-text-input
               #aliasFirstField
               labelText="First names"
-              [inputId]="aliasControl['applicant_alias_first_names'].inputId"
-              [inputName]="aliasControl['applicant_alias_first_names'].inputName"
+              [inputId]="aliasControl['create_casefile_applicant_individual_alias_first_names'].inputId"
+              [inputName]="aliasControl['create_casefile_applicant_individual_alias_first_names'].inputName"
               inputClasses="govuk-input--width-20"
               [control]="
-                form.get(['applicant_aliases', rowIndex, aliasControl['applicant_alias_first_names'].controlName])
+                form.get([
+                  'create_casefile_applicant_individual_aliases',
+                  rowIndex,
+                  aliasControl['create_casefile_applicant_individual_alias_first_names'].controlName,
+                ])
               "
-              [errors]="formControlErrorMessages[aliasControl['applicant_alias_first_names'].controlName]"
+              [errors]="
+                formControlErrorMessages[
+                  aliasControl['create_casefile_applicant_individual_alias_first_names'].controlName
+                ]
+              "
             />
             <opal-lib-govuk-text-input
               labelText="Last name"
-              [inputId]="aliasControl['applicant_alias_last_name'].inputId"
-              [inputName]="aliasControl['applicant_alias_last_name'].inputName"
+              [inputId]="aliasControl['create_casefile_applicant_individual_alias_last_name'].inputId"
+              [inputName]="aliasControl['create_casefile_applicant_individual_alias_last_name'].inputName"
               inputClasses="govuk-input--width-20"
               [control]="
-                form.get(['applicant_aliases', rowIndex, aliasControl['applicant_alias_last_name'].controlName])
+                form.get([
+                  'create_casefile_applicant_individual_aliases',
+                  rowIndex,
+                  aliasControl['create_casefile_applicant_individual_alias_last_name'].controlName,
+                ])
               "
-              [errors]="formControlErrorMessages[aliasControl['applicant_alias_last_name'].controlName]"
+              [errors]="
+                formControlErrorMessages[
+                  aliasControl['create_casefile_applicant_individual_alias_last_name'].controlName
+                ]
+              "
             />
           </fieldset>
         }
@@ -80,7 +96,7 @@
             <a
               class="govuk-link govuk-link--no-visited-state"
               href=""
-              (click)="removeAlias(aliasControls.length - 1, 'applicant_aliases', $event)"
+              (click)="removeAlias(aliasControls.length - 1, 'create_casefile_applicant_individual_aliases', $event)"
             >
               Remove <span class="govuk-visually-hidden">alias {{ aliasControls.length }}</span>
             </a>
@@ -91,7 +107,7 @@
             buttonId="addApplicantAlias"
             buttonClasses="govuk-button--secondary govuk-!-margin-bottom-0"
             type="button"
-            (buttonClickEvent)="addAlias(aliasControls.length, 'applicant_aliases')"
+            (buttonClickEvent)="addAlias(aliasControls.length, 'create_casefile_applicant_individual_aliases')"
           >
             Add another alias
           </opal-lib-govuk-button>
@@ -103,14 +119,14 @@
   <opal-lib-moj-date-picker
     labelText="Date of birth"
     labelClasses="govuk-label--s"
-    inputId="applicant_date_of_birth"
-    inputName="applicant_date_of_birth"
+    inputId="create_casefile_applicant_individual_date_of_birth"
+    inputName="create_casefile_applicant_individual_date_of_birth"
     inputClasses="govuk-input--width-10"
     hintText="For example, 31/01/1980"
-    [control]="form.controls.applicant_date_of_birth"
+    [control]="form.controls.create_casefile_applicant_individual_date_of_birth"
     [maxDate]="yesterday"
-    [errors]="formControlErrorMessages['applicant_date_of_birth']"
-    (dateChange)="setInputValue($event, 'applicant_date_of_birth')"
+    [errors]="formControlErrorMessages['create_casefile_applicant_individual_date_of_birth']"
+    (dateChange)="setInputValue($event, 'create_casefile_applicant_individual_date_of_birth')"
   />
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
@@ -133,8 +149,8 @@
     [form]="form"
     [formControlErrorMessages]="formControlErrorMessages"
     [fieldNames]="thirdPartyFieldNames"
-    checkboxFieldName="applicant_send_correspondence_to_third_party"
-    checkboxFieldsetId="applicant_send_correspondence_to_third_party_fieldset"
+    checkboxFieldName="create_casefile_applicant_individual_send_correspondence_to_third_party"
+    checkboxFieldsetId="create_casefile_applicant_individual_send_correspondence_to_third_party_fieldset"
     conditionalId="applicantThirdPartyConditional"
     roleLabel="applicant"
     [countrySelectOptions]="countrySelectOptions"
@@ -155,9 +171,9 @@
   <app-cases-create-casefile-restricted-information
     [form]="form"
     [formControlErrorMessages]="formControlErrorMessages"
-    checkboxFieldName="applicant_restricted_information"
-    reasonFieldName="applicant_restricted_information_reason"
-    checkboxFieldsetId="applicant_restricted_information_fieldset"
+    checkboxFieldName="create_casefile_applicant_individual_restricted_information"
+    reasonFieldName="create_casefile_applicant_individual_restricted_information_reason"
+    checkboxFieldsetId="create_casefile_applicant_individual_restricted_information_fieldset"
     conditionalId="applicantRestrictedInformationConditional"
     checkboxLabel="Applicant’s personal information should not be shared"
   />

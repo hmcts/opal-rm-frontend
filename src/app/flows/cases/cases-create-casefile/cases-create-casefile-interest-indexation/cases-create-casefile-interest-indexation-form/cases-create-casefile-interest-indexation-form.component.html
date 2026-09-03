@@ -4,27 +4,27 @@
 
 <form (submit)="handleFormSubmit($event)">
   <opal-lib-govuk-radio
-    fieldSetId="interestApplies"
+    [fieldSetId]="fieldNames.interestApplies"
     legendText="Does interest apply?"
     legendClasses="govuk-fieldset__legend--m"
-    [errors]="formControlErrorMessages['interestApplies']"
+    [errors]="formControlErrorMessages[fieldNames.interestApplies]"
   >
     @for (option of options.interest; track option.key) {
       <opal-lib-govuk-radios-item
         [labelText]="option.label"
-        [inputId]="option.key"
-        inputName="interestApplies"
+        [inputId]="fieldNames.interestApplies + '-' + option.key"
+        [inputName]="fieldNames.interestApplies"
         [inputValue]="option.value"
-        [control]="form.controls.interestApplies"
+        [control]="form.controls[fieldNames.interestApplies]"
       />
     }
   </opal-lib-govuk-radio>
 
   <opal-lib-govuk-radio
-    fieldSetId="indexationType"
+    [fieldSetId]="fieldNames.indexationType"
     legendText="What type of indexation applies?"
     legendClasses="govuk-fieldset__legend--m"
-    [errors]="formControlErrorMessages['indexationType']"
+    [errors]="formControlErrorMessages[fieldNames.indexationType]"
   >
     @for (option of options.indexation; track option.key) {
       @if (option.value === 'NONE') {
@@ -32,10 +32,10 @@
       }
       <opal-lib-govuk-radios-item
         [labelText]="option.label"
-        [inputId]="option.key"
-        inputName="indexationType"
+        [inputId]="fieldNames.indexationType + '-' + option.key"
+        [inputName]="fieldNames.indexationType"
         [inputValue]="option.value"
-        [control]="form.controls.indexationType"
+        [control]="form.controls[fieldNames.indexationType]"
       />
     }
   </opal-lib-govuk-radio>

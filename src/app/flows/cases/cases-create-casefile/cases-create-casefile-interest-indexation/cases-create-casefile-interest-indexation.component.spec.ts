@@ -7,6 +7,7 @@ import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-c
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileInterestIndexationFormComponent } from './cases-create-casefile-interest-indexation-form/cases-create-casefile-interest-indexation-form.component';
 import { CasesCreateCasefileInterestIndexationComponent } from './cases-create-casefile-interest-indexation.component';
+import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES as FIELD_NAMES } from './constants/cases-create-casefile-interest-indexation-field-names.constant';
 
 describe('CasesCreateCasefileInterestIndexationComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileInterestIndexationComponent>;
@@ -48,7 +49,10 @@ describe('CasesCreateCasefileInterestIndexationComponent', () => {
   it('supplies empty initial values when nothing has been saved', () => {
     createComponent();
 
-    expect(component.initialFormData).toEqual({ interestApplies: null, indexationType: null });
+    expect(component.initialFormData).toEqual({
+      [FIELD_NAMES.interestApplies]: null,
+      [FIELD_NAMES.indexationType]: null,
+    });
   });
 
   it('supplies the last saved state for rehydration', () => {
@@ -56,7 +60,10 @@ describe('CasesCreateCasefileInterestIndexationComponent', () => {
 
     createComponent();
 
-    expect(component.initialFormData).toEqual(saved);
+    expect(component.initialFormData).toEqual({
+      [FIELD_NAMES.interestApplies]: saved.interestApplies,
+      [FIELD_NAMES.indexationType]: saved.indexationType,
+    });
   });
 
   it('renders and wires the typed form inside the two-thirds container', () => {
@@ -65,7 +72,10 @@ describe('CasesCreateCasefileInterestIndexationComponent', () => {
 
     const child = renderForm();
     expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds')).not.toBeNull();
-    expect(child.initialFormData).toEqual(saved);
+    expect(child.initialFormData).toEqual({
+      [FIELD_NAMES.interestApplies]: saved.interestApplies,
+      [FIELD_NAMES.indexationType]: saved.indexationType,
+    });
   });
 
   it('saves data when the rendered form emits formSubmit', () => {
@@ -73,8 +83,8 @@ describe('CasesCreateCasefileInterestIndexationComponent', () => {
 
     renderForm()['formSubmit'].emit({
       formData: {
-        interestApplies: false,
-        indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI,
+        [FIELD_NAMES.interestApplies]: false,
+        [FIELD_NAMES.indexationType]: CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI,
       },
       nestedFlow: false,
     });
@@ -113,8 +123,8 @@ describe('CasesCreateCasefileInterestIndexationComponent', () => {
 
     component.handleFormSubmit({
       formData: {
-        interestApplies: false,
-        indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI,
+        [FIELD_NAMES.interestApplies]: false,
+        [FIELD_NAMES.indexationType]: CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI,
       },
       nestedFlow: false,
     });

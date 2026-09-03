@@ -1,4 +1,5 @@
 import type { Router } from '@angular/router';
+import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant';
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileInterestIndexation } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-interest-indexation.interface';
@@ -54,7 +55,49 @@ const choose = (interestApplies: boolean, indexationType: CasesCreateCasefileInd
   cy.get(Page.interestAndIndexation.indexationRadio(indexationType)).check();
 };
 
+const assertCanonicalIdentifierContract = (
+  prefix: string,
+  expectedControlNames: readonly string[],
+  submitSelector: string,
+  errorLinksSelector: string,
+): void => {
+  cy.get('form input, form select, form textarea').then(($controls) => {
+    const controls = [...$controls] as HTMLElement[];
+    const ids = controls.map((control) => control.id);
+    const names = controls.map((control) => control.getAttribute('name') ?? '');
+
+    expect(ids.every((id) => id.startsWith(prefix))).to.equal(true);
+    expect(names.every((name) => name.startsWith(prefix))).to.equal(true);
+    expect(new Set(ids).size).to.equal(ids.length);
+    expect(expectedControlNames.every((name) => names.includes(name))).to.equal(true);
+  });
+  cy.get(submitSelector).click();
+  cy.get(errorLinksSelector).each(($link) => {
+    cy.wrap($link).click();
+    cy.focused().should(($focused) => {
+      const targetId = $focused.attr('id') ?? '';
+      expect(targetId.startsWith(prefix)).to.equal(true);
+      expect(Cypress.$(`#${targetId}`)).to.have.length(1);
+    });
+  });
+};
+
 describe('Create Casefile Interest and Indexation', () => {
+  it(
+    'AC1, AC2. should use canonical unique control identifiers with exact error targets',
+    { tags: buildTags() },
+    () => {
+      setupInterestAndIndexation();
+
+      assertCanonicalIdentifierContract(
+        'create_casefile_interest_indexation_',
+        Object.values(CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES),
+        Page.interestAndIndexation.returnToCaseDetails,
+        Page.interestAndIndexation.errorSummaryLinks,
+      );
+    },
+  );
+
   it('AC1. should render the exact empty accessible screen and no excluded controls', { tags: buildTags() }, () => {
     setupInterestAndIndexation();
 

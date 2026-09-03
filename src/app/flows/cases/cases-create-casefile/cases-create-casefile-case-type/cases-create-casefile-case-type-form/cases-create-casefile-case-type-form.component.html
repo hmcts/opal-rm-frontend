@@ -3,17 +3,19 @@
 <opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
 
 <form (submit)="handleFormSubmit($event)">
-  <div class="govuk-form-group" [class.govuk-form-group--error]="!!formControlErrorMessages['caseType']">
+  <div class="govuk-form-group" [class.govuk-form-group--error]="!!formControlErrorMessages[fieldNames.caseType]">
     <fieldset
-      id="caseType"
+      [id]="fieldNames.caseType"
       class="govuk-fieldset"
-      [attr.aria-describedby]="formControlErrorMessages['caseType'] ? 'caseType-error-message' : null"
+      [attr.aria-describedby]="
+        formControlErrorMessages[fieldNames.caseType] ? fieldNames.caseType + '-error-message' : null
+      "
     >
       <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">Select a case type</legend>
-      @if (formControlErrorMessages['caseType']) {
-        <p id="caseType-error-message" class="govuk-error-message">
+      @if (formControlErrorMessages[fieldNames.caseType]) {
+        <p [id]="fieldNames.caseType + '-error-message'" class="govuk-error-message">
           <span class="govuk-visually-hidden">Error:</span>
-          {{ formControlErrorMessages['caseType'] }}
+          {{ formControlErrorMessages[fieldNames.caseType] }}
         </p>
       }
 
@@ -22,20 +24,22 @@
           <div class="govuk-radios__item">
             <input
               class="govuk-radios__input"
-              [id]="'caseType-' + option.key"
-              name="caseType"
+              [id]="fieldNames.caseType + '-' + option.key"
+              [attr.name]="fieldNames.caseType"
               type="radio"
               [value]="option.value"
               [attr.value]="option.value"
               [attr.aria-controls]="option.value === caseTypes.REMO_IN ? applicantTypeConditionalId : null"
-              [attr.aria-describedby]="option.value === caseTypes.REMO_IN ? 'caseType-remo-in-description' : null"
+              [attr.aria-describedby]="
+                option.value === caseTypes.REMO_IN ? fieldNames.caseType + '-remo-in-description' : null
+              "
               [formControl]="caseTypeControl"
             />
-            <label class="govuk-label govuk-radios__label" [for]="'caseType-' + option.key">
+            <label class="govuk-label govuk-radios__label" [for]="fieldNames.caseType + '-' + option.key">
               {{ option.value }}
             </label>
             @if (option.value === caseTypes.REMO_IN) {
-              <span id="caseType-remo-in-description" class="govuk-visually-hidden">
+              <span [id]="fieldNames.caseType + '-remo-in-description'" class="govuk-visually-hidden">
                 Selecting REMO In reveals the required applicant type field.
               </span>
             }
@@ -49,23 +53,25 @@
             >
               <div
                 class="govuk-form-group"
-                [class.govuk-form-group--error]="!!formControlErrorMessages['applicantType']"
+                [class.govuk-form-group--error]="!!formControlErrorMessages[fieldNames.applicantType]"
               >
-                <label class="govuk-label govuk-label--s" for="applicantType">Select applicant type</label>
-                @if (formControlErrorMessages['applicantType']) {
-                  <p id="applicantType-error-message" class="govuk-error-message">
+                <label class="govuk-label govuk-label--s" [for]="fieldNames.applicantType">Select applicant type</label>
+                @if (formControlErrorMessages[fieldNames.applicantType]) {
+                  <p [id]="fieldNames.applicantType + '-error-message'" class="govuk-error-message">
                     <span class="govuk-visually-hidden">Error:</span>
-                    {{ formControlErrorMessages['applicantType'] }}
+                    {{ formControlErrorMessages[fieldNames.applicantType] }}
                   </p>
                 }
                 <select
-                  id="applicantType"
-                  name="applicantType"
+                  [id]="fieldNames.applicantType"
+                  [attr.name]="fieldNames.applicantType"
                   class="govuk-select"
-                  [class.govuk-select--error]="!!formControlErrorMessages['applicantType']"
-                  [attr.aria-invalid]="formControlErrorMessages['applicantType'] ? 'true' : null"
+                  [class.govuk-select--error]="!!formControlErrorMessages[fieldNames.applicantType]"
+                  [attr.aria-invalid]="formControlErrorMessages[fieldNames.applicantType] ? 'true' : null"
                   [attr.aria-describedby]="
-                    formControlErrorMessages['applicantType'] ? 'applicantType-error-message' : null
+                    formControlErrorMessages[fieldNames.applicantType]
+                      ? fieldNames.applicantType + '-error-message'
+                      : null
                   "
                   [formControl]="applicantTypeControl"
                 >

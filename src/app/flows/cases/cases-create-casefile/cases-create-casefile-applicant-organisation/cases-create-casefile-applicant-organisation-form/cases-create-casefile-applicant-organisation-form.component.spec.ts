@@ -13,96 +13,96 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
 
   const emptyFormData = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.emptyFormData;
   const ukBankControlNames = [
-    'applicant_uk_bank_name_on_account',
-    'applicant_uk_bank_sort_code',
-    'applicant_uk_bank_account_number',
-    'applicant_uk_bank_payment_reference',
+    'create_casefile_applicant_organisation_uk_bank_name_on_account',
+    'create_casefile_applicant_organisation_uk_bank_sort_code',
+    'create_casefile_applicant_organisation_uk_bank_account_number',
+    'create_casefile_applicant_organisation_uk_bank_payment_reference',
   ] as const;
   const nonUkBankControlNames = [
-    'applicant_non_uk_bank_name_on_account',
-    'applicant_non_uk_bank_bic_swift_code',
-    'applicant_non_uk_bank_iban',
-    'applicant_non_uk_bank_payment_reference',
-    'applicant_non_uk_bank_name',
-    'applicant_non_uk_bank_branch_sort_code',
-    'applicant_non_uk_bank_account_number',
+    'create_casefile_applicant_organisation_non_uk_bank_name_on_account',
+    'create_casefile_applicant_organisation_non_uk_bank_bic_swift_code',
+    'create_casefile_applicant_organisation_non_uk_bank_iban',
+    'create_casefile_applicant_organisation_non_uk_bank_payment_reference',
+    'create_casefile_applicant_organisation_non_uk_bank_name',
+    'create_casefile_applicant_organisation_non_uk_bank_branch_sort_code',
+    'create_casefile_applicant_organisation_non_uk_bank_account_number',
   ] as const;
   const bankControlNames = [...ukBankControlNames, ...nonUkBankControlNames] as const;
 
   const expectedFieldErrors = {
-    applicant_organisation_name: {
+    create_casefile_applicant_organisation_name: {
       required: { message: 'Enter organisation name', priority: 1 },
       maxlength: { message: 'Organisation name must be 80 characters or fewer', priority: 3 },
     },
-    applicant_foreign_authority_reference: {
+    create_casefile_applicant_organisation_foreign_authority_reference: {
       required: { message: 'Enter a foreign authority reference number', priority: 1 },
       maxlength: { message: 'Foreign authority reference must be 40 characters or fewer', priority: 3 },
     },
-    applicant_main_email_address: {
+    create_casefile_applicant_organisation_main_email_address: {
       emailPattern: {
         message: 'Enter an email address in the correct format, like name@example.com',
         priority: 2,
       },
       maxlength: { message: 'Main email address must be 76 characters or fewer', priority: 3 },
     },
-    applicant_other_email_address: {
+    create_casefile_applicant_organisation_other_email_address: {
       emailPattern: {
         message: 'Enter an email address in the correct format, like name@example.com',
         priority: 2,
       },
       maxlength: { message: 'Other email address must be 76 characters or fewer', priority: 3 },
     },
-    applicant_main_telephone_number: {
+    create_casefile_applicant_organisation_main_telephone_number: {
       maxlength: { message: 'Main telephone number must be 35 characters or fewer', priority: 1 },
     },
-    applicant_other_telephone_number: {
+    create_casefile_applicant_organisation_other_telephone_number: {
       maxlength: { message: 'Other telephone number must be 35 characters or fewer', priority: 1 },
     },
-    applicant_address_line_1: {
+    create_casefile_applicant_organisation_address_line_1: {
       required: { message: 'Enter an address', priority: 1 },
       maxlength: { message: 'Address line 1 must be 30 characters or fewer', priority: 3 },
     },
-    applicant_address_line_2: {
+    create_casefile_applicant_organisation_address_line_2: {
       maxlength: { message: 'Address line 2 must be 30 characters or fewer', priority: 1 },
     },
-    applicant_address_line_3: {
+    create_casefile_applicant_organisation_address_line_3: {
       maxlength: { message: 'Address line 3 must be 30 characters or fewer', priority: 1 },
     },
-    applicant_address_line_4: {
+    create_casefile_applicant_organisation_address_line_4: {
       maxlength: { message: 'Address line 4 must be 30 characters or fewer', priority: 1 },
     },
-    applicant_address_line_5: {
+    create_casefile_applicant_organisation_address_line_5: {
       maxlength: { message: 'Address line 5 must be 30 characters or fewer', priority: 1 },
     },
-    applicant_postal_or_zip_code: {
+    create_casefile_applicant_organisation_postal_or_zip_code: {
       maxlength: { message: 'Postal or zip code must be 10 characters or fewer', priority: 1 },
     },
-    applicant_country_id: {
+    create_casefile_applicant_organisation_country_id: {
       required: { message: 'Select a country', priority: 1 },
     },
-    applicant_bank_type: {
+    create_casefile_applicant_organisation_bank_type: {
       required: { message: 'Select an option', priority: 1 },
     },
-    applicant_uk_bank_name_on_account: {
+    create_casefile_applicant_organisation_uk_bank_name_on_account: {
       required: { message: 'Enter name on account', priority: 1 },
     },
-    applicant_uk_bank_sort_code: {
+    create_casefile_applicant_organisation_uk_bank_sort_code: {
       required: { message: 'Enter sort code', priority: 1 },
       ukSortCodePattern: { message: 'Enter correct sort code', priority: 2 },
       ukSortCodeLength: { message: 'Sort code must only contain 6 numbers', priority: 3 },
     },
-    applicant_uk_bank_account_number: {
+    create_casefile_applicant_organisation_uk_bank_account_number: {
       required: { message: 'Enter account number', priority: 1 },
       ukAccountNumberPattern: { message: 'Account number must only contain numbers', priority: 2 },
       ukAccountNumberLength: { message: 'Account number must be between 6 and 8 numbers', priority: 3 },
     },
-    applicant_uk_bank_payment_reference: {
+    create_casefile_applicant_organisation_uk_bank_payment_reference: {
       required: { message: 'Enter UK bank account payment reference', priority: 1 },
     },
-    applicant_non_uk_bank_name_on_account: {
+    create_casefile_applicant_organisation_non_uk_bank_name_on_account: {
       required: { message: 'Enter name on account', priority: 1 },
     },
-    applicant_non_uk_bank_bic_swift_code: {
+    create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: {
       internationalIdentifierRequired: {
         message: 'Enter either BIC or SWIFT code or IBAN number',
         priority: 2,
@@ -112,19 +112,19 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
         priority: 2,
       },
     },
-    applicant_non_uk_bank_iban: {
+    create_casefile_applicant_organisation_non_uk_bank_iban: {
       internationalIdentifierPattern: {
         message: 'Enter correct BIC or SWIFT code or IBAN number',
         priority: 2,
       },
     },
-    applicant_non_uk_bank_payment_reference: {},
-    applicant_non_uk_bank_name: {},
-    applicant_non_uk_bank_branch_sort_code: {
+    create_casefile_applicant_organisation_non_uk_bank_payment_reference: {},
+    create_casefile_applicant_organisation_non_uk_bank_name: {},
+    create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: {
       branchSortCodePattern: { message: 'Enter correct branch or sort code', priority: 2 },
       branchSortCodeLength: { message: 'Branch or sort code must be 12 numbers or fewer', priority: 3 },
     },
-    applicant_non_uk_bank_account_number: {
+    create_casefile_applicant_organisation_non_uk_bank_account_number: {
       maxlength: { message: 'Account number must be 20 characters or fewer', priority: 1 },
     },
   } as const;
@@ -147,7 +147,11 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
   };
 
   const selectBankType = (bankType: string): void => {
-    (fixture.nativeElement.querySelector(`#applicant_bank_type-${bankType}`) as HTMLInputElement).click();
+    (
+      fixture.nativeElement.querySelector(
+        `#create_casefile_applicant_organisation_bank_type-${bankType}`,
+      ) as HTMLInputElement
+    ).click();
     fixture.detectChanges();
   };
 
@@ -171,16 +175,42 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
   });
 
+  it('uses canonical, unique identifiers for every form control and error-summary target', () => {
+    fixture.detectChanges();
+    component.handleFormSubmit(new SubmitEvent('submit'));
+    fixture.detectChanges();
+
+    const controls = Array.from(
+      fixture.nativeElement.querySelectorAll('input, select, textarea') as NodeListOf<HTMLElement>,
+    );
+    const ids = controls.map((control) => control.id);
+    const names = controls.map((control) => control.getAttribute('name') ?? '');
+
+    expect(ids.every((id) => id.startsWith('create_casefile_applicant_organisation_'))).toBe(true);
+    expect(names.every((name) => name.startsWith('create_casefile_applicant_organisation_'))).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const controlName of Object.keys(component.form.controls)) {
+      expect(names).toContain(controlName);
+    }
+    for (const error of component.formErrorSummaryMessage) {
+      expect(fixture.nativeElement.querySelectorAll(`[id="${error.fieldId}"]`)).toHaveLength(1);
+    }
+  });
+
   it('builds every typed control with empty core state and disabled bank branches', () => {
     fixture.detectChanges();
 
     expect(Object.keys(component.form.controls)).toEqual(Object.keys(emptyFormData));
     expect(component.form.getRawValue()).toEqual(emptyFormData);
-    expect(component.form.controls.applicant_organisation_name.hasError('required')).toBe(true);
-    expect(component.form.controls.applicant_foreign_authority_reference.hasError('required')).toBe(true);
-    expect(component.form.controls.applicant_address_line_1.hasError('required')).toBe(true);
-    expect(component.form.controls.applicant_country_id.hasError('required')).toBe(true);
-    expect(component.form.controls.applicant_bank_type.hasError('required')).toBe(true);
+    expect(component.form.controls.create_casefile_applicant_organisation_name.hasError('required')).toBe(true);
+    expect(
+      component.form.controls.create_casefile_applicant_organisation_foreign_authority_reference.hasError('required'),
+    ).toBe(true);
+    expect(component.form.controls.create_casefile_applicant_organisation_address_line_1.hasError('required')).toBe(
+      true,
+    );
+    expect(component.form.controls.create_casefile_applicant_organisation_country_id.hasError('required')).toBe(true);
+    expect(component.form.controls.create_casefile_applicant_organisation_bank_type.hasError('required')).toBe(true);
     for (const controlName of bankControlNames) {
       expect(component.form.controls[controlName].disabled).toBe(true);
       expect(component.form.controls[controlName].validator).toBeNull();
@@ -196,18 +226,18 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     expect(bankDetails.form).toBe(component.form);
     expect(bankDetails.formControlErrorMessages).toBe(component.formControlErrorMessages);
     expect(bankDetails.fieldNames).toEqual({
-      bankType: 'applicant_bank_type',
-      ukNameOnAccount: 'applicant_uk_bank_name_on_account',
-      ukSortCode: 'applicant_uk_bank_sort_code',
-      ukAccountNumber: 'applicant_uk_bank_account_number',
-      ukPaymentReference: 'applicant_uk_bank_payment_reference',
-      nonUkNameOnAccount: 'applicant_non_uk_bank_name_on_account',
-      nonUkAccountNumber: 'applicant_non_uk_bank_account_number',
-      nonUkPaymentReference: 'applicant_non_uk_bank_payment_reference',
-      nonUkBicSwiftCode: 'applicant_non_uk_bank_bic_swift_code',
-      nonUkIban: 'applicant_non_uk_bank_iban',
-      nonUkBankName: 'applicant_non_uk_bank_name',
-      nonUkBranchSortCode: 'applicant_non_uk_bank_branch_sort_code',
+      bankType: 'create_casefile_applicant_organisation_bank_type',
+      ukNameOnAccount: 'create_casefile_applicant_organisation_uk_bank_name_on_account',
+      ukSortCode: 'create_casefile_applicant_organisation_uk_bank_sort_code',
+      ukAccountNumber: 'create_casefile_applicant_organisation_uk_bank_account_number',
+      ukPaymentReference: 'create_casefile_applicant_organisation_uk_bank_payment_reference',
+      nonUkNameOnAccount: 'create_casefile_applicant_organisation_non_uk_bank_name_on_account',
+      nonUkAccountNumber: 'create_casefile_applicant_organisation_non_uk_bank_account_number',
+      nonUkPaymentReference: 'create_casefile_applicant_organisation_non_uk_bank_payment_reference',
+      nonUkBicSwiftCode: 'create_casefile_applicant_organisation_non_uk_bank_bic_swift_code',
+      nonUkIban: 'create_casefile_applicant_organisation_non_uk_bank_iban',
+      nonUkBankName: 'create_casefile_applicant_organisation_non_uk_bank_name',
+      nonUkBranchSortCode: 'create_casefile_applicant_organisation_non_uk_bank_branch_sort_code',
     });
     expect(bankDetails.bankOptions).toBe(component.bankOptions);
     expect(bankDetails.bankTypes).toBe(component.bankTypes);
@@ -235,20 +265,22 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
         fixture.nativeElement.querySelectorAll('#applicantNonUkBankConditional input') as NodeListOf<HTMLInputElement>,
       ).map(({ id }) => id),
     ).toEqual([
-      'applicant_non_uk_bank_name_on_account',
-      'applicant_non_uk_bank_bic_swift_code',
-      'applicant_non_uk_bank_iban',
-      'applicant_non_uk_bank_payment_reference',
-      'applicant_non_uk_bank_name',
-      'applicant_non_uk_bank_branch_sort_code',
-      'applicant_non_uk_bank_account_number',
+      'create_casefile_applicant_organisation_non_uk_bank_name_on_account',
+      'create_casefile_applicant_organisation_non_uk_bank_bic_swift_code',
+      'create_casefile_applicant_organisation_non_uk_bank_iban',
+      'create_casefile_applicant_organisation_non_uk_bank_payment_reference',
+      'create_casefile_applicant_organisation_non_uk_bank_name',
+      'create_casefile_applicant_organisation_non_uk_bank_branch_sort_code',
+      'create_casefile_applicant_organisation_non_uk_bank_account_number',
     ]);
   });
 
   it('renders the complete control set in the approved DOM order', async () => {
     fixture.detectChanges();
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('#applicant_country_id-autocomplete')).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('#create_casefile_applicant_organisation_country_id-autocomplete'),
+      ).not.toBeNull();
     });
 
     const renderedControlIds = Array.from(
@@ -257,22 +289,22 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       ),
     ).map((control) => (control as HTMLElement).id);
     expect(renderedControlIds).toEqual([
-      'applicant_organisation_name',
-      'applicant_foreign_authority_reference',
-      'applicant_main_email_address',
-      'applicant_other_email_address',
-      'applicant_main_telephone_number',
-      'applicant_other_telephone_number',
-      'applicant_address_line_1',
-      'applicant_address_line_2',
-      'applicant_address_line_3',
-      'applicant_address_line_4',
-      'applicant_address_line_5',
-      'applicant_postal_or_zip_code',
-      'applicant_country_id-autocomplete',
-      'applicant_bank_type-uk',
-      'applicant_bank_type-non-uk',
-      'applicant_bank_type-none',
+      'create_casefile_applicant_organisation_name',
+      'create_casefile_applicant_organisation_foreign_authority_reference',
+      'create_casefile_applicant_organisation_main_email_address',
+      'create_casefile_applicant_organisation_other_email_address',
+      'create_casefile_applicant_organisation_main_telephone_number',
+      'create_casefile_applicant_organisation_other_telephone_number',
+      'create_casefile_applicant_organisation_address_line_1',
+      'create_casefile_applicant_organisation_address_line_2',
+      'create_casefile_applicant_organisation_address_line_3',
+      'create_casefile_applicant_organisation_address_line_4',
+      'create_casefile_applicant_organisation_address_line_5',
+      'create_casefile_applicant_organisation_postal_or_zip_code',
+      'create_casefile_applicant_organisation_country_id-autocomplete',
+      'create_casefile_applicant_organisation_bank_type-uk',
+      'create_casefile_applicant_organisation_bank_type-non-uk',
+      'create_casefile_applicant_organisation_bank_type-none',
       'returnToCaseDetails',
       'cancelApplicantDetails',
     ]);
@@ -294,7 +326,9 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
 
     fixture.detectChanges();
     await vi.waitFor(() => {
-      expect(fixture.nativeElement.querySelector('#applicant_country_id-autocomplete')).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('#create_casefile_applicant_organisation_country_id-autocomplete'),
+      ).not.toBeNull();
     });
 
     expect(component.form.getRawValue()).toEqual(CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNonUkFormData);
@@ -303,13 +337,23 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     )) {
       expect(component.form.get(controlName)?.value).toBe(value);
     }
-    expect((fixture.nativeElement.querySelector('#applicant_organisation_name') as HTMLInputElement).value).toBe(
-      'Example Organisation',
-    );
-    expect((fixture.nativeElement.querySelector('#applicant_country_id-autocomplete') as HTMLInputElement).value).toBe(
-      'United Kingdom',
-    );
-    expect((fixture.nativeElement.querySelector('#applicant_bank_type-non-uk') as HTMLInputElement).checked).toBe(true);
+    expect(
+      (fixture.nativeElement.querySelector('#create_casefile_applicant_organisation_name') as HTMLInputElement).value,
+    ).toBe('Example Organisation');
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#create_casefile_applicant_organisation_country_id-autocomplete',
+        ) as HTMLInputElement
+      ).value,
+    ).toBe('United Kingdom');
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#create_casefile_applicant_organisation_bank_type-non-uk',
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
     expect(component.form.pristine).toBe(true);
   });
 
@@ -317,61 +361,73 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     fixture.detectChanges();
 
     expect(component['fieldErrors']).toEqual(expectedFieldErrors);
-    component.form.controls.applicant_organisation_name.setValue('   ');
-    component.form.controls.applicant_foreign_authority_reference.setValue('\t');
-    component.form.controls.applicant_address_line_1.setValue('\n');
-    expect(component.form.controls.applicant_organisation_name.hasError('required')).toBe(true);
-    expect(component.form.controls.applicant_foreign_authority_reference.hasError('required')).toBe(true);
-    expect(component.form.controls.applicant_address_line_1.hasError('required')).toBe(true);
+    component.form.controls.create_casefile_applicant_organisation_name.setValue('   ');
+    component.form.controls.create_casefile_applicant_organisation_foreign_authority_reference.setValue('\t');
+    component.form.controls.create_casefile_applicant_organisation_address_line_1.setValue('\n');
+    expect(component.form.controls.create_casefile_applicant_organisation_name.hasError('required')).toBe(true);
+    expect(
+      component.form.controls.create_casefile_applicant_organisation_foreign_authority_reference.hasError('required'),
+    ).toBe(true);
+    expect(component.form.controls.create_casefile_applicant_organisation_address_line_1.hasError('required')).toBe(
+      true,
+    );
 
     const maximumLengths = {
-      applicant_organisation_name: 80,
-      applicant_foreign_authority_reference: 40,
-      applicant_main_email_address: 76,
-      applicant_other_email_address: 76,
-      applicant_main_telephone_number: 35,
-      applicant_other_telephone_number: 35,
-      applicant_address_line_1: 30,
-      applicant_address_line_2: 30,
-      applicant_address_line_3: 30,
-      applicant_address_line_4: 30,
-      applicant_address_line_5: 30,
-      applicant_postal_or_zip_code: 10,
+      create_casefile_applicant_organisation_name: 80,
+      create_casefile_applicant_organisation_foreign_authority_reference: 40,
+      create_casefile_applicant_organisation_main_email_address: 76,
+      create_casefile_applicant_organisation_other_email_address: 76,
+      create_casefile_applicant_organisation_main_telephone_number: 35,
+      create_casefile_applicant_organisation_other_telephone_number: 35,
+      create_casefile_applicant_organisation_address_line_1: 30,
+      create_casefile_applicant_organisation_address_line_2: 30,
+      create_casefile_applicant_organisation_address_line_3: 30,
+      create_casefile_applicant_organisation_address_line_4: 30,
+      create_casefile_applicant_organisation_address_line_5: 30,
+      create_casefile_applicant_organisation_postal_or_zip_code: 10,
     } as const;
     for (const controlName of Object.keys(maximumLengths) as Array<keyof typeof maximumLengths>) {
       component.form.controls[controlName].setValue('X'.repeat(maximumLengths[controlName] + 1));
       expect(component.form.controls[controlName].hasError('maxlength')).toBe(true);
     }
 
-    component.form.controls.applicant_main_email_address.setValue('invalid');
-    component.form.controls.applicant_other_email_address.setValue('also-invalid');
-    expect(component.form.controls.applicant_main_email_address.hasError('emailPattern')).toBe(true);
-    expect(component.form.controls.applicant_other_email_address.hasError('emailPattern')).toBe(true);
-    component.form.controls.applicant_main_telephone_number.setValue('International + EXT x12');
-    component.form.controls.applicant_other_telephone_number.setValue('(020) CALL-US');
-    expect(component.form.controls.applicant_main_telephone_number.errors).toBeNull();
-    expect(component.form.controls.applicant_other_telephone_number.errors).toBeNull();
+    component.form.controls.create_casefile_applicant_organisation_main_email_address.setValue('invalid');
+    component.form.controls.create_casefile_applicant_organisation_other_email_address.setValue('also-invalid');
+    expect(
+      component.form.controls.create_casefile_applicant_organisation_main_email_address.hasError('emailPattern'),
+    ).toBe(true);
+    expect(
+      component.form.controls.create_casefile_applicant_organisation_other_email_address.hasError('emailPattern'),
+    ).toBe(true);
+    component.form.controls.create_casefile_applicant_organisation_main_telephone_number.setValue(
+      'International + EXT x12',
+    );
+    component.form.controls.create_casefile_applicant_organisation_other_telephone_number.setValue('(020) CALL-US');
+    expect(component.form.controls.create_casefile_applicant_organisation_main_telephone_number.errors).toBeNull();
+    expect(component.form.controls.create_casefile_applicant_organisation_other_telephone_number.errors).toBeNull();
   });
 
   it('accepts only Country IDs present in countryAutocompleteItems', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNoneFormData,
-      applicant_country_id: 999,
+      create_casefile_applicant_organisation_country_id: 999,
     };
     fixture.detectChanges();
 
-    expect(component.form.controls.applicant_country_id.value).toBe(999);
-    expect(component.form.controls.applicant_country_id.hasError('required')).toBe(true);
-    component.form.controls.applicant_country_id.setValue(250);
-    expect(component.form.controls.applicant_country_id.errors).toBeNull();
-    component.form.controls.applicant_country_id.setValue(null);
-    expect(component.form.controls.applicant_country_id.hasError('required')).toBe(true);
+    expect(component.form.controls.create_casefile_applicant_organisation_country_id.value).toBe(999);
+    expect(component.form.controls.create_casefile_applicant_organisation_country_id.hasError('required')).toBe(true);
+    component.form.controls.create_casefile_applicant_organisation_country_id.setValue(250);
+    expect(component.form.controls.create_casefile_applicant_organisation_country_id.errors).toBeNull();
+    component.form.controls.create_casefile_applicant_organisation_country_id.setValue(null);
+    expect(component.form.controls.create_casefile_applicant_organisation_country_id.hasError('required')).toBe(true);
   });
 
   it('renders one required bank radio group with the three shared options and accessible conditional associations', () => {
     fixture.detectChanges();
 
-    const bankFieldset = fixture.nativeElement.querySelector('#applicant_bank_type') as HTMLFieldSetElement;
+    const bankFieldset = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_organisation_bank_type',
+    ) as HTMLFieldSetElement;
     const radios = Array.from(bankFieldset.querySelectorAll<HTMLInputElement>('input[type="radio"]'));
     const labels = Array.from(bankFieldset.querySelectorAll('.govuk-radios__label')).map((label) =>
       label.textContent?.trim(),
@@ -393,9 +449,11 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       },
     ] as const;
     for (const { bankType, conditionalId, description } of revealOptions) {
-      const radio = fixture.nativeElement.querySelector(`#applicant_bank_type-${bankType}`) as HTMLInputElement;
+      const radio = fixture.nativeElement.querySelector(
+        `#create_casefile_applicant_organisation_bank_type-${bankType}`,
+      ) as HTMLInputElement;
       const conditional = fixture.nativeElement.querySelector(`#${conditionalId}`) as HTMLDivElement;
-      const descriptionId = `applicant_bank_type-${bankType}-description`;
+      const descriptionId = `create_casefile_applicant_organisation_bank_type-${bankType}-description`;
       expect(radio.getAttribute('aria-controls')).toBe(conditionalId);
       expect(radio.getAttribute('aria-describedby')).toBe(descriptionId);
       expect(radio.hasAttribute('aria-expanded')).toBe(false);
@@ -405,17 +463,21 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       expect(conditional.classList.contains('govuk-radios__conditional--hidden')).toBe(true);
     }
 
-    const noneRadio = fixture.nativeElement.querySelector('#applicant_bank_type-none') as HTMLInputElement;
+    const noneRadio = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_organisation_bank_type-none',
+    ) as HTMLInputElement;
     expect(noneRadio.hasAttribute('aria-controls')).toBe(false);
     expect(noneRadio.hasAttribute('aria-describedby')).toBe(false);
     expect(noneRadio.hasAttribute('aria-expanded')).toBe(false);
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
-    expect(component.form.controls.applicant_bank_type.hasError('required')).toBe(true);
+    expect(component.form.controls.create_casefile_applicant_organisation_bank_type.hasError('required')).toBe(true);
     expect(component.formErrorSummaryMessage).toContainEqual({
-      fieldId: 'applicant_bank_type',
+      fieldId: 'create_casefile_applicant_organisation_bank_type',
       message: 'Select an option',
     });
-    expect(bankFieldset.getAttribute('aria-describedby')).toBe('applicant_bank_type-error-message');
+    expect(bankFieldset.getAttribute('aria-describedby')).toBe(
+      'create_casefile_applicant_organisation_bank_type-error-message',
+    );
   });
 
   it('enables and validates only the UK branch', () => {
@@ -437,23 +499,35 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     expect(Array.from(ukReveal.querySelectorAll('input')).map((input) => input.id)).toEqual(ukBankControlNames);
     expect(ukReveal.classList.contains('govuk-radios__conditional--hidden')).toBe(false);
 
-    component.form.controls.applicant_uk_bank_name_on_account.setValue('Account holder');
-    component.form.controls.applicant_uk_bank_payment_reference.setValue('PAY-001');
-    component.form.controls.applicant_uk_bank_sort_code.setValue('11 22 33');
-    expect(component.form.controls.applicant_uk_bank_sort_code.hasError('ukSortCodePattern')).toBe(true);
-    component.form.controls.applicant_uk_bank_sort_code.setValue('12345');
-    expect(component.form.controls.applicant_uk_bank_sort_code.hasError('ukSortCodeLength')).toBe(true);
-    component.form.controls.applicant_uk_bank_account_number.setValue('12345A');
-    expect(component.form.controls.applicant_uk_bank_account_number.hasError('ukAccountNumberPattern')).toBe(true);
-    component.form.controls.applicant_uk_bank_account_number.setValue('12345');
-    expect(component.form.controls.applicant_uk_bank_account_number.hasError('ukAccountNumberLength')).toBe(true);
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_name_on_account.setValue('Account holder');
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_payment_reference.setValue('PAY-001');
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_sort_code.setValue('11 22 33');
+    expect(
+      component.form.controls.create_casefile_applicant_organisation_uk_bank_sort_code.hasError('ukSortCodePattern'),
+    ).toBe(true);
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_sort_code.setValue('12345');
+    expect(
+      component.form.controls.create_casefile_applicant_organisation_uk_bank_sort_code.hasError('ukSortCodeLength'),
+    ).toBe(true);
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_account_number.setValue('12345A');
+    expect(
+      component.form.controls.create_casefile_applicant_organisation_uk_bank_account_number.hasError(
+        'ukAccountNumberPattern',
+      ),
+    ).toBe(true);
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_account_number.setValue('12345');
+    expect(
+      component.form.controls.create_casefile_applicant_organisation_uk_bank_account_number.hasError(
+        'ukAccountNumberLength',
+      ),
+    ).toBe(true);
 
-    component.form.controls.applicant_uk_bank_sort_code.setValue('11-22-33');
-    component.form.controls.applicant_uk_bank_account_number.setValue('123456');
-    expect(component.form.controls.applicant_uk_bank_sort_code.errors).toBeNull();
-    expect(component.form.controls.applicant_uk_bank_account_number.errors).toBeNull();
-    component.form.controls.applicant_uk_bank_sort_code.setValue('112233');
-    component.form.controls.applicant_uk_bank_account_number.setValue('12345678');
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_sort_code.setValue('11-22-33');
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_account_number.setValue('123456');
+    expect(component.form.controls.create_casefile_applicant_organisation_uk_bank_sort_code.errors).toBeNull();
+    expect(component.form.controls.create_casefile_applicant_organisation_uk_bank_account_number.errors).toBeNull();
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_sort_code.setValue('112233');
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_account_number.setValue('12345678');
     expect(component.form.valid).toBe(true);
   });
 
@@ -473,15 +547,17 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     expect(Array.from(nonUkReveal.querySelectorAll('input')).map((input) => input.id)).toEqual(nonUkBankControlNames);
     expect(nonUkReveal.classList.contains('govuk-radios__conditional--hidden')).toBe(false);
 
-    const nameOnAccount = component.form.controls.applicant_non_uk_bank_name_on_account;
-    const bic = component.form.controls.applicant_non_uk_bank_bic_swift_code;
-    const iban = component.form.controls.applicant_non_uk_bank_iban;
-    const branchCode = component.form.controls.applicant_non_uk_bank_branch_sort_code;
-    const accountNumber = component.form.controls.applicant_non_uk_bank_account_number;
+    const nameOnAccount = component.form.controls.create_casefile_applicant_organisation_non_uk_bank_name_on_account;
+    const bic = component.form.controls.create_casefile_applicant_organisation_non_uk_bank_bic_swift_code;
+    const iban = component.form.controls.create_casefile_applicant_organisation_non_uk_bank_iban;
+    const branchCode = component.form.controls.create_casefile_applicant_organisation_non_uk_bank_branch_sort_code;
+    const accountNumber = component.form.controls.create_casefile_applicant_organisation_non_uk_bank_account_number;
     expect(nameOnAccount.hasError('required')).toBe(true);
     expect(bic.hasError('internationalIdentifierRequired')).toBe(true);
-    expect(component.form.controls.applicant_non_uk_bank_payment_reference.errors).toBeNull();
-    expect(component.form.controls.applicant_non_uk_bank_name.errors).toBeNull();
+    expect(
+      component.form.controls.create_casefile_applicant_organisation_non_uk_bank_payment_reference.errors,
+    ).toBeNull();
+    expect(component.form.controls.create_casefile_applicant_organisation_non_uk_bank_name.errors).toBeNull();
 
     nameOnAccount.setValue('Account holder');
     bic.setValue('EXAMGB2L');
@@ -504,14 +580,20 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
   it('clears disabled branch values, validators, inline errors and summary entries when bank type changes', () => {
     component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData;
     fixture.detectChanges();
-    component.form.controls.applicant_uk_bank_sort_code.setValue('invalid');
+    component.form.controls.create_casefile_applicant_organisation_uk_bank_sort_code.setValue('invalid');
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
-    expect(component.formControlErrorMessages['applicant_uk_bank_sort_code']).toBe('Enter correct sort code');
+    expect(component.formControlErrorMessages['create_casefile_applicant_organisation_uk_bank_sort_code']).toBe(
+      'Enter correct sort code',
+    );
     expect(component.formErrorSummaryMessage).toContainEqual({
-      fieldId: 'applicant_uk_bank_sort_code',
+      fieldId: 'create_casefile_applicant_organisation_uk_bank_sort_code',
       message: 'Enter correct sort code',
     });
-    expect(component.formErrors.some((error) => error.fieldId === 'applicant_uk_bank_sort_code')).toBe(true);
+    expect(
+      component.formErrors.some(
+        (error) => error.fieldId === 'create_casefile_applicant_organisation_uk_bank_sort_code',
+      ),
+    ).toBe(true);
 
     selectBankType(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK);
 
@@ -524,19 +606,31 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       expect(component.formControlErrorMessages[controlName]).toBeNull();
       expect((fixture.nativeElement.querySelector(`#${controlName}`) as HTMLInputElement).disabled).toBe(true);
     }
-    expect(component.formErrorSummaryMessage.some((error) => error.fieldId.startsWith('applicant_uk_bank_'))).toBe(
-      false,
-    );
-    expect(component.formErrors.some((error) => error.fieldId.startsWith('applicant_uk_bank_'))).toBe(false);
+    expect(
+      component.formErrorSummaryMessage.some((error) =>
+        error.fieldId.startsWith('create_casefile_applicant_organisation_uk_bank_'),
+      ),
+    ).toBe(false);
+    expect(
+      component.formErrors.some((error) => error.fieldId.startsWith('create_casefile_applicant_organisation_uk_bank_')),
+    ).toBe(false);
 
-    component.form.controls.applicant_non_uk_bank_name_on_account.setValue('   ');
-    component.form.controls.applicant_non_uk_bank_bic_swift_code.setValue('invalid');
+    component.form.controls.create_casefile_applicant_organisation_non_uk_bank_name_on_account.setValue('   ');
+    component.form.controls.create_casefile_applicant_organisation_non_uk_bank_bic_swift_code.setValue('invalid');
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
-    expect(component.formControlErrorMessages['applicant_non_uk_bank_name_on_account']).toBe('Enter name on account');
-    expect(component.formErrorSummaryMessage.some((error) => error.fieldId.startsWith('applicant_non_uk_bank_'))).toBe(
-      true,
-    );
-    expect(component.formErrors.some((error) => error.fieldId.startsWith('applicant_non_uk_bank_'))).toBe(true);
+    expect(
+      component.formControlErrorMessages['create_casefile_applicant_organisation_non_uk_bank_name_on_account'],
+    ).toBe('Enter name on account');
+    expect(
+      component.formErrorSummaryMessage.some((error) =>
+        error.fieldId.startsWith('create_casefile_applicant_organisation_non_uk_bank_'),
+      ),
+    ).toBe(true);
+    expect(
+      component.formErrors.some((error) =>
+        error.fieldId.startsWith('create_casefile_applicant_organisation_non_uk_bank_'),
+      ),
+    ).toBe(true);
 
     selectBankType(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE);
 
@@ -549,26 +643,42 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       expect(component.formControlErrorMessages[controlName]).toBeNull();
       expect((fixture.nativeElement.querySelector(`#${controlName}`) as HTMLInputElement).disabled).toBe(true);
     }
-    expect(component.formErrorSummaryMessage.some((error) => error.fieldId.startsWith('applicant_non_uk_bank_'))).toBe(
-      false,
-    );
-    expect(component.formErrors.some((error) => error.fieldId.startsWith('applicant_non_uk_bank_'))).toBe(false);
+    expect(
+      component.formErrorSummaryMessage.some((error) =>
+        error.fieldId.startsWith('create_casefile_applicant_organisation_non_uk_bank_'),
+      ),
+    ).toBe(false);
+    expect(
+      component.formErrors.some((error) =>
+        error.fieldId.startsWith('create_casefile_applicant_organisation_non_uk_bank_'),
+      ),
+    ).toBe(false);
     expect(component.form.valid).toBe(true);
   });
 
   it('restores the selected saved bank branch without marking the form dirty', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNonUkFormData,
-      applicant_non_uk_bank_branch_sort_code: '123456',
+      create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: '123456',
     };
     fixture.detectChanges();
 
-    expect((fixture.nativeElement.querySelector('#applicant_bank_type-non-uk') as HTMLInputElement).checked).toBe(true);
-    expect(component.form.controls.applicant_non_uk_bank_name_on_account.value).toBe(
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#create_casefile_applicant_organisation_bank_type-non-uk',
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    expect(component.form.controls.create_casefile_applicant_organisation_non_uk_bank_name_on_account.value).toBe(
       'Example Organisation International',
     );
-    expect(component.form.controls.applicant_non_uk_bank_bic_swift_code.value).toBe('EXAMGB2L');
-    expect(component.form.controls.applicant_non_uk_bank_iban.value).toBe('GB29NWBK60161331926819');
+    expect(component.form.controls.create_casefile_applicant_organisation_non_uk_bank_bic_swift_code.value).toBe(
+      'EXAMGB2L',
+    );
+    expect(component.form.controls.create_casefile_applicant_organisation_non_uk_bank_iban.value).toBe(
+      'GB29NWBK60161331926819',
+    );
     for (const controlName of nonUkBankControlNames) {
       expect(component.form.controls[controlName].enabled).toBe(true);
     }
@@ -588,10 +698,10 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
     const enteredValues = {
-      applicant_organisation_name: '   ',
-      applicant_foreign_authority_reference: 'F'.repeat(41),
-      applicant_main_email_address: 'invalid',
-      applicant_address_line_1: '\t',
+      create_casefile_applicant_organisation_name: '   ',
+      create_casefile_applicant_organisation_foreign_authority_reference: 'F'.repeat(41),
+      create_casefile_applicant_organisation_main_email_address: 'invalid',
+      create_casefile_applicant_organisation_address_line_1: '\t',
     } as const;
     const renderedInputs = Object.fromEntries(
       Object.entries(enteredValues).map(([controlName, value]) => [
@@ -600,26 +710,31 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       ]),
     );
     const validTelephoneValue = '+44 (0)20 CALL-US';
-    const validTelephoneInput = setRenderedInputValue('applicant_other_telephone_number', validTelephoneValue);
+    const validTelephoneInput = setRenderedInputValue(
+      'create_casefile_applicant_organisation_other_telephone_number',
+      validTelephoneValue,
+    );
 
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
 
     expect(component.formErrorSummaryMessage).toEqual([
-      { fieldId: 'applicant_organisation_name', message: 'Enter organisation name' },
+      { fieldId: 'create_casefile_applicant_organisation_name', message: 'Enter organisation name' },
       {
-        fieldId: 'applicant_foreign_authority_reference',
+        fieldId: 'create_casefile_applicant_organisation_foreign_authority_reference',
         message: 'Foreign authority reference must be 40 characters or fewer',
       },
       {
-        fieldId: 'applicant_main_email_address',
+        fieldId: 'create_casefile_applicant_organisation_main_email_address',
         message: 'Enter an email address in the correct format, like name@example.com',
       },
-      { fieldId: 'applicant_address_line_1', message: 'Enter an address' },
-      { fieldId: 'applicant_country_id', message: 'Select a country' },
-      { fieldId: 'applicant_bank_type', message: 'Select an option' },
+      { fieldId: 'create_casefile_applicant_organisation_address_line_1', message: 'Enter an address' },
+      { fieldId: 'create_casefile_applicant_organisation_country_id', message: 'Select a country' },
+      { fieldId: 'create_casefile_applicant_organisation_bank_type', message: 'Select an option' },
     ]);
     expect(formSubmitSpy).not.toHaveBeenCalled();
-    expect(component.form.controls.applicant_other_telephone_number.value).toBe(validTelephoneValue);
+    expect(component.form.controls.create_casefile_applicant_organisation_other_telephone_number.value).toBe(
+      validTelephoneValue,
+    );
     expect(validTelephoneInput.value).toBe(validTelephoneValue);
     for (const [controlName, value] of Object.entries(enteredValues)) {
       expect(component.form.get(controlName)?.value).toBe(value);
@@ -628,11 +743,14 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       expect(fixture.nativeElement.querySelector(`#${controlName}-error-message`)?.textContent).toContain(message);
     }
     expect(
-      fixture.nativeElement.querySelector('#applicant_country_id-autocomplete-error-message')?.textContent,
+      fixture.nativeElement.querySelector(
+        '#create_casefile_applicant_organisation_country_id-autocomplete-error-message',
+      )?.textContent,
     ).toContain('Select a country');
-    expect(fixture.nativeElement.querySelector('#applicant_bank_type-error-message')?.textContent).toContain(
-      'Select an option',
-    );
+    expect(
+      fixture.nativeElement.querySelector('#create_casefile_applicant_organisation_bank_type-error-message')
+        ?.textContent,
+    ).toContain('Select an option');
     const summaryLinks = Array.from(
       fixture.nativeElement.querySelectorAll('.govuk-error-summary__list a') as NodeListOf<HTMLAnchorElement>,
     );
@@ -641,7 +759,9 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     );
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.govuk-error-summary'));
     summaryLinks[0]?.click();
-    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_organisation_name'));
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector('#create_casefile_applicant_organisation_name'),
+    );
   });
 
   it('emits dirty-state changes, complete valid form data and Cancel exactly once', () => {
@@ -650,7 +770,10 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
     const cancelSpy = vi.spyOn(component.cancel, 'emit');
     fixture.detectChanges();
-    const organisationName = setRenderedInputValue('applicant_organisation_name', 'Updated Organisation');
+    const organisationName = setRenderedInputValue(
+      'create_casefile_applicant_organisation_name',
+      'Updated Organisation',
+    );
 
     expect(organisationName.value).toBe('Updated Organisation');
     expect(component.form.dirty).toBe(true);
@@ -661,7 +784,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     expect(formSubmitSpy).toHaveBeenCalledWith({
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-        applicant_organisation_name: 'Updated Organisation',
+        create_casefile_applicant_organisation_name: 'Updated Organisation',
       },
       nestedFlow: false,
     });
@@ -679,13 +802,13 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
   it('cleans up the IBAN-to-BIC revalidation subscription on destroy', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNonUkFormData,
-      applicant_non_uk_bank_bic_swift_code: null,
-      applicant_non_uk_bank_iban: null,
-      applicant_non_uk_bank_branch_sort_code: null,
+      create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: null,
+      create_casefile_applicant_organisation_non_uk_bank_iban: null,
+      create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: null,
     };
     fixture.detectChanges();
-    const bic = component.form.controls.applicant_non_uk_bank_bic_swift_code;
-    const iban = component.form.controls.applicant_non_uk_bank_iban;
+    const bic = component.form.controls.create_casefile_applicant_organisation_non_uk_bank_bic_swift_code;
+    const iban = component.form.controls.create_casefile_applicant_organisation_non_uk_bank_iban;
     const updateSpy = vi.spyOn(bic, 'updateValueAndValidity');
 
     iban.setValue('GB29NWBK60161331926819');

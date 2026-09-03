@@ -3,6 +3,7 @@ import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/com
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileInterestIndexationFormComponent } from './cases-create-casefile-interest-indexation-form/cases-create-casefile-interest-indexation-form.component';
+import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from './constants/cases-create-casefile-interest-indexation-field-names.constant';
 import type { ICasesCreateCasefileInterestIndexationFormData } from './interfaces/cases-create-casefile-interest-indexation-form-data.interface';
 import type { ICasesCreateCasefileInterestIndexationForm } from './interfaces/cases-create-casefile-interest-indexation-form.interface';
 
@@ -20,11 +21,24 @@ export class CasesCreateCasefileInterestIndexationComponent
   private readonly taskListPath =
     '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
 
-  public readonly initialFormData: ICasesCreateCasefileInterestIndexationFormData =
-    this.store.interestAndIndexation() ?? { interestApplies: null, indexationType: null };
+  public readonly initialFormData: ICasesCreateCasefileInterestIndexationFormData = this.toFormData(
+    this.store.interestAndIndexation(),
+  );
+
+  private toFormData(
+    saved: ReturnType<typeof this.store.interestAndIndexation>,
+  ): ICasesCreateCasefileInterestIndexationFormData {
+    return {
+      [CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.interestApplies]: saved?.interestApplies ?? null,
+      [CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.indexationType]: saved?.indexationType ?? null,
+    };
+  }
 
   public handleFormSubmit(form: ICasesCreateCasefileInterestIndexationForm): void {
-    this.store.setInterestAndIndexation(form.formData);
+    this.store.setInterestAndIndexation({
+      interestApplies: form.formData[CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.interestApplies]!,
+      indexationType: form.formData[CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.indexationType]!,
+    });
     this.stateUnsavedChanges = false;
     this.routerNavigate(this.taskListPath, true);
   }

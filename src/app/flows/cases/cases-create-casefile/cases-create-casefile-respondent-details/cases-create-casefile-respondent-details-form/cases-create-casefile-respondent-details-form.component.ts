@@ -55,6 +55,7 @@ import {
 } from '../../utils/cases-create-casefile-form-control-builders';
 import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_ALIAS } from '../constants/cases-create-casefile-respondent-details-alias.constant';
 import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_ERRORS } from '../constants/cases-create-casefile-respondent-details-field-errors.constant';
+import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES } from '../constants/cases-create-casefile-respondent-details-field-names.constant';
 import type { ICasesCreateCasefileRespondentDetailsFieldErrors } from '../interfaces/cases-create-casefile-respondent-details-field-errors.interface';
 import type { ICasesCreateCasefileRespondentDetailsFormData } from '../interfaces/cases-create-casefile-respondent-details-form-data.interface';
 import type { ICasesCreateCasefileRespondentDetailsForm } from '../interfaces/cases-create-casefile-respondent-details-form.interface';
@@ -62,30 +63,30 @@ import { casesCreateCasefileRespondentDetailsNationalInsuranceNumberValidator } 
 import { casesCreateCasefileRespondentDetailsTrimRequiredValidator } from '../validators/cases-create-casefile-respondent-details-trim-required.validator';
 
 const THIRD_PARTY_CONTROL_NAMES = [
-  'respondent_third_party_name_or_organisation',
-  'respondent_third_party_relationship',
-  'respondent_third_party_reference',
-  'respondent_third_party_address_line_1',
-  'respondent_third_party_address_line_2',
-  'respondent_third_party_address_line_3',
-  'respondent_third_party_address_line_4',
-  'respondent_third_party_address_line_5',
-  'respondent_third_party_postal_or_zip_code',
-  'respondent_third_party_country_id',
+  'create_casefile_respondent_details_third_party_name_or_organisation',
+  'create_casefile_respondent_details_third_party_relationship',
+  'create_casefile_respondent_details_third_party_reference',
+  'create_casefile_respondent_details_third_party_address_line_1',
+  'create_casefile_respondent_details_third_party_address_line_2',
+  'create_casefile_respondent_details_third_party_address_line_3',
+  'create_casefile_respondent_details_third_party_address_line_4',
+  'create_casefile_respondent_details_third_party_address_line_5',
+  'create_casefile_respondent_details_third_party_postal_or_zip_code',
+  'create_casefile_respondent_details_third_party_country_id',
 ] as const;
 
 const EMPLOYER_CONTROL_NAMES = [
-  'respondent_employer_name',
-  'respondent_employee_reference',
-  'respondent_employer_email_address',
-  'respondent_employer_telephone_number',
-  'respondent_employer_address_line_1',
-  'respondent_employer_address_line_2',
-  'respondent_employer_address_line_3',
-  'respondent_employer_address_line_4',
-  'respondent_employer_address_line_5',
-  'respondent_employer_postal_or_zip_code',
-  'respondent_employer_country_id',
+  'create_casefile_respondent_details_employer_name',
+  'create_casefile_respondent_details_employee_reference',
+  'create_casefile_respondent_details_employer_email_address',
+  'create_casefile_respondent_details_employer_telephone_number',
+  'create_casefile_respondent_details_employer_address_line_1',
+  'create_casefile_respondent_details_employer_address_line_2',
+  'create_casefile_respondent_details_employer_address_line_3',
+  'create_casefile_respondent_details_employer_address_line_4',
+  'create_casefile_respondent_details_employer_address_line_5',
+  'create_casefile_respondent_details_employer_postal_or_zip_code',
+  'create_casefile_respondent_details_employer_country_id',
 ] as const;
 
 interface IRespondentAliasFormRow {
@@ -94,10 +95,10 @@ interface IRespondentAliasFormRow {
 
 type IRespondentDetailsRawFormData = Omit<
   ICasesCreateCasefileRespondentDetailsFormData,
-  'respondent_aliases' | 'respondent_third_party_country_id'
+  'create_casefile_respondent_details_aliases' | 'create_casefile_respondent_details_third_party_country_id'
 > & {
-  respondent_aliases: IRespondentAliasFormRow[];
-  respondent_third_party_country_id: string | number | null;
+  create_casefile_respondent_details_aliases: IRespondentAliasFormRow[];
+  create_casefile_respondent_details_third_party_country_id: string | number | null;
 };
 
 @Component({
@@ -129,26 +130,29 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   private readonly conditionalBranchesDestroyed = new Subject<void>();
   private readonly conditionalBranches = [
     {
-      checkbox: 'respondent_send_correspondence_to_third_party',
+      checkbox: 'create_casefile_respondent_details_send_correspondence_to_third_party',
       requiredText: [
-        'respondent_third_party_name_or_organisation',
-        'respondent_third_party_relationship',
-        'respondent_third_party_address_line_1',
+        'create_casefile_respondent_details_third_party_name_or_organisation',
+        'create_casefile_respondent_details_third_party_relationship',
+        'create_casefile_respondent_details_third_party_address_line_1',
       ],
-      requiredCountry: ['respondent_third_party_country_id'],
+      requiredCountry: ['create_casefile_respondent_details_third_party_country_id'],
       controls: THIRD_PARTY_CONTROL_NAMES,
     },
     {
-      checkbox: 'respondent_add_employer_details',
-      requiredText: ['respondent_employer_name', 'respondent_employer_address_line_1'],
-      requiredCountry: ['respondent_employer_country_id'],
+      checkbox: 'create_casefile_respondent_details_add_employer_details',
+      requiredText: [
+        'create_casefile_respondent_details_employer_name',
+        'create_casefile_respondent_details_employer_address_line_1',
+      ],
+      requiredCountry: ['create_casefile_respondent_details_employer_country_id'],
       controls: EMPLOYER_CONTROL_NAMES,
     },
     {
-      checkbox: 'respondent_restricted_information',
-      requiredText: ['respondent_restricted_information_reason'],
+      checkbox: 'create_casefile_respondent_details_restricted_information',
+      requiredText: ['create_casefile_respondent_details_restricted_information_reason'],
       requiredCountry: [],
-      controls: ['respondent_restricted_information_reason'],
+      controls: ['create_casefile_respondent_details_restricted_information_reason'],
     },
   ] as const;
 
@@ -162,32 +166,33 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   @Input({ required: true }) public initialFormData!: ICasesCreateCasefileRespondentDetailsFormData;
   @Input({ required: true }) public countryAutocompleteItems!: IAlphagovAccessibleAutocompleteItem[];
   @Input({ required: true }) public countrySelectOptions!: IGovUkSelectOptions[];
+  public readonly fieldNames = CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES;
   public readonly contactDetailsFieldNames: ICasesCreateCasefileContactFieldNames = {
-    mainEmailAddress: 'respondent_main_email_address',
-    otherEmailAddress: 'respondent_other_email_address',
-    mainTelephoneNumber: 'respondent_main_telephone_number',
-    otherTelephoneNumber: 'respondent_other_telephone_number',
+    mainEmailAddress: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.mainEmailAddress,
+    otherEmailAddress: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.otherEmailAddress,
+    mainTelephoneNumber: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.mainTelephoneNumber,
+    otherTelephoneNumber: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.otherTelephoneNumber,
   };
   public readonly addressFieldNames: ICasesCreateCasefileAddressFieldNames = {
-    addressLine1: 'respondent_address_line_1',
-    addressLine2: 'respondent_address_line_2',
-    addressLine3: 'respondent_address_line_3',
-    addressLine4: 'respondent_address_line_4',
-    addressLine5: 'respondent_address_line_5',
-    postalOrZipCode: 'respondent_postal_or_zip_code',
-    countryId: 'respondent_country_id',
+    addressLine1: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.addressLine1,
+    addressLine2: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.addressLine2,
+    addressLine3: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.addressLine3,
+    addressLine4: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.addressLine4,
+    addressLine5: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.addressLine5,
+    postalOrZipCode: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.postalOrZipCode,
+    countryId: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.countryId,
   };
   public readonly thirdPartyFieldNames: ICasesCreateCasefileThirdPartyFieldNames = {
-    nameOrOrganisation: 'respondent_third_party_name_or_organisation',
-    relationship: 'respondent_third_party_relationship',
-    reference: 'respondent_third_party_reference',
-    addressLine1: 'respondent_third_party_address_line_1',
-    addressLine2: 'respondent_third_party_address_line_2',
-    addressLine3: 'respondent_third_party_address_line_3',
-    addressLine4: 'respondent_third_party_address_line_4',
-    addressLine5: 'respondent_third_party_address_line_5',
-    postalOrZipCode: 'respondent_third_party_postal_or_zip_code',
-    countryId: 'respondent_third_party_country_id',
+    nameOrOrganisation: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyNameOrOrganisation,
+    relationship: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyRelationship,
+    reference: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyReference,
+    addressLine1: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyAddressLine1,
+    addressLine2: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyAddressLine2,
+    addressLine3: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyAddressLine3,
+    addressLine4: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyAddressLine4,
+    addressLine5: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyAddressLine5,
+    postalOrZipCode: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyPostalOrZipCode,
+    countryId: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyCountryId,
   };
   public yesterday!: string;
 
@@ -212,104 +217,130 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     const disabled = <T>(value: T): { value: T; disabled: true } => ({ value, disabled: true });
 
     this.form = new FormGroup({
-      respondent_title: new FormControl<string | null>(null, optionalMaxLengthValidator(20)),
-      respondent_first_names: new FormControl<string | null>(null, [
+      create_casefile_respondent_details_title: new FormControl<string | null>(null, optionalMaxLengthValidator(20)),
+      create_casefile_respondent_details_first_names: new FormControl<string | null>(null, [
         casesCreateCasefileRespondentDetailsTrimRequiredValidator,
         Validators.maxLength(50),
       ]),
-      respondent_last_name: new FormControl<string | null>(null, [
+      create_casefile_respondent_details_last_name: new FormControl<string | null>(null, [
         casesCreateCasefileRespondentDetailsTrimRequiredValidator,
         Validators.maxLength(50),
       ]),
-      respondent_add_aliases: new FormControl(false, { nonNullable: true }),
-      respondent_aliases: new FormArray<FormGroup>([]),
-      respondent_date_of_birth: new FormControl<string | null>(null, [
+      create_casefile_respondent_details_add_aliases: new FormControl(false, { nonNullable: true }),
+      create_casefile_respondent_details_aliases: new FormArray<FormGroup>([]),
+      create_casefile_respondent_details_date_of_birth: new FormControl<string | null>(null, [
         optionalValidDateValidator(),
         dateOfBirthValidator(),
       ]),
-      respondent_national_insurance_number: new FormControl<string | null>(
+      create_casefile_respondent_details_national_insurance_number: new FormControl<string | null>(
         null,
         casesCreateCasefileRespondentDetailsNationalInsuranceNumberValidator,
       ),
-      respondent_other_personal_information: new FormControl<string | null>(null, optionalMaxLengthValidator(200)),
-      respondent_main_email_address: contactControls.mainEmailAddress,
-      respondent_other_email_address: contactControls.otherEmailAddress,
-      respondent_main_telephone_number: contactControls.mainTelephoneNumber,
-      respondent_other_telephone_number: contactControls.otherTelephoneNumber,
-      respondent_address_line_1: addressControls.addressLine1,
-      respondent_address_line_2: addressControls.addressLine2,
-      respondent_address_line_3: addressControls.addressLine3,
-      respondent_address_line_4: addressControls.addressLine4,
-      respondent_address_line_5: addressControls.addressLine5,
-      respondent_postal_or_zip_code: addressControls.postalOrZipCode,
-      respondent_country_id: addressControls.countryId,
-      respondent_send_correspondence_to_third_party: new FormControl(false, { nonNullable: true }),
-      respondent_third_party_name_or_organisation: new FormControl<string | null>(
+      create_casefile_respondent_details_other_personal_information: new FormControl<string | null>(
+        null,
+        optionalMaxLengthValidator(200),
+      ),
+      create_casefile_respondent_details_main_email_address: contactControls.mainEmailAddress,
+      create_casefile_respondent_details_other_email_address: contactControls.otherEmailAddress,
+      create_casefile_respondent_details_main_telephone_number: contactControls.mainTelephoneNumber,
+      create_casefile_respondent_details_other_telephone_number: contactControls.otherTelephoneNumber,
+      create_casefile_respondent_details_address_line_1: addressControls.addressLine1,
+      create_casefile_respondent_details_address_line_2: addressControls.addressLine2,
+      create_casefile_respondent_details_address_line_3: addressControls.addressLine3,
+      create_casefile_respondent_details_address_line_4: addressControls.addressLine4,
+      create_casefile_respondent_details_address_line_5: addressControls.addressLine5,
+      create_casefile_respondent_details_postal_or_zip_code: addressControls.postalOrZipCode,
+      create_casefile_respondent_details_country_id: addressControls.countryId,
+      create_casefile_respondent_details_send_correspondence_to_third_party: new FormControl(false, {
+        nonNullable: true,
+      }),
+      create_casefile_respondent_details_third_party_name_or_organisation: new FormControl<string | null>(
         disabled(null),
         Validators.maxLength(40),
       ),
-      respondent_third_party_relationship: new FormControl<string | null>(disabled(null), Validators.maxLength(40)),
-      respondent_third_party_reference: new FormControl<string | null>(disabled(null), optionalMaxLengthValidator(40)),
-      respondent_third_party_address_line_1: new FormControl<string | null>(disabled(null), Validators.maxLength(30)),
-      respondent_third_party_address_line_2: new FormControl<string | null>(
+      create_casefile_respondent_details_third_party_relationship: new FormControl<string | null>(
+        disabled(null),
+        Validators.maxLength(40),
+      ),
+      create_casefile_respondent_details_third_party_reference: new FormControl<string | null>(
+        disabled(null),
+        optionalMaxLengthValidator(40),
+      ),
+      create_casefile_respondent_details_third_party_address_line_1: new FormControl<string | null>(
+        disabled(null),
+        Validators.maxLength(30),
+      ),
+      create_casefile_respondent_details_third_party_address_line_2: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(30),
       ),
-      respondent_third_party_address_line_3: new FormControl<string | null>(
+      create_casefile_respondent_details_third_party_address_line_3: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(30),
       ),
-      respondent_third_party_address_line_4: new FormControl<string | null>(
+      create_casefile_respondent_details_third_party_address_line_4: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(30),
       ),
-      respondent_third_party_address_line_5: new FormControl<string | null>(
+      create_casefile_respondent_details_third_party_address_line_5: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(30),
       ),
-      respondent_third_party_postal_or_zip_code: new FormControl<string | null>(
+      create_casefile_respondent_details_third_party_postal_or_zip_code: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(10),
       ),
-      respondent_third_party_country_id: new FormControl<number | null>(
+      create_casefile_respondent_details_third_party_country_id: new FormControl<number | null>(
         disabled(null),
         this.countrySelectionValidator(this.countrySelectOptions),
       ),
-      respondent_add_employer_details: new FormControl(false, { nonNullable: true }),
-      respondent_employer_name: new FormControl<string | null>(disabled(null), Validators.maxLength(50)),
-      respondent_employee_reference: new FormControl<string | null>(disabled(null), optionalMaxLengthValidator(20)),
-      respondent_employer_email_address: new FormControl<string | null>(disabled(null), emailValidators),
-      respondent_employer_telephone_number: new FormControl<string | null>(
+      create_casefile_respondent_details_add_employer_details: new FormControl(false, { nonNullable: true }),
+      create_casefile_respondent_details_employer_name: new FormControl<string | null>(
+        disabled(null),
+        Validators.maxLength(50),
+      ),
+      create_casefile_respondent_details_employee_reference: new FormControl<string | null>(
+        disabled(null),
+        optionalMaxLengthValidator(20),
+      ),
+      create_casefile_respondent_details_employer_email_address: new FormControl<string | null>(
+        disabled(null),
+        emailValidators,
+      ),
+      create_casefile_respondent_details_employer_telephone_number: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(35),
       ),
-      respondent_employer_address_line_1: new FormControl<string | null>(disabled(null), Validators.maxLength(30)),
-      respondent_employer_address_line_2: new FormControl<string | null>(
+      create_casefile_respondent_details_employer_address_line_1: new FormControl<string | null>(
+        disabled(null),
+        Validators.maxLength(30),
+      ),
+      create_casefile_respondent_details_employer_address_line_2: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(30),
       ),
-      respondent_employer_address_line_3: new FormControl<string | null>(
+      create_casefile_respondent_details_employer_address_line_3: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(30),
       ),
-      respondent_employer_address_line_4: new FormControl<string | null>(
+      create_casefile_respondent_details_employer_address_line_4: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(30),
       ),
-      respondent_employer_address_line_5: new FormControl<string | null>(
+      create_casefile_respondent_details_employer_address_line_5: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(30),
       ),
-      respondent_employer_postal_or_zip_code: new FormControl<string | null>(
+      create_casefile_respondent_details_employer_postal_or_zip_code: new FormControl<string | null>(
         disabled(null),
         optionalMaxLengthValidator(10),
       ),
-      respondent_employer_country_id: new FormControl<number | null>(
+      create_casefile_respondent_details_employer_country_id: new FormControl<number | null>(
         disabled(null),
         this.countrySelectionValidator(this.countryAutocompleteItems),
       ),
-      respondent_restricted_information: new FormControl(false, { nonNullable: true }),
-      respondent_restricted_information_reason: new FormControl<string | null>(
+      create_casefile_respondent_details_restricted_information: new FormControl(false, { nonNullable: true }),
+      create_casefile_respondent_details_restricted_information_reason: new FormControl<string | null>(
         disabled(null),
         Validators.maxLength(250),
       ),
@@ -323,15 +354,15 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
 
   private mapAliasesToIndexedRows(aliases: ICasesCreateCasefilePartyAlias[]): IRespondentAliasFormRow[] {
     return aliases.map((alias, index) => ({
-      [`respondent_alias_first_names_${index}`]: alias.firstNames,
-      [`respondent_alias_last_name_${index}`]: alias.lastName,
+      [`create_casefile_respondent_details_alias_first_names_${index}`]: alias.firstNames,
+      [`create_casefile_respondent_details_alias_last_name_${index}`]: alias.lastName,
     }));
   }
 
   private mapIndexedRowsToAliases(rows: IRespondentAliasFormRow[]): ICasesCreateCasefilePartyAlias[] {
     return rows.map((row, index) => ({
-      firstNames: row[`respondent_alias_first_names_${index}`]!,
-      lastName: row[`respondent_alias_last_name_${index}`]!,
+      firstNames: row[`create_casefile_respondent_details_alias_first_names_${index}`]!,
+      lastName: row[`create_casefile_respondent_details_alias_last_name_${index}`]!,
     }));
   }
 
@@ -363,7 +394,7 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   }
 
   private setupAliasErrorCleanupListener(): void {
-    this.form.controls['respondent_add_aliases'].valueChanges
+    this.form.controls['create_casefile_respondent_details_add_aliases'].valueChanges
       .pipe(takeUntil(this.conditionalBranchesDestroyed))
       .subscribe((selected) => {
         if (selected !== true) {
@@ -405,7 +436,9 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   protected override rePopulateForm(state: ICasesCreateCasefileRespondentDetailsFormData): void {
     super.rePopulateForm({
       ...state,
-      respondent_aliases: this.mapAliasesToIndexedRows(state.respondent_aliases),
+      create_casefile_respondent_details_aliases: this.mapAliasesToIndexedRows(
+        state.create_casefile_respondent_details_aliases,
+      ),
     });
   }
 
@@ -444,9 +477,11 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     this.formSubmit.emit({
       formData: {
         ...rawValue,
-        respondent_aliases: this.mapIndexedRowsToAliases(rawValue.respondent_aliases),
-        respondent_third_party_country_id: this.normalizeThirdPartyCountryId(
-          rawValue.respondent_third_party_country_id,
+        create_casefile_respondent_details_aliases: this.mapIndexedRowsToAliases(
+          rawValue.create_casefile_respondent_details_aliases,
+        ),
+        create_casefile_respondent_details_third_party_country_id: this.normalizeThirdPartyCountryId(
+          rawValue.create_casefile_respondent_details_third_party_country_id,
         ),
       },
       nestedFlow: false,
@@ -457,12 +492,15 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     this.setupForm();
     this.setupAliasConfiguration();
     this.setupAliasFormControls(
-      [...new Array(this.initialFormData.respondent_aliases.length).keys()],
-      'respondent_aliases',
+      [...new Array(this.initialFormData.create_casefile_respondent_details_aliases.length).keys()],
+      'create_casefile_respondent_details_aliases',
     );
     this.setInitialErrorMessages();
     this.rePopulateForm(this.initialFormData);
-    this.setUpAliasCheckboxListener('respondent_add_aliases', 'respondent_aliases');
+    this.setUpAliasCheckboxListener(
+      'create_casefile_respondent_details_add_aliases',
+      'create_casefile_respondent_details_aliases',
+    );
     this.setupAliasErrorCleanupListener();
     this.setupConditionalBranchListeners();
     this.applyInitialConditionalBranchState();

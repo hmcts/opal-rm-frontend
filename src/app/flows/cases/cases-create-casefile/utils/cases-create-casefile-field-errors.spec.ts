@@ -7,20 +7,11 @@ import {
   createCasesCreateCasefileError,
   createCasesCreateCasefileMaxLengthError,
 } from './cases-create-casefile-field-errors';
+import { CASES_CREATE_CASEFILE_APPLICANT_CONTACT_ADDRESS_ERROR_KEYS } from './cases-create-casefile-applicant-contact-address-field-errors';
 
 describe('cases-create-casefile-field-errors', () => {
   const commonApplicantFields = [
-    'mainEmailAddress',
-    'otherEmailAddress',
-    'mainTelephoneNumber',
-    'otherTelephoneNumber',
-    'addressLine1',
-    'addressLine2',
-    'addressLine3',
-    'addressLine4',
-    'addressLine5',
-    'postalOrZipCode',
-    'countryId',
+    ...CASES_CREATE_CASEFILE_APPLICANT_CONTACT_ADDRESS_ERROR_KEYS,
     'bankType',
     'ukBankNameOnAccount',
     'ukBankSortCode',

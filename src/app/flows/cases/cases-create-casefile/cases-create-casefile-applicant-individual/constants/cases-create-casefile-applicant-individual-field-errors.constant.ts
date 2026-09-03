@@ -2,6 +2,7 @@ import {
   createCasesCreateCasefileError,
   createCasesCreateCasefileMaxLengthError,
 } from '../../utils/cases-create-casefile-field-errors';
+import { createCasesCreateCasefileApplicantContactAddressFieldErrors } from '../../utils/cases-create-casefile-applicant-contact-address-field-errors';
 import { CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS } from '../../constants/cases-create-casefile-applicant-field-errors.constant';
 import type { ICasesCreateCasefileApplicantIndividualFieldErrors } from '../interfaces/cases-create-casefile-applicant-individual-field-errors.interface';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_NAMES as FIELD_NAMES } from './cases-create-casefile-applicant-individual-field-names.constant';
@@ -69,19 +70,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_ERRORS: ICasesCrea
       invalidDate: createCasesCreateCasefileError('Enter a valid date of birth', 2),
       invalidDateOfBirth: createCasesCreateCasefileError('Date must be in the past', 2),
     },
-    [FIELD_NAMES.mainEmailAddress]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.mainEmailAddress,
-    [FIELD_NAMES.otherEmailAddress]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.otherEmailAddress,
-    [FIELD_NAMES.mainTelephoneNumber]:
-      CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.mainTelephoneNumber,
-    [FIELD_NAMES.otherTelephoneNumber]:
-      CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.otherTelephoneNumber,
-    [FIELD_NAMES.addressLine1]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine1,
-    [FIELD_NAMES.addressLine2]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine2,
-    [FIELD_NAMES.addressLine3]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine3,
-    [FIELD_NAMES.addressLine4]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine4,
-    [FIELD_NAMES.addressLine5]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine5,
-    [FIELD_NAMES.postalOrZipCode]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.postalOrZipCode,
-    [FIELD_NAMES.countryId]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.countryId,
+    ...createCasesCreateCasefileApplicantContactAddressFieldErrors(FIELD_NAMES),
     create_casefile_applicant_individual_third_party_name_or_organisation: {
       required: createCasesCreateCasefileError('Enter name or organisation', 1),
       ...createCasesCreateCasefileMaxLengthError('Name or organisation', 40, 3),

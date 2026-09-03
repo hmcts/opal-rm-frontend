@@ -2,6 +2,7 @@ import {
   createCasesCreateCasefileError,
   createCasesCreateCasefileMaxLengthError,
 } from '../../utils/cases-create-casefile-field-errors';
+import { createCasesCreateCasefileApplicantContactAddressFieldErrors } from '../../utils/cases-create-casefile-applicant-contact-address-field-errors';
 import { CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS } from '../../constants/cases-create-casefile-applicant-field-errors.constant';
 import type { ICasesCreateCasefileApplicantOrganisationFieldErrors } from '../interfaces/cases-create-casefile-applicant-organisation-field-errors.interface';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_NAMES as FIELD_NAMES } from './cases-create-casefile-applicant-organisation-field-names.constant';
@@ -16,19 +17,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS: ICasesCr
       required: createCasesCreateCasefileError('Enter a foreign authority reference number', 1),
       ...createCasesCreateCasefileMaxLengthError('Foreign authority reference', 40, 3),
     },
-    [FIELD_NAMES.mainEmailAddress]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.mainEmailAddress,
-    [FIELD_NAMES.otherEmailAddress]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.otherEmailAddress,
-    [FIELD_NAMES.mainTelephoneNumber]:
-      CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.mainTelephoneNumber,
-    [FIELD_NAMES.otherTelephoneNumber]:
-      CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.otherTelephoneNumber,
-    [FIELD_NAMES.addressLine1]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine1,
-    [FIELD_NAMES.addressLine2]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine2,
-    [FIELD_NAMES.addressLine3]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine3,
-    [FIELD_NAMES.addressLine4]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine4,
-    [FIELD_NAMES.addressLine5]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.addressLine5,
-    [FIELD_NAMES.postalOrZipCode]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.postalOrZipCode,
-    [FIELD_NAMES.countryId]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.contactAndAddress.countryId,
+    ...createCasesCreateCasefileApplicantContactAddressFieldErrors(FIELD_NAMES),
     create_casefile_applicant_organisation_bank_type: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.bankType,
     create_casefile_applicant_organisation_uk_bank_name_on_account:
       CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.ukBankNameOnAccount,

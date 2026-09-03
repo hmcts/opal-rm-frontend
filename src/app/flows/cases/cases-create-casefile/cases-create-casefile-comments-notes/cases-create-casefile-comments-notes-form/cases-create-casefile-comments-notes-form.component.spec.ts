@@ -25,6 +25,12 @@ describe('CasesCreateCasefileCommentsNotesFormComponent', () => {
     fixture.detectChanges();
   };
 
+  const submitFromRenderedForm = (): void => {
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    form.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+  };
+
   beforeEach(async () => {
     document.body.classList.add('govuk-frontend-supported', 'js-enabled');
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
@@ -151,6 +157,31 @@ describe('CasesCreateCasefileCommentsNotesFormComponent', () => {
     expect(formSubmitSpy).not.toHaveBeenCalled();
   });
 
+  it('clears validation errors and submits valid values after an over-limit submission', () => {
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+    component.form.controls[FIELD_NAMES.comment].setValue('a'.repeat(251));
+    component.form.controls[FIELD_NAMES.note].setValue('b'.repeat(1001));
+
+    submitFromRenderedForm();
+
+    component.form.controls[FIELD_NAMES.comment].setValue('Valid comment');
+    component.form.controls[FIELD_NAMES.note].setValue('Valid account note');
+    submitFromRenderedForm();
+
+    expect(component.formControlErrorMessages).toEqual({});
+    expect(component.formErrorSummaryMessage).toEqual([]);
+    expect(fixture.nativeElement.querySelectorAll('.govuk-error-message')).toHaveLength(0);
+    expect(fixture.nativeElement.querySelector('.govuk-error-summary')).toBeNull();
+    expect(formSubmitSpy).toHaveBeenCalledWith({
+      formData: {
+        [FIELD_NAMES.comment]: 'Valid comment',
+        [FIELD_NAMES.note]: 'Valid account note',
+      },
+      nestedFlow: false,
+    });
+  });
+
   it.each([
     [FIELD_NAMES.comment, 'Comment must be 250 characters or fewer'],
     [FIELD_NAMES.note, 'Account note must be 1,000 characters or fewer'],
@@ -167,16 +198,20 @@ describe('CasesCreateCasefileCommentsNotesFormComponent', () => {
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector(`#${fieldName}`));
   });
 
-  it('emits dirty state from native editing and emits Cancel from the rendered link', () => {
+  it('emits dirty state from native textarea editing and emits Cancel from the rendered link', () => {
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     const cancelSpy = vi.spyOn(component.cancel, 'emit');
     fixture.detectChanges();
 
-    component.form.controls[FIELD_NAMES.comment].markAsDirty();
-    component.form.controls[FIELD_NAMES.comment].setValue('Edited comment');
+    const commentTextarea = fixture.nativeElement.querySelector(`#${FIELD_NAMES.comment}`) as HTMLTextAreaElement;
+    commentTextarea.value = 'Edited comment';
+    commentTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(component.form.controls[FIELD_NAMES.comment].value).toBe('Edited comment');
+    expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
     (fixture.nativeElement.querySelector('#cancelCommentsAndNotes a') as HTMLAnchorElement).click();
 
-    expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
     expect(cancelSpy).toHaveBeenCalledOnce();
   });
 });

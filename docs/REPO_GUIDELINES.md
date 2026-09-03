@@ -39,6 +39,9 @@ Use the applicable Cypress guide for component, smoke, functional E2E, and acces
 
 ## Formatting and naming
 
+For canonical create-casefile form identifiers and their reactive-form, DOM, error, selector, and mapper-boundary
+mapping, follow [SONAR.md](SONAR.md#form-identifiers).
+
 - Follow `.editorconfig`: UTF-8, spaces, two-space indentation, and trimmed trailing whitespace.
 - Follow `.prettierrc`: 120-character line width, single quotes, and semicolons.
 - Use `app`-prefixed kebab-case Angular component selectors and `app`-prefixed camelCase directive selectors.
@@ -166,6 +169,9 @@ Changed UI must meet WCAG 2.2 AA expectations.
 - Retain sufficient colour contrast and do not rely on colour alone to communicate meaning.
 
 ## Testing
+
+For Sonar Quality Gate prevention, New Code duplication, meaningful coverage, prohibited shortcuts, and local
+pre-flight, follow [SONAR.md](SONAR.md). This document remains authoritative for repository testing standards.
 
 - Add or update tests for changed logic, validation, state handling, error paths, empty states, and regression-prone behaviour.
 - New and materially changed executable code must meet the configured Sonar **Coverage on New Code** Quality Gate of

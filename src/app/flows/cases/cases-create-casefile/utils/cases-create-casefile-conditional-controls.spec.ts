@@ -41,6 +41,49 @@ describe('updateCasesCreateCasefileConditionalControls', () => {
     expect(optionalChanges).not.toHaveBeenCalled();
   });
 
+  it('preserves activation and deactivation ordering while suppressing control events', () => {
+    const text = new FormControl({ value: 'Existing', disabled: true });
+    const enable = vi.spyOn(text, 'enable');
+    const reset = vi.spyOn(text, 'reset');
+    const setErrors = vi.spyOn(text, 'setErrors');
+    const disable = vi.spyOn(text, 'disable');
+    const updateValueAndValidity = vi.spyOn(text, 'updateValueAndValidity');
+
+    updateCasesCreateCasefileConditionalControls(
+      {
+        controls: [text],
+        requiredTextControls: new Set([text]),
+        requiredCountryControls: new Set(),
+        requiredTextValidator,
+      },
+      true,
+    );
+
+    expect(text.value).toBe('Existing');
+    expect(enable).toHaveBeenCalledWith({ emitEvent: false });
+    expect(updateValueAndValidity).toHaveBeenCalledWith({ emitEvent: false });
+    expect(enable.mock.invocationCallOrder[0]).toBeLessThan(updateValueAndValidity.mock.invocationCallOrder.at(-1)!);
+
+    vi.clearAllMocks();
+    updateCasesCreateCasefileConditionalControls(
+      {
+        controls: [text],
+        requiredTextControls: new Set([text]),
+        requiredCountryControls: new Set(),
+        requiredTextValidator,
+      },
+      false,
+    );
+
+    expect(reset).toHaveBeenCalledWith(null, { emitEvent: false });
+    expect(setErrors).toHaveBeenCalledWith(null, { emitEvent: false });
+    expect(disable).toHaveBeenCalledWith({ emitEvent: false });
+    expect(updateValueAndValidity).toHaveBeenCalledWith({ emitEvent: false });
+    expect(reset.mock.invocationCallOrder[0]).toBeLessThan(setErrors.mock.invocationCallOrder[0]);
+    expect(setErrors.mock.invocationCallOrder[0]).toBeLessThan(disable.mock.invocationCallOrder[0]);
+    expect(disable.mock.invocationCallOrder[0]).toBeLessThan(updateValueAndValidity.mock.invocationCallOrder.at(-1)!);
+  });
+
   it('resets, clears errors, removes conditional validators and disables deselected controls without emitting control changes', () => {
     const optionalTextValidator = Validators.maxLength(10);
     const text = new FormControl('Content', [requiredTextValidator, optionalTextValidator]);

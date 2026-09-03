@@ -1,4 +1,4 @@
-export interface ICasesCreateCasefileCountryReferenceDataItem {
+export interface IOpalMaintenanceCountryReferenceDataItem {
   country_id: number;
   cjs_code: number;
   international_code?: string;

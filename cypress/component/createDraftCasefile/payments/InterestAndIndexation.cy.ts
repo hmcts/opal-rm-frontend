@@ -2,10 +2,12 @@ import type { Router } from '@angular/router';
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant';
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-task-statuses.constant';
-import type { ICasesCreateCasefileInterestIndexation } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-interest-indexation.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { CasesCreateCasefileIndexationType } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-indexation-type.type';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
+import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
+import { INTEREST_AND_INDEXATION_ERROR_MESSAGES } from './constants/interest-and-indexation-errors.constant';
+import { SAVED_INTEREST_AND_INDEXATION } from './mocks/interest-and-indexation.mock';
 import { setupInterestAndIndexation } from './setup/interest-and-indexation.setup';
 import { externalDestinationPath, type CasesCreateCasefileStoreInstance } from './setup/interest-and-indexation.setup';
 
@@ -21,12 +23,7 @@ const taskListPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
 const managingPaymentsPath =
   '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.managingPayments;
-const UNSAVED_CHANGES_WARNING =
-  'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.';
-const SAVED_INTEREST_AND_INDEXATION: ICasesCreateCasefileInterestIndexation = {
-  interestApplies: true,
-  indexationType: CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI,
-};
+const DRAFT_CASEFILE_WRITE_URL = /\/draft-casefiles(?:[/?#]|$)/;
 
 const normalizeText = (text: string | null | undefined): string => text?.replace(/\s+/g, ' ').trim() ?? '';
 
@@ -142,7 +139,7 @@ describe('Create Casefile Interest and Indexation', () => {
   });
 
   it('AC1. should restore both previously saved controlled values', { tags: buildTags() }, () => {
-    setupInterestAndIndexation(SAVED_INTEREST_AND_INDEXATION);
+    setupInterestAndIndexation({ savedInterestAndIndexation: SAVED_INTEREST_AND_INDEXATION });
 
     cy.get(Page.interestAndIndexation.interestRadio(true)).should('be.checked');
     cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI)).should('be.checked');
@@ -150,17 +147,20 @@ describe('Create Casefile Interest and Indexation', () => {
 
   it('AC2, EMAC1. should show both exact errors, focus the summary and retain the route', { tags: buildTags() }, () => {
     const postRequestSpy = cy.spy().as('invalidDraftCasefilePost');
-    cy.intercept({ method: 'POST', url: '**/draft-casefiles*' }, postRequestSpy);
+    cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
     setupInterestAndIndexation();
 
     cy.get(Page.interestAndIndexation.returnToCaseDetails).click();
 
-    assertInlineError(Page.interestAndIndexation.interestError, 'Choose whether interest applies');
-    assertInlineError(Page.interestAndIndexation.indexationError, 'Select what type of indexation applies');
+    assertInlineError(Page.interestAndIndexation.interestError, INTEREST_AND_INDEXATION_ERROR_MESSAGES.interestApplies);
+    assertInlineError(
+      Page.interestAndIndexation.indexationError,
+      INTEREST_AND_INDEXATION_ERROR_MESSAGES.indexationType,
+    );
     cy.get(Page.interestAndIndexation.errorSummary)
       .should('be.focused')
-      .and('contain.text', 'Choose whether interest applies')
-      .and('contain.text', 'Select what type of indexation applies');
+      .and('contain.text', INTEREST_AND_INDEXATION_ERROR_MESSAGES.interestApplies)
+      .and('contain.text', INTEREST_AND_INDEXATION_ERROR_MESSAGES.indexationType);
     cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
       expect(store.interestAndIndexation()).to.equal(null);
       expect(store.taskStatuses().interestAndIndexation).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
@@ -173,15 +173,15 @@ describe('Create Casefile Interest and Indexation', () => {
     {
       name: 'Interest',
       select: () => cy.get(Page.interestAndIndexation.interestRadio(false)).check(),
-      presentError: 'Select what type of indexation applies',
-      absentError: 'Choose whether interest applies',
+      presentError: INTEREST_AND_INDEXATION_ERROR_MESSAGES.indexationType,
+      absentError: INTEREST_AND_INDEXATION_ERROR_MESSAGES.interestApplies,
     },
     {
       name: 'Indexation',
       select: () =>
         cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER)).check(),
-      presentError: 'Choose whether interest applies',
-      absentError: 'Select what type of indexation applies',
+      presentError: INTEREST_AND_INDEXATION_ERROR_MESSAGES.interestApplies,
+      absentError: INTEREST_AND_INDEXATION_ERROR_MESSAGES.indexationType,
     },
   ]) {
     it(`AC2. should show only the missing-group error after selecting ${partial.name}`, { tags: buildTags() }, () => {
@@ -201,10 +201,14 @@ describe('Create Casefile Interest and Indexation', () => {
     setupInterestAndIndexation();
     cy.get(Page.interestAndIndexation.returnToCaseDetails).click();
 
-    cy.get(Page.interestAndIndexation.errorSummaryLinks).contains('Choose whether interest applies').click();
+    cy.get(Page.interestAndIndexation.errorSummaryLinks)
+      .contains(INTEREST_AND_INDEXATION_ERROR_MESSAGES.interestApplies)
+      .click();
     cy.get(Page.interestAndIndexation.interestRadio(true)).should('be.focused');
     cy.get(Page.interestAndIndexation.returnToCaseDetails).click();
-    cy.get(Page.interestAndIndexation.errorSummaryLinks).contains('Select what type of indexation applies').click();
+    cy.get(Page.interestAndIndexation.errorSummaryLinks)
+      .contains(INTEREST_AND_INDEXATION_ERROR_MESSAGES.indexationType)
+      .click();
     cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI)).should('be.focused');
   });
 
@@ -219,7 +223,7 @@ describe('Create Casefile Interest and Indexation', () => {
       { tags: buildTags() },
       () => {
         const postRequestSpy = cy.spy().as('draftCasefilePost');
-        cy.intercept({ method: 'POST', url: '**/draft-casefiles*' }, postRequestSpy);
+        cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
         setupInterestAndIndexation();
         choose(saved.interestApplies, saved.indexationType);
 
@@ -255,15 +259,15 @@ describe('Create Casefile Interest and Indexation', () => {
     () => {
       const rejectCancelConfirm = cy.stub().as('rejectCancelConfirm').returns(false);
       cy.on('window:confirm', rejectCancelConfirm);
-      setupInterestAndIndexation(SAVED_INTEREST_AND_INDEXATION);
-      choose(false, CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER);
+      setupInterestAndIndexation({ savedInterestAndIndexation: SAVED_INTEREST_AND_INDEXATION });
+      cy.get(Page.interestAndIndexation.interestRadio(false)).check();
 
       cy.get(Page.interestAndIndexation.cancelLink).click();
 
       cy.get('@rejectCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
       assertRouterPath(interestPath);
       cy.get(Page.interestAndIndexation.interestRadio(false)).should('be.checked');
-      cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER)).should(
+      cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI)).should(
         'be.checked',
       );
       cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
@@ -276,8 +280,8 @@ describe('Create Casefile Interest and Indexation', () => {
   it('AC3, RGAC3. should leave on dirty Cancel and preserve only the last saved state', { tags: buildTags() }, () => {
     const acceptCancelConfirm = cy.stub().as('acceptCancelConfirm').returns(true);
     cy.on('window:confirm', acceptCancelConfirm);
-    setupInterestAndIndexation(SAVED_INTEREST_AND_INDEXATION);
-    choose(false, CASES_CREATE_CASEFILE_INDEXATION_TYPES.NONE);
+    setupInterestAndIndexation({ savedInterestAndIndexation: SAVED_INTEREST_AND_INDEXATION });
+    cy.get(Page.interestAndIndexation.interestRadio(false)).check();
 
     cy.get(Page.interestAndIndexation.cancelLink).click();
 
@@ -296,15 +300,15 @@ describe('Create Casefile Interest and Indexation', () => {
     () => {
       const rejectNavigationConfirm = cy.stub().as('rejectNavigationConfirm').returns(false);
       cy.on('window:confirm', rejectNavigationConfirm);
-      setupInterestAndIndexation();
-      choose(true, CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI);
+      setupInterestAndIndexation({ savedInterestAndIndexation: SAVED_INTEREST_AND_INDEXATION });
+      cy.get(Page.interestAndIndexation.interestRadio(false)).check();
 
       cy.get('@angularRouter').then((router: Router) => router.navigateByUrl(managingPaymentsPath));
 
       cy.get('@rejectNavigationConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
       assertRouterPath(interestPath);
-      cy.get(Page.interestAndIndexation.interestRadio(true)).should('be.checked');
-      cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.RPI)).should(
+      cy.get(Page.interestAndIndexation.interestRadio(false)).should('be.checked');
+      cy.get(Page.interestAndIndexation.indexationRadio(CASES_CREATE_CASEFILE_INDEXATION_TYPES.CPI)).should(
         'be.checked',
       );
     },
@@ -313,8 +317,8 @@ describe('Create Casefile Interest and Indexation', () => {
   it('AC3, RGAC2. should warn once and complete external navigation after accepting', { tags: buildTags() }, () => {
     const acceptExternalNavigationConfirm = cy.stub().as('acceptExternalNavigationConfirm').returns(true);
     cy.on('window:confirm', acceptExternalNavigationConfirm);
-    setupInterestAndIndexation(SAVED_INTEREST_AND_INDEXATION);
-    choose(false, CASES_CREATE_CASEFILE_INDEXATION_TYPES.NONE);
+    setupInterestAndIndexation({ savedInterestAndIndexation: SAVED_INTEREST_AND_INDEXATION });
+    cy.get(Page.interestAndIndexation.interestRadio(false)).check();
 
     cy.get('@angularRouter').then((router: Router) => router.navigateByUrl(externalDestinationPath));
 
@@ -339,8 +343,7 @@ describe('Create Casefile Interest and Indexation', () => {
   });
 
   it('AC4. should have no detected Axe violations in a representative valid state', { tags: buildTags() }, () => {
-    setupInterestAndIndexation();
-    choose(true, CASES_CREATE_CASEFILE_INDEXATION_TYPES.OTHER);
+    setupInterestAndIndexation({ savedInterestAndIndexation: SAVED_INTEREST_AND_INDEXATION });
 
     cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
     cy.checkA11y();
@@ -360,7 +363,7 @@ describe('Create Casefile Interest and Indexation', () => {
       setupInterestAndIndexation();
       if (width === 320) {
         cy.get(Page.interestAndIndexation.returnToCaseDetails).click();
-        cy.get(Page.interestAndIndexation.errorSummary).should('contain.text', 'There is a problem');
+        cy.get(Page.interestAndIndexation.errorSummary).should('contain.text', ERROR_SUMMARY_TITLE);
       }
 
       cy.document().then((document) => {

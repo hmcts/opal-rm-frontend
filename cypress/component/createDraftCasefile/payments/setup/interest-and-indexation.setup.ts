@@ -32,16 +32,18 @@ const testRoutes: Routes = [
 
 export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCasefileStore>;
 
-export const setupInterestAndIndexation = (
-  savedInterestAndIndexation: ICasesCreateCasefileInterestIndexation | null = null,
-) => {
+interface IInterestAndIndexationSetup {
+  savedInterestAndIndexation?: ICasesCreateCasefileInterestIndexation | null;
+}
+
+export const setupInterestAndIndexation = ({ savedInterestAndIndexation = null }: IInterestAndIndexationSetup = {}) => {
   const store = new CasesCreateCasefileStore();
   store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
   store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
   store.setTaskStatus('applicant', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
   store.setTaskStatus('orderDetails', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
   if (savedInterestAndIndexation) {
-    store.setInterestAndIndexation(savedInterestAndIndexation);
+    store.setInterestAndIndexation(structuredClone(savedInterestAndIndexation));
   }
 
   return cy.document().then((document) => {

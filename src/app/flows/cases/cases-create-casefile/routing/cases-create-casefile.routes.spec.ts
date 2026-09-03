@@ -26,7 +26,6 @@ const guardedRouteCases = [
   ['centralAuthorityDetails', 'Central authority details'],
   ['orderDetails', 'Order details'],
   ['orderTermsSummary', 'Order terms'],
-  ['commentsAndNotes', 'Comments and notes'],
   ['checkCaseDetails', 'Check case details'],
   ['cancel', 'Cancel case creation'],
 ] as const;
@@ -156,6 +155,22 @@ describe('Create Casefile routes', () => {
     const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
 
     expect(component?.name).toBe(CasesCreateCasefileManagingPaymentsComponent.name);
+  });
+
+  it('registers Comments and notes with flow and unsaved-change guards and no permission metadata', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.commentsAndNotes,
+    );
+
+    expect(route?.loadComponent).toEqual(expect.any(Function));
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.commentsAndNotes });
+    expect(route?.resolve).toEqual({ title: TitleResolver });
+
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
+
+    expect(component?.name).toBe(CasesCreateCasefileCommentsNotesComponent.name);
   });
 
   it.each(guardedRouteCases)(

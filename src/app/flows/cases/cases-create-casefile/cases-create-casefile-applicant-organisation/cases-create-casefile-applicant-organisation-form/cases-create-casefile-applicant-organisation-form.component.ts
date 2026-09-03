@@ -1,13 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
-import {
-  AbstractControl,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
-  Validators,
-} from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
@@ -39,6 +31,7 @@ import {
   casesCreateCasefileApplicantUkAccountNumberValidator,
   casesCreateCasefileApplicantUkSortCodeValidator,
 } from '../../validators/cases-create-casefile-applicant-bank.validator';
+import { createCasesCreateCasefileCountrySelectionValidator } from '../../validators/cases-create-casefile-country-selection.validator';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS } from '../constants/cases-create-casefile-applicant-organisation-field-errors.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_NAMES as FIELD_NAMES } from '../constants/cases-create-casefile-applicant-organisation-field-names.constant';
 import type { ICasesCreateCasefileApplicantOrganisationFieldErrors } from '../interfaces/cases-create-casefile-applicant-organisation-field-errors.interface';
@@ -168,15 +161,6 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
     ],
   } as const;
 
-  private countrySelectionValidator(options: ReadonlyArray<{ value: string | number }>): ValidatorFn {
-    const countryIds = new Set(options.map((option) => String(option.value)));
-
-    return (control: AbstractControl): ValidationErrors | null =>
-      control.value !== null && control.value !== '' && countryIds.has(String(control.value))
-        ? null
-        : { required: true };
-  }
-
   private setupForm(): void {
     const emailValidators = [optionalMaxLengthValidator(76), patternValidator(EMAIL_ADDRESS_PATTERN, 'emailPattern')];
     const contactControls = createCasesCreateCasefileContactControls({
@@ -185,7 +169,10 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
     });
     const addressControls = createCasesCreateCasefileAddressControls({
       requiredTextValidator: casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
-      countryValidators: [Validators.required, this.countrySelectionValidator(this.countryAutocompleteItems)],
+      countryValidators: [
+        Validators.required,
+        createCasesCreateCasefileCountrySelectionValidator(this.countryAutocompleteItems),
+      ],
     });
     const bankControls = createCasesCreateCasefileApplicantBankControls({
       bankTypeValidators: [Validators.required],

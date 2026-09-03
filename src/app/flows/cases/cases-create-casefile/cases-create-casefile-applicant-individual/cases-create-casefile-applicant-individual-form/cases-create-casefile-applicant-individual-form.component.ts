@@ -8,16 +8,7 @@ import {
   Output,
   inject,
 } from '@angular/core';
-import {
-  AbstractControl,
-  FormArray,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
-  Validators,
-} from '@angular/forms';
+import { FormArray, FormControl, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { AbstractFormAliasBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-alias-base';
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
 import { GovukButtonComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-button';
@@ -71,6 +62,7 @@ import {
   casesCreateCasefileApplicantUkAccountNumberValidator,
   casesCreateCasefileApplicantUkSortCodeValidator,
 } from '../../validators/cases-create-casefile-applicant-bank.validator';
+import { createCasesCreateCasefileCountrySelectionValidator } from '../../validators/cases-create-casefile-country-selection.validator';
 import { casesCreateCasefileApplicantIndividualTrimRequiredValidator } from '../validators/cases-create-casefile-applicant-individual-trim-required.validator';
 
 const THIRD_PARTY_CONTROL_NAMES = [
@@ -278,14 +270,6 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
   } as const;
   public yesterday!: string;
 
-  private countrySelectionValidator(options: ReadonlyArray<{ value: string | number }>): ValidatorFn {
-    const countryIds = new Set(options.map((option) => String(option.value)));
-    return (control: AbstractControl): ValidationErrors | null =>
-      control.value !== null && control.value !== '' && countryIds.has(String(control.value))
-        ? null
-        : { required: true };
-  }
-
   private setupForm(): void {
     const emailValidators = [optionalMaxLengthValidator(76), patternValidator(EMAIL_ADDRESS_PATTERN, 'emailPattern')];
     const contactControls = createCasesCreateCasefileContactControls({
@@ -294,7 +278,10 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
     });
     const addressControls = createCasesCreateCasefileAddressControls({
       requiredTextValidator: casesCreateCasefileApplicantIndividualTrimRequiredValidator,
-      countryValidators: [Validators.required, this.countrySelectionValidator(this.countryAutocompleteItems)],
+      countryValidators: [
+        Validators.required,
+        createCasesCreateCasefileCountrySelectionValidator(this.countryAutocompleteItems),
+      ],
     });
     const bankControls = createCasesCreateCasefileApplicantBankControls({
       bankTypeValidators: [Validators.required],
@@ -370,7 +357,7 @@ export class CasesCreateCasefileApplicantIndividualFormComponent
       ),
       create_casefile_applicant_individual_third_party_country_id: new FormControl<number | null>(
         disabled(null),
-        this.countrySelectionValidator(this.countrySelectOptions),
+        createCasesCreateCasefileCountrySelectionValidator(this.countrySelectOptions),
       ),
       create_casefile_applicant_individual_bank_type: bankControls.bankType,
       create_casefile_applicant_individual_uk_bank_name_on_account: bankControls.ukBankNameOnAccount,

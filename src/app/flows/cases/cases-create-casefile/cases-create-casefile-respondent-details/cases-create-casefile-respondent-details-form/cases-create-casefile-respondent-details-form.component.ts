@@ -8,16 +8,7 @@ import {
   Output,
   inject,
 } from '@angular/core';
-import {
-  AbstractControl,
-  FormArray,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
-  Validators,
-} from '@angular/forms';
+import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AbstractFormAliasBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-alias-base';
 import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
@@ -61,6 +52,7 @@ import type { ICasesCreateCasefileRespondentDetailsFormData } from '../interface
 import type { ICasesCreateCasefileRespondentDetailsForm } from '../interfaces/cases-create-casefile-respondent-details-form.interface';
 import { casesCreateCasefileRespondentDetailsNationalInsuranceNumberValidator } from '../validators/cases-create-casefile-respondent-details-national-insurance-number.validator';
 import { casesCreateCasefileRespondentDetailsTrimRequiredValidator } from '../validators/cases-create-casefile-respondent-details-trim-required.validator';
+import { createCasesCreateCasefileCountrySelectionValidator } from '../../validators/cases-create-casefile-country-selection.validator';
 
 const THIRD_PARTY_CONTROL_NAMES = [
   'create_casefile_respondent_details_third_party_name_or_organisation',
@@ -196,14 +188,6 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
   };
   public yesterday!: string;
 
-  private countrySelectionValidator(options: ReadonlyArray<{ value: string | number }>): ValidatorFn {
-    const countryIds = new Set(options.map((option) => String(option.value)));
-    return (control: AbstractControl): ValidationErrors | null =>
-      control.value !== null && control.value !== '' && countryIds.has(String(control.value))
-        ? null
-        : { required: true };
-  }
-
   private setupForm(): void {
     const emailValidators = [optionalMaxLengthValidator(76), patternValidator(EMAIL_ADDRESS_PATTERN, 'emailPattern')];
     const contactControls = createCasesCreateCasefileContactControls({
@@ -212,7 +196,10 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     });
     const addressControls = createCasesCreateCasefileAddressControls({
       requiredTextValidator: casesCreateCasefileRespondentDetailsTrimRequiredValidator,
-      countryValidators: [Validators.required, this.countrySelectionValidator(this.countryAutocompleteItems)],
+      countryValidators: [
+        Validators.required,
+        createCasesCreateCasefileCountrySelectionValidator(this.countryAutocompleteItems),
+      ],
     });
     const disabled = <T>(value: T): { value: T; disabled: true } => ({ value, disabled: true });
 
@@ -292,7 +279,7 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
       ),
       create_casefile_respondent_details_third_party_country_id: new FormControl<number | null>(
         disabled(null),
-        this.countrySelectionValidator(this.countrySelectOptions),
+        createCasesCreateCasefileCountrySelectionValidator(this.countrySelectOptions),
       ),
       create_casefile_respondent_details_add_employer_details: new FormControl(false, { nonNullable: true }),
       create_casefile_respondent_details_employer_name: new FormControl<string | null>(
@@ -337,7 +324,7 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
       ),
       create_casefile_respondent_details_employer_country_id: new FormControl<number | null>(
         disabled(null),
-        this.countrySelectionValidator(this.countryAutocompleteItems),
+        createCasesCreateCasefileCountrySelectionValidator(this.countryAutocompleteItems),
       ),
       create_casefile_respondent_details_restricted_information: new FormControl(false, { nonNullable: true }),
       create_casefile_respondent_details_restricted_information_reason: new FormControl<string | null>(

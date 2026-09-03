@@ -2,48 +2,10 @@
   <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
     <h2 class="govuk-heading-m govuk-!-margin-0">Address</h2>
   </legend>
-  <opal-lib-govuk-text-input
-    labelText="Address line 1"
-    [inputId]="fieldNames.addressLine1"
-    [inputName]="fieldNames.addressLine1"
-    [control]="form.get(fieldNames.addressLine1)"
-    [errors]="formControlErrorMessages[fieldNames.addressLine1]"
-  />
-  <opal-lib-govuk-text-input
-    labelText="Address line 2"
-    [inputId]="fieldNames.addressLine2"
-    [inputName]="fieldNames.addressLine2"
-    [control]="form.get(fieldNames.addressLine2)"
-    [errors]="formControlErrorMessages[fieldNames.addressLine2]"
-  />
-  <opal-lib-govuk-text-input
-    labelText="Address line 3"
-    [inputId]="fieldNames.addressLine3"
-    [inputName]="fieldNames.addressLine3"
-    [control]="form.get(fieldNames.addressLine3)"
-    [errors]="formControlErrorMessages[fieldNames.addressLine3]"
-  />
-  <opal-lib-govuk-text-input
-    labelText="Address line 4"
-    [inputId]="fieldNames.addressLine4"
-    [inputName]="fieldNames.addressLine4"
-    [control]="form.get(fieldNames.addressLine4)"
-    [errors]="formControlErrorMessages[fieldNames.addressLine4]"
-  />
-  <opal-lib-govuk-text-input
-    labelText="Address line 5"
-    [inputId]="fieldNames.addressLine5"
-    [inputName]="fieldNames.addressLine5"
-    [control]="form.get(fieldNames.addressLine5)"
-    [errors]="formControlErrorMessages[fieldNames.addressLine5]"
-  />
-  <opal-lib-govuk-text-input
-    labelText="Postal or zip code"
-    [inputId]="fieldNames.postalOrZipCode"
-    [inputName]="fieldNames.postalOrZipCode"
-    inputClasses="govuk-input--width-10"
-    [control]="form.get(fieldNames.postalOrZipCode)"
-    [errors]="formControlErrorMessages[fieldNames.postalOrZipCode]"
+  <app-cases-create-casefile-address-text-fields
+    [form]="form"
+    [formControlErrorMessages]="formControlErrorMessages"
+    [fieldNames]="fieldNames"
   />
   <opal-lib-alphagov-accessible-autocomplete
     labelText="Country"

@@ -4,12 +4,12 @@ import { AbstractNestedFormBaseComponent } from '@hmcts/opal-frontend-common/com
 import type { IAbstractFormControlErrorMessage } from '@hmcts/opal-frontend-common/components/abstract/interfaces';
 import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
-import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
+import { CasesCreateCasefileAddressTextFieldsComponent } from '../cases-create-casefile-address-text-fields/cases-create-casefile-address-text-fields.component';
 import type { ICasesCreateCasefileAddressFieldNames } from './interfaces/cases-create-casefile-address-field-names.interface';
 
 @Component({
   selector: 'app-cases-create-casefile-address',
-  imports: [AlphagovAccessibleAutocompleteComponent, GovukTextInputComponent],
+  imports: [AlphagovAccessibleAutocompleteComponent, CasesCreateCasefileAddressTextFieldsComponent],
   templateUrl: './cases-create-casefile-address.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

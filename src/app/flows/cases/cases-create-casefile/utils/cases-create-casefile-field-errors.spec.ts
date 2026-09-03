@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_ERRORS } from '../cases-create-casefile-applicant-individual/constants/cases-create-casefile-applicant-individual-field-errors.constant';
+import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_NAMES } from '../cases-create-casefile-applicant-individual/constants/cases-create-casefile-applicant-individual-field-names.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS } from '../cases-create-casefile-applicant-organisation/constants/cases-create-casefile-applicant-organisation-field-errors.constant';
+import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_NAMES } from '../cases-create-casefile-applicant-organisation/constants/cases-create-casefile-applicant-organisation-field-names.constant';
 import {
   createCasesCreateCasefileError,
   createCasesCreateCasefileMaxLengthError,
@@ -8,27 +10,27 @@ import {
 
 describe('cases-create-casefile-field-errors', () => {
   const commonApplicantFields = [
-    'applicant_main_email_address',
-    'applicant_other_email_address',
-    'applicant_main_telephone_number',
-    'applicant_other_telephone_number',
-    'applicant_address_line_1',
-    'applicant_address_line_2',
-    'applicant_address_line_3',
-    'applicant_address_line_4',
-    'applicant_address_line_5',
-    'applicant_postal_or_zip_code',
-    'applicant_country_id',
-    'applicant_bank_type',
-    'applicant_uk_bank_name_on_account',
-    'applicant_uk_bank_sort_code',
-    'applicant_uk_bank_account_number',
-    'applicant_uk_bank_payment_reference',
-    'applicant_non_uk_bank_name_on_account',
-    'applicant_non_uk_bank_account_number',
-    'applicant_non_uk_bank_bic_swift_code',
-    'applicant_non_uk_bank_iban',
-    'applicant_non_uk_bank_branch_sort_code',
+    'mainEmailAddress',
+    'otherEmailAddress',
+    'mainTelephoneNumber',
+    'otherTelephoneNumber',
+    'addressLine1',
+    'addressLine2',
+    'addressLine3',
+    'addressLine4',
+    'addressLine5',
+    'postalOrZipCode',
+    'countryId',
+    'bankType',
+    'ukBankNameOnAccount',
+    'ukBankSortCode',
+    'ukBankAccountNumber',
+    'ukBankPaymentReference',
+    'nonUkBankNameOnAccount',
+    'nonUkBankAccountNumber',
+    'nonUkBankBicSwiftCode',
+    'nonUkBankIban',
+    'nonUkBankBranchSortCode',
   ] as const;
 
   it('creates an error with the supplied message and priority', () => {
@@ -47,9 +49,14 @@ describe('cases-create-casefile-field-errors', () => {
     });
   });
 
-  it.each(commonApplicantFields)('shares the identical %s applicant field errors', (fieldName) => {
-    expect(CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS[fieldName]).toBe(
-      CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_ERRORS[fieldName],
-    );
+  it.each(commonApplicantFields)('shares the identical %s applicant field errors', (fieldKey) => {
+    const individualFieldName = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_NAMES[fieldKey];
+    const organisationFieldName = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_NAMES[fieldKey];
+    const individualErrors = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_ERRORS[individualFieldName];
+    const organisationErrors = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS[organisationFieldName];
+
+    expect(individualErrors).toBeDefined();
+    expect(organisationErrors).toBeDefined();
+    expect(organisationErrors).toBe(individualErrors);
   });
 });

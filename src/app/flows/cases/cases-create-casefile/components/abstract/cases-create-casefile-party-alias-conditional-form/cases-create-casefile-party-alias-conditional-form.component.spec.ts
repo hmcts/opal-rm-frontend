@@ -280,9 +280,9 @@ describe('CasesCreateCasefilePartyAliasConditionalFormComponent', () => {
 
     expect(applicant.aliasControls).toHaveLength(0);
     expect(applicant.form.controls['create_casefile_applicant_individual_aliases'].value).toEqual([]);
-    expect(applicant.formControlErrorMessages['create_casefile_applicant_individual_alias_first_names_0']).toBe(
-      undefined,
-    );
+    expect(
+      applicant.formControlErrorMessages['create_casefile_applicant_individual_alias_first_names_0'],
+    ).toBeUndefined();
     expect(applicant.formErrorSummaryMessage).toEqual([]);
     expect(applicant.formErrors).toEqual([]);
   });

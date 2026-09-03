@@ -1,6 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CasesCreateCasefileBankDetailsComponent } from '../../components/cases-create-casefile-bank-details/cases-create-casefile-bank-details.component';
+import { CasesCreateCasefileRestrictedInformationComponent } from '../../components/cases-create-casefile-restricted-information/cases-create-casefile-restricted-information.component';
+import { CasesCreateCasefileThirdPartyComponent } from '../../components/cases-create-casefile-third-party/cases-create-casefile-third-party.component';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
 import type { ICasesCreateCasefileApplicantIndividualFormData } from '../interfaces/cases-create-casefile-applicant-individual-form-data.interface';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../mocks/cases-create-casefile-applicant-individual.mock';
@@ -11,81 +15,81 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   let component: CasesCreateCasefileApplicantIndividualFormComponent;
 
   const emptyFormData: ICasesCreateCasefileApplicantIndividualFormData = {
-    applicant_title: null,
-    applicant_first_names: null,
-    applicant_last_name: null,
-    applicant_add_aliases: false,
-    applicant_aliases: [],
-    applicant_date_of_birth: null,
-    applicant_main_email_address: null,
-    applicant_other_email_address: null,
-    applicant_main_telephone_number: null,
-    applicant_other_telephone_number: null,
-    applicant_address_line_1: null,
-    applicant_address_line_2: null,
-    applicant_address_line_3: null,
-    applicant_address_line_4: null,
-    applicant_address_line_5: null,
-    applicant_postal_or_zip_code: null,
-    applicant_country_id: null,
-    applicant_send_correspondence_to_third_party: false,
-    applicant_third_party_name_or_organisation: null,
-    applicant_third_party_relationship: null,
-    applicant_third_party_reference: null,
-    applicant_third_party_address_line_1: null,
-    applicant_third_party_address_line_2: null,
-    applicant_third_party_address_line_3: null,
-    applicant_third_party_address_line_4: null,
-    applicant_third_party_address_line_5: null,
-    applicant_third_party_postal_or_zip_code: null,
-    applicant_third_party_country_id: null,
-    applicant_bank_type: null,
-    applicant_uk_bank_name_on_account: null,
-    applicant_uk_bank_sort_code: null,
-    applicant_uk_bank_account_number: null,
-    applicant_uk_bank_payment_reference: null,
-    applicant_non_uk_bank_name_on_account: null,
-    applicant_non_uk_bank_account_number: null,
-    applicant_non_uk_bank_payment_reference: null,
-    applicant_non_uk_bank_bic_swift_code: null,
-    applicant_non_uk_bank_iban: null,
-    applicant_non_uk_bank_name: null,
-    applicant_non_uk_bank_branch_sort_code: null,
-    applicant_restricted_information: false,
-    applicant_restricted_information_reason: null,
+    create_casefile_applicant_individual_title: null,
+    create_casefile_applicant_individual_first_names: null,
+    create_casefile_applicant_individual_last_name: null,
+    create_casefile_applicant_individual_add_aliases: false,
+    create_casefile_applicant_individual_aliases: [],
+    create_casefile_applicant_individual_date_of_birth: null,
+    create_casefile_applicant_individual_main_email_address: null,
+    create_casefile_applicant_individual_other_email_address: null,
+    create_casefile_applicant_individual_main_telephone_number: null,
+    create_casefile_applicant_individual_other_telephone_number: null,
+    create_casefile_applicant_individual_address_line_1: null,
+    create_casefile_applicant_individual_address_line_2: null,
+    create_casefile_applicant_individual_address_line_3: null,
+    create_casefile_applicant_individual_address_line_4: null,
+    create_casefile_applicant_individual_address_line_5: null,
+    create_casefile_applicant_individual_postal_or_zip_code: null,
+    create_casefile_applicant_individual_country_id: null,
+    create_casefile_applicant_individual_send_correspondence_to_third_party: false,
+    create_casefile_applicant_individual_third_party_name_or_organisation: null,
+    create_casefile_applicant_individual_third_party_relationship: null,
+    create_casefile_applicant_individual_third_party_reference: null,
+    create_casefile_applicant_individual_third_party_address_line_1: null,
+    create_casefile_applicant_individual_third_party_address_line_2: null,
+    create_casefile_applicant_individual_third_party_address_line_3: null,
+    create_casefile_applicant_individual_third_party_address_line_4: null,
+    create_casefile_applicant_individual_third_party_address_line_5: null,
+    create_casefile_applicant_individual_third_party_postal_or_zip_code: null,
+    create_casefile_applicant_individual_third_party_country_id: null,
+    create_casefile_applicant_individual_bank_type: null,
+    create_casefile_applicant_individual_uk_bank_name_on_account: null,
+    create_casefile_applicant_individual_uk_bank_sort_code: null,
+    create_casefile_applicant_individual_uk_bank_account_number: null,
+    create_casefile_applicant_individual_uk_bank_payment_reference: null,
+    create_casefile_applicant_individual_non_uk_bank_name_on_account: null,
+    create_casefile_applicant_individual_non_uk_bank_account_number: null,
+    create_casefile_applicant_individual_non_uk_bank_payment_reference: null,
+    create_casefile_applicant_individual_non_uk_bank_bic_swift_code: null,
+    create_casefile_applicant_individual_non_uk_bank_iban: null,
+    create_casefile_applicant_individual_non_uk_bank_name: null,
+    create_casefile_applicant_individual_non_uk_bank_branch_sort_code: null,
+    create_casefile_applicant_individual_restricted_information: false,
+    create_casefile_applicant_individual_restricted_information_reason: null,
   };
 
   const conditionalControlNames = [
-    'applicant_third_party_name_or_organisation',
-    'applicant_third_party_relationship',
-    'applicant_third_party_reference',
-    'applicant_third_party_address_line_1',
-    'applicant_third_party_address_line_2',
-    'applicant_third_party_address_line_3',
-    'applicant_third_party_address_line_4',
-    'applicant_third_party_address_line_5',
-    'applicant_third_party_postal_or_zip_code',
-    'applicant_third_party_country_id',
-    'applicant_uk_bank_name_on_account',
-    'applicant_uk_bank_sort_code',
-    'applicant_uk_bank_account_number',
-    'applicant_uk_bank_payment_reference',
-    'applicant_non_uk_bank_name_on_account',
-    'applicant_non_uk_bank_account_number',
-    'applicant_non_uk_bank_payment_reference',
-    'applicant_non_uk_bank_bic_swift_code',
-    'applicant_non_uk_bank_iban',
-    'applicant_non_uk_bank_name',
-    'applicant_non_uk_bank_branch_sort_code',
-    'applicant_restricted_information_reason',
+    'create_casefile_applicant_individual_third_party_name_or_organisation',
+    'create_casefile_applicant_individual_third_party_relationship',
+    'create_casefile_applicant_individual_third_party_reference',
+    'create_casefile_applicant_individual_third_party_address_line_1',
+    'create_casefile_applicant_individual_third_party_address_line_2',
+    'create_casefile_applicant_individual_third_party_address_line_3',
+    'create_casefile_applicant_individual_third_party_address_line_4',
+    'create_casefile_applicant_individual_third_party_address_line_5',
+    'create_casefile_applicant_individual_third_party_postal_or_zip_code',
+    'create_casefile_applicant_individual_third_party_country_id',
+    'create_casefile_applicant_individual_uk_bank_name_on_account',
+    'create_casefile_applicant_individual_uk_bank_sort_code',
+    'create_casefile_applicant_individual_uk_bank_account_number',
+    'create_casefile_applicant_individual_uk_bank_payment_reference',
+    'create_casefile_applicant_individual_non_uk_bank_name_on_account',
+    'create_casefile_applicant_individual_non_uk_bank_account_number',
+    'create_casefile_applicant_individual_non_uk_bank_payment_reference',
+    'create_casefile_applicant_individual_non_uk_bank_bic_swift_code',
+    'create_casefile_applicant_individual_non_uk_bank_iban',
+    'create_casefile_applicant_individual_non_uk_bank_name',
+    'create_casefile_applicant_individual_non_uk_bank_branch_sort_code',
+    'create_casefile_applicant_individual_restricted_information_reason',
   ] as const;
 
   const thirdPartyControlNames = conditionalControlNames.slice(0, 10);
   const requiredThirdPartyControlNames = [
-    'applicant_third_party_name_or_organisation',
-    'applicant_third_party_relationship',
-    'applicant_third_party_address_line_1',
-    'applicant_third_party_country_id',
+    'create_casefile_applicant_individual_third_party_name_or_organisation',
+    'create_casefile_applicant_individual_third_party_relationship',
+    'create_casefile_applicant_individual_third_party_address_line_1',
+    'create_casefile_applicant_individual_third_party_country_id',
   ] as const;
 
   const createComponent = (): void => {
@@ -110,7 +114,11 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   };
 
   const selectBankType = (bankType: string): void => {
-    (fixture.nativeElement.querySelector(`#applicant_bank_type-${bankType}`) as HTMLInputElement).click();
+    (
+      fixture.nativeElement.querySelector(
+        `#create_casefile_applicant_individual_bank_type-${bankType}`,
+      ) as HTMLInputElement
+    ).click();
     fixture.detectChanges();
   };
 
@@ -129,20 +137,150 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     vi.restoreAllMocks();
   });
 
+  it('uses canonical, unique identifiers for every form control and error-summary target', () => {
+    fixture.detectChanges();
+    component.form.controls['create_casefile_applicant_individual_add_aliases'].setValue(true);
+    component.form.controls['create_casefile_applicant_individual_send_correspondence_to_third_party'].setValue(true);
+    component.form.controls['create_casefile_applicant_individual_restricted_information'].setValue(true);
+    fixture.detectChanges();
+    component.handleFormSubmit(new SubmitEvent('submit'));
+    fixture.detectChanges();
+
+    const controls = Array.from(
+      fixture.nativeElement.querySelectorAll('input, select, textarea') as NodeListOf<HTMLElement>,
+    );
+    const ids = controls.map((control) => control.id);
+    const names = controls.map((control) => control.getAttribute('name') ?? '');
+
+    expect(ids.every((id) => id.startsWith('create_casefile_applicant_individual_'))).toBe(true);
+    expect(names.every((name) => name.startsWith('create_casefile_applicant_individual_'))).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const controlName of Object.keys(component.form.controls).filter((name) => !name.endsWith('_aliases'))) {
+      expect(names).toContain(controlName);
+    }
+    for (const error of component.formErrorSummaryMessage) {
+      expect(fixture.nativeElement.querySelectorAll(`[id="${error.fieldId}"]`)).toHaveLength(1);
+    }
+  });
+
   it('builds every typed form control with empty core state and disabled conditional fields', () => {
     fixture.detectChanges();
 
     expect(Object.keys(component.form.controls).sort()).toEqual(Object.keys(emptyFormData).sort());
-    expect(component.form.controls['applicant_title'].value).toBeNull();
-    expect(component.form.controls['applicant_first_names'].hasError('required')).toBe(true);
-    expect(component.form.controls['applicant_last_name'].hasError('required')).toBe(true);
-    expect(component.form.controls['applicant_address_line_1'].hasError('required')).toBe(true);
-    expect(component.form.controls['applicant_country_id'].hasError('required')).toBe(true);
-    expect(component.form.controls['applicant_aliases'].value).toEqual([]);
+    expect(component.form.controls['create_casefile_applicant_individual_title'].value).toBeNull();
+    expect(component.form.controls['create_casefile_applicant_individual_first_names'].hasError('required')).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_last_name'].hasError('required')).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_address_line_1'].hasError('required')).toBe(
+      true,
+    );
+    expect(component.form.controls['create_casefile_applicant_individual_country_id'].hasError('required')).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_aliases'].value).toEqual([]);
     for (const controlName of conditionalControlNames) {
       expect(component.form.controls[controlName].disabled).toBe(true);
     }
     expect(component.form.pristine).toBe(true);
+  });
+
+  it('passes the original form and applicant-specific contracts to the shared conditional sections', () => {
+    fixture.detectChanges();
+
+    const thirdParty = fixture.debugElement.query(By.directive(CasesCreateCasefileThirdPartyComponent))
+      .componentInstance as CasesCreateCasefileThirdPartyComponent;
+    expect(thirdParty.form).toBe(component.form);
+    expect(thirdParty.formControlErrorMessages).toBe(component.formControlErrorMessages);
+    expect(thirdParty.fieldNames).toEqual({
+      nameOrOrganisation: 'create_casefile_applicant_individual_third_party_name_or_organisation',
+      relationship: 'create_casefile_applicant_individual_third_party_relationship',
+      reference: 'create_casefile_applicant_individual_third_party_reference',
+      addressLine1: 'create_casefile_applicant_individual_third_party_address_line_1',
+      addressLine2: 'create_casefile_applicant_individual_third_party_address_line_2',
+      addressLine3: 'create_casefile_applicant_individual_third_party_address_line_3',
+      addressLine4: 'create_casefile_applicant_individual_third_party_address_line_4',
+      addressLine5: 'create_casefile_applicant_individual_third_party_address_line_5',
+      postalOrZipCode: 'create_casefile_applicant_individual_third_party_postal_or_zip_code',
+      countryId: 'create_casefile_applicant_individual_third_party_country_id',
+    });
+    expect(thirdParty.checkboxFieldName).toBe(
+      'create_casefile_applicant_individual_send_correspondence_to_third_party',
+    );
+    expect(thirdParty.checkboxFieldsetId).toBe(
+      'create_casefile_applicant_individual_send_correspondence_to_third_party_fieldset',
+    );
+    expect(thirdParty.conditionalId).toBe('applicantThirdPartyConditional');
+    expect(thirdParty.relationshipLabel).toBe('Relationship to the applicant');
+    expect(thirdParty.countrySelectOptions).toBe(component.countrySelectOptions);
+
+    const restrictedInformation = fixture.debugElement.query(
+      By.directive(CasesCreateCasefileRestrictedInformationComponent),
+    ).componentInstance as CasesCreateCasefileRestrictedInformationComponent;
+    expect(restrictedInformation.form).toBe(component.form);
+    expect(restrictedInformation.formControlErrorMessages).toBe(component.formControlErrorMessages);
+    expect(restrictedInformation.checkboxFieldName).toBe('create_casefile_applicant_individual_restricted_information');
+    expect(restrictedInformation.reasonFieldName).toBe(
+      'create_casefile_applicant_individual_restricted_information_reason',
+    );
+    expect(restrictedInformation.checkboxFieldsetId).toBe(
+      'create_casefile_applicant_individual_restricted_information_fieldset',
+    );
+    expect(restrictedInformation.conditionalId).toBe('applicantRestrictedInformationConditional');
+    expect(restrictedInformation.checkboxLabel).toBe('Applicant’s personal information should not be shared');
+  });
+
+  it('passes the original form and individual bank layout to the shared Bank details section', () => {
+    fixture.detectChanges();
+
+    const bankDetails = fixture.debugElement.query(By.directive(CasesCreateCasefileBankDetailsComponent))
+      .componentInstance as CasesCreateCasefileBankDetailsComponent;
+    expect(bankDetails.form).toBe(component.form);
+    expect(bankDetails.formControlErrorMessages).toBe(component.formControlErrorMessages);
+    expect(bankDetails.fieldNames).toEqual({
+      bankType: 'create_casefile_applicant_individual_bank_type',
+      ukNameOnAccount: 'create_casefile_applicant_individual_uk_bank_name_on_account',
+      ukSortCode: 'create_casefile_applicant_individual_uk_bank_sort_code',
+      ukAccountNumber: 'create_casefile_applicant_individual_uk_bank_account_number',
+      ukPaymentReference: 'create_casefile_applicant_individual_uk_bank_payment_reference',
+      nonUkNameOnAccount: 'create_casefile_applicant_individual_non_uk_bank_name_on_account',
+      nonUkAccountNumber: 'create_casefile_applicant_individual_non_uk_bank_account_number',
+      nonUkPaymentReference: 'create_casefile_applicant_individual_non_uk_bank_payment_reference',
+      nonUkBicSwiftCode: 'create_casefile_applicant_individual_non_uk_bank_bic_swift_code',
+      nonUkIban: 'create_casefile_applicant_individual_non_uk_bank_iban',
+      nonUkBankName: 'create_casefile_applicant_individual_non_uk_bank_name',
+      nonUkBranchSortCode: 'create_casefile_applicant_individual_non_uk_bank_branch_sort_code',
+    });
+    expect(bankDetails.bankOptions).toBe(component.bankOptions);
+    expect(bankDetails.bankTypes).toBe(component.bankTypes);
+    expect(bankDetails.ukBankConditionalId).toBe('applicantUkBankConditional');
+    expect(bankDetails.nonUkBankConditionalId).toBe('applicantNonUkBankConditional');
+    expect(bankDetails.layout).toEqual({
+      headingMode: 'heading',
+      nonUkFieldOrder: [
+        'nonUkNameOnAccount',
+        'nonUkAccountNumber',
+        'nonUkPaymentReference',
+        'nonUkBicSwiftCode',
+        'nonUkIban',
+        'nonUkBankName',
+        'nonUkBranchSortCode',
+      ],
+    });
+
+    const bankHeading = Array.from(fixture.nativeElement.querySelectorAll('h2') as NodeListOf<HTMLHeadingElement>).find(
+      (heading) => heading.textContent?.trim() === 'Bank details',
+    );
+    expect(bankHeading?.closest('legend')).toBeNull();
+    expect(
+      Array.from(
+        fixture.nativeElement.querySelectorAll('#applicantNonUkBankConditional input') as NodeListOf<HTMLInputElement>,
+      ).map(({ id }) => id),
+    ).toEqual([
+      'create_casefile_applicant_individual_non_uk_bank_name_on_account',
+      'create_casefile_applicant_individual_non_uk_bank_account_number',
+      'create_casefile_applicant_individual_non_uk_bank_payment_reference',
+      'create_casefile_applicant_individual_non_uk_bank_bic_swift_code',
+      'create_casefile_applicant_individual_non_uk_bank_iban',
+      'create_casefile_applicant_individual_non_uk_bank_name',
+      'create_casefile_applicant_individual_non_uk_bank_branch_sort_code',
+    ]);
   });
 
   it('renders the required sections and actions in their exact order with free-text Title', () => {
@@ -162,14 +300,16 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
       'Return to case details',
       'Cancel',
     ]);
-    expect(fixture.nativeElement.querySelector('#applicant_title')).toBeInstanceOf(HTMLInputElement);
-    expect(fixture.nativeElement.querySelector('select#applicant_title')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#create_casefile_applicant_individual_title')).toBeInstanceOf(
+      HTMLInputElement,
+    );
+    expect(fixture.nativeElement.querySelector('select#create_casefile_applicant_individual_title')).toBeNull();
   });
 
   it('hydrates saved identity, contact, address and indexed alias rows before first render', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_aliases: [
+      create_casefile_applicant_individual_aliases: [
         { firstNames: 'Alternative', lastName: 'Applicant' },
         { firstNames: 'Second', lastName: 'Alias' },
       ],
@@ -177,78 +317,102 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
 
     fixture.detectChanges();
 
-    expect(component.form.controls['applicant_title'].value).toBe('Mr');
-    expect(component.form.controls['applicant_first_names'].value).toBe('Test');
-    expect(component.form.controls['applicant_date_of_birth'].value).toBe('31/01/1990');
-    expect(component.form.controls['applicant_main_email_address'].value).toBe('applicant@example.com');
-    expect(component.form.controls['applicant_main_telephone_number'].value).toBe('020 7946 0000');
-    expect(component.form.controls['applicant_address_line_1'].value).toBe('1 Test Street');
-    expect(component.form.controls['applicant_country_id'].value).toBe(1);
+    expect(component.form.controls['create_casefile_applicant_individual_title'].value).toBe('Mr');
+    expect(component.form.controls['create_casefile_applicant_individual_first_names'].value).toBe('Test');
+    expect(component.form.controls['create_casefile_applicant_individual_date_of_birth'].value).toBe('31/01/1990');
+    expect(component.form.controls['create_casefile_applicant_individual_main_email_address'].value).toBe(
+      'applicant@example.com',
+    );
+    expect(component.form.controls['create_casefile_applicant_individual_main_telephone_number'].value).toBe(
+      '020 7946 0000',
+    );
+    expect(component.form.controls['create_casefile_applicant_individual_address_line_1'].value).toBe('1 Test Street');
+    expect(component.form.controls['create_casefile_applicant_individual_country_id'].value).toBe(1);
     expect(component.aliasControls).toHaveLength(2);
-    expect(component.form.controls['applicant_aliases'].value).toEqual([
+    expect(component.form.controls['create_casefile_applicant_individual_aliases'].value).toEqual([
       {
-        applicant_alias_first_names_0: 'Alternative',
-        applicant_alias_last_name_0: 'Applicant',
+        create_casefile_applicant_individual_alias_first_names_0: 'Alternative',
+        create_casefile_applicant_individual_alias_last_name_0: 'Applicant',
       },
       {
-        applicant_alias_first_names_1: 'Second',
-        applicant_alias_last_name_1: 'Alias',
+        create_casefile_applicant_individual_alias_first_names_1: 'Second',
+        create_casefile_applicant_individual_alias_last_name_1: 'Alias',
       },
     ]);
-    expect(component.form.controls['applicant_uk_bank_name_on_account'].enabled).toBe(true);
-    expect(component.form.controls['applicant_uk_bank_name_on_account'].value).toBe('Test Applicant');
+    expect(component.form.controls['create_casefile_applicant_individual_uk_bank_name_on_account'].enabled).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_uk_bank_name_on_account'].value).toBe(
+      'Test Applicant',
+    );
     expect(component.form.pristine).toBe(true);
   });
 
   it('enforces the approved identity, contact and address validation boundaries', () => {
     fixture.detectChanges();
 
-    component.form.controls['applicant_title'].setValue('T'.repeat(21));
-    component.form.controls['applicant_first_names'].setValue('   ');
-    component.form.controls['applicant_last_name'].setValue('L'.repeat(51));
-    component.form.controls['applicant_date_of_birth'].setValue('01/01/2999');
-    component.form.controls['applicant_main_email_address'].setValue('invalid');
-    component.form.controls['applicant_main_telephone_number'].setValue('1'.repeat(36));
-    component.form.controls['applicant_address_line_1'].setValue('\t');
-    component.form.controls['applicant_address_line_2'].setValue('A'.repeat(31));
-    component.form.controls['applicant_postal_or_zip_code'].setValue('P'.repeat(11));
+    component.form.controls['create_casefile_applicant_individual_title'].setValue('T'.repeat(21));
+    component.form.controls['create_casefile_applicant_individual_first_names'].setValue('   ');
+    component.form.controls['create_casefile_applicant_individual_last_name'].setValue('L'.repeat(51));
+    component.form.controls['create_casefile_applicant_individual_date_of_birth'].setValue('01/01/2999');
+    component.form.controls['create_casefile_applicant_individual_main_email_address'].setValue('invalid');
+    component.form.controls['create_casefile_applicant_individual_main_telephone_number'].setValue('1'.repeat(36));
+    component.form.controls['create_casefile_applicant_individual_address_line_1'].setValue('\t');
+    component.form.controls['create_casefile_applicant_individual_address_line_2'].setValue('A'.repeat(31));
+    component.form.controls['create_casefile_applicant_individual_postal_or_zip_code'].setValue('P'.repeat(11));
 
-    expect(component.form.controls['applicant_title'].hasError('maxlength')).toBe(true);
-    expect(component.form.controls['applicant_first_names'].hasError('required')).toBe(true);
-    expect(component.form.controls['applicant_last_name'].hasError('maxlength')).toBe(true);
-    expect(component.form.controls['applicant_date_of_birth'].hasError('invalidDateOfBirth')).toBe(true);
-    component.form.controls['applicant_date_of_birth'].setValue('31/02/2020');
-    expect(component.form.controls['applicant_date_of_birth'].hasError('invalidDate')).toBe(true);
-    component.form.controls['applicant_date_of_birth'].setValue('2020-01-31');
-    expect(component.form.controls['applicant_date_of_birth'].hasError('invalidDateFormat')).toBe(true);
-    expect(component.form.controls['applicant_main_email_address'].hasError('emailPattern')).toBe(true);
-    expect(component.form.controls['applicant_main_telephone_number'].hasError('maxlength')).toBe(true);
-    component.form.controls['applicant_main_telephone_number'].setValue('international + value');
-    expect(component.form.controls['applicant_main_telephone_number'].errors).toBeNull();
-    expect(component.form.controls['applicant_address_line_1'].hasError('required')).toBe(true);
-    expect(component.form.controls['applicant_address_line_2'].hasError('maxlength')).toBe(true);
-    expect(component.form.controls['applicant_postal_or_zip_code'].hasError('maxlength')).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_title'].hasError('maxlength')).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_first_names'].hasError('required')).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_last_name'].hasError('maxlength')).toBe(true);
+    expect(
+      component.form.controls['create_casefile_applicant_individual_date_of_birth'].hasError('invalidDateOfBirth'),
+    ).toBe(true);
+    component.form.controls['create_casefile_applicant_individual_date_of_birth'].setValue('31/02/2020');
+    expect(component.form.controls['create_casefile_applicant_individual_date_of_birth'].hasError('invalidDate')).toBe(
+      true,
+    );
+    component.form.controls['create_casefile_applicant_individual_date_of_birth'].setValue('2020-01-31');
+    expect(
+      component.form.controls['create_casefile_applicant_individual_date_of_birth'].hasError('invalidDateFormat'),
+    ).toBe(true);
+    expect(
+      component.form.controls['create_casefile_applicant_individual_main_email_address'].hasError('emailPattern'),
+    ).toBe(true);
+    expect(
+      component.form.controls['create_casefile_applicant_individual_main_telephone_number'].hasError('maxlength'),
+    ).toBe(true);
+    component.form.controls['create_casefile_applicant_individual_main_telephone_number'].setValue(
+      'international + value',
+    );
+    expect(component.form.controls['create_casefile_applicant_individual_main_telephone_number'].errors).toBeNull();
+    expect(component.form.controls['create_casefile_applicant_individual_address_line_1'].hasError('required')).toBe(
+      true,
+    );
+    expect(component.form.controls['create_casefile_applicant_individual_address_line_2'].hasError('maxlength')).toBe(
+      true,
+    );
+    expect(
+      component.form.controls['create_casefile_applicant_individual_postal_or_zip_code'].hasError('maxlength'),
+    ).toBe(true);
   });
 
   it('accepts only supplied Country IDs while preserving an invalid hydrated value for correction', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_country_id: 99,
+      create_casefile_applicant_individual_country_id: 99,
     };
     fixture.detectChanges();
 
-    expect(component.form.controls['applicant_country_id'].value).toBe(99);
-    expect(component.form.controls['applicant_country_id'].hasError('required')).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_country_id'].value).toBe(99);
+    expect(component.form.controls['create_casefile_applicant_individual_country_id'].hasError('required')).toBe(true);
 
-    component.form.controls['applicant_country_id'].setValue(2);
-    expect(component.form.controls['applicant_country_id'].errors).toBeNull();
+    component.form.controls['create_casefile_applicant_individual_country_id'].setValue(2);
+    expect(component.form.controls['create_casefile_applicant_individual_country_id'].errors).toBeNull();
   });
 
   it('reveals third-party controls from the rendered checkbox in logical keyboard order and applies requiredness', () => {
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
     const checkbox = fixture.nativeElement.querySelector(
-      '#applicant_send_correspondence_to_third_party',
+      '#create_casefile_applicant_individual_send_correspondence_to_third_party',
     ) as HTMLInputElement;
 
     checkbox.click();
@@ -277,18 +441,22 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
 
   it('preserves all third-party maximum lengths when the branch becomes required', () => {
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('#applicant_send_correspondence_to_third_party') as HTMLInputElement).click();
+    (
+      fixture.nativeElement.querySelector(
+        '#create_casefile_applicant_individual_send_correspondence_to_third_party',
+      ) as HTMLInputElement
+    ).click();
 
     const maximumLengths = {
-      applicant_third_party_name_or_organisation: 40,
-      applicant_third_party_relationship: 40,
-      applicant_third_party_reference: 40,
-      applicant_third_party_address_line_1: 30,
-      applicant_third_party_address_line_2: 30,
-      applicant_third_party_address_line_3: 30,
-      applicant_third_party_address_line_4: 30,
-      applicant_third_party_address_line_5: 30,
-      applicant_third_party_postal_or_zip_code: 10,
+      create_casefile_applicant_individual_third_party_name_or_organisation: 40,
+      create_casefile_applicant_individual_third_party_relationship: 40,
+      create_casefile_applicant_individual_third_party_reference: 40,
+      create_casefile_applicant_individual_third_party_address_line_1: 30,
+      create_casefile_applicant_individual_third_party_address_line_2: 30,
+      create_casefile_applicant_individual_third_party_address_line_3: 30,
+      create_casefile_applicant_individual_third_party_address_line_4: 30,
+      create_casefile_applicant_individual_third_party_address_line_5: 30,
+      create_casefile_applicant_individual_third_party_postal_or_zip_code: 10,
     } as const;
 
     for (const controlName of Object.keys(maximumLengths) as Array<keyof typeof maximumLengths>) {
@@ -301,7 +469,9 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('reveals a required 250-character restricted-information Reason from the rendered checkbox', () => {
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
-    const checkbox = fixture.nativeElement.querySelector('#applicant_restricted_information') as HTMLInputElement;
+    const checkbox = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_individual_restricted_information',
+    ) as HTMLInputElement;
 
     checkbox.click();
     fixture.detectChanges();
@@ -310,9 +480,9 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
       '#applicantRestrictedInformationConditional-conditional',
     ) as HTMLDivElement;
     const reason = fixture.nativeElement.querySelector(
-      '#applicant_restricted_information_reason',
+      '#create_casefile_applicant_individual_restricted_information_reason',
     ) as HTMLTextAreaElement;
-    const reasonControl = component.form.controls['applicant_restricted_information_reason'];
+    const reasonControl = component.form.controls['create_casefile_applicant_individual_restricted_information_reason'];
     expect(checkbox.checked).toBe(true);
     expect(checkbox.getAttribute('data-aria-controls')).toBe(conditional.id);
     expect(checkbox.closest('.govuk-checkboxes__item')?.nextElementSibling).toBe(conditional);
@@ -327,36 +497,50 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('hydrates selected third-party and restricted-information branches before first render without marking dirty', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_send_correspondence_to_third_party: true,
-      applicant_third_party_name_or_organisation: 'Support contact',
-      applicant_third_party_relationship: 'Representative',
-      applicant_third_party_reference: 'REF-123',
-      applicant_third_party_address_line_1: '2 Test Street',
-      applicant_third_party_address_line_2: 'Test Town',
-      applicant_third_party_address_line_3: 'Test County',
-      applicant_third_party_address_line_4: 'Test Region',
-      applicant_third_party_address_line_5: 'United Kingdom',
-      applicant_third_party_postal_or_zip_code: 'TE2 2ST',
-      applicant_third_party_country_id: 2,
-      applicant_restricted_information: true,
-      applicant_restricted_information_reason: 'Court order',
+      create_casefile_applicant_individual_send_correspondence_to_third_party: true,
+      create_casefile_applicant_individual_third_party_name_or_organisation: 'Support contact',
+      create_casefile_applicant_individual_third_party_relationship: 'Representative',
+      create_casefile_applicant_individual_third_party_reference: 'REF-123',
+      create_casefile_applicant_individual_third_party_address_line_1: '2 Test Street',
+      create_casefile_applicant_individual_third_party_address_line_2: 'Test Town',
+      create_casefile_applicant_individual_third_party_address_line_3: 'Test County',
+      create_casefile_applicant_individual_third_party_address_line_4: 'Test Region',
+      create_casefile_applicant_individual_third_party_address_line_5: 'United Kingdom',
+      create_casefile_applicant_individual_third_party_postal_or_zip_code: 'TE2 2ST',
+      create_casefile_applicant_individual_third_party_country_id: 2,
+      create_casefile_applicant_individual_restricted_information: true,
+      create_casefile_applicant_individual_restricted_information_reason: 'Court order',
     };
 
     fixture.detectChanges();
 
     expect(
-      (fixture.nativeElement.querySelector('#applicant_send_correspondence_to_third_party') as HTMLInputElement)
-        .checked,
+      (
+        fixture.nativeElement.querySelector(
+          '#create_casefile_applicant_individual_send_correspondence_to_third_party',
+        ) as HTMLInputElement
+      ).checked,
     ).toBe(true);
-    expect((fixture.nativeElement.querySelector('#applicant_restricted_information') as HTMLInputElement).checked).toBe(
-      true,
-    );
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#create_casefile_applicant_individual_restricted_information',
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
     expect(fixture.nativeElement.querySelector('#applicantThirdPartyConditional-conditional')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#applicantRestrictedInformationConditional-conditional')).toBeTruthy();
-    expect(component.form.controls['applicant_third_party_name_or_organisation'].value).toBe('Support contact');
-    expect(component.form.controls['applicant_third_party_country_id'].value).toBe(2);
-    expect(component.form.controls['applicant_restricted_information_reason'].value).toBe('Court order');
-    for (const controlName of [...thirdPartyControlNames, 'applicant_restricted_information_reason'] as const) {
+    expect(component.form.controls['create_casefile_applicant_individual_third_party_name_or_organisation'].value).toBe(
+      'Support contact',
+    );
+    expect(component.form.controls['create_casefile_applicant_individual_third_party_country_id'].value).toBe(2);
+    expect(component.form.controls['create_casefile_applicant_individual_restricted_information_reason'].value).toBe(
+      'Court order',
+    );
+    for (const controlName of [
+      ...thirdPartyControlNames,
+      'create_casefile_applicant_individual_restricted_information_reason',
+    ] as const) {
       expect(component.form.controls[controlName].enabled).toBe(true);
     }
     expect(component.form.pristine).toBe(true);
@@ -365,22 +549,25 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('normalises the rendered third-party Country selection to a number before submission', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_send_correspondence_to_third_party: true,
-      applicant_third_party_name_or_organisation: 'Support contact',
-      applicant_third_party_relationship: 'Representative',
-      applicant_third_party_address_line_1: '2 Test Street',
-      applicant_third_party_country_id: null,
+      create_casefile_applicant_individual_send_correspondence_to_third_party: true,
+      create_casefile_applicant_individual_third_party_name_or_organisation: 'Support contact',
+      create_casefile_applicant_individual_third_party_relationship: 'Representative',
+      create_casefile_applicant_individual_third_party_address_line_1: '2 Test Street',
+      create_casefile_applicant_individual_third_party_country_id: null,
     };
     const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
-    const select = fixture.nativeElement.querySelector('#applicant_third_party_country_id') as HTMLSelectElement;
+    const select = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_individual_third_party_country_id',
+    ) as HTMLSelectElement;
 
     select.value = '2';
     select.dispatchEvent(new Event('change', { bubbles: true }));
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
 
     expect(formSubmitSpy).toHaveBeenCalledOnce();
-    const submittedCountryId = formSubmitSpy.mock.calls[0]?.[0]?.formData.applicant_third_party_country_id;
+    const submittedCountryId =
+      formSubmitSpy.mock.calls[0]?.[0]?.formData.create_casefile_applicant_individual_third_party_country_id;
     expect(submittedCountryId).toBe(2);
     expect(typeof submittedCountryId).toBe('number');
   });
@@ -388,40 +575,51 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('clears, disables and removes errors for deselected rendered branches without duplicate dirty emissions', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_send_correspondence_to_third_party: true,
-      applicant_third_party_name_or_organisation: 'Support contact',
-      applicant_third_party_relationship: 'Representative',
-      applicant_third_party_reference: 'REF-123',
-      applicant_third_party_address_line_1: '2 Test Street',
-      applicant_third_party_address_line_2: 'Test Town',
-      applicant_third_party_address_line_3: 'Test County',
-      applicant_third_party_address_line_4: 'Test Region',
-      applicant_third_party_address_line_5: 'United Kingdom',
-      applicant_third_party_postal_or_zip_code: 'TE2 2ST',
-      applicant_third_party_country_id: 2,
-      applicant_restricted_information: true,
-      applicant_restricted_information_reason: 'Court order',
+      create_casefile_applicant_individual_send_correspondence_to_third_party: true,
+      create_casefile_applicant_individual_third_party_name_or_organisation: 'Support contact',
+      create_casefile_applicant_individual_third_party_relationship: 'Representative',
+      create_casefile_applicant_individual_third_party_reference: 'REF-123',
+      create_casefile_applicant_individual_third_party_address_line_1: '2 Test Street',
+      create_casefile_applicant_individual_third_party_address_line_2: 'Test Town',
+      create_casefile_applicant_individual_third_party_address_line_3: 'Test County',
+      create_casefile_applicant_individual_third_party_address_line_4: 'Test Region',
+      create_casefile_applicant_individual_third_party_address_line_5: 'United Kingdom',
+      create_casefile_applicant_individual_third_party_postal_or_zip_code: 'TE2 2ST',
+      create_casefile_applicant_individual_third_party_country_id: 2,
+      create_casefile_applicant_individual_restricted_information: true,
+      create_casefile_applicant_individual_restricted_information_reason: 'Court order',
     };
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
-    component.form.controls['applicant_third_party_name_or_organisation'].setValue('');
-    component.form.controls['applicant_restricted_information_reason'].setValue('   ');
+    component.form.controls['create_casefile_applicant_individual_third_party_name_or_organisation'].setValue('');
+    component.form.controls['create_casefile_applicant_individual_restricted_information_reason'].setValue('   ');
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
     expect(component.formErrorSummaryMessage).toContainEqual({
-      fieldId: 'applicant_third_party_name_or_organisation',
+      fieldId: 'create_casefile_applicant_individual_third_party_name_or_organisation',
       message: 'Enter name or organisation',
     });
     expect(component.formErrorSummaryMessage).toContainEqual({
-      fieldId: 'applicant_restricted_information_reason',
+      fieldId: 'create_casefile_applicant_individual_restricted_information_reason',
       message: 'Enter a reason',
     });
     unsavedChangesSpy.mockClear();
 
-    (fixture.nativeElement.querySelector('#applicant_send_correspondence_to_third_party') as HTMLInputElement).click();
-    (fixture.nativeElement.querySelector('#applicant_restricted_information') as HTMLInputElement).click();
+    (
+      fixture.nativeElement.querySelector(
+        '#create_casefile_applicant_individual_send_correspondence_to_third_party',
+      ) as HTMLInputElement
+    ).click();
+    (
+      fixture.nativeElement.querySelector(
+        '#create_casefile_applicant_individual_restricted_information',
+      ) as HTMLInputElement
+    ).click();
     fixture.detectChanges();
 
-    const deselectedControlNames = [...thirdPartyControlNames, 'applicant_restricted_information_reason'] as const;
+    const deselectedControlNames = [
+      ...thirdPartyControlNames,
+      'create_casefile_applicant_individual_restricted_information_reason',
+    ] as const;
     for (const controlName of deselectedControlNames) {
       expect(component.form.controls[controlName].disabled).toBe(true);
       expect(component.form.controls[controlName].value).toBeNull();
@@ -442,27 +640,29 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     component.countryAutocompleteItems = [];
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_country_id: 1,
+      create_casefile_applicant_individual_country_id: 1,
     };
     fixture.detectChanges();
 
-    expect(component.form.controls['applicant_country_id'].value).toBe(1);
-    expect(component.form.controls['applicant_country_id'].hasError('required')).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_country_id'].value).toBe(1);
+    expect(component.form.controls['create_casefile_applicant_individual_country_id'].hasError('required')).toBe(true);
   });
 
   it('renders one required Bank details radio group with all three approved choices', () => {
     fixture.detectChanges();
 
-    const bankFieldset = fixture.nativeElement.querySelector('#applicant_bank_type') as HTMLFieldSetElement;
+    const bankFieldset = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_individual_bank_type',
+    ) as HTMLFieldSetElement;
     const labels = Array.from(bankFieldset.querySelectorAll('.govuk-radios__label')).map((label) =>
       label.textContent?.trim(),
     );
 
     expect(labels).toEqual(['UK bank account', 'Non-UK bank account', 'None or not applicable']);
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
-    expect(component.form.controls['applicant_bank_type'].hasError('required')).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_bank_type'].hasError('required')).toBe(true);
     expect(component.formErrorSummaryMessage).toContainEqual({
-      fieldId: 'applicant_bank_type',
+      fieldId: 'create_casefile_applicant_individual_bank_type',
       message: 'Select an option',
     });
   });
@@ -485,9 +685,11 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     ] as const;
 
     for (const { bankType, conditionalId, description } of revealOptions) {
-      const radio = fixture.nativeElement.querySelector(`#applicant_bank_type-${bankType}`) as HTMLInputElement;
+      const radio = fixture.nativeElement.querySelector(
+        `#create_casefile_applicant_individual_bank_type-${bankType}`,
+      ) as HTMLInputElement;
       const conditional = fixture.nativeElement.querySelector(`#${conditionalId}`) as HTMLDivElement;
-      const descriptionId = `applicant_bank_type-${bankType}-description`;
+      const descriptionId = `create_casefile_applicant_individual_bank_type-${bankType}-description`;
       const descriptionElement = fixture.nativeElement.querySelector(`#${descriptionId}`) as HTMLSpanElement;
 
       expect(radio.getAttribute('aria-controls')).toBe(conditionalId);
@@ -504,7 +706,9 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
       expect(radio.hasAttribute('aria-expanded')).toBe(false);
     }
 
-    const noneRadio = fixture.nativeElement.querySelector('#applicant_bank_type-none') as HTMLInputElement;
+    const noneRadio = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_individual_bank_type-none',
+    ) as HTMLInputElement;
     expect(noneRadio.hasAttribute('aria-controls')).toBe(false);
     expect(noneRadio.hasAttribute('aria-describedby')).toBe(false);
     expect(noneRadio.hasAttribute('aria-expanded')).toBe(false);
@@ -513,21 +717,21 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('enables only the UK branch and accepts both exact sort-code formats with 6-to-8 digit account numbers', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_bank_type: null,
-      applicant_uk_bank_name_on_account: null,
-      applicant_uk_bank_sort_code: null,
-      applicant_uk_bank_account_number: null,
-      applicant_uk_bank_payment_reference: null,
+      create_casefile_applicant_individual_bank_type: null,
+      create_casefile_applicant_individual_uk_bank_name_on_account: null,
+      create_casefile_applicant_individual_uk_bank_sort_code: null,
+      create_casefile_applicant_individual_uk_bank_account_number: null,
+      create_casefile_applicant_individual_uk_bank_payment_reference: null,
     };
     fixture.detectChanges();
 
     selectBankType(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK);
 
     const ukControls = [
-      'applicant_uk_bank_name_on_account',
-      'applicant_uk_bank_sort_code',
-      'applicant_uk_bank_account_number',
-      'applicant_uk_bank_payment_reference',
+      'create_casefile_applicant_individual_uk_bank_name_on_account',
+      'create_casefile_applicant_individual_uk_bank_sort_code',
+      'create_casefile_applicant_individual_uk_bank_account_number',
+      'create_casefile_applicant_individual_uk_bank_payment_reference',
     ] as const;
     const nonUkControls = conditionalControlNames.slice(14, 21);
     for (const controlName of ukControls) {
@@ -538,17 +742,17 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
       expect(component.form.controls[controlName].disabled).toBe(true);
     }
 
-    component.form.controls['applicant_uk_bank_name_on_account'].setValue('Account holder');
-    component.form.controls['applicant_uk_bank_payment_reference'].setValue('PAY-001');
-    component.form.controls['applicant_uk_bank_sort_code'].setValue('112233');
-    component.form.controls['applicant_uk_bank_account_number'].setValue('123456');
-    expect(component.form.controls['applicant_uk_bank_sort_code'].errors).toBeNull();
-    expect(component.form.controls['applicant_uk_bank_account_number'].errors).toBeNull();
+    component.form.controls['create_casefile_applicant_individual_uk_bank_name_on_account'].setValue('Account holder');
+    component.form.controls['create_casefile_applicant_individual_uk_bank_payment_reference'].setValue('PAY-001');
+    component.form.controls['create_casefile_applicant_individual_uk_bank_sort_code'].setValue('112233');
+    component.form.controls['create_casefile_applicant_individual_uk_bank_account_number'].setValue('123456');
+    expect(component.form.controls['create_casefile_applicant_individual_uk_bank_sort_code'].errors).toBeNull();
+    expect(component.form.controls['create_casefile_applicant_individual_uk_bank_account_number'].errors).toBeNull();
 
-    component.form.controls['applicant_uk_bank_sort_code'].setValue('11-22-33');
-    component.form.controls['applicant_uk_bank_account_number'].setValue('12345678');
-    expect(component.form.controls['applicant_uk_bank_sort_code'].errors).toBeNull();
-    expect(component.form.controls['applicant_uk_bank_account_number'].errors).toBeNull();
+    component.form.controls['create_casefile_applicant_individual_uk_bank_sort_code'].setValue('11-22-33');
+    component.form.controls['create_casefile_applicant_individual_uk_bank_account_number'].setValue('12345678');
+    expect(component.form.controls['create_casefile_applicant_individual_uk_bank_sort_code'].errors).toBeNull();
+    expect(component.form.controls['create_casefile_applicant_individual_uk_bank_account_number'].errors).toBeNull();
     expect(component.form.valid).toBe(true);
   });
 
@@ -556,8 +760,8 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData;
     fixture.detectChanges();
 
-    const sortCode = component.form.controls['applicant_uk_bank_sort_code'];
-    const accountNumber = component.form.controls['applicant_uk_bank_account_number'];
+    const sortCode = component.form.controls['create_casefile_applicant_individual_uk_bank_sort_code'];
+    const accountNumber = component.form.controls['create_casefile_applicant_individual_uk_bank_account_number'];
 
     sortCode.setValue('11 22 33');
     expect(sortCode.hasError('ukSortCodePattern')).toBe(true);
@@ -572,39 +776,45 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('accepts a non-UK account with a valid BIC and optional payment reference', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
-      applicant_uk_bank_name_on_account: null,
-      applicant_uk_bank_sort_code: null,
-      applicant_uk_bank_account_number: null,
-      applicant_uk_bank_payment_reference: null,
-      applicant_non_uk_bank_name_on_account: 'Account holder',
-      applicant_non_uk_bank_bic_swift_code: 'ABCDEFGH',
+      create_casefile_applicant_individual_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      create_casefile_applicant_individual_uk_bank_name_on_account: null,
+      create_casefile_applicant_individual_uk_bank_sort_code: null,
+      create_casefile_applicant_individual_uk_bank_account_number: null,
+      create_casefile_applicant_individual_uk_bank_payment_reference: null,
+      create_casefile_applicant_individual_non_uk_bank_name_on_account: 'Account holder',
+      create_casefile_applicant_individual_non_uk_bank_bic_swift_code: 'ABCDEFGH',
     };
     fixture.detectChanges();
 
-    expect(component.form.controls['applicant_non_uk_bank_name_on_account'].enabled).toBe(true);
-    expect(component.form.controls['applicant_non_uk_bank_payment_reference'].errors).toBeNull();
-    expect(component.form.controls['applicant_non_uk_bank_bic_swift_code'].errors).toBeNull();
-    expect(component.form.controls['applicant_non_uk_bank_iban'].errors).toBeNull();
+    expect(component.form.controls['create_casefile_applicant_individual_non_uk_bank_name_on_account'].enabled).toBe(
+      true,
+    );
+    expect(
+      component.form.controls['create_casefile_applicant_individual_non_uk_bank_payment_reference'].errors,
+    ).toBeNull();
+    expect(
+      component.form.controls['create_casefile_applicant_individual_non_uk_bank_bic_swift_code'].errors,
+    ).toBeNull();
+    expect(component.form.controls['create_casefile_applicant_individual_non_uk_bank_iban'].errors).toBeNull();
     expect(component.form.valid).toBe(true);
   });
 
   it('accepts a non-UK account with a valid IBAN and revalidates the BIC requirement when IBAN changes', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
-      applicant_uk_bank_name_on_account: null,
-      applicant_uk_bank_sort_code: null,
-      applicant_uk_bank_account_number: null,
-      applicant_uk_bank_payment_reference: null,
-      applicant_non_uk_bank_name_on_account: 'Account holder',
-      applicant_non_uk_bank_bic_swift_code: null,
-      applicant_non_uk_bank_iban: null,
+      create_casefile_applicant_individual_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      create_casefile_applicant_individual_uk_bank_name_on_account: null,
+      create_casefile_applicant_individual_uk_bank_sort_code: null,
+      create_casefile_applicant_individual_uk_bank_account_number: null,
+      create_casefile_applicant_individual_uk_bank_payment_reference: null,
+      create_casefile_applicant_individual_non_uk_bank_name_on_account: 'Account holder',
+      create_casefile_applicant_individual_non_uk_bank_bic_swift_code: null,
+      create_casefile_applicant_individual_non_uk_bank_iban: null,
     };
     fixture.detectChanges();
 
-    const bic = component.form.controls['applicant_non_uk_bank_bic_swift_code'];
-    const iban = component.form.controls['applicant_non_uk_bank_iban'];
+    const bic = component.form.controls['create_casefile_applicant_individual_non_uk_bank_bic_swift_code'];
+    const iban = component.form.controls['create_casefile_applicant_individual_non_uk_bank_iban'];
     expect(bic.hasError('internationalIdentifierRequired')).toBe(true);
 
     iban.setValue('GB82WEST12345698765432');
@@ -618,20 +828,20 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
-      applicant_uk_bank_name_on_account: null,
-      applicant_uk_bank_sort_code: null,
-      applicant_uk_bank_account_number: null,
-      applicant_uk_bank_payment_reference: null,
-      applicant_non_uk_bank_name_on_account: 'Account holder',
-      applicant_non_uk_bank_bic_swift_code: null,
-      applicant_non_uk_bank_iban: null,
+      create_casefile_applicant_individual_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      create_casefile_applicant_individual_uk_bank_name_on_account: null,
+      create_casefile_applicant_individual_uk_bank_sort_code: null,
+      create_casefile_applicant_individual_uk_bank_account_number: null,
+      create_casefile_applicant_individual_uk_bank_payment_reference: null,
+      create_casefile_applicant_individual_non_uk_bank_name_on_account: 'Account holder',
+      create_casefile_applicant_individual_non_uk_bank_bic_swift_code: null,
+      create_casefile_applicant_individual_non_uk_bank_iban: null,
     };
     fixture.detectChanges();
 
-    const bic = component.form.controls['applicant_non_uk_bank_bic_swift_code'];
-    const iban = component.form.controls['applicant_non_uk_bank_iban'];
-    const branchCode = component.form.controls['applicant_non_uk_bank_branch_sort_code'];
+    const bic = component.form.controls['create_casefile_applicant_individual_non_uk_bank_bic_swift_code'];
+    const iban = component.form.controls['create_casefile_applicant_individual_non_uk_bank_iban'];
+    const branchCode = component.form.controls['create_casefile_applicant_individual_non_uk_bank_branch_sort_code'];
     expect(bic.hasError('internationalIdentifierRequired')).toBe(true);
 
     bic.setValue('ABC 1234');
@@ -659,10 +869,10 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('clears inactive bank values and errors when switching mutually exclusive rendered branches', () => {
     component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData;
     fixture.detectChanges();
-    component.form.controls['applicant_uk_bank_sort_code'].setValue('invalid');
+    component.form.controls['create_casefile_applicant_individual_uk_bank_sort_code'].setValue('invalid');
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
     expect(component.formErrorSummaryMessage).toContainEqual({
-      fieldId: 'applicant_uk_bank_sort_code',
+      fieldId: 'create_casefile_applicant_individual_uk_bank_sort_code',
       message: 'Enter correct sort code',
     });
 
@@ -673,12 +883,16 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
       expect(component.form.controls[controlName].value).toBeNull();
       expect(component.formControlErrorMessages[controlName]).toBeNull();
     }
-    expect(component.formErrorSummaryMessage.some((error) => error.fieldId.startsWith('applicant_uk_bank_'))).toBe(
-      false,
-    );
+    expect(
+      component.formErrorSummaryMessage.some((error) =>
+        error.fieldId.startsWith('create_casefile_applicant_individual_uk_bank_'),
+      ),
+    ).toBe(false);
 
-    component.form.controls['applicant_non_uk_bank_name_on_account'].setValue('Account holder');
-    component.form.controls['applicant_non_uk_bank_bic_swift_code'].setValue('ABCDEFGH');
+    component.form.controls['create_casefile_applicant_individual_non_uk_bank_name_on_account'].setValue(
+      'Account holder',
+    );
+    component.form.controls['create_casefile_applicant_individual_non_uk_bank_bic_swift_code'].setValue('ABCDEFGH');
     selectBankType(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE);
 
     for (const controlName of conditionalControlNames.slice(14, 21)) {
@@ -691,44 +905,56 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('restores the selected saved bank branch before first render without marking the form dirty', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
-      applicant_uk_bank_name_on_account: null,
-      applicant_uk_bank_sort_code: null,
-      applicant_uk_bank_account_number: null,
-      applicant_uk_bank_payment_reference: null,
-      applicant_non_uk_bank_name_on_account: 'Saved account',
-      applicant_non_uk_bank_account_number: 'ACC-123',
-      applicant_non_uk_bank_payment_reference: null,
-      applicant_non_uk_bank_bic_swift_code: 'ABCDEFGH',
-      applicant_non_uk_bank_iban: null,
-      applicant_non_uk_bank_name: 'Saved bank',
-      applicant_non_uk_bank_branch_sort_code: '123456',
+      create_casefile_applicant_individual_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      create_casefile_applicant_individual_uk_bank_name_on_account: null,
+      create_casefile_applicant_individual_uk_bank_sort_code: null,
+      create_casefile_applicant_individual_uk_bank_account_number: null,
+      create_casefile_applicant_individual_uk_bank_payment_reference: null,
+      create_casefile_applicant_individual_non_uk_bank_name_on_account: 'Saved account',
+      create_casefile_applicant_individual_non_uk_bank_account_number: 'ACC-123',
+      create_casefile_applicant_individual_non_uk_bank_payment_reference: null,
+      create_casefile_applicant_individual_non_uk_bank_bic_swift_code: 'ABCDEFGH',
+      create_casefile_applicant_individual_non_uk_bank_iban: null,
+      create_casefile_applicant_individual_non_uk_bank_name: 'Saved bank',
+      create_casefile_applicant_individual_non_uk_bank_branch_sort_code: '123456',
     };
     fixture.detectChanges();
 
-    expect((fixture.nativeElement.querySelector('#applicant_bank_type-non-uk') as HTMLInputElement).checked).toBe(true);
-    expect(component.form.controls['applicant_non_uk_bank_name_on_account'].value).toBe('Saved account');
-    expect(component.form.controls['applicant_non_uk_bank_bic_swift_code'].value).toBe('ABCDEFGH');
-    expect(component.form.controls['applicant_non_uk_bank_name_on_account'].enabled).toBe(true);
-    expect(component.form.controls['applicant_uk_bank_name_on_account'].disabled).toBe(true);
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#create_casefile_applicant_individual_bank_type-non-uk',
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    expect(component.form.controls['create_casefile_applicant_individual_non_uk_bank_name_on_account'].value).toBe(
+      'Saved account',
+    );
+    expect(component.form.controls['create_casefile_applicant_individual_non_uk_bank_bic_swift_code'].value).toBe(
+      'ABCDEFGH',
+    );
+    expect(component.form.controls['create_casefile_applicant_individual_non_uk_bank_name_on_account'].enabled).toBe(
+      true,
+    );
+    expect(component.form.controls['create_casefile_applicant_individual_uk_bank_name_on_account'].disabled).toBe(true);
     expect(component.form.pristine).toBe(true);
   });
 
   it('cleans up the IBAN-to-BIC revalidation subscription when destroyed', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
-      applicant_uk_bank_name_on_account: null,
-      applicant_uk_bank_sort_code: null,
-      applicant_uk_bank_account_number: null,
-      applicant_uk_bank_payment_reference: null,
-      applicant_non_uk_bank_name_on_account: 'Account holder',
-      applicant_non_uk_bank_bic_swift_code: null,
-      applicant_non_uk_bank_iban: null,
+      create_casefile_applicant_individual_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      create_casefile_applicant_individual_uk_bank_name_on_account: null,
+      create_casefile_applicant_individual_uk_bank_sort_code: null,
+      create_casefile_applicant_individual_uk_bank_account_number: null,
+      create_casefile_applicant_individual_uk_bank_payment_reference: null,
+      create_casefile_applicant_individual_non_uk_bank_name_on_account: 'Account holder',
+      create_casefile_applicant_individual_non_uk_bank_bic_swift_code: null,
+      create_casefile_applicant_individual_non_uk_bank_iban: null,
     };
     fixture.detectChanges();
-    const bic = component.form.controls['applicant_non_uk_bank_bic_swift_code'];
-    const iban = component.form.controls['applicant_non_uk_bank_iban'];
+    const bic = component.form.controls['create_casefile_applicant_individual_non_uk_bank_bic_swift_code'];
+    const iban = component.form.controls['create_casefile_applicant_individual_non_uk_bank_iban'];
     const updateSpy = vi.spyOn(bic, 'updateValueAndValidity');
 
     iban.setValue('GB82WEST12345698765432');
@@ -744,35 +970,39 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('creates and focuses one stable alias row from the rendered checkbox and emits dirty state', async () => {
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
-    const addAliasesCheckbox = fixture.nativeElement.querySelector('#applicant_add_aliases') as HTMLInputElement;
+    const addAliasesCheckbox = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_individual_add_aliases',
+    ) as HTMLInputElement;
 
     addAliasesCheckbox.click();
 
     expect(addAliasesCheckbox.checked).toBe(true);
     expect(component.aliasControls).toHaveLength(1);
     expect(component.aliasControls[0]).toEqual({
-      applicant_alias_first_names: {
-        inputId: 'applicant_alias_first_names_0',
-        inputName: 'applicant_alias_first_names_0',
-        controlName: 'applicant_alias_first_names_0',
+      create_casefile_applicant_individual_alias_first_names: {
+        inputId: 'create_casefile_applicant_individual_alias_first_names_0',
+        inputName: 'create_casefile_applicant_individual_alias_first_names_0',
+        controlName: 'create_casefile_applicant_individual_alias_first_names_0',
       },
-      applicant_alias_last_name: {
-        inputId: 'applicant_alias_last_name_0',
-        inputName: 'applicant_alias_last_name_0',
-        controlName: 'applicant_alias_last_name_0',
+      create_casefile_applicant_individual_alias_last_name: {
+        inputId: 'create_casefile_applicant_individual_alias_last_name_0',
+        inputName: 'create_casefile_applicant_individual_alias_last_name_0',
+        controlName: 'create_casefile_applicant_individual_alias_last_name_0',
       },
     });
     expect(component.form.dirty).toBe(true);
     expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
     await vi.waitFor(() => {
-      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_alias_first_names_0'));
+      expect(document.activeElement).toBe(
+        fixture.nativeElement.querySelector('#create_casefile_applicant_individual_alias_first_names_0'),
+      );
     });
   });
 
   it('uses the rendered Add button to focus new rows, emit dirty state and enforce the five-row limit', async () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_aliases: [{ firstNames: 'Alternative', lastName: 'Applicant' }],
+      create_casefile_applicant_individual_aliases: [{ firstNames: 'Alternative', lastName: 'Applicant' }],
     };
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
@@ -782,19 +1012,58 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     }
 
     expect(component.aliasControls).toHaveLength(5);
-    expect(component.form.controls['applicant_aliases'].value).toHaveLength(5);
+    expect(component.form.controls['create_casefile_applicant_individual_aliases'].value).toHaveLength(5);
     expect(fixture.nativeElement.querySelector('#addApplicantAlias')).toBeNull();
     expect(component.form.dirty).toBe(true);
     expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
     await vi.waitFor(() => {
-      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_alias_first_names_4'));
+      expect(document.activeElement).toBe(
+        fixture.nativeElement.querySelector('#create_casefile_applicant_individual_alias_first_names_4'),
+      );
     });
+  });
+
+  it('does not add a sixth alias when the maximum number of rows already exists', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      create_casefile_applicant_individual_aliases: Array.from({ length: 5 }, () => ({
+        firstNames: 'Alternative',
+        lastName: 'Applicant',
+      })),
+    };
+    fixture.detectChanges();
+
+    component.addAlias(5, 'create_casefile_applicant_individual_aliases');
+
+    expect(component.aliasControls).toHaveLength(5);
+  });
+
+  it('removes one of three aliases when its form row is missing an indexed field', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      create_casefile_applicant_individual_aliases: [
+        { firstNames: 'First', lastName: 'Alias' },
+        { firstNames: 'Second', lastName: 'Alias' },
+        { firstNames: 'Third', lastName: 'Alias' },
+      ],
+    };
+    fixture.detectChanges();
+    const aliasRows = component.form.controls['create_casefile_applicant_individual_aliases'];
+    aliasRows.at(1).removeControl('create_casefile_applicant_individual_alias_last_name_1');
+
+    component.removeAlias(1, 'create_casefile_applicant_individual_aliases');
+
+    expect(component.aliasControls).toHaveLength(2);
+    expect(aliasRows).toHaveLength(2);
+    expect(aliasRows.at(0).get('create_casefile_applicant_individual_alias_first_names_0')?.value).toBe('First');
+    expect(aliasRows.at(1).get('create_casefile_applicant_individual_alias_first_names_2')?.value).toBe('Third');
+    expect(component.form.dirty).toBe(true);
   });
 
   it('uses the rendered Remove link to clear only removed errors, emit dirty state and focus the remaining row', async () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_aliases: [
+      create_casefile_applicant_individual_aliases: [
         { firstNames: '', lastName: '' },
         { firstNames: '', lastName: '' },
       ],
@@ -812,7 +1081,7 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     expect(component.form.dirty).toBe(true);
     expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
     expect(component.formErrorSummaryMessage).toContainEqual({
-      fieldId: 'applicant_alias_first_names_0',
+      fieldId: 'create_casefile_applicant_individual_alias_first_names_0',
       message: 'Enter alias first name(s)',
     });
     expect(component.formErrorSummaryMessage.some((error: { fieldId: string }) => error.fieldId.endsWith('_1'))).toBe(
@@ -820,47 +1089,55 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     );
     expect(component.formErrors.some((error: { fieldId: string }) => error.fieldId.endsWith('_1'))).toBe(false);
     await vi.waitFor(() => {
-      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#applicant_alias_first_names_0'));
+      expect(document.activeElement).toBe(
+        fixture.nativeElement.querySelector('#create_casefile_applicant_individual_alias_first_names_0'),
+      );
     });
   });
 
   it('uses the rendered checkbox to deselect aliases, clear their errors and emit dirty state', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_aliases: [{ firstNames: '', lastName: '' }],
+      create_casefile_applicant_individual_aliases: [{ firstNames: '', lastName: '' }],
     };
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
 
     expect(component.formErrorSummaryMessage).toContainEqual({
-      fieldId: 'applicant_alias_first_names_0',
+      fieldId: 'create_casefile_applicant_individual_alias_first_names_0',
       message: 'Enter alias first name(s)',
     });
     unsavedChangesSpy.mockClear();
 
-    const addAliasesCheckbox = fixture.nativeElement.querySelector('#applicant_add_aliases') as HTMLInputElement;
+    const addAliasesCheckbox = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_individual_add_aliases',
+    ) as HTMLInputElement;
     addAliasesCheckbox.click();
 
     expect(addAliasesCheckbox.checked).toBe(false);
     expect(component.aliasControls).toHaveLength(0);
-    expect(component.form.controls['applicant_aliases'].value).toEqual([]);
+    expect(component.form.controls['create_casefile_applicant_individual_aliases'].value).toEqual([]);
     expect(component.form.dirty).toBe(true);
     expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
     expect(
       component.formErrorSummaryMessage.some((error: { fieldId: string }) =>
-        error.fieldId.startsWith('applicant_alias_'),
+        error.fieldId.startsWith('create_casefile_applicant_individual_alias_'),
       ),
     ).toBe(false);
     expect(
-      component.formErrors.some((error: { fieldId: string }) => error.fieldId.startsWith('applicant_alias_')),
+      component.formErrors.some((error: { fieldId: string }) =>
+        error.fieldId.startsWith('create_casefile_applicant_individual_alias_'),
+      ),
     ).toBe(false);
   });
 
   it('emits dirty state after a rendered core field edit', () => {
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
-    const titleInput = fixture.nativeElement.querySelector('#applicant_title') as HTMLInputElement;
+    const titleInput = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_individual_title',
+    ) as HTMLInputElement;
 
     titleInput.value = 'Dr';
     titleInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -873,11 +1150,11 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
     const enteredValues = {
-      applicant_first_names: '   ',
-      applicant_last_name: 'L'.repeat(51),
-      applicant_date_of_birth: '01/01/2999',
-      applicant_main_email_address: 'invalid',
-      applicant_address_line_1: '\t',
+      create_casefile_applicant_individual_first_names: '   ',
+      create_casefile_applicant_individual_last_name: 'L'.repeat(51),
+      create_casefile_applicant_individual_date_of_birth: '01/01/2999',
+      create_casefile_applicant_individual_main_email_address: 'invalid',
+      create_casefile_applicant_individual_address_line_1: '\t',
     } as const;
     const renderedInputs = Object.fromEntries(
       Object.entries(enteredValues).map(([controlName, value]) => [
@@ -889,16 +1166,19 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
 
     expect(component.formErrorSummaryMessage).toEqual([
-      { fieldId: 'applicant_first_names', message: 'Enter applicant’s first name(s)' },
-      { fieldId: 'applicant_last_name', message: 'Last name must be 50 characters or fewer' },
-      { fieldId: 'applicant_date_of_birth', message: 'Date must be in the past' },
+      { fieldId: 'create_casefile_applicant_individual_first_names', message: 'Enter applicant’s first name(s)' },
       {
-        fieldId: 'applicant_main_email_address',
+        fieldId: 'create_casefile_applicant_individual_last_name',
+        message: 'Last name must be 50 characters or fewer',
+      },
+      { fieldId: 'create_casefile_applicant_individual_date_of_birth', message: 'Date must be in the past' },
+      {
+        fieldId: 'create_casefile_applicant_individual_main_email_address',
         message: 'Enter an email address in the correct format, like name@example.com',
       },
-      { fieldId: 'applicant_address_line_1', message: 'Enter an address' },
-      { fieldId: 'applicant_country_id', message: 'Select a country' },
-      { fieldId: 'applicant_bank_type', message: 'Select an option' },
+      { fieldId: 'create_casefile_applicant_individual_address_line_1', message: 'Enter an address' },
+      { fieldId: 'create_casefile_applicant_individual_country_id', message: 'Select a country' },
+      { fieldId: 'create_casefile_applicant_individual_bank_type', message: 'Select an option' },
     ]);
     expect(formSubmitSpy).not.toHaveBeenCalled();
     for (const [controlName, value] of Object.entries(enteredValues)) {
@@ -908,7 +1188,8 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
       expect(fixture.nativeElement.querySelector(`#${controlName}-error-message`)?.textContent).toContain(message);
     }
     expect(
-      fixture.nativeElement.querySelector('#applicant_country_id-autocomplete-error-message')?.textContent,
+      fixture.nativeElement.querySelector('#create_casefile_applicant_individual_country_id-autocomplete-error-message')
+        ?.textContent,
     ).toContain('Select a country');
     expect(fixture.nativeElement.querySelector('.govuk-error-summary__title')?.textContent).toContain(
       'There is a problem',
@@ -919,20 +1200,22 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
   it('uses identical inline and summary copy for date, email and length errors', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
-      applicant_title: 'T'.repeat(21),
-      applicant_date_of_birth: '01/01/2999',
-      applicant_main_email_address: 'invalid',
-      applicant_main_telephone_number: '1'.repeat(36),
+      create_casefile_applicant_individual_title: 'T'.repeat(21),
+      create_casefile_applicant_individual_date_of_birth: '01/01/2999',
+      create_casefile_applicant_individual_main_email_address: 'invalid',
+      create_casefile_applicant_individual_main_telephone_number: '1'.repeat(36),
     };
     fixture.detectChanges();
 
     (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
 
     const expectedMessages = {
-      applicant_title: 'Title must be 20 characters or fewer',
-      applicant_date_of_birth: 'Date must be in the past',
-      applicant_main_email_address: 'Enter an email address in the correct format, like name@example.com',
-      applicant_main_telephone_number: 'Main telephone number must be 35 characters or fewer',
+      create_casefile_applicant_individual_title: 'Title must be 20 characters or fewer',
+      create_casefile_applicant_individual_date_of_birth: 'Date must be in the past',
+      create_casefile_applicant_individual_main_email_address:
+        'Enter an email address in the correct format, like name@example.com',
+      create_casefile_applicant_individual_main_telephone_number:
+        'Main telephone number must be 35 characters or fewer',
     } as const;
 
     for (const [controlName, message] of Object.entries(expectedMessages)) {

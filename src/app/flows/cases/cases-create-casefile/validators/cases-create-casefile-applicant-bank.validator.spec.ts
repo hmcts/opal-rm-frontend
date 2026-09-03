@@ -32,6 +32,12 @@ describe('CasesCreateCasefileApplicantBankValidator', () => {
         ukSortCodeLength: true,
       });
     });
+
+    it('returns ukSortCodePattern when six digits use a disallowed separator layout', () => {
+      expect(casesCreateCasefileApplicantUkSortCodeValidator(new FormControl('1-23-456'))).toEqual({
+        ukSortCodePattern: true,
+      });
+    });
   });
 
   describe('casesCreateCasefileApplicantUkAccountNumberValidator', () => {

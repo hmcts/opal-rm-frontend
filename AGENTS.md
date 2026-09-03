@@ -9,6 +9,7 @@ Use Yarn 4 through Corepack. Treat `.nvmrc` and `package.json#packageManager` as
 - Read the ticket and its Acceptance Criteria when the task is ticketed.
 - Inspect `git status` and preserve unrelated existing changes.
 - Create or reuse a dedicated branch following [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
+- Route new or materially changed frontend journeys and Sonar remediation through [docs/SONAR.md](docs/SONAR.md).
 - Route implementation and unit testing to [docs/REPO_GUIDELINES.md](docs/REPO_GUIDELINES.md), component testing to
   [docs/CYPRESS_COMPONENT_TESTING.md](docs/CYPRESS_COMPONENT_TESTING.md), E2E and accessibility testing to
   [docs/CYPRESS_E2E_TESTING.md](docs/CYPRESS_E2E_TESTING.md), contribution work to

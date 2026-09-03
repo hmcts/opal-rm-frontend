@@ -9,6 +9,7 @@ import { CasesCreateCasefileApplicantType } from '../types/cases-create-casefile
 import { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import { CasesCreateCasefileCaseType } from '../types/cases-create-casefile-case-type.type';
 import { CasesCreateCasefileCaseTypeFormComponent } from './cases-create-casefile-case-type-form/cases-create-casefile-case-type-form.component';
+import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from './constants/cases-create-casefile-case-type-field-names.constant';
 import { ICasesCreateCasefileCaseTypeFormData } from './interfaces/cases-create-casefile-case-type-form-data.interface';
 import { ICasesCreateCasefileCaseTypeForm } from './interfaces/cases-create-casefile-case-type-form.interface';
 
@@ -31,28 +32,32 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
 
   public get initialFormData(): ICasesCreateCasefileCaseTypeFormData {
     const selection = this.store.caseTypeSelection();
+    const { caseType, applicantType } = CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES;
 
     if (!selection || !this.isCaseType(selection.caseType)) {
-      return { caseType: null, applicantType: null };
+      return { [caseType]: null, [applicantType]: null };
     }
 
     if (selection.caseType === CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN) {
       if (!('applicantType' in selection) || !this.isApplicantType(selection.applicantType)) {
-        return { caseType: null, applicantType: null };
+        return { [caseType]: null, [applicantType]: null };
       }
 
-      return { caseType: selection.caseType, applicantType: selection.applicantType };
+      return { [caseType]: selection.caseType, [applicantType]: selection.applicantType };
     }
 
     if ('applicantType' in selection) {
-      return { caseType: null, applicantType: null };
+      return { [caseType]: null, [applicantType]: null };
     }
 
-    return { caseType: selection.caseType, applicantType: null };
+    return { [caseType]: selection.caseType, [applicantType]: null };
   }
 
   public handleFormSubmit(form: ICasesCreateCasefileCaseTypeForm): void {
-    const { caseType, applicantType } = form.formData;
+    const {
+      [CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.caseType]: caseType,
+      [CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.applicantType]: applicantType,
+    } = form.formData;
     let selection: CasesCreateCasefileCaseTypeSelection;
 
     if (!this.isCaseType(caseType)) {

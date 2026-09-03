@@ -39,13 +39,13 @@ describe('CasesCreateCasefileApplicantOrganisationMapperService', () => {
   it('trims strings, maps empty optionals to null and removes UK sort-code hyphens', () => {
     const result = mapper.toApplicantDetails({
       ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-      applicant_organisation_name: '  Test Organisation  ',
-      applicant_foreign_authority_reference: '  FA-9803  ',
-      applicant_other_email_address: '   ',
-      applicant_address_line_2: '   ',
-      applicant_uk_bank_name_on_account: '  Test Organisation  ',
-      applicant_uk_bank_sort_code: '11-22-33',
-      applicant_uk_bank_payment_reference: '  PAY-9803  ',
+      create_casefile_applicant_organisation_name: '  Test Organisation  ',
+      create_casefile_applicant_organisation_foreign_authority_reference: '  FA-9803  ',
+      create_casefile_applicant_organisation_other_email_address: '   ',
+      create_casefile_applicant_organisation_address_line_2: '   ',
+      create_casefile_applicant_organisation_uk_bank_name_on_account: '  Test Organisation  ',
+      create_casefile_applicant_organisation_uk_bank_sort_code: '11-22-33',
+      create_casefile_applicant_organisation_uk_bank_payment_reference: '  PAY-9803  ',
     });
 
     expect(result.organisationName).toBe('Test Organisation');
@@ -65,13 +65,13 @@ describe('CasesCreateCasefileApplicantOrganisationMapperService', () => {
     expect(
       mapper.toApplicantDetails({
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNoneFormData,
-        applicant_uk_bank_name_on_account: 'Stale UK account',
-        applicant_uk_bank_sort_code: '11-22-33',
-        applicant_uk_bank_account_number: '87654321',
-        applicant_uk_bank_payment_reference: 'STALE-UK',
-        applicant_non_uk_bank_name_on_account: 'Stale non-UK account',
-        applicant_non_uk_bank_bic_swift_code: 'STALEBIC',
-        applicant_non_uk_bank_iban: 'STALEIBAN',
+        create_casefile_applicant_organisation_uk_bank_name_on_account: 'Stale UK account',
+        create_casefile_applicant_organisation_uk_bank_sort_code: '11-22-33',
+        create_casefile_applicant_organisation_uk_bank_account_number: '87654321',
+        create_casefile_applicant_organisation_uk_bank_payment_reference: 'STALE-UK',
+        create_casefile_applicant_organisation_non_uk_bank_name_on_account: 'Stale non-UK account',
+        create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: 'STALEBIC',
+        create_casefile_applicant_organisation_non_uk_bank_iban: 'STALEIBAN',
       }).bankDetails,
     ).toEqual({ type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE });
   });
@@ -84,75 +84,90 @@ describe('CasesCreateCasefileApplicantOrganisationMapperService', () => {
       description: 'organisation name',
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-        applicant_organisation_name: ' ',
+        create_casefile_applicant_organisation_name: ' ',
       },
     },
     {
       description: 'foreign authority reference',
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-        applicant_foreign_authority_reference: null,
+        create_casefile_applicant_organisation_foreign_authority_reference: null,
       },
     },
     {
       description: 'applicant address line 1',
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-        applicant_address_line_1: null,
+        create_casefile_applicant_organisation_address_line_1: null,
       },
     },
     {
       description: 'applicant country',
-      formData: { ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData, applicant_country_id: null },
+      formData: {
+        ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
+        create_casefile_applicant_organisation_country_id: null,
+      },
     },
     {
       description: 'applicant bank type',
-      formData: { ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData, applicant_bank_type: null },
+      formData: {
+        ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
+        create_casefile_applicant_organisation_bank_type: null,
+      },
     },
     {
       description: 'UK bank name on account',
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-        applicant_uk_bank_name_on_account: null,
+        create_casefile_applicant_organisation_uk_bank_name_on_account: null,
       },
     },
     {
       description: 'UK bank sort code',
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-        applicant_uk_bank_sort_code: ' ',
+        create_casefile_applicant_organisation_uk_bank_sort_code: ' ',
       },
     },
     {
       description: 'UK bank account number',
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-        applicant_uk_bank_account_number: null,
+        create_casefile_applicant_organisation_uk_bank_account_number: null,
       },
     },
     {
       description: 'UK bank payment reference',
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-        applicant_uk_bank_payment_reference: null,
+        create_casefile_applicant_organisation_uk_bank_payment_reference: null,
       },
     },
     {
       description: 'non-UK bank name on account',
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNonUkFormData,
-        applicant_non_uk_bank_name_on_account: null,
+        create_casefile_applicant_organisation_non_uk_bank_name_on_account: null,
       },
     },
     {
       description: 'non-UK bank BIC/SWIFT code or IBAN',
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNonUkFormData,
-        applicant_non_uk_bank_bic_swift_code: ' ',
-        applicant_non_uk_bank_iban: null,
+        create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: ' ',
+        create_casefile_applicant_organisation_non_uk_bank_iban: null,
       },
     },
   ])('throws when required $description is missing', ({ description, formData }) => {
     expect(() => mapper.toApplicantDetails(formData)).toThrowError(`Required ${description} is missing`);
+  });
+
+  it('rejects an invalid runtime applicant bank discriminator', () => {
+    const formData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
+      create_casefile_applicant_organisation_bank_type: 'INVALID',
+    } as never;
+
+    expect(() => mapper.toApplicantDetails(formData)).toThrowError('Unsupported applicant bank type: INVALID');
   });
 });

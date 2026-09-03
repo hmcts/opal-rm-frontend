@@ -84,11 +84,13 @@ it('AC1. should render the approved choices', { tags: buildTags('@JIRA-TEST-KEY:
 - Keep all reusable scenario data beside the feature under `mocks/**`. This includes saved form or store state, expected submitted state, API responses, error responses, and problem-detail bodies, not only HTTP fixtures.
 - Name feature-local mock files with the `*.mock.ts` suffix. Do not place large mock objects in specs or setup helpers.
 - Keep repeated expected validation and error text under the feature's `constants/**` folder in a suitably named `*.constant.ts` file. Use named properties rather than repeated string literals or positional array indexes.
+- Search the parent feature's `mocks/**` and `constants/**` folders before declaring data in a nested spec. Reuse shared feature copy such as error-summary headings and unsaved-change warnings rather than redeclaring it below the feature root.
 - Keep reusable intercept wiring under `intercept/**` or `setup/**`.
 - Keep intercept helpers focused on request wiring and canned responses. Put request-body, header, call-count, prohibited-request, and navigation assertions in the spec.
 - A one-off intercept used by one scenario may remain in that spec when extracting it would hide the behaviour being asserted.
 - Narrow negative network assertions to the prohibited endpoint and method. Do not use a catch-all intercept that also captures Cypress, reporting, asset, or unrelated application traffic.
 - Reuse existing state, store, and API mocks where they represent the scenario accurately. Setup helpers should import the mocks, seed the requested state, and clone mutable values with `structuredClone(...)` so one test cannot contaminate another.
+- Build API and problem-detail fixtures from an implemented contract, an agreed specification, or a maintained application precedent. Include only fields the real boundary supplies; do not invent example URLs, identifiers, permissions, or response properties because an API is unavailable.
 
 ## Efficient form setup
 
@@ -97,6 +99,7 @@ it('AC1. should render the approved choices', { tags: buildTags('@JIRA-TEST-KEY:
 - Do not populate large forms with repeated `.type()` commands when typing is not the behaviour under test. Do not apply `{ delay: 0 }` as the default workaround; seed the component through its setup helper instead.
 - Retain `.type()` only when the scenario needs to prove text entry, input transformation, autocomplete behaviour, validation caused by typing, or a deliberate keyboard interaction.
 - Use direct control interactions such as `.check()` and `.select()` only when that interaction or its resulting state is relevant to the scenario.
+- Do not seed the same expected state on both sides of a save assertion if that would let the test pass without the submit handler. A submission test must make a relevant UI change or assert an observable submission result that distinguishes successful handling from the initial seed.
 
 ## Keyboard interaction and dynamic content
 
@@ -156,6 +159,11 @@ Run the repository's current Jira metadata policy for new or changed component t
 
 Before handoff:
 
+- inspect each changed spec for reusable inline objects, repeated validation or warning text, broad request matchers, and mutable fixtures that are seeded without cloning;
+- inspect every `.type()` call and be able to name the input, transformation, validation, or keyboard behaviour it proves; replace setup-only typing with seeded state;
+- search explicitly for `{ delay: 0 }` and remove it unless timing itself is the documented behaviour under test;
+- confirm nested feature specs reuse applicable parent `mocks/**` and `constants/**` definitions;
+- confirm every test owns its Jira tags and every selector uses an existing shared selector unless the selector is deliberately querying a generic semantic contract;
 - map each applicable Acceptance Criterion to its test evidence;
 - report the exact commands and results;
 - distinguish component evidence from unit, E2E, manual, and external verification;

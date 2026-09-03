@@ -67,53 +67,53 @@ const fullyPopulatedSaved: ICasesCreateCasefileRespondentDetails = {
 };
 
 const fullyPopulatedFormData: ICasesCreateCasefileRespondentDetailsFormData = {
-  respondent_title: 'Dr',
-  respondent_first_names: 'Test',
-  respondent_last_name: 'Respondent',
-  respondent_add_aliases: true,
-  respondent_aliases: [
+  create_casefile_respondent_details_title: 'Dr',
+  create_casefile_respondent_details_first_names: 'Test',
+  create_casefile_respondent_details_last_name: 'Respondent',
+  create_casefile_respondent_details_add_aliases: true,
+  create_casefile_respondent_details_aliases: [
     { firstNames: 'First alias', lastName: 'Respondent' },
     { firstNames: 'Second alias', lastName: 'Respondent' },
   ],
-  respondent_date_of_birth: '31/01/1990',
-  respondent_national_insurance_number: 'AB123456C',
-  respondent_other_personal_information: 'Complete test respondent details',
-  respondent_main_email_address: 'respondent@example.com',
-  respondent_other_email_address: 'other.respondent@example.com',
-  respondent_main_telephone_number: '020 7946 0000',
-  respondent_other_telephone_number: '020 7946 0001',
-  respondent_address_line_1: '1 Test Street',
-  respondent_address_line_2: 'Test Area',
-  respondent_address_line_3: 'Test Town',
-  respondent_address_line_4: 'Test County',
-  respondent_address_line_5: 'Test Region',
-  respondent_postal_or_zip_code: 'TE1 1ST',
-  respondent_country_id: 1,
-  respondent_send_correspondence_to_third_party: true,
-  respondent_third_party_name_or_organisation: 'Test Representative',
-  respondent_third_party_relationship: 'Solicitor',
-  respondent_third_party_reference: 'THIRD-123',
-  respondent_third_party_address_line_1: '2 Test Road',
-  respondent_third_party_address_line_2: 'Representative Area',
-  respondent_third_party_address_line_3: 'Representative Town',
-  respondent_third_party_address_line_4: 'Representative County',
-  respondent_third_party_address_line_5: 'Representative Region',
-  respondent_third_party_postal_or_zip_code: 'TE2 2ST',
-  respondent_third_party_country_id: 2,
-  respondent_add_employer_details: true,
-  respondent_employer_name: 'Test Employer',
-  respondent_employee_reference: 'EMP-123',
-  respondent_employer_email_address: 'employer@example.com',
-  respondent_employer_telephone_number: '020 7946 0002',
-  respondent_employer_address_line_1: '3 Test Avenue',
-  respondent_employer_address_line_2: 'Employer Area',
-  respondent_employer_address_line_3: 'Employer Town',
-  respondent_employer_address_line_4: 'Employer County',
-  respondent_employer_address_line_5: 'Employer Region',
-  respondent_employer_postal_or_zip_code: 'TE3 3ST',
-  respondent_employer_country_id: 3,
-  respondent_restricted_information: true,
-  respondent_restricted_information_reason: 'Test restriction reason',
+  create_casefile_respondent_details_date_of_birth: '31/01/1990',
+  create_casefile_respondent_details_national_insurance_number: 'AB123456C',
+  create_casefile_respondent_details_other_personal_information: 'Complete test respondent details',
+  create_casefile_respondent_details_main_email_address: 'respondent@example.com',
+  create_casefile_respondent_details_other_email_address: 'other.respondent@example.com',
+  create_casefile_respondent_details_main_telephone_number: '020 7946 0000',
+  create_casefile_respondent_details_other_telephone_number: '020 7946 0001',
+  create_casefile_respondent_details_address_line_1: '1 Test Street',
+  create_casefile_respondent_details_address_line_2: 'Test Area',
+  create_casefile_respondent_details_address_line_3: 'Test Town',
+  create_casefile_respondent_details_address_line_4: 'Test County',
+  create_casefile_respondent_details_address_line_5: 'Test Region',
+  create_casefile_respondent_details_postal_or_zip_code: 'TE1 1ST',
+  create_casefile_respondent_details_country_id: 1,
+  create_casefile_respondent_details_send_correspondence_to_third_party: true,
+  create_casefile_respondent_details_third_party_name_or_organisation: 'Test Representative',
+  create_casefile_respondent_details_third_party_relationship: 'Solicitor',
+  create_casefile_respondent_details_third_party_reference: 'THIRD-123',
+  create_casefile_respondent_details_third_party_address_line_1: '2 Test Road',
+  create_casefile_respondent_details_third_party_address_line_2: 'Representative Area',
+  create_casefile_respondent_details_third_party_address_line_3: 'Representative Town',
+  create_casefile_respondent_details_third_party_address_line_4: 'Representative County',
+  create_casefile_respondent_details_third_party_address_line_5: 'Representative Region',
+  create_casefile_respondent_details_third_party_postal_or_zip_code: 'TE2 2ST',
+  create_casefile_respondent_details_third_party_country_id: 2,
+  create_casefile_respondent_details_add_employer_details: true,
+  create_casefile_respondent_details_employer_name: 'Test Employer',
+  create_casefile_respondent_details_employee_reference: 'EMP-123',
+  create_casefile_respondent_details_employer_email_address: 'employer@example.com',
+  create_casefile_respondent_details_employer_telephone_number: '020 7946 0002',
+  create_casefile_respondent_details_employer_address_line_1: '3 Test Avenue',
+  create_casefile_respondent_details_employer_address_line_2: 'Employer Area',
+  create_casefile_respondent_details_employer_address_line_3: 'Employer Town',
+  create_casefile_respondent_details_employer_address_line_4: 'Employer County',
+  create_casefile_respondent_details_employer_address_line_5: 'Employer Region',
+  create_casefile_respondent_details_employer_postal_or_zip_code: 'TE3 3ST',
+  create_casefile_respondent_details_employer_country_id: 3,
+  create_casefile_respondent_details_restricted_information: true,
+  create_casefile_respondent_details_restricted_information_reason: 'Test restriction reason',
 };
 
 describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
@@ -126,62 +126,62 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
 
   it('maps an empty respondent snapshot to complete empty form data', () => {
     expect(mapper.toFormData(null)).toEqual({
-      respondent_title: null,
-      respondent_first_names: null,
-      respondent_last_name: null,
-      respondent_add_aliases: false,
-      respondent_aliases: [],
-      respondent_date_of_birth: null,
-      respondent_national_insurance_number: null,
-      respondent_other_personal_information: null,
-      respondent_main_email_address: null,
-      respondent_other_email_address: null,
-      respondent_main_telephone_number: null,
-      respondent_other_telephone_number: null,
-      respondent_address_line_1: null,
-      respondent_address_line_2: null,
-      respondent_address_line_3: null,
-      respondent_address_line_4: null,
-      respondent_address_line_5: null,
-      respondent_postal_or_zip_code: null,
-      respondent_country_id: null,
-      respondent_send_correspondence_to_third_party: false,
-      respondent_third_party_name_or_organisation: null,
-      respondent_third_party_relationship: null,
-      respondent_third_party_reference: null,
-      respondent_third_party_address_line_1: null,
-      respondent_third_party_address_line_2: null,
-      respondent_third_party_address_line_3: null,
-      respondent_third_party_address_line_4: null,
-      respondent_third_party_address_line_5: null,
-      respondent_third_party_postal_or_zip_code: null,
-      respondent_third_party_country_id: null,
-      respondent_add_employer_details: false,
-      respondent_employer_name: null,
-      respondent_employee_reference: null,
-      respondent_employer_email_address: null,
-      respondent_employer_telephone_number: null,
-      respondent_employer_address_line_1: null,
-      respondent_employer_address_line_2: null,
-      respondent_employer_address_line_3: null,
-      respondent_employer_address_line_4: null,
-      respondent_employer_address_line_5: null,
-      respondent_employer_postal_or_zip_code: null,
-      respondent_employer_country_id: null,
-      respondent_restricted_information: false,
-      respondent_restricted_information_reason: null,
+      create_casefile_respondent_details_title: null,
+      create_casefile_respondent_details_first_names: null,
+      create_casefile_respondent_details_last_name: null,
+      create_casefile_respondent_details_add_aliases: false,
+      create_casefile_respondent_details_aliases: [],
+      create_casefile_respondent_details_date_of_birth: null,
+      create_casefile_respondent_details_national_insurance_number: null,
+      create_casefile_respondent_details_other_personal_information: null,
+      create_casefile_respondent_details_main_email_address: null,
+      create_casefile_respondent_details_other_email_address: null,
+      create_casefile_respondent_details_main_telephone_number: null,
+      create_casefile_respondent_details_other_telephone_number: null,
+      create_casefile_respondent_details_address_line_1: null,
+      create_casefile_respondent_details_address_line_2: null,
+      create_casefile_respondent_details_address_line_3: null,
+      create_casefile_respondent_details_address_line_4: null,
+      create_casefile_respondent_details_address_line_5: null,
+      create_casefile_respondent_details_postal_or_zip_code: null,
+      create_casefile_respondent_details_country_id: null,
+      create_casefile_respondent_details_send_correspondence_to_third_party: false,
+      create_casefile_respondent_details_third_party_name_or_organisation: null,
+      create_casefile_respondent_details_third_party_relationship: null,
+      create_casefile_respondent_details_third_party_reference: null,
+      create_casefile_respondent_details_third_party_address_line_1: null,
+      create_casefile_respondent_details_third_party_address_line_2: null,
+      create_casefile_respondent_details_third_party_address_line_3: null,
+      create_casefile_respondent_details_third_party_address_line_4: null,
+      create_casefile_respondent_details_third_party_address_line_5: null,
+      create_casefile_respondent_details_third_party_postal_or_zip_code: null,
+      create_casefile_respondent_details_third_party_country_id: null,
+      create_casefile_respondent_details_add_employer_details: false,
+      create_casefile_respondent_details_employer_name: null,
+      create_casefile_respondent_details_employee_reference: null,
+      create_casefile_respondent_details_employer_email_address: null,
+      create_casefile_respondent_details_employer_telephone_number: null,
+      create_casefile_respondent_details_employer_address_line_1: null,
+      create_casefile_respondent_details_employer_address_line_2: null,
+      create_casefile_respondent_details_employer_address_line_3: null,
+      create_casefile_respondent_details_employer_address_line_4: null,
+      create_casefile_respondent_details_employer_address_line_5: null,
+      create_casefile_respondent_details_employer_postal_or_zip_code: null,
+      create_casefile_respondent_details_employer_country_id: null,
+      create_casefile_respondent_details_restricted_information: false,
+      create_casefile_respondent_details_restricted_information_reason: null,
     });
   });
 
   it('maps canonical saved data to display form data and branch flags', () => {
     expect(mapper.toFormData(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved)).toMatchObject({
-      respondent_first_names: 'Test',
-      respondent_add_aliases: true,
-      respondent_date_of_birth: '31/01/1990',
-      respondent_country_id: 1,
-      respondent_send_correspondence_to_third_party: false,
-      respondent_add_employer_details: false,
-      respondent_restricted_information: false,
+      create_casefile_respondent_details_first_names: 'Test',
+      create_casefile_respondent_details_add_aliases: true,
+      create_casefile_respondent_details_date_of_birth: '31/01/1990',
+      create_casefile_respondent_details_country_id: 1,
+      create_casefile_respondent_details_send_correspondence_to_third_party: false,
+      create_casefile_respondent_details_add_employer_details: false,
+      create_casefile_respondent_details_restricted_information: false,
     });
   });
 
@@ -193,6 +193,14 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
     expect(mapper.toRespondentDetails(mapper.toFormData(fullyPopulatedSaved))).toEqual(fullyPopulatedSaved);
   });
 
+  it('round-trips a respondent without a date of birth as null', () => {
+    const saved = { ...fullyPopulatedSaved, dateOfBirth: null };
+    const formData = mapper.toFormData(saved);
+
+    expect(formData.create_casefile_respondent_details_date_of_birth).toBeNull();
+    expect(mapper.toRespondentDetails(formData).dateOfBirth).toBeNull();
+  });
+
   it('maps valid display data to one canonical respondent snapshot', () => {
     expect(mapper.toRespondentDetails(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData)).toEqual(
       CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved,
@@ -202,21 +210,21 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
   it('maps selected third-party and employer branches', () => {
     const saved = mapper.toRespondentDetails({
       ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
-      respondent_send_correspondence_to_third_party: true,
-      respondent_third_party_name_or_organisation: '  Test representative  ',
-      respondent_third_party_relationship: '  Solicitor  ',
-      respondent_third_party_reference: '  REF-123  ',
-      respondent_third_party_address_line_1: '  2 Test Road  ',
-      respondent_third_party_address_line_2: '  Test Area  ',
-      respondent_third_party_country_id: 2,
-      respondent_add_employer_details: true,
-      respondent_employer_name: '  Test Employer  ',
-      respondent_employee_reference: '  EMP-123  ',
-      respondent_employer_email_address: '  employer@example.com  ',
-      respondent_employer_telephone_number: '  020 7946 0000  ',
-      respondent_employer_address_line_1: '  3 Test Street  ',
-      respondent_employer_address_line_2: '  Test District  ',
-      respondent_employer_country_id: 3,
+      create_casefile_respondent_details_send_correspondence_to_third_party: true,
+      create_casefile_respondent_details_third_party_name_or_organisation: '  Test representative  ',
+      create_casefile_respondent_details_third_party_relationship: '  Solicitor  ',
+      create_casefile_respondent_details_third_party_reference: '  REF-123  ',
+      create_casefile_respondent_details_third_party_address_line_1: '  2 Test Road  ',
+      create_casefile_respondent_details_third_party_address_line_2: '  Test Area  ',
+      create_casefile_respondent_details_third_party_country_id: 2,
+      create_casefile_respondent_details_add_employer_details: true,
+      create_casefile_respondent_details_employer_name: '  Test Employer  ',
+      create_casefile_respondent_details_employee_reference: '  EMP-123  ',
+      create_casefile_respondent_details_employer_email_address: '  employer@example.com  ',
+      create_casefile_respondent_details_employer_telephone_number: '  020 7946 0000  ',
+      create_casefile_respondent_details_employer_address_line_1: '  3 Test Street  ',
+      create_casefile_respondent_details_employer_address_line_2: '  Test District  ',
+      create_casefile_respondent_details_employer_country_id: 3,
     });
 
     expect(saved.thirdParty).toEqual({
@@ -254,12 +262,12 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
     expect(
       mapper.toRespondentDetails({
         ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
-        respondent_title: '   ',
-        respondent_other_email_address: '   ',
-        respondent_add_employer_details: false,
-        respondent_employer_name: 'Stale employer',
-        respondent_restricted_information: false,
-        respondent_restricted_information_reason: 'Stale reason',
+        create_casefile_respondent_details_title: '   ',
+        create_casefile_respondent_details_other_email_address: '   ',
+        create_casefile_respondent_details_add_employer_details: false,
+        create_casefile_respondent_details_employer_name: 'Stale employer',
+        create_casefile_respondent_details_restricted_information: false,
+        create_casefile_respondent_details_restricted_information_reason: 'Stale reason',
       }),
     ).toMatchObject({
       title: null,
@@ -272,8 +280,8 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
   it('omits unchecked stale aliases', () => {
     const saved = mapper.toRespondentDetails({
       ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
-      respondent_add_aliases: false,
-      respondent_aliases: [{ firstNames: 'Stale alias', lastName: 'Stale respondent' }],
+      create_casefile_respondent_details_add_aliases: false,
+      create_casefile_respondent_details_aliases: [{ firstNames: 'Stale alias', lastName: 'Stale respondent' }],
     });
 
     expect(saved.aliases).toEqual([]);
@@ -282,17 +290,17 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
   it('omits unchecked stale third-party data', () => {
     const saved = mapper.toRespondentDetails({
       ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
-      respondent_send_correspondence_to_third_party: false,
-      respondent_third_party_name_or_organisation: 'Stale representative',
-      respondent_third_party_relationship: 'Stale relationship',
-      respondent_third_party_reference: 'STALE-123',
-      respondent_third_party_address_line_1: 'Stale address',
-      respondent_third_party_address_line_2: 'Stale area',
-      respondent_third_party_address_line_3: 'Stale town',
-      respondent_third_party_address_line_4: 'Stale county',
-      respondent_third_party_address_line_5: 'Stale region',
-      respondent_third_party_postal_or_zip_code: 'ST1 1LE',
-      respondent_third_party_country_id: 2,
+      create_casefile_respondent_details_send_correspondence_to_third_party: false,
+      create_casefile_respondent_details_third_party_name_or_organisation: 'Stale representative',
+      create_casefile_respondent_details_third_party_relationship: 'Stale relationship',
+      create_casefile_respondent_details_third_party_reference: 'STALE-123',
+      create_casefile_respondent_details_third_party_address_line_1: 'Stale address',
+      create_casefile_respondent_details_third_party_address_line_2: 'Stale area',
+      create_casefile_respondent_details_third_party_address_line_3: 'Stale town',
+      create_casefile_respondent_details_third_party_address_line_4: 'Stale county',
+      create_casefile_respondent_details_third_party_address_line_5: 'Stale region',
+      create_casefile_respondent_details_third_party_postal_or_zip_code: 'ST1 1LE',
+      create_casefile_respondent_details_third_party_country_id: 2,
     });
 
     expect(saved.thirdParty).toBeNull();
@@ -302,8 +310,17 @@ describe('CasesCreateCasefileRespondentDetailsMapperService', () => {
     expect(() =>
       mapper.toRespondentDetails({
         ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
-        respondent_first_names: null,
+        create_casefile_respondent_details_first_names: null,
       }),
     ).toThrowError('Required respondent first names is missing');
+  });
+
+  it('rejects an unexpectedly missing required respondent country', () => {
+    expect(() =>
+      mapper.toRespondentDetails({
+        ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+        create_casefile_respondent_details_country_id: null,
+      }),
+    ).toThrowError('Required respondent country is missing');
   });
 });

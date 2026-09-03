@@ -105,7 +105,7 @@ const hasValidIbanChecksum = (value: string): boolean => {
   let remainder = 0;
 
   for (const character of rearrangedValue) {
-    const numericCharacter = character >= '0' && character <= '9' ? character : String(character.charCodeAt(0) - 55);
+    const numericCharacter = character >= '0' && character <= '9' ? character : String(character.codePointAt(0)! - 55);
 
     for (const digit of numericCharacter) {
       remainder = (remainder * 10 + Number(digit)) % 97;

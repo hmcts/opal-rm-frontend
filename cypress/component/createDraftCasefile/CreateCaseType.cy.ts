@@ -1,5 +1,6 @@
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
+import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/constants/cases-create-casefile-case-type-field-names.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { DASHBOARD_ROUTING_PATHS } from 'src/app/pages/dashboard/constants/dashboard-routing-paths.constant';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
@@ -22,7 +23,49 @@ const assertStoredSelection = (
   });
 };
 
+const assertCanonicalIdentifierContract = (
+  prefix: string,
+  expectedControlNames: readonly string[],
+  submitSelector: string,
+  errorLinksSelector: string,
+): void => {
+  cy.get('form input, form select, form textarea').then(($controls) => {
+    const controls = [...$controls] as HTMLElement[];
+    const ids = controls.map((control) => control.id);
+    const names = controls.map((control) => control.getAttribute('name') ?? '');
+
+    expect(ids.every((id) => id.startsWith(prefix))).to.equal(true);
+    expect(names.every((name) => name.startsWith(prefix))).to.equal(true);
+    expect(new Set(ids).size).to.equal(ids.length);
+    expect(expectedControlNames.every((name) => names.includes(name))).to.equal(true);
+  });
+  cy.get(submitSelector).click();
+  cy.get(errorLinksSelector).each(($link) => {
+    cy.wrap($link).click();
+    cy.focused().should(($focused) => {
+      const targetId = $focused.attr('id') ?? '';
+      expect(targetId.startsWith(prefix)).to.equal(true);
+      expect(Cypress.$(`#${targetId}`)).to.have.length(1);
+    });
+  });
+};
+
 describe('Create Casefile Case Type', () => {
+  it(
+    'AC1, AC2. should use canonical unique control identifiers with exact error targets',
+    { tags: buildTags() },
+    () => {
+      setupCreateCasefileCaseType();
+
+      assertCanonicalIdentifierContract(
+        'create_casefile_case_type_',
+        Object.values(CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES),
+        Page.continueButton,
+        Page.errorSummaryLinks,
+      );
+    },
+  );
+
   it('AC1. should render the exact case type content with no default values', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType();
 
@@ -54,7 +97,11 @@ describe('Create Casefile Case Type', () => {
     cy.get(`${Page.caseTypeRadios}:checked`).should('not.exist');
     cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN))
       .should('have.attr', 'aria-controls', 'applicantTypeConditional')
-      .and('have.attr', 'aria-describedby', 'caseType-remo-in-description')
+      .and(
+        'have.attr',
+        'aria-describedby',
+        `${CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.caseType}-remo-in-description`,
+      )
       .and('not.have.attr', 'aria-expanded');
     cy.get(Page.remoInDescription)
       .invoke('text')

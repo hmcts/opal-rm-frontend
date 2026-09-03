@@ -1,17 +1,17 @@
 import type { CasesCreateCasefileApplicantBankDetails } from '../types/cases-create-casefile-applicant-bank-details.type';
-import type { ICasesCreateCasefileApplicantAlias } from './cases-create-casefile-applicant-alias.interface';
-import type { ICasesCreateCasefileApplicantContactDetails } from './cases-create-casefile-applicant-contact-details.interface';
-import type { ICasesCreateCasefileApplicantRestrictedInformation } from './cases-create-casefile-applicant-restricted-information.interface';
-import type { ICasesCreateCasefileApplicantThirdParty } from './cases-create-casefile-applicant-third-party.interface';
+import type { ICasesCreateCasefilePartyAlias } from './cases-create-casefile-party-alias.interface';
+import type { ICasesCreateCasefilePartyContactDetails } from './cases-create-casefile-party-contact-details.interface';
+import type { ICasesCreateCasefilePartyRestrictedInformation } from './cases-create-casefile-party-restricted-information.interface';
+import type { ICasesCreateCasefilePartyThirdParty } from './cases-create-casefile-party-third-party.interface';
 
 export interface ICasesCreateCasefileApplicantIndividual {
   title: string | null;
   firstNames: string;
   lastName: string;
-  aliases: ICasesCreateCasefileApplicantAlias[];
+  aliases: ICasesCreateCasefilePartyAlias[];
   dateOfBirth: string | null;
-  contactDetails: ICasesCreateCasefileApplicantContactDetails;
-  thirdParty: ICasesCreateCasefileApplicantThirdParty | null;
+  contactDetails: ICasesCreateCasefilePartyContactDetails;
+  thirdParty: ICasesCreateCasefilePartyThirdParty | null;
   bankDetails: CasesCreateCasefileApplicantBankDetails;
-  restrictedInformation: ICasesCreateCasefileApplicantRestrictedInformation;
+  restrictedInformation: ICasesCreateCasefilePartyRestrictedInformation;
 }

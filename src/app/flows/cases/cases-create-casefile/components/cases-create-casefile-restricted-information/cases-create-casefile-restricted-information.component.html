@@ -1,0 +1,26 @@
+<h2 class="govuk-heading-m">Restricted information</h2>
+<opal-lib-govuk-checkboxes [fieldSetId]="checkboxFieldsetId" legendText="">
+  <div
+    opal-lib-govuk-checkboxes-item
+    [labelText]="checkboxLabel"
+    [inputId]="checkboxFieldName"
+    [inputName]="checkboxFieldName"
+    [ariaControls]="conditionalId + '-conditional'"
+    [control]="form.get(checkboxFieldName)"
+  ></div>
+  @if (form.get(checkboxFieldName)?.value === true) {
+    <div opal-lib-govuk-checkboxes-conditional [conditionalId]="conditionalId">
+      <opal-lib-govuk-text-area
+        labelText="Reason"
+        labelClasses="govuk-label--s"
+        [inputId]="reasonFieldName"
+        [inputName]="reasonFieldName"
+        [rows]="5"
+        [characterCountEnabled]="true"
+        [maxCharacterLimit]="250"
+        [control]="form.get(reasonFieldName)"
+        [errors]="formControlErrorMessages[reasonFieldName]"
+      />
+    </div>
+  }
+</opal-lib-govuk-checkboxes>

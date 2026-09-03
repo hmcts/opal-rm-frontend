@@ -1,15 +1,5 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  OnInit,
-  Output,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AbstractFormAliasBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-alias-base';
 import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
 import { GovukButtonComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-button';
@@ -30,7 +20,7 @@ import { dateOfBirthValidator } from '@hmcts/opal-frontend-common/validators/dat
 import { optionalMaxLengthValidator } from '@hmcts/opal-frontend-common/validators/optional-max-length';
 import { optionalValidDateValidator } from '@hmcts/opal-frontend-common/validators/optional-valid-date';
 import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern-validator';
-import { Subject, takeUntil } from 'rxjs';
+import { CasesCreateCasefilePartyAliasConditionalFormComponent } from '../../components/abstract/cases-create-casefile-party-alias-conditional-form/cases-create-casefile-party-alias-conditional-form.component';
 import { CasesCreateCasefileAddressComponent } from '../../components/cases-create-casefile-address/cases-create-casefile-address.component';
 import type { ICasesCreateCasefileAddressFieldNames } from '../../components/cases-create-casefile-address/interfaces/cases-create-casefile-address-field-names.interface';
 import { CasesCreateCasefileContactDetailsComponent } from '../../components/cases-create-casefile-contact-details/cases-create-casefile-contact-details.component';
@@ -39,7 +29,6 @@ import { CasesCreateCasefileRestrictedInformationComponent } from '../../compone
 import { CasesCreateCasefileThirdPartyComponent } from '../../components/cases-create-casefile-third-party/cases-create-casefile-third-party.component';
 import type { ICasesCreateCasefileThirdPartyFieldNames } from '../../components/cases-create-casefile-third-party/interfaces/cases-create-casefile-third-party-field-names.interface';
 import type { ICasesCreateCasefilePartyAlias } from '../../interfaces/cases-create-casefile-party-alias.interface';
-import { updateCasesCreateCasefileConditionalControls } from '../../utils/cases-create-casefile-conditional-controls';
 import {
   createCasesCreateCasefileAddressControls,
   createCasesCreateCasefileContactControls,
@@ -116,11 +105,13 @@ type IRespondentDetailsRawFormData = Omit<
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileRespondentDetailsFormComponent
-  extends AbstractFormAliasBaseComponent
-  implements OnInit, OnDestroy
+  extends CasesCreateCasefilePartyAliasConditionalFormComponent<
+    keyof ICasesCreateCasefileRespondentDetailsFormData,
+    IRespondentAliasFormRow
+  >
+  implements OnInit
 {
-  private readonly conditionalBranchesDestroyed = new Subject<void>();
-  private readonly conditionalBranches = [
+  protected override readonly conditionalBranches = [
     {
       checkbox: 'create_casefile_respondent_details_send_correspondence_to_third_party',
       requiredText: [
@@ -147,6 +138,7 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
       controls: ['create_casefile_respondent_details_restricted_information_reason'],
     },
   ] as const;
+  protected override readonly requiredTextValidator = casesCreateCasefileRespondentDetailsTrimRequiredValidator;
 
   protected override fieldErrors: ICasesCreateCasefileRespondentDetailsFieldErrors =
     CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_ERRORS;
@@ -346,80 +338,6 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     }));
   }
 
-  private mapIndexedRowsToAliases(rows: IRespondentAliasFormRow[]): ICasesCreateCasefilePartyAlias[] {
-    return rows.map((row, index) => ({
-      firstNames: row[`create_casefile_respondent_details_alias_first_names_${index}`]!,
-      lastName: row[`create_casefile_respondent_details_alias_last_name_${index}`]!,
-    }));
-  }
-
-  private normalizeThirdPartyCountryId(value: string | number | null): number | null {
-    if (value === null || value === '') {
-      return null;
-    }
-    return Number(value);
-  }
-
-  private clearConditionalBranchErrors(controlNames: readonly string[]): void {
-    for (const controlName of controlNames) {
-      this.formControlErrorMessages[controlName] = null;
-    }
-    this.clearErrorEntries((fieldId) => controlNames.includes(fieldId));
-  }
-
-  private clearErrorEntries(matches: (fieldId: string) => boolean): void {
-    this.formErrorSummaryMessage = this.formErrorSummaryMessage.filter((error) => !matches(error.fieldId));
-    this.formErrors = (this.formErrors ?? []).filter((error) => !matches(error.fieldId));
-  }
-
-  private clearAliasErrors(controlNames?: readonly string[]): void {
-    const matches = controlNames
-      ? (fieldId: string) => controlNames.includes(fieldId)
-      : (fieldId: string) => this.aliasFields.some((field) => fieldId.startsWith(`${field}_`));
-
-    this.clearErrorEntries(matches);
-  }
-
-  private setupAliasErrorCleanupListener(): void {
-    this.form.controls['create_casefile_respondent_details_add_aliases'].valueChanges
-      .pipe(takeUntil(this.conditionalBranchesDestroyed))
-      .subscribe((selected) => {
-        if (selected !== true) {
-          this.clearAliasErrors();
-        }
-      });
-  }
-
-  private updateConditionalBranch(branch: (typeof this.conditionalBranches)[number], selected: boolean): void {
-    updateCasesCreateCasefileConditionalControls(
-      {
-        controls: branch.controls.map((controlName) => this.form.controls[controlName]),
-        requiredTextControls: new Set(branch.requiredText.map((controlName) => this.form.controls[controlName])),
-        requiredCountryControls: new Set(branch.requiredCountry.map((controlName) => this.form.controls[controlName])),
-        requiredTextValidator: casesCreateCasefileRespondentDetailsTrimRequiredValidator,
-      },
-      selected,
-    );
-
-    if (!selected) {
-      this.clearConditionalBranchErrors(branch.controls);
-    }
-  }
-
-  private setupConditionalBranchListeners(): void {
-    for (const branch of this.conditionalBranches) {
-      this.form.controls[branch.checkbox].valueChanges
-        .pipe(takeUntil(this.conditionalBranchesDestroyed))
-        .subscribe((selected) => this.updateConditionalBranch(branch, selected === true));
-    }
-  }
-
-  private applyInitialConditionalBranchState(): void {
-    for (const branch of this.conditionalBranches) {
-      this.updateConditionalBranch(branch, this.form.controls[branch.checkbox].value === true);
-    }
-  }
-
   protected override rePopulateForm(state: ICasesCreateCasefileRespondentDetailsFormData): void {
     super.rePopulateForm({
       ...state,
@@ -427,26 +345,6 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
         state.create_casefile_respondent_details_aliases,
       ),
     });
-  }
-
-  public override addAlias(index: number, formArrayName: string): void {
-    if (this.aliasControls.length < 5) {
-      this.form.markAsDirty();
-      super.addAlias(index, formArrayName);
-    }
-  }
-
-  public override removeAlias(index: number, formArrayName: string, event?: Event): void {
-    const shouldFocusRemainingAlias = this.aliasControls.length === 2;
-    const removedControlNames = this.aliasFields
-      .map((field) => this.aliasControls[index]?.[field]?.controlName)
-      .filter((controlName): controlName is string => controlName !== undefined);
-    this.form.markAsDirty();
-    super.removeAlias(index, formArrayName, event);
-    this.clearAliasErrors(removedControlNames);
-    if (shouldFocusRemainingAlias) {
-      this.focusFirstAliasField();
-    }
   }
 
   public override handleFormSubmit(event: SubmitEvent): void {
@@ -464,10 +362,10 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     this.formSubmit.emit({
       formData: {
         ...rawValue,
-        create_casefile_respondent_details_aliases: this.mapIndexedRowsToAliases(
+        create_casefile_respondent_details_aliases: this.mapAliases(
           rawValue.create_casefile_respondent_details_aliases,
         ),
-        create_casefile_respondent_details_third_party_country_id: this.normalizeThirdPartyCountryId(
+        create_casefile_respondent_details_third_party_country_id: this.normaliseCountryId(
           rawValue.create_casefile_respondent_details_third_party_country_id,
         ),
       },
@@ -488,16 +386,9 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
       'create_casefile_respondent_details_add_aliases',
       'create_casefile_respondent_details_aliases',
     );
-    this.setupAliasErrorCleanupListener();
-    this.setupConditionalBranchListeners();
-    this.applyInitialConditionalBranchState();
+    this.initialisePartyAliasConditionalBehaviour();
+    this.applyInitialConditionalBranches();
     this.yesterday = this.dateService.getPreviousDate({ days: 1 });
     super.ngOnInit();
-  }
-
-  public override ngOnDestroy(): void {
-    this.conditionalBranchesDestroyed.next();
-    this.conditionalBranchesDestroyed.complete();
-    super.ngOnDestroy();
   }
 }

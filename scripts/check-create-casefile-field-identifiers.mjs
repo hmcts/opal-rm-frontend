@@ -1,97 +1,218 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const scriptRepositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const rootArgumentIndex = process.argv.indexOf('--root');
+const repositoryRoot = rootArgumentIndex === -1 ? scriptRepositoryRoot : resolve(process.argv[rootArgumentIndex + 1]);
 const createCasefileRoot = resolve(repositoryRoot, 'src/app/flows/cases/cases-create-casefile');
 const canonicalSuffix = /^[a-z0-9_]+(?:-[a-z0-9_-]+)?$/;
 const pageDefinitions = [
   {
     directory: 'cases-create-casefile-case-type',
     prefix: 'create_casefile_case_type_',
+    constantName: 'CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES',
     fieldNamesFile: 'cases-create-casefile-case-type/constants/cases-create-casefile-case-type-field-names.constant.ts',
   },
   {
     directory: 'cases-create-casefile-respondent-details',
     prefix: 'create_casefile_respondent_details_',
+    constantName: 'CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES',
     fieldNamesFile:
       'cases-create-casefile-respondent-details/constants/cases-create-casefile-respondent-details-field-names.constant.ts',
   },
   {
     directory: 'cases-create-casefile-applicant-individual',
     prefix: 'create_casefile_applicant_individual_',
+    constantName: 'CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_NAMES',
     fieldNamesFile:
       'cases-create-casefile-applicant-individual/constants/cases-create-casefile-applicant-individual-field-names.constant.ts',
   },
   {
     directory: 'cases-create-casefile-applicant-organisation',
     prefix: 'create_casefile_applicant_organisation_',
+    constantName: 'CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_NAMES',
     fieldNamesFile:
       'cases-create-casefile-applicant-organisation/constants/cases-create-casefile-applicant-organisation-field-names.constant.ts',
   },
   {
     directory: 'cases-create-casefile-interest-indexation',
     prefix: 'create_casefile_interest_indexation_',
+    constantName: 'CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES',
     fieldNamesFile:
       'cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant.ts',
   },
 ];
 
-// These identifiers describe page structure or actions rather than form fields.
-const structuralIdentifiers = new Set([
-  'addApplicantAlias',
-  'addRespondentAlias',
-  'additionalInformation',
-  'applicantAliasesConditional',
-  'applicantItem',
-  'applicantNonUkBankConditional',
-  'applicantRestrictedInformationConditional',
-  'applicantStatus',
-  'applicantStatusTag',
-  'applicantThirdPartyConditional',
-  'applicantType',
-  'applicantTypeConditional',
-  'applicantUkBankConditional',
-  'cancelApplicantDetails',
-  'cancelCaseCreation',
-  'cancelCaseType',
-  'cancelInterestAndIndexation',
-  'cancelRespondentDetails',
-  'caseType',
-  'caseDetails',
-  'caseDetailsApplicantType',
-  'caseDetailsCaseType',
-  'centralAuthorityItem',
-  'centralAuthorityStatus',
-  'centralAuthorityStatusTag',
-  'checkCaseBlockingGuidance',
-  'checkCaseButton',
-  'commentsAndNotesItem',
-  'commentsAndNotesStatus',
-  'commentsAndNotesStatusTag',
-  'continue',
-  'interestAndIndexationItem',
-  'interestAndIndexationStatus',
-  'interestAndIndexationStatusTag',
-  'managingPaymentsItem',
-  'managingPaymentsStatus',
-  'managingPaymentsStatusTag',
-  'order',
-  'orderDetailsItem',
-  'orderDetailsStatus',
-  'orderDetailsStatusTag',
-  'orderTermsItem',
-  'orderTermsStatus',
-  'orderTermsStatusTag',
-  'partyDetails',
-  'respondentAliasesConditional',
-  'respondentEmployerConditional',
-  'respondentItem',
-  'respondentRestrictedInformationConditional',
-  'respondentStatus',
-  'respondentStatusTag',
-  'respondentThirdPartyConditional',
-  'returnToCaseDetails',
+const templatePaths = {
+  applicantIndividual:
+    'cases-create-casefile-applicant-individual/cases-create-casefile-applicant-individual-form/cases-create-casefile-applicant-individual-form.component.html',
+  applicantOrganisation:
+    'cases-create-casefile-applicant-organisation/cases-create-casefile-applicant-organisation-form/cases-create-casefile-applicant-organisation-form.component.html',
+  bankDetails: 'components/cases-create-casefile-bank-details/cases-create-casefile-bank-details.component.html',
+  caseType:
+    'cases-create-casefile-case-type/cases-create-casefile-case-type-form/cases-create-casefile-case-type-form.component.html',
+  interestIndexation:
+    'cases-create-casefile-interest-indexation/cases-create-casefile-interest-indexation-form/cases-create-casefile-interest-indexation-form.component.html',
+  respondentDetails:
+    'cases-create-casefile-respondent-details/cases-create-casefile-respondent-details-form/cases-create-casefile-respondent-details-form.component.html',
+  restrictedInformation:
+    'components/cases-create-casefile-restricted-information/cases-create-casefile-restricted-information.component.html',
+  taskList: 'cases-create-casefile-task-list/cases-create-casefile-task-list.component.html',
+  thirdParty: 'components/cases-create-casefile-third-party/cases-create-casefile-third-party.component.html',
+};
+
+const structuralIdentifierKey = (templatePath, tagName, attributeName, value) =>
+  [templatePath, tagName, attributeName, value].join('\u0000');
+
+const taskListItems = [
+  ['respondentItem', 'respondentStatus', 'respondentStatusTag'],
+  ['applicantItem', 'applicantStatus', 'applicantStatusTag'],
+  ['centralAuthorityItem', 'centralAuthorityStatus', 'centralAuthorityStatusTag'],
+  ['orderDetailsItem', 'orderDetailsStatus', 'orderDetailsStatusTag'],
+  ['orderTermsItem', 'orderTermsStatus', 'orderTermsStatusTag'],
+  ['interestAndIndexationItem', 'interestAndIndexationStatus', 'interestAndIndexationStatusTag'],
+  ['managingPaymentsItem', 'managingPaymentsStatus', 'managingPaymentsStatusTag'],
+  ['commentsAndNotesItem', 'commentsAndNotesStatus', 'commentsAndNotesStatusTag'],
+];
+
+// Structural exceptions are exact path/tag/attribute/value tuples. They are never valid as field names elsewhere.
+const structuralIdentifierAllowlist = new Set([
+  structuralIdentifierKey(templatePaths.caseType, 'div', '[id]', 'applicantTypeConditionalId'),
+  structuralIdentifierKey(templatePaths.caseType, 'button', 'id', 'continue'),
+  structuralIdentifierKey(templatePaths.caseType, 'span', 'id', 'cancelCaseType'),
+
+  structuralIdentifierKey(
+    templatePaths.respondentDetails,
+    'div[opal-lib-govuk-checkboxes-conditional]',
+    'conditionalId',
+    'respondentAliasesConditional',
+  ),
+  structuralIdentifierKey(templatePaths.respondentDetails, 'opal-lib-govuk-button', 'buttonId', 'addRespondentAlias'),
+  structuralIdentifierKey(
+    templatePaths.respondentDetails,
+    'app-cases-create-casefile-third-party',
+    'conditionalId',
+    'respondentThirdPartyConditional',
+  ),
+  structuralIdentifierKey(
+    templatePaths.respondentDetails,
+    'div[opal-lib-govuk-checkboxes-conditional]',
+    'conditionalId',
+    'respondentEmployerConditional',
+  ),
+  structuralIdentifierKey(
+    templatePaths.respondentDetails,
+    'app-cases-create-casefile-restricted-information',
+    'conditionalId',
+    'respondentRestrictedInformationConditional',
+  ),
+  structuralIdentifierKey(templatePaths.respondentDetails, 'button', 'id', 'returnToCaseDetails'),
+  structuralIdentifierKey(templatePaths.respondentDetails, 'span', 'id', 'cancelRespondentDetails'),
+
+  structuralIdentifierKey(
+    templatePaths.applicantIndividual,
+    'div[opal-lib-govuk-checkboxes-conditional]',
+    'conditionalId',
+    'applicantAliasesConditional',
+  ),
+  structuralIdentifierKey(templatePaths.applicantIndividual, 'opal-lib-govuk-button', 'buttonId', 'addApplicantAlias'),
+  structuralIdentifierKey(
+    templatePaths.applicantIndividual,
+    'app-cases-create-casefile-third-party',
+    'conditionalId',
+    'applicantThirdPartyConditional',
+  ),
+  structuralIdentifierKey(
+    templatePaths.applicantIndividual,
+    'app-cases-create-casefile-bank-details',
+    '[ukBankConditionalId]',
+    'ukBankConditionalId',
+  ),
+  structuralIdentifierKey(
+    templatePaths.applicantIndividual,
+    'app-cases-create-casefile-bank-details',
+    '[nonUkBankConditionalId]',
+    'nonUkBankConditionalId',
+  ),
+  structuralIdentifierKey(
+    templatePaths.applicantIndividual,
+    'app-cases-create-casefile-restricted-information',
+    'conditionalId',
+    'applicantRestrictedInformationConditional',
+  ),
+  structuralIdentifierKey(templatePaths.applicantIndividual, 'button', 'id', 'returnToCaseDetails'),
+  structuralIdentifierKey(templatePaths.applicantIndividual, 'span', 'id', 'cancelApplicantDetails'),
+
+  structuralIdentifierKey(
+    templatePaths.applicantOrganisation,
+    'app-cases-create-casefile-bank-details',
+    '[ukBankConditionalId]',
+    'ukBankConditionalId',
+  ),
+  structuralIdentifierKey(
+    templatePaths.applicantOrganisation,
+    'app-cases-create-casefile-bank-details',
+    '[nonUkBankConditionalId]',
+    'nonUkBankConditionalId',
+  ),
+  structuralIdentifierKey(templatePaths.applicantOrganisation, 'button', 'id', 'returnToCaseDetails'),
+  structuralIdentifierKey(
+    templatePaths.applicantOrganisation,
+    'opal-lib-govuk-cancel-link',
+    'id',
+    'cancelApplicantDetails',
+  ),
+
+  structuralIdentifierKey(templatePaths.interestIndexation, 'button', 'id', 'returnToCaseDetails'),
+  structuralIdentifierKey(templatePaths.interestIndexation, 'span', 'id', 'cancelInterestAndIndexation'),
+
+  structuralIdentifierKey(
+    templatePaths.thirdParty,
+    'div[opal-lib-govuk-checkboxes-conditional]',
+    '[conditionalId]',
+    'conditionalId',
+  ),
+  structuralIdentifierKey(
+    templatePaths.restrictedInformation,
+    'div[opal-lib-govuk-checkboxes-conditional]',
+    '[conditionalId]',
+    'conditionalId',
+  ),
+  structuralIdentifierKey(templatePaths.bankDetails, 'div', '[id]', 'ukBankConditionalId'),
+  structuralIdentifierKey(templatePaths.bankDetails, 'div', '[id]', 'nonUkBankConditionalId'),
+
+  structuralIdentifierKey(templatePaths.taskList, 'opal-lib-govuk-summary-list', 'summaryListId', 'caseDetails'),
+  structuralIdentifierKey(
+    templatePaths.taskList,
+    'div[opal-lib-govuk-summary-list-row]',
+    'summaryListId',
+    'caseDetails',
+  ),
+  structuralIdentifierKey(
+    templatePaths.taskList,
+    'div[opal-lib-govuk-summary-list-row]',
+    'summaryListRowId',
+    'caseType',
+  ),
+  structuralIdentifierKey(
+    templatePaths.taskList,
+    'div[opal-lib-govuk-summary-list-row]',
+    'summaryListRowId',
+    'applicantType',
+  ),
+  ...['partyDetails', 'order', 'additionalInformation'].map((value) =>
+    structuralIdentifierKey(templatePaths.taskList, 'opal-lib-govuk-task-list', 'taskListId', value),
+  ),
+  ...taskListItems.flatMap(([itemId, statusId, tagId]) => [
+    structuralIdentifierKey(templatePaths.taskList, 'opal-lib-govuk-task-list-item', 'taskListItemId', itemId),
+    structuralIdentifierKey(templatePaths.taskList, 'opal-lib-govuk-task-list-item', 'taskListStatusId', statusId),
+    structuralIdentifierKey(templatePaths.taskList, 'opal-lib-govuk-tag', 'tagId', tagId),
+  ]),
+  structuralIdentifierKey(templatePaths.taskList, 'opal-lib-govuk-button', 'buttonId', 'checkCaseButton'),
+  structuralIdentifierKey(templatePaths.taskList, 'p', 'id', 'checkCaseBlockingGuidance'),
+  structuralIdentifierKey(templatePaths.taskList, 'a', 'id', 'cancelCaseCreation'),
 ]);
 
 const fieldIdentifierAttributes = new Set([
@@ -136,7 +257,6 @@ const idAttributes = new Set([
   'taskListStatusId',
   'ukBankConditionalId',
 ]);
-const formElements = new Set(['button', 'input', 'select', 'textarea']);
 
 const lineNumberAt = (source, offset) => source.slice(0, offset).split('\n').length;
 
@@ -166,16 +286,6 @@ const isCanonicalExpression = (expression, acceptedPrefixes, fieldNames) => {
   return false;
 };
 
-const structuralIdentifierExpressions = new Set([
-  'applicantTypeConditionalId',
-  'conditionalId',
-  'nonUkBankConditionalId',
-  'ukBankConditionalId',
-]);
-
-const isStructuralExpression = (expression) =>
-  structuralIdentifierExpressions.has(expression.replace(/\s+/g, ' ').trim());
-
 const resolveIdExpression = (expression, fieldNames) => {
   const compactExpression = expression.replace(/\s+/g, ' ').trim();
   const literalMatch = compactExpression.match(/^(['"])(.*)\1$/);
@@ -191,6 +301,13 @@ const resolveIdExpression = (expression, fieldNames) => {
   }
 
   return `expression:${compactExpression}`;
+};
+
+const tagIdentityFor = (tagName, attributes) => {
+  for (const directive of ['opal-lib-govuk-checkboxes-conditional', 'opal-lib-govuk-summary-list-row']) {
+    if (new RegExp(`(?:^|\\s)${directive}(?:\\s|$)`).test(attributes)) return `${tagName}[${directive}]`;
+  }
+  return tagName;
 };
 
 const duplicateKeyFor = (attributeName, value, isBound, fieldNames, tagName, attributes) => {
@@ -228,32 +345,101 @@ const collectTemplates = async (directory) => {
   return files.sort();
 };
 
-const failures = [];
-const fieldNamesByDirectory = new Map();
-for (const definition of pageDefinitions) {
-  const fieldNamesPath = resolve(createCasefileRoot, definition.fieldNamesFile);
-  const source = await readFile(fieldNamesPath, 'utf8');
+const unwrapExpression = (expression) => {
+  let current = expression;
+  while (
+    ts.isAsExpression(current) ||
+    ts.isSatisfiesExpression(current) ||
+    ts.isParenthesizedExpression(current) ||
+    ts.isTypeAssertionExpression(current)
+  ) {
+    current = current.expression;
+  }
+  return current;
+};
+
+const memberLine = (sourceFile, member) =>
+  sourceFile.getLineAndCharacterOfPosition(member.getStart(sourceFile)).line + 1;
+
+const propertyNameFor = (name) => {
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name)) return name.text;
+  return undefined;
+};
+
+const stringValueFor = (initializer) => {
+  const expression = unwrapExpression(initializer);
+  if (ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) return expression.text;
+  return undefined;
+};
+
+const parseFieldNames = (source, fieldNamesPath, definition, failures) => {
+  const displayPath = relative(repositoryRoot, fieldNamesPath);
+  const sourceFile = ts.createSourceFile(fieldNamesPath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  for (const diagnostic of sourceFile.parseDiagnostics) {
+    const line = sourceFile.getLineAndCharacterOfPosition(diagnostic.start ?? 0).line + 1;
+    failures.push(`${displayPath}:${line}: invalid TypeScript in field-name constant`);
+  }
+
+  const declarations = sourceFile.statements
+    .filter(ts.isVariableStatement)
+    .flatMap((statement) => [...statement.declarationList.declarations])
+    .filter((declaration) => ts.isIdentifier(declaration.name) && declaration.name.text === definition.constantName);
+  if (declarations.length !== 1) {
+    failures.push(`${displayPath}: expected exactly one ${definition.constantName} declaration`);
+    return new Map();
+  }
+
+  const initializer = declarations[0].initializer && unwrapExpression(declarations[0].initializer);
+  if (initializer === undefined || !ts.isObjectLiteralExpression(initializer)) {
+    failures.push(`${displayPath}: ${definition.constantName} must be an object literal`);
+    return new Map();
+  }
+
   const fieldNames = new Map();
   const values = new Set();
-  const entryPattern = /^\s*([A-Za-z][A-Za-z0-9]*):\s*'([^']+)',?\s*$/gm;
-  let entryMatch;
+  for (const member of initializer.properties) {
+    const line = memberLine(sourceFile, member);
+    if (!ts.isPropertyAssignment(member)) {
+      failures.push(`${displayPath}:${line}: field-name member has an unsupported or unresolved value`);
+      continue;
+    }
 
-  while ((entryMatch = entryPattern.exec(source)) !== null) {
-    const [, key, value] = entryMatch;
-    const line = lineNumberAt(source, entryMatch.index);
+    const key = propertyNameFor(member.name);
+    if (key === undefined || !/^[A-Za-z][A-Za-z0-9]*$/.test(key)) {
+      failures.push(`${displayPath}:${line}: field-name member has an unsupported or unresolved key`);
+      continue;
+    }
+    const value = stringValueFor(member.initializer);
+    if (value === undefined) {
+      failures.push(`${displayPath}:${line}: ${key} has an unsupported or unresolved value`);
+      continue;
+    }
+    if (fieldNames.has(key)) {
+      failures.push(`${displayPath}:${line}: duplicate field-name key "${key}"`);
+      continue;
+    }
     if (!isCanonicalIdentifier(value, [definition.prefix])) {
-      failures.push(`${relative(repositoryRoot, fieldNamesPath)}:${line}: ${key} does not use ${definition.prefix}`);
+      failures.push(`${displayPath}:${line}: ${key} does not use ${definition.prefix}`);
     }
     if (values.has(value)) {
-      failures.push(`${relative(repositoryRoot, fieldNamesPath)}:${line}: duplicate field-name value "${value}"`);
+      failures.push(`${displayPath}:${line}: duplicate field-name value "${value}"`);
     }
     fieldNames.set(key, value);
     values.add(value);
   }
 
-  if (fieldNames.size === 0) {
-    failures.push(`${relative(repositoryRoot, fieldNamesPath)}: no field-name entries found`);
+  if (initializer.properties.length === 0) {
+    failures.push(`${displayPath}: no field-name entries found`);
   }
+  return fieldNames;
+};
+
+const failures = [];
+const fieldNamesByDirectory = new Map();
+for (const definition of pageDefinitions) {
+  const fieldNamesPath = resolve(createCasefileRoot, definition.fieldNamesFile);
+  const source = await readFile(fieldNamesPath, 'utf8');
+  const fieldNames = parseFieldNames(source, fieldNamesPath, definition, failures);
   fieldNamesByDirectory.set(definition.directory, fieldNames);
 }
 
@@ -288,6 +474,7 @@ const acceptedPrefixesFor = (templatePath) => {
 for (const templatePath of await collectTemplates(createCasefileRoot)) {
   const source = await readFile(templatePath, 'utf8');
   const displayPath = relative(repositoryRoot, templatePath);
+  const templatePathWithinCreateCasefile = relative(createCasefileRoot, templatePath);
   const pageDefinition = pageDefinitionFor(templatePath);
   const acceptedPrefixes = acceptedPrefixesFor(templatePath);
   const fieldNames = pageDefinition === undefined ? undefined : fieldNamesByDirectory.get(pageDefinition.directory);
@@ -298,6 +485,7 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
   while ((tagMatch = tagPattern.exec(source)) !== null) {
     const tagName = tagMatch[1].toLowerCase();
     const attributes = tagMatch[2];
+    const tagIdentity = tagIdentityFor(tagName, attributes);
     const attributesOffset = tagMatch.index + tagMatch[0].indexOf(attributes);
     const attributePattern =
       /(?:^|\s)(\[)?((?:attr\.)?(?:buttonId|checkboxFieldName|checkboxFieldsetId|conditionalId|fieldSetId|id|inputId|inputName|name|nonUkBankConditionalId|reasonFieldName|selectId|selectName|summaryListId|summaryListRowId|tagId|taskListId|taskListItemId|taskListStatusId|ukBankConditionalId))(\])?\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
@@ -308,28 +496,23 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
       if (!identifierAttributes.has(attributeName)) continue;
 
       const isBound = Boolean(attributeMatch[1] || attributeMatch[3] || attributeMatch[2].startsWith('attr.'));
-      if (
-        (attributeName === 'id' || attributeName === 'name') &&
-        !isBound &&
-        attributeName === 'name' &&
-        !formElements.has(tagName)
-      ) {
-        continue;
-      }
-
       const value = attributeMatch[4] ?? attributeMatch[5] ?? '';
       const line = lineNumberAt(source, attributesOffset + attributeMatch.index);
+      const rawAttributeName = isBound ? `[${attributeMatch[2]}]` : attributeMatch[2];
+      const structurallyAllowed = structuralIdentifierAllowlist.has(
+        structuralIdentifierKey(templatePathWithinCreateCasefile, tagIdentity, rawAttributeName, value),
+      );
       let valid;
       if (fieldIdentifierAttributes.has(attributeName)) {
         valid = isBound
           ? isCanonicalExpression(value, acceptedPrefixes, fieldNames)
           : isCanonicalIdentifier(value, acceptedPrefixes);
       } else if (structuralIdentifierAttributes.has(attributeName)) {
-        valid = isBound ? isStructuralExpression(value) : structuralIdentifiers.has(value);
+        valid = structurallyAllowed;
       } else {
         valid = isBound
-          ? isCanonicalExpression(value, acceptedPrefixes, fieldNames) || isStructuralExpression(value)
-          : isCanonicalIdentifier(value, acceptedPrefixes) || structuralIdentifiers.has(value);
+          ? isCanonicalExpression(value, acceptedPrefixes, fieldNames) || structurallyAllowed
+          : isCanonicalIdentifier(value, acceptedPrefixes) || structurallyAllowed;
       }
 
       if (!valid) {

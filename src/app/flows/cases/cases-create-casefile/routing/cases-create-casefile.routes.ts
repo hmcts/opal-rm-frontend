@@ -124,6 +124,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileManagingPaymentsComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.managingPayments },
     resolve: { title: TitleResolver },
   },

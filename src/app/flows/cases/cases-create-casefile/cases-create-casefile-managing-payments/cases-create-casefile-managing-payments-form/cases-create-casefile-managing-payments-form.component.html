@@ -1,0 +1,32 @@
+<h1 class="govuk-heading-l">Managing payments</h1>
+
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+
+<form (submit)="handleFormSubmit($event)">
+  <opal-lib-govuk-radio
+    [fieldSetId]="fieldNames.paymentArrangement"
+    legendText="Select payment arrangement"
+    legendClasses="govuk-fieldset__legend--m"
+    [errors]="formControlErrorMessages[fieldNames.paymentArrangement]"
+  >
+    @for (option of options; track option.key) {
+      <opal-lib-govuk-radios-item
+        [labelText]="option.label"
+        [inputId]="fieldNames.paymentArrangement + '-' + option.key"
+        [inputName]="fieldNames.paymentArrangement"
+        [inputValue]="option.value"
+        [inputValueHint]="option.hint"
+        [control]="form.controls[fieldNames.paymentArrangement]"
+      />
+    }
+  </opal-lib-govuk-radio>
+
+  <div class="govuk-button-group">
+    <button class="govuk-button govuk-!-margin-right-4" id="returnToCaseDetails" type="submit">
+      Return to case details
+    </button>
+    <span id="cancelManagingPayments">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

@@ -1,4 +1,8 @@
 <div class="govuk-grid-column-two-thirds">
-  <opal-lib-govuk-back-link (clickEvent)="handleBack()"></opal-lib-govuk-back-link>
-  <h1 class="govuk-heading-l">Managing payments</h1>
+  <app-cases-create-casefile-managing-payments-form
+    [initialFormData]="initialFormData"
+    (formSubmit)="handleFormSubmit($event)"
+    (unsavedChanges)="handleUnsavedChanges($event)"
+    (cancel)="handleCancel()"
+  />
 </div>

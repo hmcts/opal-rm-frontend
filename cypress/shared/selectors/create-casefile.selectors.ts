@@ -1,5 +1,6 @@
 import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/constants/cases-create-casefile-case-type-field-names.constant';
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant';
+import { CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-managing-payments/constants/cases-create-casefile-managing-payments-field-names.constant';
 
 export const CreateCasefileSelectors = {
   heading: 'h1',
@@ -84,6 +85,21 @@ export const CreateCasefileSelectors = {
     errorSummaryLinks: '.govuk-error-summary a',
     interestError: `#${CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.interestApplies}-error-message`,
     indexationError: `#${CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES.indexationType}-error-message`,
+  },
+  managingPayments: {
+    heading: 'h1',
+    paymentArrangementGroup: `#${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}`,
+    paymentArrangementLegend: `#${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement} legend`,
+    paymentArrangementRadios: `input[name="${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}"]`,
+    paymentArrangementLabels: `#${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement} .govuk-radios__label`,
+    paymentArrangementRadio: (value: string) =>
+      `input[name="${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}"][value="${value}"]`,
+    directHint: `#${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}-direct-item-hint`,
+    returnToCaseDetails: '#returnToCaseDetails',
+    cancelLink: '#cancelManagingPayments a',
+    errorSummary: '.govuk-error-summary',
+    errorSummaryLinks: '.govuk-error-summary a',
+    paymentArrangementError: `#${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}-error-message`,
   },
   respondentDetails: {
     heading: 'h1',

@@ -32,7 +32,11 @@ const testRoutes: Routes = [
 
 export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCasefileStore>;
 
-export const setupManagingPayments = (savedPaymentArrangement: CasesCreateCasefilePaymentArrangement | null = null) => {
+interface IManagingPaymentsSetup {
+  savedPaymentArrangement?: CasesCreateCasefilePaymentArrangement | null;
+}
+
+export const setupManagingPayments = ({ savedPaymentArrangement = null }: IManagingPaymentsSetup = {}) => {
   const store = new CasesCreateCasefileStore();
   store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
   store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);

@@ -5,6 +5,9 @@ import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-c
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { CasesCreateCasefilePaymentArrangement } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-payment-arrangement.type';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
+import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
+import { MANAGING_PAYMENTS_ERROR_MESSAGES } from './constants/managing-payments-errors.constant';
+import { SAVED_PAYMENT_ARRANGEMENT } from './mocks/managing-payments.mock';
 import {
   externalDestinationPath,
   setupManagingPayments,
@@ -23,9 +26,7 @@ const interestAndIndexationPath =
   CASES_CREATE_CASEFILE_ROUTING_PATHS.root +
   '/' +
   CASES_CREATE_CASEFILE_ROUTING_PATHS.children.interestAndIndexation;
-const UNSAVED_CHANGES_WARNING =
-  'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.';
-const SAVED_PAYMENT_ARRANGEMENT = CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.DIRECT;
+const DRAFT_CASEFILE_WRITE_URL = /\/draft-casefiles(?:[/?#]|$)/;
 
 const normalizeText = (text: string | null | undefined): string => text?.replace(/\s+/g, ' ').trim() ?? '';
 
@@ -69,7 +70,9 @@ describe('Create Casefile Managing payments', () => {
       ]);
     });
     cy.get(Page.managingPayments.returnToCaseDetails).click();
-    cy.get(Page.managingPayments.errorSummaryLinks).contains('Choose payment arrangement').click();
+    cy.get(Page.managingPayments.errorSummaryLinks)
+      .contains(MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement)
+      .click();
     cy.focused().should('have.id', `${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}-court`);
   });
 
@@ -91,7 +94,7 @@ describe('Create Casefile Managing payments', () => {
       ]);
     });
     assertNormalizedText(Page.managingPayments.directHint, 'HMCTS will not collect payments for this case');
-    cy.get(Page.managingPayments.paymentArrangementRadio('direct')).should(
+    cy.get(Page.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.DIRECT)).should(
       'have.attr',
       'aria-describedby',
       CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement + '-direct-item-hint',
@@ -108,7 +111,7 @@ describe('Create Casefile Managing payments', () => {
     CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.DIRECT,
   ] as const) {
     it(`AC1. should restore saved payment arrangement ${saved}`, { tags: buildTags() }, () => {
-      setupManagingPayments(saved);
+      setupManagingPayments({ savedPaymentArrangement: saved });
 
       cy.get(Page.managingPayments.paymentArrangementRadio(saved)).should('be.checked');
     });
@@ -116,16 +119,19 @@ describe('Create Casefile Managing payments', () => {
 
   it('AC2, EMAC1. should show the exact error, focus the summary and retain the route', { tags: buildTags() }, () => {
     const postRequestSpy = cy.spy().as('invalidDraftCasefilePost');
-    cy.intercept({ method: 'POST', url: '**/draft-casefiles*' }, postRequestSpy);
+    cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
     setupManagingPayments();
 
     cy.get(Page.managingPayments.returnToCaseDetails).click();
 
-    assertInlineError(Page.managingPayments.paymentArrangementError, 'Choose payment arrangement');
+    assertInlineError(
+      Page.managingPayments.paymentArrangementError,
+      MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement,
+    );
     cy.get(Page.managingPayments.errorSummary)
       .should('be.focused')
-      .and('contain.text', 'There is a problem')
-      .and('contain.text', 'Choose payment arrangement');
+      .and('contain.text', ERROR_SUMMARY_TITLE)
+      .and('contain.text', MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement);
     cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
       expect(store.paymentArrangement()).to.equal(null);
       expect(store.taskStatuses().managingPayments).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
@@ -138,9 +144,13 @@ describe('Create Casefile Managing payments', () => {
     setupManagingPayments();
     cy.get(Page.managingPayments.returnToCaseDetails).click();
 
-    cy.get(Page.managingPayments.errorSummaryLinks).contains('Choose payment arrangement').click();
+    cy.get(Page.managingPayments.errorSummaryLinks)
+      .contains(MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement)
+      .click();
 
-    cy.get(Page.managingPayments.paymentArrangementRadio('court')).should('be.focused');
+    cy.get(Page.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT)).should(
+      'be.focused',
+    );
   });
 
   for (const saved of [
@@ -149,7 +159,7 @@ describe('Create Casefile Managing payments', () => {
   ] as const) {
     it(`AC3. should save ${saved} locally and return to Case details`, { tags: buildTags() }, () => {
       const postRequestSpy = cy.spy().as('draftCasefilePost');
-      cy.intercept({ method: 'POST', url: '**/draft-casefiles*' }, postRequestSpy);
+      cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
       setupManagingPayments();
       choose(saved);
 
@@ -184,14 +194,16 @@ describe('Create Casefile Managing payments', () => {
     () => {
       const rejectCancelConfirm = cy.stub().as('rejectCancelConfirm').returns(false);
       cy.on('window:confirm', rejectCancelConfirm);
-      setupManagingPayments(SAVED_PAYMENT_ARRANGEMENT);
+      setupManagingPayments({ savedPaymentArrangement: SAVED_PAYMENT_ARRANGEMENT });
       choose(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT);
 
       cy.get(Page.managingPayments.cancelLink).click();
 
       cy.get('@rejectCancelConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
       assertRouterPath(managingPaymentsPath);
-      cy.get(Page.managingPayments.paymentArrangementRadio('court')).should('be.checked');
+      cy.get(Page.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT)).should(
+        'be.checked',
+      );
       cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
         expect(store.paymentArrangement()).to.equal(SAVED_PAYMENT_ARRANGEMENT);
         expect(store.unsavedChanges()).to.equal(true);
@@ -202,7 +214,7 @@ describe('Create Casefile Managing payments', () => {
   it('AC3, RGAC3. should leave on dirty Cancel and preserve only the last saved state', { tags: buildTags() }, () => {
     const acceptCancelConfirm = cy.stub().as('acceptCancelConfirm').returns(true);
     cy.on('window:confirm', acceptCancelConfirm);
-    setupManagingPayments(SAVED_PAYMENT_ARRANGEMENT);
+    setupManagingPayments({ savedPaymentArrangement: SAVED_PAYMENT_ARRANGEMENT });
     choose(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT);
 
     cy.get(Page.managingPayments.cancelLink).click();
@@ -222,22 +234,24 @@ describe('Create Casefile Managing payments', () => {
     () => {
       const rejectNavigationConfirm = cy.stub().as('rejectNavigationConfirm').returns(false);
       cy.on('window:confirm', rejectNavigationConfirm);
-      setupManagingPayments();
+      setupManagingPayments({ savedPaymentArrangement: SAVED_PAYMENT_ARRANGEMENT });
       choose(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT);
 
       cy.get('@angularRouter').then((router: Router) => router.navigateByUrl(interestAndIndexationPath));
 
       cy.get('@rejectNavigationConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
       assertRouterPath(managingPaymentsPath);
-      cy.get(Page.managingPayments.paymentArrangementRadio('court')).should('be.checked');
+      cy.get(Page.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT)).should(
+        'be.checked',
+      );
     },
   );
 
   it('AC3, RGAC3. should warn once and complete external navigation after accepting', { tags: buildTags() }, () => {
     const acceptExternalNavigationConfirm = cy.stub().as('acceptExternalNavigationConfirm').returns(true);
     cy.on('window:confirm', acceptExternalNavigationConfirm);
-    setupManagingPayments();
-    choose(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.DIRECT);
+    setupManagingPayments({ savedPaymentArrangement: SAVED_PAYMENT_ARRANGEMENT });
+    choose(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT);
 
     cy.get('@angularRouter').then((router: Router) => router.navigateByUrl(externalDestinationPath));
 
@@ -248,10 +262,12 @@ describe('Create Casefile Managing payments', () => {
   it('AC4. should preserve native radio keyboard behavior and logical action order', { tags: buildTags() }, () => {
     setupManagingPayments();
 
-    cy.get(Page.managingPayments.paymentArrangementRadio('court')).focus();
+    cy.get(Page.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT)).focus();
     cy.press(Cypress.Keyboard.Keys.SPACE);
     cy.press(Cypress.Keyboard.Keys.DOWN);
-    cy.get(Page.managingPayments.paymentArrangementRadio('direct')).should('be.checked').and('be.focused');
+    cy.get(Page.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.DIRECT))
+      .should('be.checked')
+      .and('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(Page.managingPayments.returnToCaseDetails).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
@@ -259,8 +275,7 @@ describe('Create Casefile Managing payments', () => {
   });
 
   it('AC4. should have no detected Axe violations in a representative valid state', { tags: buildTags() }, () => {
-    setupManagingPayments();
-    choose(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT);
+    setupManagingPayments({ savedPaymentArrangement: SAVED_PAYMENT_ARRANGEMENT });
 
     cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
     cy.checkA11y();
@@ -280,7 +295,7 @@ describe('Create Casefile Managing payments', () => {
       setupManagingPayments();
       if (width === 320) {
         cy.get(Page.managingPayments.returnToCaseDetails).click();
-        cy.get(Page.managingPayments.errorSummary).should('contain.text', 'There is a problem');
+        cy.get(Page.managingPayments.errorSummary).should('contain.text', ERROR_SUMMARY_TITLE);
       }
 
       cy.document().then((document) => {

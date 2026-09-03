@@ -323,7 +323,7 @@ describe('CasesCreateCasefileTaskListComponent', () => {
       const statusId = link.getAttribute('aria-describedby');
       expect(link.getAttribute('href')).toMatch(/^\/cases\/create-casefile\//);
       expect(statusId).not.toBeNull();
-      expect(getRoot(fixture).querySelectorAll(`#${statusId}`).length).toBe(1);
+      expect(getRoot(fixture).querySelectorAll(`#${statusId}`)).toHaveLength(1);
     });
   });
 

@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router';
-import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-casefile-routing-titles.constant';
 import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
 import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
+import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
@@ -20,7 +20,7 @@ export const routing: Routes = [
       import('../cases-create-casefile-case-type/cases-create-casefile-case-type.component').then(
         (component) => component.CasesCreateCasefileCaseTypeComponent,
       ),
-    canDeactivate: [canDeactivateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.caseType },
     resolve: { title: TitleResolver },
   },
@@ -41,7 +41,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileRespondentDetailsComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
-    canDeactivate: [canDeactivateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.respondentDetails },
     resolve: {
       title: TitleResolver,
@@ -55,7 +55,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileApplicantIndividualComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileApplicantIndividualGuard],
-    canDeactivate: [canDeactivateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.applicantIndividual },
     resolve: {
       title: TitleResolver,
@@ -69,7 +69,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileApplicantOrganisationComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileApplicantOrganisationGuard],
-    canDeactivate: [canDeactivateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.applicantOrganisation },
     resolve: {
       title: TitleResolver,
@@ -113,6 +113,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileInterestIndexationComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.interestAndIndexation },
     resolve: { title: TitleResolver },
   },
@@ -123,6 +124,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileManagingPaymentsComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.managingPayments },
     resolve: { title: TitleResolver },
   },

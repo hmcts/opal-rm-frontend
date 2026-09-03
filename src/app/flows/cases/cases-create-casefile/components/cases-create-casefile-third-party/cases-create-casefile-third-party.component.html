@@ -1,0 +1,50 @@
+<h2 class="govuk-heading-m">Third party details</h2>
+<opal-lib-govuk-checkboxes [fieldSetId]="checkboxFieldsetId" legendText="">
+  <div
+    opal-lib-govuk-checkboxes-item
+    labelText="Send correspondence to a third party"
+    [inputId]="checkboxFieldName"
+    [inputName]="checkboxFieldName"
+    [ariaControls]="conditionalId + '-conditional'"
+    [control]="form.get(checkboxFieldName)"
+  ></div>
+  @if (form.get(checkboxFieldName)?.value === true) {
+    <div opal-lib-govuk-checkboxes-conditional [conditionalId]="conditionalId">
+      <opal-lib-govuk-text-input
+        labelText="Name or organisation"
+        [inputId]="fieldNames.nameOrOrganisation"
+        [inputName]="fieldNames.nameOrOrganisation"
+        [control]="form.get(fieldNames.nameOrOrganisation)"
+        [errors]="formControlErrorMessages[fieldNames.nameOrOrganisation]"
+      />
+      <opal-lib-govuk-text-input
+        [labelText]="relationshipLabel"
+        [inputId]="fieldNames.relationship"
+        [inputName]="fieldNames.relationship"
+        [control]="form.get(fieldNames.relationship)"
+        [errors]="formControlErrorMessages[fieldNames.relationship]"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Reference"
+        [inputId]="fieldNames.reference"
+        [inputName]="fieldNames.reference"
+        [control]="form.get(fieldNames.reference)"
+        [errors]="formControlErrorMessages[fieldNames.reference]"
+      />
+      <app-cases-create-casefile-address-text-fields
+        [form]="form"
+        [formControlErrorMessages]="formControlErrorMessages"
+        [fieldNames]="fieldNames"
+      />
+      <opal-lib-govuk-select
+        labelText="Country"
+        labelClasses="govuk-label--s"
+        [selectId]="fieldNames.countryId"
+        [selectName]="fieldNames.countryId"
+        [options]="countrySelectOptions"
+        [control]="form.get(fieldNames.countryId)!"
+        [errors]="formControlErrorMessages[fieldNames.countryId]"
+      />
+    </div>
+  }
+</opal-lib-govuk-checkboxes>

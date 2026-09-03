@@ -1,0 +1,20 @@
+<fieldset class="govuk-fieldset">
+  <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+    <h2 class="govuk-heading-m govuk-!-margin-0">Address</h2>
+  </legend>
+  <app-cases-create-casefile-address-text-fields
+    [form]="form"
+    [formControlErrorMessages]="formControlErrorMessages"
+    [fieldNames]="fieldNames"
+  />
+  <opal-lib-alphagov-accessible-autocomplete
+    labelText="Country"
+    labelClasses="govuk-label--s"
+    [inputId]="fieldNames.countryId"
+    [inputName]="fieldNames.countryId"
+    [showAllValues]="true"
+    [autoCompleteItems]="countryAutocompleteItems"
+    [control]="form.get(fieldNames.countryId)"
+    [errors]="formControlErrorMessages[fieldNames.countryId]"
+  />
+</fieldset>

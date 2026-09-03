@@ -10,6 +10,7 @@ import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-c
 import { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileCaseTypeComponent } from './cases-create-casefile-case-type.component';
+import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES as FIELD_NAMES } from './constants/cases-create-casefile-case-type-field-names.constant';
 
 describe('CasesCreateCasefileCaseTypeComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileCaseTypeComponent>;
@@ -35,7 +36,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
   });
 
   it('exposes null initial form data', () => {
-    expect(component.initialFormData).toEqual({ caseType: null, applicantType: null });
+    expect(component.initialFormData).toEqual({ [FIELD_NAMES.caseType]: null, [FIELD_NAMES.applicantType]: null });
   });
 
   it('rehydrates a valid saved REMO In selection', () => {
@@ -44,14 +45,20 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
       applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
     });
 
-    expect(component.initialFormData).toEqual({ caseType: 'REMO In', applicantType: 'Individual' });
+    expect(component.initialFormData).toEqual({
+      [FIELD_NAMES.caseType]: 'REMO In',
+      [FIELD_NAMES.applicantType]: 'Individual',
+    });
   });
 
   it('rehydrates valid saved outbound selections without Applicant Type', () => {
     for (const caseType of [CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT, CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS]) {
       store.setCaseTypeSelection({ caseType });
 
-      expect(component.initialFormData).toEqual({ caseType, applicantType: null });
+      expect(component.initialFormData).toEqual({
+        [FIELD_NAMES.caseType]: caseType,
+        [FIELD_NAMES.applicantType]: null,
+      });
     }
   });
 
@@ -64,7 +71,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
       >,
     });
 
-    expect(component.initialFormData).toEqual({ caseType: null, applicantType: null });
+    expect(component.initialFormData).toEqual({ [FIELD_NAMES.caseType]: null, [FIELD_NAMES.applicantType]: null });
 
     patchState(staleStore, {
       caseTypeSelection: {
@@ -73,7 +80,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
       } as unknown as ReturnType<typeof store.caseTypeSelection>,
     });
 
-    expect(component.initialFormData).toEqual({ caseType: null, applicantType: null });
+    expect(component.initialFormData).toEqual({ [FIELD_NAMES.caseType]: null, [FIELD_NAMES.applicantType]: null });
 
     patchState(staleStore, {
       caseTypeSelection: {
@@ -82,20 +89,20 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
       } as unknown as ReturnType<typeof store.caseTypeSelection>,
     });
 
-    expect(component.initialFormData).toEqual({ caseType: null, applicantType: null });
+    expect(component.initialFormData).toEqual({ [FIELD_NAMES.caseType]: null, [FIELD_NAMES.applicantType]: null });
 
     patchState(staleStore, {
       caseTypeSelection: { caseType: 'Unknown case type' } as unknown as ReturnType<typeof store.caseTypeSelection>,
     });
 
-    expect(component.initialFormData).toEqual({ caseType: null, applicantType: null });
+    expect(component.initialFormData).toEqual({ [FIELD_NAMES.caseType]: null, [FIELD_NAMES.applicantType]: null });
   });
 
   it('normalizes and saves REMO In before requesting Task List navigation', () => {
     component.handleFormSubmit({
       formData: {
-        caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
-        applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
+        [FIELD_NAMES.caseType]: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+        [FIELD_NAMES.applicantType]: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
       },
       nestedFlow: false,
     });
@@ -107,8 +114,8 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
   it('removes Applicant Type from an outbound selection', () => {
     component.handleFormSubmit({
       formData: {
-        caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT,
-        applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
+        [FIELD_NAMES.caseType]: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT,
+        [FIELD_NAMES.applicantType]: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
       },
       nestedFlow: false,
     });
@@ -124,8 +131,8 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
 
     component.handleFormSubmit({
       formData: {
-        caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS,
-        applicantType: null,
+        [FIELD_NAMES.caseType]: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS,
+        [FIELD_NAMES.applicantType]: null,
       },
       nestedFlow: false,
     });
@@ -137,16 +144,16 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
   it('does not save or navigate for invalid runtime form values', () => {
     component.handleFormSubmit({
       formData: {
-        caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
-        applicantType: 'Unknown applicant type',
+        [FIELD_NAMES.caseType]: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+        [FIELD_NAMES.applicantType]: 'Unknown applicant type',
       },
       nestedFlow: false,
     } as unknown as Parameters<CasesCreateCasefileCaseTypeComponent['handleFormSubmit']>[0]);
 
     component.handleFormSubmit({
       formData: {
-        caseType: 'Unknown case type',
-        applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
+        [FIELD_NAMES.caseType]: 'Unknown case type',
+        [FIELD_NAMES.applicantType]: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
       },
       nestedFlow: false,
     } as unknown as Parameters<CasesCreateCasefileCaseTypeComponent['handleFormSubmit']>[0]);
@@ -167,8 +174,8 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
 
     component.handleFormSubmit({
       formData: {
-        caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS,
-        applicantType: null,
+        [FIELD_NAMES.caseType]: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS,
+        [FIELD_NAMES.applicantType]: null,
       },
       nestedFlow: false,
     });

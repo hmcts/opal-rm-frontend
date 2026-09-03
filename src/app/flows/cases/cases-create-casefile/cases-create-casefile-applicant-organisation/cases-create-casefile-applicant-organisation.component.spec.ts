@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
+import { CasesCreateCasefileFormParentBaseComponent } from '../components/abstract/cases-create-casefile-form-parent-base/cases-create-casefile-form-parent-base.component';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../cases-create-casefile-applicant-individual/mocks/cases-create-casefile-applicant-individual.mock';
 import type { ICasesCreateCasefileCountryReferenceDataResponse } from '../services/interfaces/cases-create-casefile-country-reference-data-response.interface';
@@ -67,6 +68,7 @@ describe('CasesCreateCasefileApplicantOrganisationComponent', () => {
   it('maps resolved Countries into accessible-autocomplete items', () => {
     component = createComponent();
 
+    expect(component).toBeInstanceOf(CasesCreateCasefileFormParentBaseComponent);
     expect(component.countryAutocompleteItems).toEqual([
       { name: 'United Kingdom', value: 1 },
       { name: 'France', value: 2 },

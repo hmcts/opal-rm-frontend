@@ -1,0 +1,43 @@
+<fieldset class="govuk-fieldset">
+  <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+    <h2 class="govuk-heading-m govuk-!-margin-0">Contact details</h2>
+  </legend>
+  <opal-lib-govuk-text-input
+    labelText="Main email address"
+    labelClasses="govuk-label--s"
+    [inputId]="fieldNames.mainEmailAddress"
+    [inputName]="fieldNames.mainEmailAddress"
+    inputClasses="govuk-input--width-20"
+    [control]="form.get(fieldNames.mainEmailAddress)"
+    [errors]="formControlErrorMessages[fieldNames.mainEmailAddress]"
+  />
+  <opal-lib-govuk-text-input
+    labelText="Other email address"
+    labelClasses="govuk-label--s"
+    [inputId]="fieldNames.otherEmailAddress"
+    [inputName]="fieldNames.otherEmailAddress"
+    inputClasses="govuk-input--width-20"
+    [control]="form.get(fieldNames.otherEmailAddress)"
+    [errors]="formControlErrorMessages[fieldNames.otherEmailAddress]"
+  />
+  <opal-lib-govuk-text-input
+    labelText="Main telephone number"
+    labelClasses="govuk-label--s"
+    [inputId]="fieldNames.mainTelephoneNumber"
+    [inputName]="fieldNames.mainTelephoneNumber"
+    inputClasses="govuk-input--width-20"
+    hintText="For international numbers include the country code"
+    [control]="form.get(fieldNames.mainTelephoneNumber)"
+    [errors]="formControlErrorMessages[fieldNames.mainTelephoneNumber]"
+  />
+  <opal-lib-govuk-text-input
+    labelText="Other telephone number"
+    labelClasses="govuk-label--s"
+    [inputId]="fieldNames.otherTelephoneNumber"
+    [inputName]="fieldNames.otherTelephoneNumber"
+    inputClasses="govuk-input--width-20"
+    hintText="For international numbers include the country code"
+    [control]="form.get(fieldNames.otherTelephoneNumber)"
+    [errors]="formControlErrorMessages[fieldNames.otherTelephoneNumber]"
+  />
+</fieldset>

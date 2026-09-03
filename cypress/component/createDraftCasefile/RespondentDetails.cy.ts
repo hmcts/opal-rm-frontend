@@ -3,6 +3,7 @@ import {
   GENERIC_HTTP_ERROR_MESSAGE,
   GENERIC_HTTP_ERROR_TITLE,
 } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
+import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-respondent-details/constants/cases-create-casefile-respondent-details-field-names.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-task-statuses.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
@@ -56,6 +57,32 @@ const assertDocumentOrder = (selectors: string[]): void => {
   });
 };
 
+const assertCanonicalIdentifierContract = (
+  prefix: string,
+  expectedControlNames: readonly string[],
+  submitSelector: string,
+  errorLinksSelector: string,
+): void => {
+  cy.get('form input, form select, form textarea').then(($controls) => {
+    const controls = [...$controls] as HTMLElement[];
+    const ids = controls.map((control) => control.id);
+    const names = controls.map((control) => control.getAttribute('name') ?? '');
+
+    expect(ids.every((id) => id.startsWith(prefix))).to.equal(true);
+    expect(names.every((name) => name.startsWith(prefix))).to.equal(true);
+    expect(new Set(ids).size).to.equal(ids.length);
+    expect(expectedControlNames.every((name) => names.includes(name))).to.equal(true);
+  });
+  cy.get(submitSelector).click();
+  cy.get(errorLinksSelector).each(($link) => {
+    cy.wrap($link).click();
+    cy.focused().should(($focused) => {
+      const targetId = $focused.attr('id') ?? '';
+      expect(targetId.startsWith(prefix)).to.equal(true);
+      expect(Cypress.$(`#${targetId}`)).to.have.length(1);
+    });
+  });
+};
 describe('Create Casefile Respondent Details', () => {
   it('AC1. should render the complete respondent screen in approved section order', { tags: buildTags() }, () => {
     setupRespondentDetails();
@@ -141,6 +168,29 @@ describe('Create Casefile Respondent Details', () => {
       Page.respondentDetails.cancelLink,
     ]);
   });
+
+  it(
+    'AC1, AC2. should use canonical unique control identifiers with exact error targets',
+    { tags: buildTags() },
+    () => {
+      setupRespondentDetails();
+      cy.get(Page.respondentDetails.addAliases).check();
+      cy.get(Page.respondentDetails.sendCorrespondenceToThirdParty).check();
+      cy.get(Page.respondentDetails.addEmployerDetails).check();
+      cy.get(Page.respondentDetails.restrictedInformation).check();
+
+      const controlFieldNames = Object.entries(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES)
+        .filter(([key]) => !['aliases', 'aliasFirstNames', 'aliasLastName'].includes(key))
+        .map(([, value]) => value);
+
+      assertCanonicalIdentifierContract(
+        'create_casefile_respondent_details_',
+        controlFieldNames,
+        Page.respondentDetails.returnToCaseDetails,
+        Page.respondentDetails.errorSummaryLinks,
+      );
+    },
+  );
 
   it('AC1. should rehydrate saved identity, aliases, Countries and conditional objects', { tags: buildTags() }, () => {
     setupRespondentDetails({ savedRespondent: SAVED_RESPONDENT });

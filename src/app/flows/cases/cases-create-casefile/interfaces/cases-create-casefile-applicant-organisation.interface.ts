@@ -1,9 +1,9 @@
 import type { CasesCreateCasefileApplicantBankDetails } from '../types/cases-create-casefile-applicant-bank-details.type';
-import type { ICasesCreateCasefileApplicantContactDetails } from './cases-create-casefile-applicant-contact-details.interface';
+import type { ICasesCreateCasefilePartyContactDetails } from './cases-create-casefile-party-contact-details.interface';
 
 export interface ICasesCreateCasefileApplicantOrganisation {
   organisationName: string;
   foreignAuthorityReference: string;
-  contactDetails: ICasesCreateCasefileApplicantContactDetails;
+  contactDetails: ICasesCreateCasefilePartyContactDetails;
   bankDetails: CasesCreateCasefileApplicantBankDetails;
 }

@@ -326,7 +326,11 @@ describe('Create Casefile Case Details Task List', () => {
               ? Page.applicantIndividual.cancelLink
               : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation
                 ? Page.applicantOrganisation.cancelLink
-                : Page.caseDetails.backLink,
+                : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.interestAndIndexation
+                  ? Page.interestAndIndexation.cancelLink
+                  : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.managingPayments
+                    ? Page.managingPayments.cancelLink
+                    : Page.caseDetails.backLink,
         ).click();
         assertRouterPath(taskListPath);
         assertExactText(Page.caseDetails.heading, 'Case details');

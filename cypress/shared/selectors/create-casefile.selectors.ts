@@ -2,6 +2,9 @@ import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from 'src/app/flows/cases
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant';
 
 export const CreateCasefileSelectors = {
+  dashboard: {
+    createCasefileLink: '#casesCreateCasefileLink',
+  },
   heading: 'h1',
   globalErrorBanner: '.moj-alert--error',
   globalErrorBannerHeading: '.moj-alert--error .moj-alert__heading',

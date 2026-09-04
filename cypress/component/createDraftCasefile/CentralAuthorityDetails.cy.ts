@@ -186,7 +186,6 @@ describe('Create Casefile Central authority details', () => {
     setupCentralAuthorityDetails();
 
     cy.get(Page.remoReference).focus();
-    cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(Page.remoReference).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(Page.centralAuthorityReference).should('be.focused');

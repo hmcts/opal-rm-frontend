@@ -69,8 +69,11 @@ describe('OpalMaintenanceService', () => {
   });
 
   it('uses separate Countries cache entries for true and false', () => {
-    service.getCountries(true).subscribe();
-    service.getCountries(false).subscribe();
+    const activeCountries = service.getCountries(true);
+    const inactiveCountries = service.getCountries(false);
+    expect(activeCountries).not.toBe(inactiveCountries);
+    activeCountries.subscribe();
+    inactiveCountries.subscribe();
     http.expectOne('/opal-maintenance-service/countries?active=true').flush(countries);
     http.expectOne('/opal-maintenance-service/countries?active=false').flush(countries);
   });
@@ -160,7 +163,9 @@ describe('OpalMaintenanceService', () => {
       },
       { params: { business_unit_id: 78 }, url: '/opal-maintenance-service/major-creditors?business_unit_id=78' },
     ] as const;
-    calls.forEach(({ params }) => service.getMajorCreditors(params).subscribe());
+    const requests = calls.map(({ params }) => service.getMajorCreditors(params));
+    expect(new Set(requests).size).toBe(calls.length);
+    requests.forEach((request) => request.subscribe());
     calls.forEach(({ url }) => http.expectOne(url).flush(majorCreditors));
   });
 

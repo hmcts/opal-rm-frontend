@@ -25,6 +25,7 @@ import { CasesCreateCasefileBankDetailsComponent } from '../../components/cases-
 import type { ICasesCreateCasefileBankDetailsFieldNames } from '../../components/cases-create-casefile-bank-details/interfaces/cases-create-casefile-bank-details-field-names.interface';
 import { CasesCreateCasefileContactDetailsComponent } from '../../components/cases-create-casefile-contact-details/cases-create-casefile-contact-details.component';
 import type { ICasesCreateCasefileContactFieldNames } from '../../components/cases-create-casefile-contact-details/interfaces/cases-create-casefile-contact-field-names.interface';
+import { CasesCreateCasefileDateOfBirthAgeComponent } from '../../components/cases-create-casefile-date-of-birth-age/cases-create-casefile-date-of-birth-age.component';
 import { CasesCreateCasefileRestrictedInformationComponent } from '../../components/cases-create-casefile-restricted-information/cases-create-casefile-restricted-information.component';
 import { CasesCreateCasefileThirdPartyComponent } from '../../components/cases-create-casefile-third-party/cases-create-casefile-third-party.component';
 import type { ICasesCreateCasefileThirdPartyFieldNames } from '../../components/cases-create-casefile-third-party/interfaces/cases-create-casefile-third-party-field-names.interface';
@@ -136,6 +137,7 @@ type ApplicantIndividualRawFormData = Omit<
     CasesCreateCasefileContactDetailsComponent,
     CasesCreateCasefileAddressComponent,
     CasesCreateCasefileBankDetailsComponent,
+    CasesCreateCasefileDateOfBirthAgeComponent,
     CasesCreateCasefileThirdPartyComponent,
     CasesCreateCasefileRestrictedInformationComponent,
   ],

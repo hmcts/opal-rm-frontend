@@ -66,7 +66,6 @@ export const CreateCasefileSelectors = {
     cancelLink: '#cancelCaseCreation',
   },
   centralAuthority: {
-    backLink: '.govuk-back-link',
     heading: 'h1',
     remoReference: `#${CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.remoReference}`,
     centralAuthorityReference: `#${CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.centralAuthorityReference}`,

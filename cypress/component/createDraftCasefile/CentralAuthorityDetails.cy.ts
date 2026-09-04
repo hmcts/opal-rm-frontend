@@ -35,6 +35,7 @@ describe('Create Casefile Central authority details', () => {
       active: 'true',
     });
     cy.get(Page.heading).should('have.text', 'Central authority details');
+    cy.get('.govuk-back-link').should('not.exist');
     cy.get(Page.remoReference).should('have.value', '');
     cy.get(Page.centralAuthorityReference).should('have.value', '');
     cy.get(Page.autocomplete).click();
@@ -143,7 +144,7 @@ describe('Create Casefile Central authority details', () => {
     cy.get('@angularRouter').should((router: Router) => expect(router.url).to.equal(taskListPath));
   });
 
-  for (const navigationSelector of [Page.cancelLink, Page.backLink]) {
+  for (const navigationSelector of [Page.cancelLink]) {
     it(
       `AC3. should keep dirty edits when protected navigation from ${navigationSelector} is rejected`,
       { tags: buildTags() },
@@ -184,7 +185,7 @@ describe('Create Casefile Central authority details', () => {
   it('AC4. should select an authority and reach each action using native keyboard order', { tags: buildTags() }, () => {
     setupCentralAuthorityDetails();
 
-    cy.get(Page.backLink).focus();
+    cy.get(Page.remoReference).focus();
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(Page.remoReference).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);

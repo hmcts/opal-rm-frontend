@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CasesCreateCasefileDateOfBirthAgeComponent } from '../../components/cases-create-casefile-date-of-birth-age/cases-create-casefile-date-of-birth-age.component';
 import { CasesCreateCasefileRestrictedInformationComponent } from '../../components/cases-create-casefile-restricted-information/cases-create-casefile-restricted-information.component';
 import { CasesCreateCasefileThirdPartyComponent } from '../../components/cases-create-casefile-third-party/cases-create-casefile-third-party.component';
 import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS } from '../mocks/cases-create-casefile-respondent-details.mock';
@@ -618,7 +619,7 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     expect(employerName.disabled).toBe(true);
   });
 
-  it('nests every conditional beside its checkbox and points controls at the rendered ID', () => {
+  it('points every conditional checkbox at the rendered ID', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
       create_casefile_respondent_details_send_correspondence_to_third_party: true,
@@ -641,13 +642,31 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     ]) {
       const checkbox = fixture.nativeElement.querySelector(`#${checkboxId}`) as HTMLInputElement;
       const conditional = fixture.nativeElement.querySelector(`#${conditionalId}`) as HTMLDivElement;
-      const checkboxItem = checkbox.closest('.govuk-checkboxes__item');
-
       expect(checkbox.getAttribute('data-aria-controls')).toBe(conditional.id);
-      expect(checkboxItem?.nextElementSibling).toBe(conditional);
-      expect(conditional.closest('opal-lib-govuk-checkboxes')).toBeTruthy();
     }
     expect(fixture.nativeElement.querySelector('#returnToCaseDetails')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#cancelRespondentDetails')).toBeTruthy();
+  });
+
+  it('passes the respondent date of birth control to the age display', () => {
+    fixture.detectChanges();
+
+    const age = fixture.debugElement.query(By.directive(CasesCreateCasefileDateOfBirthAgeComponent))
+      .componentInstance as CasesCreateCasefileDateOfBirthAgeComponent;
+    expect(age.control).toBe(component.form.controls['create_casefile_respondent_details_date_of_birth']);
+  });
+
+  it('renders the alias conditional as a sibling of its checkbox component', () => {
+    component.initialFormData = CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData;
+    fixture.detectChanges();
+
+    const checkbox = fixture.nativeElement.querySelector(
+      '#create_casefile_respondent_details_add_aliases',
+    ) as HTMLInputElement;
+    const checkboxHost = checkbox.closest('opal-lib-govuk-checkboxes') as HTMLElement;
+    const conditional = fixture.nativeElement.querySelector('#respondentAliasesConditional-conditional') as HTMLElement;
+    expect(checkbox.getAttribute('data-aria-controls')).toBe(conditional.id);
+    expect(checkboxHost.nextElementSibling).toBe(conditional);
+    expect(conditional.closest('opal-lib-govuk-checkboxes')).toBeNull();
   });
 });

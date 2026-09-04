@@ -41,8 +41,9 @@
       ariaControls="respondentAliasesConditional-conditional"
       [control]="form.get('create_casefile_respondent_details_add_aliases')"
     ></div>
-    @if (form.get('create_casefile_respondent_details_add_aliases')?.value === true) {
-      <div opal-lib-govuk-checkboxes-conditional conditionalId="respondentAliasesConditional">
+  </opal-lib-govuk-checkboxes>
+  @if (form.get('create_casefile_respondent_details_add_aliases')?.value === true) {
+    <div opal-lib-govuk-checkboxes-conditional conditionalId="respondentAliasesConditional">
         @for (
           aliasControl of aliasControls;
           let rowIndex = $index;
@@ -110,9 +111,8 @@
             Add another alias
           </opal-lib-govuk-button>
         }
-      </div>
-    }
-  </opal-lib-govuk-checkboxes>
+    </div>
+  }
 
   <opal-lib-moj-date-picker
     labelText="Date of birth"
@@ -126,6 +126,7 @@
     [errors]="formControlErrorMessages['create_casefile_respondent_details_date_of_birth']"
     (dateChange)="setInputValue($event, 'create_casefile_respondent_details_date_of_birth')"
   />
+  <app-cases-create-casefile-date-of-birth-age [control]="dateOfBirthControl" />
   <opal-lib-govuk-text-input
     labelText="National Insurance number"
     labelClasses="govuk-label--s"

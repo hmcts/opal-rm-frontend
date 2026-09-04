@@ -25,6 +25,7 @@ import { CasesCreateCasefileAddressComponent } from '../../components/cases-crea
 import type { ICasesCreateCasefileAddressFieldNames } from '../../components/cases-create-casefile-address/interfaces/cases-create-casefile-address-field-names.interface';
 import { CasesCreateCasefileContactDetailsComponent } from '../../components/cases-create-casefile-contact-details/cases-create-casefile-contact-details.component';
 import type { ICasesCreateCasefileContactFieldNames } from '../../components/cases-create-casefile-contact-details/interfaces/cases-create-casefile-contact-field-names.interface';
+import { CasesCreateCasefileDateOfBirthAgeComponent } from '../../components/cases-create-casefile-date-of-birth-age/cases-create-casefile-date-of-birth-age.component';
 import { CasesCreateCasefileRestrictedInformationComponent } from '../../components/cases-create-casefile-restricted-information/cases-create-casefile-restricted-information.component';
 import { CasesCreateCasefileThirdPartyComponent } from '../../components/cases-create-casefile-third-party/cases-create-casefile-third-party.component';
 import type { ICasesCreateCasefileThirdPartyFieldNames } from '../../components/cases-create-casefile-third-party/interfaces/cases-create-casefile-third-party-field-names.interface';
@@ -98,6 +99,7 @@ type IRespondentDetailsRawFormData = Omit<
     MojDatePickerComponent,
     CasesCreateCasefileContactDetailsComponent,
     CasesCreateCasefileAddressComponent,
+    CasesCreateCasefileDateOfBirthAgeComponent,
     CasesCreateCasefileThirdPartyComponent,
     CasesCreateCasefileRestrictedInformationComponent,
   ],
@@ -179,6 +181,10 @@ export class CasesCreateCasefileRespondentDetailsFormComponent
     countryId: CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES.thirdPartyCountryId,
   };
   public yesterday!: string;
+
+  public get dateOfBirthControl(): FormControl<string | null> {
+    return this.form.controls['create_casefile_respondent_details_date_of_birth'] as FormControl<string | null>;
+  }
 
   private setupForm(): void {
     const emailValidators = [optionalMaxLengthValidator(76), patternValidator(EMAIL_ADDRESS_PATTERN, 'emailPattern')];

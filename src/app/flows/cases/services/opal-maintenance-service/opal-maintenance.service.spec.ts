@@ -1,6 +1,10 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
+import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
@@ -40,7 +44,15 @@ describe('OpalMaintenanceService', () => {
   };
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClientTesting(),
+        { provide: GlobalStore, useValue: new GlobalStore() },
+        { provide: AppInsightsService, useValue: { logException: () => undefined } },
+      ],
+    });
     service = TestBed.inject(OpalMaintenanceService);
     http = TestBed.inject(HttpTestingController);
   });
@@ -77,6 +89,37 @@ describe('OpalMaintenanceService', () => {
     const first = service.getCountries(true);
     first.subscribe();
     http.expectOne('/opal-maintenance-service/countries?active=true').flush({ count: 0, refData: [] });
+
+    const second = service.getCountries(true);
+    expect(second).not.toBe(first);
+    second.subscribe((response) => expect(response).toEqual(countries));
+    http.expectOne('/opal-maintenance-service/countries?active=true').flush(countries);
+  });
+
+  it('does not let an older empty Countries request evict its replacement when it completes', () => {
+    let replacement: ReturnType<OpalMaintenanceService['getCountries']> | undefined;
+    service.getCountries(true).subscribe({
+      next: () => {
+        replacement = service.getCountries(true);
+        replacement.subscribe();
+      },
+    });
+    http.expectOne('/opal-maintenance-service/countries?active=true').flush({ count: 0, refData: [] });
+
+    expect(replacement).toBeDefined();
+    expect(service.getCountries(true)).toBe(replacement);
+    http.expectOne('/opal-maintenance-service/countries?active=true').flush(countries);
+  });
+
+  it('issues a fresh Countries request after the error interceptor consumes a retriable conflict', () => {
+    const first = service.getCountries(true);
+    first.subscribe();
+    http
+      .expectOne('/opal-maintenance-service/countries?active=true')
+      .flush(
+        { title: 'Countries unavailable', status: 409, detail: 'Try again', retriable: true },
+        { status: 409, statusText: 'Conflict' },
+      );
 
     const second = service.getCountries(true);
     expect(second).not.toBe(first);
@@ -137,6 +180,24 @@ describe('OpalMaintenanceService', () => {
     const first = service.getMajorCreditors(params);
     first.subscribe();
     http.expectOne(url).flush({ count: 0, refData: [] });
+
+    const second = service.getMajorCreditors(params);
+    expect(second).not.toBe(first);
+    second.subscribe((response) => expect(response).toEqual(majorCreditors));
+    http.expectOne(url).flush(majorCreditors);
+  });
+
+  it('issues a fresh Major Creditor request after the error interceptor consumes a retriable conflict', () => {
+    const params = { business_unit_id: 77, central_authority: true, active: true };
+    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true&active=true';
+    const first = service.getMajorCreditors(params);
+    first.subscribe();
+    http
+      .expectOne(url)
+      .flush(
+        { title: 'Major Creditors unavailable', status: 409, detail: 'Try again', retriable: true },
+        { status: 409, statusText: 'Conflict' },
+      );
 
     const second = service.getMajorCreditors(params);
     expect(second).not.toBe(first);

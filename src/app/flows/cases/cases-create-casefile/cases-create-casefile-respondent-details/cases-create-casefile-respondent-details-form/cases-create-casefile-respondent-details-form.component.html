@@ -44,73 +44,71 @@
   </opal-lib-govuk-checkboxes>
   @if (form.get('create_casefile_respondent_details_add_aliases')?.value === true) {
     <div opal-lib-govuk-checkboxes-conditional conditionalId="respondentAliasesConditional">
-        @for (
-          aliasControl of aliasControls;
-          let rowIndex = $index;
-          track aliasControl['create_casefile_respondent_details_alias_first_names'].inputId
-        ) {
-          <fieldset class="govuk-fieldset">
-            <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
-              <h2 class="govuk-heading-m govuk-!-margin-0">Alias {{ rowIndex + 1 }}</h2>
-            </legend>
-            <opal-lib-govuk-text-input
-              #aliasFirstField
-              labelText="First names"
-              [inputId]="aliasControl['create_casefile_respondent_details_alias_first_names'].inputId"
-              [inputName]="aliasControl['create_casefile_respondent_details_alias_first_names'].inputName"
-              inputClasses="govuk-input--width-20"
-              [control]="
-                form.get([
-                  'create_casefile_respondent_details_aliases',
-                  rowIndex,
-                  aliasControl['create_casefile_respondent_details_alias_first_names'].controlName,
-                ])
-              "
-              [errors]="
-                formControlErrorMessages[
-                  aliasControl['create_casefile_respondent_details_alias_first_names'].controlName
-                ]
-              "
-            />
-            <opal-lib-govuk-text-input
-              labelText="Last name"
-              [inputId]="aliasControl['create_casefile_respondent_details_alias_last_name'].inputId"
-              [inputName]="aliasControl['create_casefile_respondent_details_alias_last_name'].inputName"
-              inputClasses="govuk-input--width-20"
-              [control]="
-                form.get([
-                  'create_casefile_respondent_details_aliases',
-                  rowIndex,
-                  aliasControl['create_casefile_respondent_details_alias_last_name'].controlName,
-                ])
-              "
-              [errors]="
-                formControlErrorMessages[aliasControl['create_casefile_respondent_details_alias_last_name'].controlName]
-              "
-            />
-          </fieldset>
-        }
-        @if (aliasControls.length > 1) {
-          <div class="govuk-!-margin-bottom-3">
-            <a
-              class="govuk-link govuk-link--no-visited-state"
-              href=""
-              (click)="removeAlias(aliasControls.length - 1, 'create_casefile_respondent_details_aliases', $event)"
-            >
-              Remove <span class="govuk-visually-hidden">alias {{ aliasControls.length }}</span>
-            </a>
-          </div>
-        }
-        @if (aliasControls.length < 5) {
-          <opal-lib-govuk-button
-            buttonId="addRespondentAlias"
-            buttonClasses="govuk-button--secondary govuk-!-margin-bottom-0"
-            type="button"
-            (buttonClickEvent)="addAlias(aliasControls.length, 'create_casefile_respondent_details_aliases')"
+      @for (
+        aliasControl of aliasControls;
+        let rowIndex = $index;
+        track aliasControl['create_casefile_respondent_details_alias_first_names'].inputId
+      ) {
+        <fieldset class="govuk-fieldset">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+            <h2 class="govuk-heading-m govuk-!-margin-0">Alias {{ rowIndex + 1 }}</h2>
+          </legend>
+          <opal-lib-govuk-text-input
+            #aliasFirstField
+            labelText="First names"
+            [inputId]="aliasControl['create_casefile_respondent_details_alias_first_names'].inputId"
+            [inputName]="aliasControl['create_casefile_respondent_details_alias_first_names'].inputName"
+            inputClasses="govuk-input--width-20"
+            [control]="
+              form.get([
+                'create_casefile_respondent_details_aliases',
+                rowIndex,
+                aliasControl['create_casefile_respondent_details_alias_first_names'].controlName,
+              ])
+            "
+            [errors]="
+              formControlErrorMessages[aliasControl['create_casefile_respondent_details_alias_first_names'].controlName]
+            "
+          />
+          <opal-lib-govuk-text-input
+            labelText="Last name"
+            [inputId]="aliasControl['create_casefile_respondent_details_alias_last_name'].inputId"
+            [inputName]="aliasControl['create_casefile_respondent_details_alias_last_name'].inputName"
+            inputClasses="govuk-input--width-20"
+            [control]="
+              form.get([
+                'create_casefile_respondent_details_aliases',
+                rowIndex,
+                aliasControl['create_casefile_respondent_details_alias_last_name'].controlName,
+              ])
+            "
+            [errors]="
+              formControlErrorMessages[aliasControl['create_casefile_respondent_details_alias_last_name'].controlName]
+            "
+          />
+        </fieldset>
+      }
+      @if (aliasControls.length > 1) {
+        <div class="govuk-!-margin-bottom-3">
+          <a
+            class="govuk-link govuk-link--no-visited-state"
+            href=""
+            (click)="removeAlias(aliasControls.length - 1, 'create_casefile_respondent_details_aliases', $event)"
           >
-            Add another alias
-          </opal-lib-govuk-button>
-        }
+            Remove <span class="govuk-visually-hidden">alias {{ aliasControls.length }}</span>
+          </a>
+        </div>
+      }
+      @if (aliasControls.length < 5) {
+        <opal-lib-govuk-button
+          buttonId="addRespondentAlias"
+          buttonClasses="govuk-button--secondary govuk-!-margin-bottom-0"
+          type="button"
+          (buttonClickEvent)="addAlias(aliasControls.length, 'create_casefile_respondent_details_aliases')"
+        >
+          Add another alias
+        </opal-lib-govuk-button>
+      }
     </div>
   }
 
@@ -194,87 +192,87 @@
   </opal-lib-govuk-checkboxes>
   @if (form.get('create_casefile_respondent_details_add_employer_details')?.value === true) {
     <div opal-lib-govuk-checkboxes-conditional conditionalId="respondentEmployerConditional">
-        <opal-lib-govuk-text-input
-          labelText="Employer name"
-          inputId="create_casefile_respondent_details_employer_name"
-          inputName="create_casefile_respondent_details_employer_name"
-          [control]="form.get('create_casefile_respondent_details_employer_name')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_name']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Employee reference"
-          inputId="create_casefile_respondent_details_employee_reference"
-          inputName="create_casefile_respondent_details_employee_reference"
-          [control]="form.get('create_casefile_respondent_details_employee_reference')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employee_reference']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Employer email address"
-          inputId="create_casefile_respondent_details_employer_email_address"
-          inputName="create_casefile_respondent_details_employer_email_address"
-          [control]="form.get('create_casefile_respondent_details_employer_email_address')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_email_address']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Employer telephone number"
-          inputId="create_casefile_respondent_details_employer_telephone_number"
-          inputName="create_casefile_respondent_details_employer_telephone_number"
-          hintText="For international numbers include the country code"
-          [control]="form.get('create_casefile_respondent_details_employer_telephone_number')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_telephone_number']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 1"
-          inputId="create_casefile_respondent_details_employer_address_line_1"
-          inputName="create_casefile_respondent_details_employer_address_line_1"
-          [control]="form.get('create_casefile_respondent_details_employer_address_line_1')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_1']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 2"
-          inputId="create_casefile_respondent_details_employer_address_line_2"
-          inputName="create_casefile_respondent_details_employer_address_line_2"
-          [control]="form.get('create_casefile_respondent_details_employer_address_line_2')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_2']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 3"
-          inputId="create_casefile_respondent_details_employer_address_line_3"
-          inputName="create_casefile_respondent_details_employer_address_line_3"
-          [control]="form.get('create_casefile_respondent_details_employer_address_line_3')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_3']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 4"
-          inputId="create_casefile_respondent_details_employer_address_line_4"
-          inputName="create_casefile_respondent_details_employer_address_line_4"
-          [control]="form.get('create_casefile_respondent_details_employer_address_line_4')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_4']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Address line 5"
-          inputId="create_casefile_respondent_details_employer_address_line_5"
-          inputName="create_casefile_respondent_details_employer_address_line_5"
-          [control]="form.get('create_casefile_respondent_details_employer_address_line_5')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_5']"
-        />
-        <opal-lib-govuk-text-input
-          labelText="Postal or zip code"
-          inputId="create_casefile_respondent_details_employer_postal_or_zip_code"
-          inputName="create_casefile_respondent_details_employer_postal_or_zip_code"
-          inputClasses="govuk-input--width-10"
-          [control]="form.get('create_casefile_respondent_details_employer_postal_or_zip_code')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_postal_or_zip_code']"
-        />
-        <opal-lib-alphagov-accessible-autocomplete
-          labelText="Country"
-          inputId="create_casefile_respondent_details_employer_country_id"
-          inputName="create_casefile_respondent_details_employer_country_id"
-          [showAllValues]="true"
-          [autoCompleteItems]="countryAutocompleteItems"
-          [control]="form.get('create_casefile_respondent_details_employer_country_id')"
-          [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_country_id']"
-        />
+      <opal-lib-govuk-text-input
+        labelText="Employer name"
+        inputId="create_casefile_respondent_details_employer_name"
+        inputName="create_casefile_respondent_details_employer_name"
+        [control]="form.get('create_casefile_respondent_details_employer_name')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_name']"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Employee reference"
+        inputId="create_casefile_respondent_details_employee_reference"
+        inputName="create_casefile_respondent_details_employee_reference"
+        [control]="form.get('create_casefile_respondent_details_employee_reference')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employee_reference']"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Employer email address"
+        inputId="create_casefile_respondent_details_employer_email_address"
+        inputName="create_casefile_respondent_details_employer_email_address"
+        [control]="form.get('create_casefile_respondent_details_employer_email_address')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_email_address']"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Employer telephone number"
+        inputId="create_casefile_respondent_details_employer_telephone_number"
+        inputName="create_casefile_respondent_details_employer_telephone_number"
+        hintText="For international numbers include the country code"
+        [control]="form.get('create_casefile_respondent_details_employer_telephone_number')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_telephone_number']"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Address line 1"
+        inputId="create_casefile_respondent_details_employer_address_line_1"
+        inputName="create_casefile_respondent_details_employer_address_line_1"
+        [control]="form.get('create_casefile_respondent_details_employer_address_line_1')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_1']"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Address line 2"
+        inputId="create_casefile_respondent_details_employer_address_line_2"
+        inputName="create_casefile_respondent_details_employer_address_line_2"
+        [control]="form.get('create_casefile_respondent_details_employer_address_line_2')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_2']"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Address line 3"
+        inputId="create_casefile_respondent_details_employer_address_line_3"
+        inputName="create_casefile_respondent_details_employer_address_line_3"
+        [control]="form.get('create_casefile_respondent_details_employer_address_line_3')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_3']"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Address line 4"
+        inputId="create_casefile_respondent_details_employer_address_line_4"
+        inputName="create_casefile_respondent_details_employer_address_line_4"
+        [control]="form.get('create_casefile_respondent_details_employer_address_line_4')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_4']"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Address line 5"
+        inputId="create_casefile_respondent_details_employer_address_line_5"
+        inputName="create_casefile_respondent_details_employer_address_line_5"
+        [control]="form.get('create_casefile_respondent_details_employer_address_line_5')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_address_line_5']"
+      />
+      <opal-lib-govuk-text-input
+        labelText="Postal or zip code"
+        inputId="create_casefile_respondent_details_employer_postal_or_zip_code"
+        inputName="create_casefile_respondent_details_employer_postal_or_zip_code"
+        inputClasses="govuk-input--width-10"
+        [control]="form.get('create_casefile_respondent_details_employer_postal_or_zip_code')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_postal_or_zip_code']"
+      />
+      <opal-lib-alphagov-accessible-autocomplete
+        labelText="Country"
+        inputId="create_casefile_respondent_details_employer_country_id"
+        inputName="create_casefile_respondent_details_employer_country_id"
+        [showAllValues]="true"
+        [autoCompleteItems]="countryAutocompleteItems"
+        [control]="form.get('create_casefile_respondent_details_employer_country_id')"
+        [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_country_id']"
+      />
     </div>
   }
 

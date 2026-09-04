@@ -685,7 +685,9 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
       '#create_casefile_respondent_details_add_employer_details',
     ) as HTMLInputElement;
     const checkboxHost = checkbox.closest('opal-lib-govuk-checkboxes') as HTMLElement;
-    const conditional = fixture.nativeElement.querySelector('#respondentEmployerConditional-conditional') as HTMLElement;
+    const conditional = fixture.nativeElement.querySelector(
+      '#respondentEmployerConditional-conditional',
+    ) as HTMLElement;
     expect(checkbox.getAttribute('data-aria-controls')).toBe(conditional.id);
     expect(checkboxHost.nextElementSibling).toBe(conditional);
     expect(conditional.closest('opal-lib-govuk-checkboxes')).toBeNull();

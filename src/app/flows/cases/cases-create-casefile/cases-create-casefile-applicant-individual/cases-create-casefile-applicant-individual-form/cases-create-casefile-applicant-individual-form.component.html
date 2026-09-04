@@ -44,75 +44,73 @@
   </opal-lib-govuk-checkboxes>
   @if (form.controls.create_casefile_applicant_individual_add_aliases.value) {
     <div opal-lib-govuk-checkboxes-conditional conditionalId="applicantAliasesConditional">
-        @for (
-          aliasControl of aliasControls;
-          let rowIndex = $index;
-          track aliasControl['create_casefile_applicant_individual_alias_first_names'].inputId
-        ) {
-          <fieldset class="govuk-fieldset">
-            <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
-              <h2 class="govuk-heading-m govuk-!-margin-0">Alias {{ rowIndex + 1 }}</h2>
-            </legend>
-            <opal-lib-govuk-text-input
-              #aliasFirstField
-              labelText="First names"
-              [inputId]="aliasControl['create_casefile_applicant_individual_alias_first_names'].inputId"
-              [inputName]="aliasControl['create_casefile_applicant_individual_alias_first_names'].inputName"
-              inputClasses="govuk-input--width-20"
-              [control]="
-                form.get([
-                  'create_casefile_applicant_individual_aliases',
-                  rowIndex,
-                  aliasControl['create_casefile_applicant_individual_alias_first_names'].controlName,
-                ])
-              "
-              [errors]="
-                formControlErrorMessages[
-                  aliasControl['create_casefile_applicant_individual_alias_first_names'].controlName
-                ]
-              "
-            />
-            <opal-lib-govuk-text-input
-              labelText="Last name"
-              [inputId]="aliasControl['create_casefile_applicant_individual_alias_last_name'].inputId"
-              [inputName]="aliasControl['create_casefile_applicant_individual_alias_last_name'].inputName"
-              inputClasses="govuk-input--width-20"
-              [control]="
-                form.get([
-                  'create_casefile_applicant_individual_aliases',
-                  rowIndex,
-                  aliasControl['create_casefile_applicant_individual_alias_last_name'].controlName,
-                ])
-              "
-              [errors]="
-                formControlErrorMessages[
-                  aliasControl['create_casefile_applicant_individual_alias_last_name'].controlName
-                ]
-              "
-            />
-          </fieldset>
-        }
-        @if (aliasControls.length > 1) {
-          <div class="govuk-!-margin-bottom-3">
-            <a
-              class="govuk-link govuk-link--no-visited-state"
-              href=""
-              (click)="removeAlias(aliasControls.length - 1, 'create_casefile_applicant_individual_aliases', $event)"
-            >
-              Remove <span class="govuk-visually-hidden">alias {{ aliasControls.length }}</span>
-            </a>
-          </div>
-        }
-        @if (aliasControls.length < 5) {
-          <opal-lib-govuk-button
-            buttonId="addApplicantAlias"
-            buttonClasses="govuk-button--secondary govuk-!-margin-bottom-0"
-            type="button"
-            (buttonClickEvent)="addAlias(aliasControls.length, 'create_casefile_applicant_individual_aliases')"
+      @for (
+        aliasControl of aliasControls;
+        let rowIndex = $index;
+        track aliasControl['create_casefile_applicant_individual_alias_first_names'].inputId
+      ) {
+        <fieldset class="govuk-fieldset">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+            <h2 class="govuk-heading-m govuk-!-margin-0">Alias {{ rowIndex + 1 }}</h2>
+          </legend>
+          <opal-lib-govuk-text-input
+            #aliasFirstField
+            labelText="First names"
+            [inputId]="aliasControl['create_casefile_applicant_individual_alias_first_names'].inputId"
+            [inputName]="aliasControl['create_casefile_applicant_individual_alias_first_names'].inputName"
+            inputClasses="govuk-input--width-20"
+            [control]="
+              form.get([
+                'create_casefile_applicant_individual_aliases',
+                rowIndex,
+                aliasControl['create_casefile_applicant_individual_alias_first_names'].controlName,
+              ])
+            "
+            [errors]="
+              formControlErrorMessages[
+                aliasControl['create_casefile_applicant_individual_alias_first_names'].controlName
+              ]
+            "
+          />
+          <opal-lib-govuk-text-input
+            labelText="Last name"
+            [inputId]="aliasControl['create_casefile_applicant_individual_alias_last_name'].inputId"
+            [inputName]="aliasControl['create_casefile_applicant_individual_alias_last_name'].inputName"
+            inputClasses="govuk-input--width-20"
+            [control]="
+              form.get([
+                'create_casefile_applicant_individual_aliases',
+                rowIndex,
+                aliasControl['create_casefile_applicant_individual_alias_last_name'].controlName,
+              ])
+            "
+            [errors]="
+              formControlErrorMessages[aliasControl['create_casefile_applicant_individual_alias_last_name'].controlName]
+            "
+          />
+        </fieldset>
+      }
+      @if (aliasControls.length > 1) {
+        <div class="govuk-!-margin-bottom-3">
+          <a
+            class="govuk-link govuk-link--no-visited-state"
+            href=""
+            (click)="removeAlias(aliasControls.length - 1, 'create_casefile_applicant_individual_aliases', $event)"
           >
-            Add another alias
-          </opal-lib-govuk-button>
-        }
+            Remove <span class="govuk-visually-hidden">alias {{ aliasControls.length }}</span>
+          </a>
+        </div>
+      }
+      @if (aliasControls.length < 5) {
+        <opal-lib-govuk-button
+          buttonId="addApplicantAlias"
+          buttonClasses="govuk-button--secondary govuk-!-margin-bottom-0"
+          type="button"
+          (buttonClickEvent)="addAlias(aliasControls.length, 'create_casefile_applicant_individual_aliases')"
+        >
+          Add another alias
+        </opal-lib-govuk-button>
+      }
     </div>
   }
 

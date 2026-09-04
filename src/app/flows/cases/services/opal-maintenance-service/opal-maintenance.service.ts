@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, shareReplay } from 'rxjs';
+import { Observable, shareReplay, tap } from 'rxjs';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorParams } from './interfaces/opal-maintenance-major-creditor-params.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
@@ -22,7 +22,12 @@ export class OpalMaintenanceService {
 
     const request = this.http
       .get<IOpalMaintenanceCountryReferenceDataResponse>(this.countriesUrl, { params: { active } })
-      .pipe(shareReplay(1));
+      .pipe(
+        tap((response) => {
+          if (response.refData.length === 0) this.countriesCache.delete(active);
+        }),
+        shareReplay(1),
+      );
     this.countriesCache.set(active, request);
     return request;
   }
@@ -48,7 +53,12 @@ export class OpalMaintenanceService {
 
     const request = this.http
       .get<IOpalMaintenanceMajorCreditorReferenceDataResponse>(this.majorCreditorsUrl, { params: httpParams })
-      .pipe(shareReplay(1));
+      .pipe(
+        tap((response) => {
+          if (response.refData.length === 0) this.majorCreditorsCache.delete(cacheKey);
+        }),
+        shareReplay(1),
+      );
     this.majorCreditorsCache.set(cacheKey, request);
     return request;
   }

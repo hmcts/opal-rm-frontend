@@ -316,6 +316,9 @@ describe('Create Casefile Case Details Task List', () => {
         ) {
           cy.wait('@getCountries');
         }
+        if (scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.centralAuthorityDetails) {
+          cy.wait('@getMajorCreditors');
+        }
         assertRouterPath(scenario.childPath);
         assertExactText(Page.caseDetails.heading, scenario.heading);
         assertStoreState(selection, scenario.prerequisiteTasks);

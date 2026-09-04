@@ -111,6 +111,20 @@ describe('CasesCreateCasefileCentralAuthorityMapperService', () => {
     });
   });
 
+  it('resolves a submitted identifier to the exact current record while preserving references', () => {
+    const details = mapper.toCentralAuthorityDetails(
+      {
+        [FIELD_NAMES.remoReference]: 'R',
+        [FIELD_NAMES.centralAuthorityReference]: 'C',
+        [FIELD_NAMES.majorCreditorId]: first.major_creditor_id,
+      },
+      [first],
+    );
+
+    expect(details).toEqual({ remoReference: 'R', centralAuthorityReference: 'C', majorCreditor: first });
+    expect(details.majorCreditor).toBe(first);
+  });
+
   it('maps a null form identifier to no optional selection', () => {
     expect(
       mapper.toCentralAuthorityDetails(

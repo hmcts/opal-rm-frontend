@@ -422,9 +422,10 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     const conditional = fixture.nativeElement.querySelector(
       '#applicantThirdPartyConditional-conditional',
     ) as HTMLDivElement;
+    const checkboxesHost = checkbox.closest('opal-lib-govuk-checkboxes') as HTMLElement;
     expect(checkbox.checked).toBe(true);
     expect(checkbox.getAttribute('data-aria-controls')).toBe(conditional.id);
-    expect(checkbox.closest('.govuk-checkboxes__item')?.nextElementSibling).toBe(conditional);
+    expect(checkboxesHost.nextElementSibling).toBe(conditional);
     expect(
       Array.from(conditional.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')).map(
         (control) => control.id,

@@ -73,6 +73,17 @@ describe('OpalMaintenanceService', () => {
     http.expectOne('/opal-maintenance-service/countries?active=true').flush(countries);
   });
 
+  it('does not retain an empty Countries response in the cache', () => {
+    const first = service.getCountries(true);
+    first.subscribe();
+    http.expectOne('/opal-maintenance-service/countries?active=true').flush({ count: 0, refData: [] });
+
+    const second = service.getCountries(true);
+    expect(second).not.toBe(first);
+    second.subscribe((response) => expect(response).toEqual(countries));
+    http.expectOne('/opal-maintenance-service/countries?active=true').flush(countries);
+  });
+
   it('serializes all Major Creditor filters and shares the identical observable', () => {
     const params = { business_unit_id: 77, central_authority: true, active: true };
     const first = service.getMajorCreditors(params);
@@ -118,5 +129,18 @@ describe('OpalMaintenanceService', () => {
       .flush({ detail: 'Unavailable' }, { status: 503, statusText: 'Service Unavailable' });
     result.subscribe((response) => expect(response).toEqual(majorCreditors));
     http.expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&active=true').flush(majorCreditors);
+  });
+
+  it('does not retain an empty Major Creditor response in the cache', () => {
+    const params = { business_unit_id: 77, central_authority: true, active: true };
+    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true&active=true';
+    const first = service.getMajorCreditors(params);
+    first.subscribe();
+    http.expectOne(url).flush({ count: 0, refData: [] });
+
+    const second = service.getMajorCreditors(params);
+    expect(second).not.toBe(first);
+    second.subscribe((response) => expect(response).toEqual(majorCreditors));
+    http.expectOne(url).flush(majorCreditors);
   });
 });

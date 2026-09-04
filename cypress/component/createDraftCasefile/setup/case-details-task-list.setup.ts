@@ -14,6 +14,7 @@ import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casef
 import type { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileTask } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-task.type';
 import { COUNTRIES_RESPONSE } from '../mocks/countries.mock';
+import { MAJOR_CREDITORS_RESPONSE } from '../centralAuthority/mocks/major-creditors.mock';
 
 @Component({
   imports: [RouterOutlet],
@@ -49,6 +50,10 @@ export const setupCaseDetailsTaskList = ({
     statusCode: 200,
     body: COUNTRIES_RESPONSE,
   }).as('getCountries');
+  cy.intercept('GET', '**/opal-maintenance-service/major-creditors*', {
+    statusCode: 200,
+    body: MAJOR_CREDITORS_RESPONSE,
+  }).as('getMajorCreditors');
   const store = new CasesCreateCasefileStore();
   if (selection) {
     store.setCaseTypeSelection(selection);

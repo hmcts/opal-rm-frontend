@@ -11,7 +11,10 @@
 }
 
 <ng-template #bankAccountType>
-  <div class="govuk-form-group" [class.govuk-form-group--error]="!!formControlErrorMessages[fieldNames.bankType]">
+  <div
+    class="govuk-!-margin-bottom-6"
+    [class.govuk-form-group--error]="!!formControlErrorMessages[fieldNames.bankType]"
+  >
     <fieldset
       [id]="fieldNames.bankType"
       class="govuk-fieldset"

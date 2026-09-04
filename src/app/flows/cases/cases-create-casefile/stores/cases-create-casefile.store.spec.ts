@@ -300,6 +300,8 @@ describe('CasesCreateCasefileStore', () => {
   );
 
   it('normalizes whitespace-only Central Authority references and keeps the optional task Optional', () => {
+    store.setUnsavedChanges(true);
+
     store.setCentralAuthorityDetails({ remoReference: '   ', centralAuthorityReference: '\t', majorCreditor: null });
 
     expect(store.centralAuthorityDetails()).toEqual({
@@ -308,6 +310,8 @@ describe('CasesCreateCasefileStore', () => {
       majorCreditor: null,
     });
     expect(store.taskStatuses().centralAuthority).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL);
+    expect(store.unsavedChanges()).toBe(false);
+    expect(store.stateChanges()).toBe(true);
   });
 
   it.each([
@@ -315,11 +319,14 @@ describe('CasesCreateCasefileStore', () => {
     { remoReference: null, centralAuthorityReference: ' CA-1 ', majorCreditor: null },
     { remoReference: null, centralAuthorityReference: null, majorCreditor },
   ])('marks Central Authority Provided when any value is present', (details) => {
+    store.setUnsavedChanges(true);
+
     store.setCentralAuthorityDetails(details);
 
     expect(store.centralAuthorityDetails()).toEqual(details);
     expect(store.taskStatuses().centralAuthority).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
     expect(store.unsavedChanges()).toBe(false);
+    expect(store.stateChanges()).toBe(true);
   });
 
   it('clears Central Authority details when Case Type changes', () => {
@@ -343,17 +350,14 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.centralAuthorityDetails()).toEqual(details);
   });
 
-  it.each(['resetForCaseTypeEdit', 'resetStore'] as const)(
-    'clears Central Authority details on %s',
-    (method) => {
-      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
-      store.setCentralAuthorityDetails({ remoReference: null, centralAuthorityReference: null, majorCreditor });
+  it.each(['resetForCaseTypeEdit', 'resetStore'] as const)('clears Central Authority details on %s', (method) => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setCentralAuthorityDetails({ remoReference: null, centralAuthorityReference: null, majorCreditor });
 
-      store[method]();
+    store[method]();
 
-      expect(store.centralAuthorityDetails()).toBeNull();
-    },
-  );
+    expect(store.centralAuthorityDetails()).toBeNull();
+  });
 
   it('clears the payment arrangement when the Case Type changes', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });

@@ -152,8 +152,9 @@ mapping, follow [SONAR.md](SONAR.md#form-identifiers).
 - Keep label emphasis consistent within a section. Add `govuk-label--s` only when the approved design explicitly calls
   for a bold label; omit it when adjacent field labels use the component's regular-weight default.
 - Within a journey, centralise repeated derived Date of birth presentation in one reusable component. Bind the source
-  `FormControl`, calculate via `DateService`, clear the derived state for empty or invalid values, and do not persist age
-  in form or API data.
+  `FormControl`, calculate via `DateService` only when the control is valid, clear the derived state for empty or invalid
+  values, and do not persist age in form or API data. `DateService.isValidDate()` establishes that a value is a real
+  calendar date; it does not replace Date of birth validation such as rejecting today or future dates.
 - Add bespoke styling only when no suitable established pattern exists.
 - Keep content concise, user-centred, and consistent with the GOV.UK style guide.
 - Keep routed placeholder pages structurally representative of their intended completed page. Include the appropriate

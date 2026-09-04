@@ -3,7 +3,8 @@ import { By } from '@angular/platform-browser';
 import { FormControl } from '@angular/forms';
 import { MojTicketPanelComponent } from '@hmcts/opal-frontend-common/components/moj/moj-ticket-panel';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { dateOfBirthValidator } from '@hmcts/opal-frontend-common/validators/date-of-birth';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileDateOfBirthAgeComponent } from './cases-create-casefile-date-of-birth-age.component';
 
 describe('CasesCreateCasefileDateOfBirthAgeComponent', () => {
@@ -12,7 +13,7 @@ describe('CasesCreateCasefileDateOfBirthAgeComponent', () => {
   let dateService: Pick<DateService, 'isValidDate' | 'calculateAge'>;
 
   const render = (initialValue: string | null = null): void => {
-    control = new FormControl(initialValue);
+    control = new FormControl(initialValue, dateOfBirthValidator());
     fixture = TestBed.createComponent(CasesCreateCasefileDateOfBirthAgeComponent);
     fixture.componentInstance.control = control;
     fixture.detectChanges();
@@ -27,6 +28,10 @@ describe('CasesCreateCasefileDateOfBirthAgeComponent', () => {
       imports: [CasesCreateCasefileDateOfBirthAgeComponent],
       providers: [{ provide: DateService, useValue: dateService }],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders the initial valid age in the blue alert ticket panel without an age group', () => {
@@ -61,12 +66,19 @@ describe('CasesCreateCasefileDateOfBirthAgeComponent', () => {
     expect(fixture.debugElement.query(By.directive(MojTicketPanelComponent))).toBeNull();
   });
 
-  it('renders age zero', () => {
+  it.each([
+    ['today', '04/09/2026', 0],
+    ['a future date', '05/09/2026', -1],
+  ])('hides the age when the date of birth is %s', (_description, dateOfBirth, calculatedAge) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 4, 12));
     vi.mocked(dateService.isValidDate).mockReturnValue(true);
-    vi.mocked(dateService.calculateAge).mockReturnValue(0);
-    render('03/09/2026');
+    vi.mocked(dateService.calculateAge).mockReturnValue(calculatedAge);
+    render(dateOfBirth);
 
-    expect(fixture.nativeElement.textContent.trim()).toBe('Age: 0');
+    expect(control.hasError('invalidDateOfBirth')).toBe(true);
+    expect(fixture.debugElement.query(By.directive(MojTicketPanelComponent))).toBeNull();
+    expect(dateService.calculateAge).not.toHaveBeenCalled();
   });
 
   it('stops observing the control when destroyed', () => {

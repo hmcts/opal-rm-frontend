@@ -32,7 +32,7 @@ export class CasesCreateCasefileDateOfBirthAgeComponent implements OnInit {
       .pipe(startWith(this.control.value), takeUntilDestroyed(this.destroyRef))
       .subscribe((dateOfBirth) => {
         this.age =
-          dateOfBirth !== null && this.dateService.isValidDate(dateOfBirth)
+          dateOfBirth !== null && this.control.valid && this.dateService.isValidDate(dateOfBirth)
             ? this.dateService.calculateAge(dateOfBirth)
             : null;
         this.changeDetectorRef.markForCheck();

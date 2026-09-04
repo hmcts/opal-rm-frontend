@@ -1,4 +1,9 @@
 <div class="govuk-grid-column-two-thirds">
-  <opal-lib-govuk-back-link (clickEvent)="handleBack()"></opal-lib-govuk-back-link>
-  <h1 class="govuk-heading-l">Central authority details</h1>
+  <app-cases-create-casefile-central-authority-form
+    [initialFormData]="initialFormData"
+    [centralAuthorityAutocompleteItems]="centralAuthorityAutocompleteItems"
+    (formSubmit)="handleFormSubmit($event)"
+    (unsavedChanges)="handleUnsavedChanges($event)"
+    (cancel)="handleCancel()"
+  />
 </div>

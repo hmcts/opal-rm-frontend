@@ -18,7 +18,7 @@ import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-crea
 import type { ICasesCreateCasefileApplicantIndividual } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-applicant-individual.interface';
 import { routing } from 'src/app/flows/cases/cases-create-casefile/routing/cases-create-casefile.routes';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/flows/cases/cases-create-casefile/services/interfaces/cases-create-casefile-country-reference-data-response.interface';
+import type { IOpalMaintenanceCountryReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import type { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-case-type-selection.type';
 import { STARTER_USER_STATE_CASES_ONLY } from 'cypress/shared/mocks/user-state.mock';
@@ -40,7 +40,7 @@ const testRoutes: Routes = [
 
 interface IApplicantIndividualSetup {
   caseTypeSelection?: CasesCreateCasefileCaseTypeSelection;
-  countries?: ICasesCreateCasefileCountryReferenceDataResponse | StaticResponse;
+  countries?: IOpalMaintenanceCountryReferenceDataResponse | StaticResponse;
   savedApplicant?: ICasesCreateCasefileApplicantIndividual | null;
   initialChildPath?: string;
   useHttpErrorInterceptor?: boolean;

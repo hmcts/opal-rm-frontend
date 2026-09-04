@@ -94,6 +94,7 @@ describe('CasesCreateCasefileCentralAuthorityComponent', () => {
       [FIELD_NAMES.majorCreditorId]: null,
     });
     expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.govuk-back-link')).toBeNull();
     expect(fixture.debugElement.queryAll(By.directive(CasesCreateCasefileCentralAuthorityFormComponent))).toHaveLength(
       1,
     );
@@ -173,25 +174,22 @@ describe('CasesCreateCasefileCentralAuthorityComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
   });
 
-  it.each(['handleBack', 'handleCancel'] as const)(
-    '%s requests guarded Case details navigation without saving edits',
-    (method) => {
-      store.setCentralAuthorityDetails({
-        remoReference: 'SAVED',
-        centralAuthorityReference: null,
-        majorCreditor: first,
-      });
-      createComponent();
-      component.handleUnsavedChanges(true);
+  it('handleCancel requests guarded Case details navigation without saving edits', () => {
+    store.setCentralAuthorityDetails({
+      remoReference: 'SAVED',
+      centralAuthorityReference: null,
+      majorCreditor: first,
+    });
+    createComponent();
+    component.handleUnsavedChanges(true);
 
-      component[method]();
+    component.handleCancel();
 
-      expect(store.centralAuthorityDetails()?.remoReference).toBe('SAVED');
-      expect(store.unsavedChanges()).toBe(true);
-      expect(component['canDeactivate']()).toBe(false);
-      expect(router.navigate).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
-    },
-  );
+    expect(store.centralAuthorityDetails()?.remoReference).toBe('SAVED');
+    expect(store.unsavedChanges()).toBe(true);
+    expect(component['canDeactivate']()).toBe(false);
+    expect(router.navigate).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
+  });
 
   it('mirrors form dirty state into the store and base guard state', () => {
     createComponent();

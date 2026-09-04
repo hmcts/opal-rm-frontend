@@ -16,20 +16,42 @@ export class OpalMaintenanceService {
     Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse>
   >();
 
+  private cacheRequest<TKey, TResponse extends { refData: unknown[] }>(
+    cache: Map<TKey, Observable<TResponse>>,
+    cacheKey: TKey,
+    source: Observable<TResponse>,
+  ): Observable<TResponse> {
+    let hasUsableResponse = false;
+    let request: Observable<TResponse>;
+    const evictIfCurrent = () => {
+      if (cache.get(cacheKey) === request) cache.delete(cacheKey);
+    };
+
+    request = source.pipe(
+      tap({
+        next: (response) => {
+          hasUsableResponse ||= response.refData.length > 0;
+          if (!hasUsableResponse) evictIfCurrent();
+        },
+        complete: () => {
+          if (!hasUsableResponse) evictIfCurrent();
+        },
+      }),
+      shareReplay(1),
+    );
+    cache.set(cacheKey, request);
+    return request;
+  }
+
   public getCountries(active: boolean): Observable<IOpalMaintenanceCountryReferenceDataResponse> {
     const cached = this.countriesCache.get(active);
     if (cached) return cached;
 
-    const request = this.http
-      .get<IOpalMaintenanceCountryReferenceDataResponse>(this.countriesUrl, { params: { active } })
-      .pipe(
-        tap((response) => {
-          if (response.refData.length === 0) this.countriesCache.delete(active);
-        }),
-        shareReplay(1),
-      );
-    this.countriesCache.set(active, request);
-    return request;
+    return this.cacheRequest(
+      this.countriesCache,
+      active,
+      this.http.get<IOpalMaintenanceCountryReferenceDataResponse>(this.countriesUrl, { params: { active } }),
+    );
   }
 
   public getMajorCreditors(
@@ -51,15 +73,12 @@ export class OpalMaintenanceService {
       httpParams = httpParams.set('active', params.active);
     }
 
-    const request = this.http
-      .get<IOpalMaintenanceMajorCreditorReferenceDataResponse>(this.majorCreditorsUrl, { params: httpParams })
-      .pipe(
-        tap((response) => {
-          if (response.refData.length === 0) this.majorCreditorsCache.delete(cacheKey);
-        }),
-        shareReplay(1),
-      );
-    this.majorCreditorsCache.set(cacheKey, request);
-    return request;
+    return this.cacheRequest(
+      this.majorCreditorsCache,
+      cacheKey,
+      this.http.get<IOpalMaintenanceMajorCreditorReferenceDataResponse>(this.majorCreditorsUrl, {
+        params: httpParams,
+      }),
+    );
   }
 }

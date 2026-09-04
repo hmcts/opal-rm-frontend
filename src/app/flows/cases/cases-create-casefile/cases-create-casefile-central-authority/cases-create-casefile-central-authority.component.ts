@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
-import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
@@ -12,7 +11,7 @@ import { CasesCreateCasefileCentralAuthorityMapperService } from './services/cas
 
 @Component({
   selector: 'app-cases-create-casefile-central-authority',
-  imports: [GovukBackLinkComponent, CasesCreateCasefileCentralAuthorityFormComponent],
+  imports: [CasesCreateCasefileCentralAuthorityFormComponent],
   templateUrl: './cases-create-casefile-central-authority.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -51,10 +50,6 @@ export class CasesCreateCasefileCentralAuthorityComponent extends AbstractFormPa
   public handleUnsavedChanges(unsavedChanges: boolean): void {
     this.store.setUnsavedChanges(unsavedChanges);
     this.stateUnsavedChanges = unsavedChanges;
-  }
-
-  public handleBack(): void {
-    this.routerNavigate(this.taskListPath, true);
   }
 
   public handleCancel(): void {

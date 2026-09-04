@@ -8,8 +8,9 @@
     [ariaControls]="conditionalId + '-conditional'"
     [control]="form.get(checkboxFieldName)"
   ></div>
-  @if (form.get(checkboxFieldName)?.value === true) {
-    <div opal-lib-govuk-checkboxes-conditional [conditionalId]="conditionalId">
+ </opal-lib-govuk-checkboxes>
+@if (form.get(checkboxFieldName)?.value === true) {
+  <div opal-lib-govuk-checkboxes-conditional [conditionalId]="conditionalId">
       <opal-lib-govuk-text-input
         labelText="Name or organisation"
         [inputId]="fieldNames.nameOrOrganisation"
@@ -38,13 +39,11 @@
       />
       <opal-lib-govuk-select
         labelText="Country"
-        labelClasses="govuk-label--s"
         [selectId]="fieldNames.countryId"
         [selectName]="fieldNames.countryId"
         [options]="countrySelectOptions"
         [control]="form.get(fieldNames.countryId)!"
         [errors]="formControlErrorMessages[fieldNames.countryId]"
       />
-    </div>
-  }
-</opal-lib-govuk-checkboxes>
+  </div>
+}

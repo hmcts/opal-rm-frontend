@@ -191,8 +191,9 @@
       ariaControls="respondentEmployerConditional-conditional"
       [control]="form.get('create_casefile_respondent_details_add_employer_details')"
     ></div>
-    @if (form.get('create_casefile_respondent_details_add_employer_details')?.value === true) {
-      <div opal-lib-govuk-checkboxes-conditional conditionalId="respondentEmployerConditional">
+  </opal-lib-govuk-checkboxes>
+  @if (form.get('create_casefile_respondent_details_add_employer_details')?.value === true) {
+    <div opal-lib-govuk-checkboxes-conditional conditionalId="respondentEmployerConditional">
         <opal-lib-govuk-text-input
           labelText="Employer name"
           inputId="create_casefile_respondent_details_employer_name"
@@ -267,7 +268,6 @@
         />
         <opal-lib-alphagov-accessible-autocomplete
           labelText="Country"
-          labelClasses="govuk-label--s"
           inputId="create_casefile_respondent_details_employer_country_id"
           inputName="create_casefile_respondent_details_employer_country_id"
           [showAllValues]="true"
@@ -275,9 +275,8 @@
           [control]="form.get('create_casefile_respondent_details_employer_country_id')"
           [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_country_id']"
         />
-      </div>
-    }
-  </opal-lib-govuk-checkboxes>
+    </div>
+  }
 
   <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
   <app-cases-create-casefile-restricted-information

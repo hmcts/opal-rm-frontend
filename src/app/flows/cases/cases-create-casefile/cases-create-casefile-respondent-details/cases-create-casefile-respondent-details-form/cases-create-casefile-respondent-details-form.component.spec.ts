@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
+import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileDateOfBirthAgeComponent } from '../../components/cases-create-casefile-date-of-birth-age/cases-create-casefile-date-of-birth-age.component';
 import { CasesCreateCasefileRestrictedInformationComponent } from '../../components/cases-create-casefile-restricted-information/cases-create-casefile-restricted-information.component';
@@ -668,5 +669,31 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     expect(checkbox.getAttribute('data-aria-controls')).toBe(conditional.id);
     expect(checkboxHost.nextElementSibling).toBe(conditional);
     expect(conditional.closest('opal-lib-govuk-checkboxes')).toBeNull();
+  });
+
+  it('renders the employer conditional as a sibling with a regular Country label', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+      create_casefile_respondent_details_add_employer_details: true,
+      create_casefile_respondent_details_employer_name: 'Test employer',
+      create_casefile_respondent_details_employer_address_line_1: '3 Test Street',
+      create_casefile_respondent_details_employer_country_id: 1,
+    };
+    fixture.detectChanges();
+
+    const checkbox = fixture.nativeElement.querySelector(
+      '#create_casefile_respondent_details_add_employer_details',
+    ) as HTMLInputElement;
+    const checkboxHost = checkbox.closest('opal-lib-govuk-checkboxes') as HTMLElement;
+    const conditional = fixture.nativeElement.querySelector('#respondentEmployerConditional-conditional') as HTMLElement;
+    expect(checkbox.getAttribute('data-aria-controls')).toBe(conditional.id);
+    expect(checkboxHost.nextElementSibling).toBe(conditional);
+    expect(conditional.closest('opal-lib-govuk-checkboxes')).toBeNull();
+
+    const country = fixture.debugElement
+      .queryAll(By.directive(AlphagovAccessibleAutocompleteComponent))
+      .map(({ componentInstance }) => componentInstance as AlphagovAccessibleAutocompleteComponent)
+      .find(({ inputId }) => inputId === 'create_casefile_respondent_details_employer_country_id');
+    expect(country?.labelClasses).toBeUndefined();
   });
 });

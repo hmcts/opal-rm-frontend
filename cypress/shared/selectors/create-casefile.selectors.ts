@@ -1,6 +1,7 @@
 import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/constants/cases-create-casefile-case-type-field-names.constant';
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant';
 import { CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-managing-payments/constants/cases-create-casefile-managing-payments-field-names.constant';
+import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-comments-notes/constants/cases-create-casefile-comments-notes-field-names.constant';
 
 export const CreateCasefileSelectors = {
   heading: 'h1',
@@ -100,6 +101,27 @@ export const CreateCasefileSelectors = {
     errorSummary: '.govuk-error-summary',
     errorSummaryLinks: '.govuk-error-summary a',
     paymentArrangementError: `#${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}-error-message`,
+  },
+  commentsAndNotes: {
+    heading: 'h1',
+    inset: '#commentsAndNotesInset',
+    comment: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}`,
+    commentLabel: `label[for="${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}"]`,
+    commentHint: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-hint`,
+    commentLimit: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-with-hint-info`,
+    commentCounter: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment} ~ .govuk-character-count__status`,
+    commentError: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.comment}-error-message`,
+    note: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note}`,
+    noteLabel: `label[for="${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note}"]`,
+    noteHint: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note}-hint`,
+    noteLimit: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note}-with-hint-info`,
+    noteCounter: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note} ~ .govuk-character-count__status`,
+    noteError: `#${CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES.note}-error-message`,
+    sectionBreak: '.govuk-section-break--visible',
+    returnToCaseDetails: '#returnToCaseDetails',
+    cancelLink: '#cancelCommentsAndNotes a',
+    errorSummary: '.govuk-error-summary',
+    errorSummaryLinks: '.govuk-error-summary a',
   },
   respondentDetails: {
     heading: 'h1',

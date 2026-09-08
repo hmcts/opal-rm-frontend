@@ -182,7 +182,7 @@
   "resolutions": {
     "@cucumber/messages": "^34.0.0",
     "browserslist": "^4.28.1",
-    "cookie": "^1.0.0",
+    "cookie": "^2.0.0",
     "on-headers": "^1.1.0",
     "brace-expansion": "^5.0.0",
     "tmp": "^0.2.4",

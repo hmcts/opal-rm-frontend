@@ -111,6 +111,13 @@ describe('CasesCreateCasefileThirdPartyComponent', () => {
       expect(conditional.conditionalId).toBe(conditionalId);
       expect(conditional.id).toBe(`${conditionalId}-conditional`);
 
+      const checkboxesHost = fixture.debugElement.query(By.directive(GovukCheckboxesComponent))
+        .nativeElement as HTMLElement;
+      const conditionalHost = fixture.debugElement.query(By.directive(GovukCheckboxesConditionalComponent))
+        .nativeElement as HTMLElement;
+      expect(checkboxesHost.nextElementSibling).toBe(conditionalHost);
+      expect(conditionalHost.closest('opal-lib-govuk-checkboxes')).toBeNull();
+
       const textInputs = fixture.debugElement
         .queryAll(By.directive(GovukTextInputComponent))
         .map((debugElement) => debugElement.componentInstance as GovukTextInputComponent);
@@ -191,7 +198,7 @@ describe('CasesCreateCasefileThirdPartyComponent', () => {
         selectName: select.selectName,
       }).toEqual({
         labelText: 'Country',
-        labelClasses: 'govuk-label--s',
+        labelClasses: undefined,
         selectId: fieldNames.countryId,
         selectName: fieldNames.countryId,
       });

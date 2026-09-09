@@ -137,6 +137,22 @@ describe('CasesCreateCasefileBankDetailsComponent', () => {
     }
   });
 
+  it('keeps revealed field groups outside a parent form group while preserving bank-type error styling', () => {
+    fixture.detectChanges();
+
+    const bankFieldset = fixture.nativeElement.querySelector(`#${fieldNames.bankType}`) as HTMLFieldSetElement;
+    const bankWrapper = bankFieldset.parentElement as HTMLElement;
+    expect(bankWrapper.classList).toContain('govuk-!-margin-bottom-6');
+    expect(bankWrapper.classList).toContain('govuk-form-group--error');
+    expect(bankWrapper.classList).not.toContain('govuk-form-group');
+
+    for (const formGroup of Array.from(
+      fixture.nativeElement.querySelectorAll('.govuk-radios__conditional .govuk-form-group'),
+    ) as HTMLElement[]) {
+      expect(formGroup.parentElement?.closest('.govuk-form-group')).toBeNull();
+    }
+  });
+
   it.each([
     ['heading', individualNonUkFieldOrder],
     ['fieldset', organisationNonUkFieldOrder],

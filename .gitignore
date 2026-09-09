@@ -53,6 +53,7 @@ package-lock.json
 .codex/skills/
 
 # Local Superpowers planning/assets
+/.agents/skills/superpowers
 superpowers/
 .superpowers/
 **/superpowers/

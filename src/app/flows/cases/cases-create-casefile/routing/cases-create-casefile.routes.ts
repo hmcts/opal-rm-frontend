@@ -135,6 +135,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileCommentsNotesComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.commentsAndNotes },
     resolve: { title: TitleResolver },
   },

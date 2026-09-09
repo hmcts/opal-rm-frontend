@@ -1,6 +1,6 @@
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/flows/cases/cases-create-casefile/services/interfaces/cases-create-casefile-country-reference-data-response.interface';
+import type { IOpalMaintenanceCountryReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 
-export const COUNTRIES_RESPONSE: ICasesCreateCasefileCountryReferenceDataResponse = {
+export const COUNTRIES_RESPONSE: IOpalMaintenanceCountryReferenceDataResponse = {
   count: 2,
   refData: [
     {
@@ -22,7 +22,7 @@ export const COUNTRIES_RESPONSE: ICasesCreateCasefileCountryReferenceDataRespons
   ],
 };
 
-export const EMPTY_COUNTRIES_RESPONSE: ICasesCreateCasefileCountryReferenceDataResponse = { count: 0, refData: [] };
+export const EMPTY_COUNTRIES_RESPONSE: IOpalMaintenanceCountryReferenceDataResponse = { count: 0, refData: [] };
 
 export const createCountriesUnavailableProblem = (operationId: string) => ({
   title: 'Countries service unavailable',

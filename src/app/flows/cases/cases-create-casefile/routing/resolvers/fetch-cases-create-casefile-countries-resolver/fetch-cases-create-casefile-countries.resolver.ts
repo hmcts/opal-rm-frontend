@@ -7,15 +7,15 @@ import {
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
 import { filter, Observable, tap } from 'rxjs';
-import { CasesCreateCasefileCountryService } from '../../../services/cases-create-casefile-country.service';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from '../../../services/interfaces/cases-create-casefile-country-reference-data-response.interface';
+import { OpalMaintenanceService } from '../../../../services/opal-maintenance-service/opal-maintenance.service';
+import type { IOpalMaintenanceCountryReferenceDataResponse } from '../../../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 
 export const fetchCasesCreateCasefileCountriesResolver: ResolveFn<
-  ICasesCreateCasefileCountryReferenceDataResponse
-> = (): Observable<ICasesCreateCasefileCountryReferenceDataResponse> => {
+  IOpalMaintenanceCountryReferenceDataResponse
+> = (): Observable<IOpalMaintenanceCountryReferenceDataResponse> => {
   const globalStore = inject(GlobalStore);
 
-  return inject(CasesCreateCasefileCountryService)
+  return inject(OpalMaintenanceService)
     .getCountries(true)
     .pipe(
       tap((response) => {

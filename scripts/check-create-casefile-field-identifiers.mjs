@@ -43,6 +43,13 @@ const pageDefinitions = [
     fieldNamesFile:
       'cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant.ts',
   },
+  {
+    directory: 'cases-create-casefile-central-authority',
+    prefix: 'create_casefile_central_authority_',
+    constantName: 'CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES',
+    fieldNamesFile:
+      'cases-create-casefile-central-authority/constants/cases-create-casefile-central-authority-field-names.constant.ts',
+  },
 ];
 
 const templatePaths = {
@@ -53,8 +60,12 @@ const templatePaths = {
   bankDetails: 'components/cases-create-casefile-bank-details/cases-create-casefile-bank-details.component.html',
   caseType:
     'cases-create-casefile-case-type/cases-create-casefile-case-type-form/cases-create-casefile-case-type-form.component.html',
+  centralAuthority:
+    'cases-create-casefile-central-authority/cases-create-casefile-central-authority-form/cases-create-casefile-central-authority-form.component.html',
   interestIndexation:
     'cases-create-casefile-interest-indexation/cases-create-casefile-interest-indexation-form/cases-create-casefile-interest-indexation-form.component.html',
+  managingPayments:
+    'cases-create-casefile-managing-payments/cases-create-casefile-managing-payments-form/cases-create-casefile-managing-payments-form.component.html',
   respondentDetails:
     'cases-create-casefile-respondent-details/cases-create-casefile-respondent-details-form/cases-create-casefile-respondent-details-form.component.html',
   restrictedInformation:
@@ -167,6 +178,12 @@ const structuralIdentifierAllowlist = new Set([
 
   structuralIdentifierKey(templatePaths.interestIndexation, 'button', 'id', 'returnToCaseDetails'),
   structuralIdentifierKey(templatePaths.interestIndexation, 'span', 'id', 'cancelInterestAndIndexation'),
+
+  structuralIdentifierKey(templatePaths.centralAuthority, 'button', 'id', 'returnToCaseDetails'),
+  structuralIdentifierKey(templatePaths.centralAuthority, 'span', 'id', 'cancelCentralAuthority'),
+
+  structuralIdentifierKey(templatePaths.managingPayments, 'button', 'id', 'returnToCaseDetails'),
+  structuralIdentifierKey(templatePaths.managingPayments, 'span', 'id', 'cancelManagingPayments'),
 
   structuralIdentifierKey(
     templatePaths.thirdParty,

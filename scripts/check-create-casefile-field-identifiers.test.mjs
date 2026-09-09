@@ -12,6 +12,10 @@ const fixturesDirectory = resolve(scriptsDirectory, 'fixtures/create-casefile-fi
 const createCasefilePath = 'src/app/flows/cases/cases-create-casefile';
 const caseTypeDirectory = 'cases-create-casefile-case-type';
 const caseTypeTemplatePath = `${createCasefilePath}/${caseTypeDirectory}/cases-create-casefile-case-type-form/cases-create-casefile-case-type-form.component.html`;
+const centralAuthorityDirectory = 'cases-create-casefile-central-authority';
+const centralAuthorityFieldNamesPath = `${createCasefilePath}/${centralAuthorityDirectory}/constants/cases-create-casefile-central-authority-field-names.constant.ts`;
+const centralAuthorityTemplatePath = `${createCasefilePath}/${centralAuthorityDirectory}/cases-create-casefile-central-authority-form/cases-create-casefile-central-authority-form.component.html`;
+const managingPaymentsTemplatePath = `${createCasefilePath}/cases-create-casefile-managing-payments/cases-create-casefile-managing-payments-form/cases-create-casefile-managing-payments-form.component.html`;
 const temporaryRepositories = [];
 
 const supportingFieldNameConstants = [
@@ -38,6 +42,12 @@ const supportingFieldNameConstants = [
     exportName: 'CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES',
     key: 'interestApplies',
     value: 'create_casefile_interest_indexation_interest_applies',
+  },
+  {
+    path: `${centralAuthorityDirectory}/constants/cases-create-casefile-central-authority-field-names.constant.ts`,
+    exportName: 'CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES',
+    key: 'majorCreditorId',
+    value: 'create_casefile_central_authority_major_creditor_id',
   },
 ];
 
@@ -139,4 +149,46 @@ test('rejects duplicate identifiers after resolving a field-map expression', asy
     runScanner(repositoryRoot),
     /duplicate ID declaration "create_casefile_case_type_case_type" \(first declared on line 2\)/,
   );
+});
+
+test('accepts the Central Authority and Managing Payments structural action identifiers', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await Promise.all([
+    writeFixtureFile(
+      repositoryRoot,
+      centralAuthorityTemplatePath,
+      `<opal-lib-alphagov-accessible-autocomplete
+  [inputId]="fieldNames.majorCreditorId"
+  [inputName]="fieldNames.majorCreditorId"
+/>
+<button id="returnToCaseDetails" type="submit">Return to case details</button>
+<span id="cancelCentralAuthority"></span>
+`,
+    ),
+    writeFixtureFile(
+      repositoryRoot,
+      managingPaymentsTemplatePath,
+      `<button id="returnToCaseDetails" type="submit">Return to case details</button>
+<span id="cancelManagingPayments"></span>
+`,
+    ),
+  ]);
+
+  const result = runScanner(repositoryRoot);
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('rejects a Central Authority identifier that uses the wrong page prefix', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    centralAuthorityFieldNamesPath,
+    `export const CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES = {
+  majorCreditorId: 'create_casefile_respondent_details_major_creditor_id',
+} as const;
+`,
+  );
+
+  assertRejected(runScanner(repositoryRoot), /majorCreditorId does not use create_casefile_central_authority_/);
 });

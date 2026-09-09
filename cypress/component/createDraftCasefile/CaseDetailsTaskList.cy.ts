@@ -316,21 +316,26 @@ describe('Create Casefile Case Details Task List', () => {
         ) {
           cy.wait('@getCountries');
         }
+        if (scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.centralAuthorityDetails) {
+          cy.wait('@getMajorCreditors');
+        }
         assertRouterPath(scenario.childPath);
         assertExactText(Page.caseDetails.heading, scenario.heading);
         assertStoreState(selection, scenario.prerequisiteTasks);
         cy.get(
           scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails
             ? Page.respondentDetails.cancelLink
-            : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual
-              ? Page.applicantIndividual.cancelLink
-              : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation
-                ? Page.applicantOrganisation.cancelLink
-                : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.interestAndIndexation
-                  ? Page.interestAndIndexation.cancelLink
-                  : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.managingPayments
-                    ? Page.managingPayments.cancelLink
-                    : Page.caseDetails.backLink,
+            : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.centralAuthorityDetails
+              ? Page.centralAuthority.cancelLink
+              : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual
+                ? Page.applicantIndividual.cancelLink
+                : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation
+                  ? Page.applicantOrganisation.cancelLink
+                  : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.interestAndIndexation
+                    ? Page.interestAndIndexation.cancelLink
+                    : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.managingPayments
+                      ? Page.managingPayments.cancelLink
+                      : Page.caseDetails.backLink,
         ).click();
         assertRouterPath(taskListPath);
         assertExactText(Page.caseDetails.heading, 'Case details');

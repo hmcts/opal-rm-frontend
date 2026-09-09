@@ -7,7 +7,7 @@ import { createSpyObj } from '@app/testing/create-spy-obj.helper';
 import { CasesCreateCasefileFormParentBaseComponent } from '../components/abstract/cases-create-casefile-form-parent-base/cases-create-casefile-form-parent-base.component';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../cases-create-casefile-applicant-individual/mocks/cases-create-casefile-applicant-individual.mock';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from '../services/interfaces/cases-create-casefile-country-reference-data-response.interface';
+import type { IOpalMaintenanceCountryReferenceDataResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileApplicantOrganisationFormComponent } from './cases-create-casefile-applicant-organisation-form/cases-create-casefile-applicant-organisation-form.component';
 import { CasesCreateCasefileApplicantOrganisationComponent } from './cases-create-casefile-applicant-organisation.component';
@@ -19,7 +19,7 @@ describe('CasesCreateCasefileApplicantOrganisationComponent', () => {
   let httpTestingController: HttpTestingController;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
   const router = createSpyObj(Router, ['navigate']);
-  const countriesResponse: ICasesCreateCasefileCountryReferenceDataResponse = {
+  const countriesResponse: IOpalMaintenanceCountryReferenceDataResponse = {
     count: 2,
     refData: [
       {

@@ -1,0 +1,43 @@
+import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
+
+export const E2E_MAJOR_CREDITORS_RESPONSE: IOpalMaintenanceMajorCreditorReferenceDataResponse = {
+  count: 2,
+  refData: [
+    {
+      major_creditor_id: 901,
+      business_unit_id: 77,
+      major_creditor_code: '0123',
+      name: 'Central Authority One',
+      address_line_1: '1 Test Street',
+      address_line_2: null,
+      address_line_3: null,
+      address_line_4: null,
+      address_line_5: null,
+      postcode: 'TE1 1ST',
+      country_id: 826,
+      country_name: 'United Kingdom',
+      contact_name: 'Test Contact One',
+      contact_email: 'authority.one@example.test',
+      active: true,
+      central_authority: true,
+    },
+    {
+      major_creditor_id: 902,
+      business_unit_id: 77,
+      major_creditor_code: '0456',
+      name: 'Central Authority Two',
+      address_line_1: '2 Test Street',
+      address_line_2: null,
+      address_line_3: null,
+      address_line_4: null,
+      address_line_5: null,
+      postcode: 'TE2 2ST',
+      country_id: 826,
+      country_name: 'United Kingdom',
+      contact_name: 'Test Contact Two',
+      contact_email: 'authority.two@example.test',
+      active: true,
+      central_authority: true,
+    },
+  ],
+};

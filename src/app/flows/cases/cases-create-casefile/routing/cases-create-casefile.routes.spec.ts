@@ -19,11 +19,11 @@ import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-crea
 import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
+import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
 const guardedRouteCases = [
   ['taskList', 'Case details'],
-  ['centralAuthorityDetails', 'Central authority details'],
   ['orderDetails', 'Order details'],
   ['orderTermsSummary', 'Order terms'],
   ['commentsAndNotes', 'Comments and notes'],
@@ -124,6 +124,25 @@ describe('Create Casefile routes', () => {
     const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
 
     expect(component?.name).toBe(CasesCreateCasefileApplicantOrganisationComponent.name);
+  });
+
+  it('registers Central authority details with flow and unsaved-change guards and resolves active Central Authorities', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.centralAuthorityDetails,
+    );
+
+    expect(route?.loadComponent).toEqual(expect.any(Function));
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.centralAuthorityDetails });
+    expect(route?.resolve).toEqual({
+      title: TitleResolver,
+      centralAuthorities: fetchCasesCreateCasefileCentralAuthoritiesResolver,
+    });
+
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
+
+    expect(component?.name).toBe(CasesCreateCasefileCentralAuthorityComponent.name);
   });
 
   it('registers Interest and indexation with flow and unsaved-change guards and no permission metadata', async () => {

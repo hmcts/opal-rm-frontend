@@ -1,4 +1,5 @@
 import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/constants/cases-create-casefile-case-type-field-names.constant';
+import { CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-central-authority/constants/cases-create-casefile-central-authority-field-names.constant';
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant';
 import { CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-managing-payments/constants/cases-create-casefile-managing-payments-field-names.constant';
 
@@ -63,6 +64,20 @@ export const CreateCasefileSelectors = {
     blockingGuidance: '#checkCaseBlockingGuidance',
     checkCaseButton: '#checkCaseButton',
     cancelLink: '#cancelCaseCreation',
+  },
+  centralAuthority: {
+    heading: 'h1',
+    remoReference: `#${CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.remoReference}`,
+    centralAuthorityReference: `#${CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.centralAuthorityReference}`,
+    majorCreditorId: `#${CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.majorCreditorId}`,
+    autocomplete: `#${CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.majorCreditorId}-autocomplete`,
+    autocompleteOptions: `#${CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.majorCreditorId}-autocomplete__listbox [role="option"]`,
+    remoReferenceError: `#${CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.remoReference}-error-message`,
+    centralAuthorityReferenceError: `#${CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.centralAuthorityReference}-error-message`,
+    errorSummary: '.govuk-error-summary',
+    errorSummaryLinks: '.govuk-error-summary a',
+    returnToCaseDetails: '#returnToCaseDetails',
+    cancelLink: '#cancelCentralAuthority a',
   },
   interestAndIndexation: {
     heading: 'h1',

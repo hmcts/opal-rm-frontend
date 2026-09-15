@@ -57,7 +57,7 @@
     "postinstall": "patch-package",
     "check:steps": "cypress run --env cucumberOnlyMissingSteps=true",
     "find:duplicate:scenarios": "FEATURE_GLOB=\"cypress/e2e/functional/opal/features\" node scripts/find-duplicate-scenarios.js",
-    "check:cypress:test-metadata": "opal-cypress-check-test-metadata",
+    "check:cypress:test-metadata": "opal-cypress-check-new-tests-jira-metadata --component-root cypress/component/createDraftCasefile --feature-root cypress/e2e/functional/opal/features --exclude-file cypress/e2e/functional/opal/features/reciprocalMaintenance/dummyTest.feature",
     "check:create-casefile-field-identifiers": "node scripts/check-create-casefile-field-identifiers.mjs",
     "test:create-casefile-field-identifiers": "node --test scripts/check-create-casefile-field-identifiers.test.mjs",
     "reset-test-outputs": "tsx ./scripts/reset-test-outputs.ts",

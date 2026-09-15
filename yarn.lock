@@ -13013,6 +13013,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"js-yaml@npm:^5.4.0":
+  version: 5.4.0
+  resolution: "js-yaml@npm:5.4.0"
+  dependencies:
+    argparse: "npm:^2.0.1"
+  bin:
+    js-yaml: bin/js-yaml.mjs
+  checksum: 10/d8216083212772b203a1ee16be2ea96a1638c6d7f0ff769ba4da274b5ad29e858bd26d96761feb8937fce1aa47e8acfa79b2cd21a8ced724cc5555c11b4d056c
+  languageName: node
+  linkType: hard
+
 "jsbn@npm:~0.1.0":
   version: 0.1.1
   resolution: "jsbn@npm:0.1.1"
@@ -15037,7 +15048,7 @@ __metadata:
     helmet: "npm:^8.0.0"
     home-office-kit: "npm:^1.2.0"
     http-proxy-middleware: "npm:^4.0.0"
-    js-yaml: "npm:^5.2.2"
+    js-yaml: "npm:^5.4.0"
     jsdom: "npm:^30.0.0"
     junit-report-merger: "npm:^9.0.0"
     launchdarkly-js-client-sdk: "npm:^3.1.4"

@@ -53,12 +53,15 @@ package-lock.json
 .codex/skills/
 
 # Local Superpowers planning/assets
+/.agents/skills/superpowers
 superpowers/
 .superpowers/
 **/superpowers/
 **/.superpowers/
 /docs/designs/
 /docs/plans/
+/docs/superpowers/specs/
+/docs/superpowers/plans/
 
 # System files
 .DS_Store

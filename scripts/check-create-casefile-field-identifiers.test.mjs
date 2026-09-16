@@ -18,6 +18,9 @@ const centralAuthorityTemplatePath = `${createCasefilePath}/${centralAuthorityDi
 const managingPaymentsTemplatePath = `${createCasefilePath}/cases-create-casefile-managing-payments/cases-create-casefile-managing-payments-form/cases-create-casefile-managing-payments-form.component.html`;
 const orderDetailsDirectory = 'cases-create-casefile-order-details';
 const orderDetailsTemplatePath = `${createCasefilePath}/${orderDetailsDirectory}/cases-create-casefile-order-details-form/cases-create-casefile-order-details-form.component.html`;
+const orderTermsSelectDirectory = 'cases-create-casefile-order-terms-select';
+const orderTermsSelectTemplatePath = `${createCasefilePath}/${orderTermsSelectDirectory}/cases-create-casefile-order-terms-select-form/cases-create-casefile-order-terms-select-form.component.html`;
+const orderTermsSummaryTemplatePath = `${createCasefilePath}/cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component.html`;
 const temporaryRepositories = [];
 
 const supportingFieldNameConstants = [
@@ -56,6 +59,12 @@ const supportingFieldNameConstants = [
     exportName: 'CASES_CREATE_CASEFILE_ORDER_DETAILS_FIELD_NAMES',
     key: 'applicationId',
     value: 'create_casefile_order_details_application_id',
+  },
+  {
+    path: `${orderTermsSelectDirectory}/constants/cases-create-casefile-order-terms-select-field-names.constant.ts`,
+    exportName: 'CASES_CREATE_CASEFILE_ORDER_TERMS_SELECT_FIELD_NAMES',
+    key: 'resultId',
+    value: 'create_casefile_order_terms_select_result_id',
   },
 ];
 
@@ -189,6 +198,23 @@ test('accepts the maintained form structural action identifiers', async () => {
 />
 <button id="create_casefile_order_details_return_to_case_details" type="submit">Return to case details</button>
 <span id="create_casefile_order_details_cancel"></span>
+`,
+    ),
+    writeFixtureFile(
+      repositoryRoot,
+      orderTermsSelectTemplatePath,
+      `<div id="create_casefile_order_terms_status"></div>
+<button id="create_casefile_order_terms_retry" type="button">Retry</button>
+<select [id]="fieldNames.resultId" [name]="fieldNames.resultId"></select>
+<button id="create_casefile_order_terms_continue" type="submit">Continue</button>
+<span id="create_casefile_order_terms_cancel"></span>
+`,
+    ),
+    writeFixtureFile(
+      repositoryRoot,
+      orderTermsSummaryTemplatePath,
+      `<opal-lib-govuk-button buttonId="create_casefile_order_terms_add">Add terms</opal-lib-govuk-button>
+<a id="create_casefile_order_terms_return">Return to case details</a>
 `,
     ),
   ]);

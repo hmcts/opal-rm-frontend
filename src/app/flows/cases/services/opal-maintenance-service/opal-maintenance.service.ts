@@ -1,11 +1,14 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
-import { Observable, shareReplay, tap } from 'rxjs';
+import { defer, Observable, of, shareReplay, tap } from 'rxjs';
 import type { IOpalMaintenanceApplicationReferenceDataResponse } from './interfaces/opal-maintenance-application-reference-data-response.interface';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorParams } from './interfaces/opal-maintenance-major-creditor-params.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
+import type { IOpalMaintenanceResultParams } from './interfaces/opal-maintenance-result-params.interface';
+import type { IOpalMaintenanceResultReferenceDataResponse } from './interfaces/opal-maintenance-result-reference-data-response.interface';
+import { OPAL_MAINTENANCE_RESULTS_MOCK } from './mocks/opal-maintenance-results.mock';
 
 @Injectable({ providedIn: 'root' })
 export class OpalMaintenanceService {
@@ -53,6 +56,23 @@ export class OpalMaintenanceService {
         context: withoutHttpRetry(),
       },
     );
+  }
+
+  /**
+   * Synthetic Results already represent both filters. Replace only this source with
+   * GET /opal-maintenance-service/results using params and withoutHttpRetry().
+   * Keep each load fresh; consumers own loading, empty, error and explicit retry.
+   */
+  public getResults(params: IOpalMaintenanceResultParams): Observable<IOpalMaintenanceResultReferenceDataResponse> {
+    return defer(() => {
+      if (!params.order_term || !params.active) {
+        throw new Error('Results mock requires active order terms');
+      }
+      return of({
+        count: OPAL_MAINTENANCE_RESULTS_MOCK.count,
+        refData: OPAL_MAINTENANCE_RESULTS_MOCK.refData.map((record) => ({ ...record })),
+      });
+    });
   }
 
   public getCountries(active: boolean): Observable<IOpalMaintenanceCountryReferenceDataResponse> {

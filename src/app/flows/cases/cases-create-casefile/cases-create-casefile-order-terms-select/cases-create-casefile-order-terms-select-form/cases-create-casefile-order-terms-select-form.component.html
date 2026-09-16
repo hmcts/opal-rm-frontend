@@ -1,0 +1,70 @@
+<h1 class="govuk-heading-l">What type of order are you adding?</h1>
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+<div id="create_casefile_order_terms_status" role="status" aria-live="polite" aria-atomic="true">
+  @switch (loadState.status) {
+    @case ('loading') {
+      <p class="govuk-body">Loading order terms…</p>
+    }
+    @case ('empty') {
+      <p class="govuk-body">There are currently no order terms.</p>
+    }
+    @case ('ready') {
+      <p class="govuk-visually-hidden">Order terms loaded.</p>
+    }
+    @case ('error') {
+      <p class="govuk-body">{{ safeErrorMessage }}</p>
+      @if (loadState.correlationReference) {
+        <p class="govuk-body">Reference: {{ loadState.correlationReference }}</p>
+      }
+    }
+  }
+</div>
+@if (retryVisible) {
+  <button
+    id="create_casefile_order_terms_retry"
+    type="button"
+    class="govuk-button govuk-button--secondary"
+    [class.govuk-button--disabled]="loadState.status !== 'error'"
+    [attr.aria-disabled]="loadState.status !== 'error'"
+    (click)="handleRetry()"
+  >
+    Retry
+  </button>
+}
+<form (submit)="handleFormSubmit($event)">
+  <div class="govuk-form-group" [class.govuk-form-group--error]="formControlErrorMessages[field]">
+    <label class="govuk-label govuk-label--s" [for]="fieldNames.resultId">Select an order</label>
+    @if (formControlErrorMessages[fieldNames.resultId]) {
+      <p [id]="fieldNames.resultId + '-error-message'" class="govuk-error-message">
+        <span class="govuk-visually-hidden">Error:</span> {{ formControlErrorMessages[fieldNames.resultId] }}
+      </p>
+    }
+    <select
+      class="govuk-select"
+      [class.govuk-select--error]="formControlErrorMessages[fieldNames.resultId]"
+      [id]="fieldNames.resultId"
+      [name]="fieldNames.resultId"
+      [formControl]="form.controls[fieldNames.resultId]"
+      [attr.aria-describedby]="
+        formControlErrorMessages[fieldNames.resultId] ? fieldNames.resultId + '-error-message' : null
+      "
+    >
+      @for (option of options; track option.name) {
+        <option [value]="option.value">{{ option.name }}</option>
+      }
+    </select>
+  </div>
+  <div class="govuk-button-group">
+    <button
+      class="govuk-button govuk-!-margin-right-4"
+      id="create_casefile_order_terms_continue"
+      type="submit"
+      [disabled]="loadState.status !== 'ready'"
+    >
+      Continue
+    </button>
+    <span id="create_casefile_order_terms_cancel">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

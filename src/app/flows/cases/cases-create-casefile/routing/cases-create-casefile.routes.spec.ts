@@ -19,9 +19,11 @@ import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-crea
 import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
+import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
 import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
 import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
+import { fetchCasesCreateCasefileOrderTermsResolver } from './resolvers/fetch-cases-create-casefile-order-terms-resolver/fetch-cases-create-casefile-order-terms.resolver';
 
 const guardedRouteCases = [
   ['taskList', 'Case details'],
@@ -161,6 +163,41 @@ describe('Create Casefile routes', () => {
     const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
 
     expect(component?.name).toBe(CasesCreateCasefileOrderDetailsComponent.name);
+  });
+
+  it('registers Order term selection with flow and unsaved-change guards and an immediate load owner', () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsSelect,
+    );
+
+    expect(route?.loadComponent).toEqual(expect.any(Function));
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsSelect });
+    expect(route?.resolve).toEqual({ title: TitleResolver, orderTerms: fetchCasesCreateCasefileOrderTermsResolver });
+  });
+
+  it('redirects an Order term input URL without a result ID to selection', () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsInput,
+    );
+
+    expect(route).toEqual({
+      path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsInput,
+      pathMatch: 'full',
+      redirectTo: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsSelect,
+    });
+  });
+
+  it('registers Order term input with exact selection and flow guards', () => {
+    const route = routing.find(
+      (candidate) => candidate.path === `${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsInput}/:resultId`,
+    );
+
+    expect(route?.loadComponent).toEqual(expect.any(Function));
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermSelectionGuard]);
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsInput });
+    expect(route?.resolve).toEqual({ title: TitleResolver });
   });
 
   it('registers Interest and indexation with flow and unsaved-change guards and no permission metadata', async () => {

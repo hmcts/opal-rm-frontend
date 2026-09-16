@@ -6,9 +6,11 @@ import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-crea
 import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
+import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
 import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
 import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
+import { fetchCasesCreateCasefileOrderTermsResolver } from './resolvers/fetch-cases-create-casefile-order-terms-resolver/fetch-cases-create-casefile-order-terms.resolver';
 
 export const routing: Routes = [
   {
@@ -111,6 +113,32 @@ export const routing: Routes = [
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsSummary },
+    resolve: { title: TitleResolver },
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsSelect,
+    loadComponent: () =>
+      import('../cases-create-casefile-order-terms-select/cases-create-casefile-order-terms-select.component').then(
+        (component) => component.CasesCreateCasefileOrderTermsSelectComponent,
+      ),
+    canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsSelect },
+    resolve: { title: TitleResolver, orderTerms: fetchCasesCreateCasefileOrderTermsResolver },
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsInput,
+    pathMatch: 'full',
+    redirectTo: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsSelect,
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsInput + '/:resultId',
+    loadComponent: () =>
+      import('../cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input.component').then(
+        (component) => component.CasesCreateCasefileOrderTermsInputComponent,
+      ),
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermSelectionGuard],
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsInput },
     resolve: { title: TitleResolver },
   },
   {

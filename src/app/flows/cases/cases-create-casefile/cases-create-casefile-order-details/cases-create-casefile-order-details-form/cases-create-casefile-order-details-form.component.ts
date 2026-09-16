@@ -47,10 +47,10 @@ export class CasesCreateCasefileOrderDetailsFormComponent extends AbstractFormBa
   @Input({ required: true }) public applicationAutocompleteItems!: IAlphagovAccessibleAutocompleteItem[];
   public readonly fieldNames = CASES_CREATE_CASEFILE_ORDER_DETAILS_FIELD_NAMES;
   public readonly today = this.dates.getDateNow().toFormat('dd/MM/yyyy');
-  public readonly paymentFrequencyOptions = [
-    { value: '', name: 'Select a payment frequency' },
-    ...CASES_CREATE_CASEFILE_ORDER_DETAILS_PAYMENT_FREQUENCIES.map((value) => ({ value, name: value })),
-  ];
+  public readonly paymentFrequencyOptions = CASES_CREATE_CASEFILE_ORDER_DETAILS_PAYMENT_FREQUENCIES.map((value) => ({
+    value,
+    name: value,
+  }));
   public override form = new FormGroup({
     create_casefile_order_details_application_id: new FormControl<number | string | null>(null),
     create_casefile_order_details_court: new FormControl<string | null>(null, Validators.maxLength(40)),

@@ -100,6 +100,10 @@ export class AppComponent implements OnInit, OnDestroy {
   public showExpiredWarning = false;
   public readonly sessionService = inject(SessionService);
   public readonly globalStore = inject(GlobalStore);
+  public readonly bannerErrorAnnouncement = computed(() => {
+    const { title, message, operationId } = this.globalStore.bannerError();
+    return `${title}. ${message}${operationId ? ` Error code: ${operationId}` : ''}`;
+  });
   public readonly navigationItems = computed(() =>
     getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, this.globalStore.userState()),
   );

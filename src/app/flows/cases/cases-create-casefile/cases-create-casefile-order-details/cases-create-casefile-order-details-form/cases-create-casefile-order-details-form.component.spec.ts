@@ -103,14 +103,22 @@ describe('CasesCreateCasefileOrderDetailsFormComponent', () => {
       id: FIELD_NAMES.paymentFrequency,
       name: FIELD_NAMES.paymentFrequency,
     });
-    expect(component.paymentFrequencyOptions.map((option) => option.name)).toEqual([
-      'Select a payment frequency',
-      'Weekly',
-      'Fortnightly',
-      'Monthly',
-      'Quarterly',
-      'Yearly',
+    const renderedFrequencyOptions = Array.from(
+      fixture.nativeElement.querySelectorAll(`#${FIELD_NAMES.paymentFrequency} option`),
+    ).map((option) => {
+      const htmlOption = option as HTMLOptionElement;
+      return { value: htmlOption.value, text: htmlOption.textContent?.trim() };
+    });
+    expect(renderedFrequencyOptions).toEqual([
+      { value: '', text: '' },
+      { value: 'Weekly', text: 'Weekly' },
+      { value: 'Fortnightly', text: 'Fortnightly' },
+      { value: 'Monthly', text: 'Monthly' },
+      { value: 'Quarterly', text: 'Quarterly' },
+      { value: 'Yearly', text: 'Yearly' },
     ]);
+    expect(component.form.controls[FIELD_NAMES.paymentFrequency].value).toBeNull();
+    expect(component.form.controls[FIELD_NAMES.paymentFrequency].valid).toBe(false);
     expect(
       fixture.nativeElement.querySelector('#create_casefile_order_details_return_to_case_details')?.textContent.trim(),
     ).toBe('Return to case details');

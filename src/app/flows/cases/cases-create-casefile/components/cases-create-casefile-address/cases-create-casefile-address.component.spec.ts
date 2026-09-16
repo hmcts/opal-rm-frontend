@@ -110,7 +110,7 @@ describe('CasesCreateCasefileAddressComponent', () => {
       showAllValues: autocomplete.showAllValues,
     }).toEqual({
       labelText: 'Country',
-      labelClasses: 'govuk-label--s',
+      labelClasses: undefined,
       inputId: fieldNames.countryId,
       inputName: fieldNames.countryId,
       showAllValues: true,

@@ -144,6 +144,42 @@ mapping, follow [SONAR.md](SONAR.md#form-identifiers).
 - Use HMCTS or Ministry of Justice patterns where an established component or pattern exists.
 - Prefer repository and shared-library components over bespoke markup and styling.
 - Use GOV.UK typography, spacing tokens, colour, and content conventions.
+- Shared form-control components commonly render their own `.govuk-form-group`. Do not wrap them in another
+  `.govuk-form-group` solely for layout: GOV.UK's nested `:last-of-type` rule can remove the controls' vertical spacing.
+- Render checkbox and radio conditional content as a sibling of its controlling component when the shared component
+  owns the outer form group. Use GOV.UK spacing utilities when a separate section margin is required; do not compensate
+  for incorrect DOM nesting with bespoke SCSS. Follow this structure (and the equivalent shared radio components):
+
+  ```html
+  <opal-lib-govuk-checkboxes fieldSetId="show_details_fieldset" legendText="">
+    <div
+      opal-lib-govuk-checkboxes-item
+      labelText="Show details"
+      inputId="show_details"
+      inputName="show_details"
+      ariaControls="detailsConditional-conditional"
+      [control]="form.get('show_details')"
+    ></div>
+  </opal-lib-govuk-checkboxes>
+  @if (form.get('show_details')?.value === true) {
+    <div opal-lib-govuk-checkboxes-conditional conditionalId="detailsConditional">
+      <opal-lib-govuk-text-input
+        labelText="Detail"
+        inputId="detail"
+        inputName="detail"
+        [control]="form.get('detail')"
+        [errors]="formControlErrorMessages['detail']"
+      />
+    </div>
+  }
+  ```
+
+- Keep label emphasis consistent within a section. Add `govuk-label--s` only when the approved design explicitly calls
+  for a bold label; omit it when adjacent field labels use the component's regular-weight default.
+- Within a journey, centralise repeated derived Date of birth presentation in one reusable component. Bind the source
+  `FormControl`, calculate via `DateService` only when the control is valid, clear the derived state for empty or invalid
+  values, and do not persist age in form or API data. `DateService.isValidDate()` establishes that a value is a real
+  calendar date; it does not replace Date of birth validation such as rejecting today or future dates.
 - Add bespoke styling only when no suitable established pattern exists.
 - Keep content concise, user-centred, and consistent with the GOV.UK style guide.
 - Keep routed placeholder pages structurally representative of their intended completed page. Include the appropriate

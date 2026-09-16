@@ -7,6 +7,8 @@ export const CASES_CREATE_CASEFILE_ROUTING_TITLES = {
   centralAuthorityDetails: 'Central authority details',
   orderDetails: 'Order details',
   orderTermsSummary: 'Order terms',
+  orderTermsSelect: 'What type of order are you adding?',
+  orderTermsInput: 'Order term',
   interestAndIndexation: 'Interest and indexation',
   managingPayments: 'Managing payments',
   commentsAndNotes: 'Comments and notes',

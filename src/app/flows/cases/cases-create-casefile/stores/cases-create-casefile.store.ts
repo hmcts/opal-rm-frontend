@@ -10,6 +10,7 @@ import type { ICasesCreateCasefileCommentsNotes } from '../interfaces/cases-crea
 import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases-create-casefile-interest-indexation.interface';
 import type { ICasesCreateCasefileCentralAuthorityDetails } from '../interfaces/cases-create-casefile-central-authority-details.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
+import type { ICasesCreateCasefileOrderDetails } from '../interfaces/cases-create-casefile-order-details.interface';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
@@ -81,6 +82,7 @@ export const CasesCreateCasefileStore = signalStore(
         caseTypeSelection,
         applicantDetails: selectionUnchanged ? store.applicantDetails() : null,
         respondentDetails: selectionUnchanged ? store.respondentDetails() : null,
+        orderDetails: selectionUnchanged ? store.orderDetails() : null,
         interestAndIndexation: selectionUnchanged ? store.interestAndIndexation() : null,
         centralAuthorityDetails: selectionUnchanged ? store.centralAuthorityDetails() : null,
         paymentArrangement: selectionUnchanged ? store.paymentArrangement() : null,
@@ -107,6 +109,17 @@ export const CasesCreateCasefileStore = signalStore(
         taskStatuses: {
           ...store.taskStatuses(),
           applicant: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
+        },
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+    },
+    setOrderDetails: (orderDetails: ICasesCreateCasefileOrderDetails): void => {
+      patchState(store, {
+        orderDetails,
+        taskStatuses: {
+          ...store.taskStatuses(),
+          orderDetails: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
         },
         stateChanges: true,
         unsavedChanges: false,

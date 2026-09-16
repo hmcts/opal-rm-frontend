@@ -11,6 +11,7 @@ import type { ICasesCreateCasefileApplicantOrganisation } from '../interfaces/ca
 import type { ICasesCreateCasefileCommentsNotes } from '../interfaces/cases-create-casefile-comments-notes.interface';
 import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases-create-casefile-interest-indexation.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
+import type { ICasesCreateCasefileOrderDetails } from '../interfaces/cases-create-casefile-order-details.interface';
 import type { ICasesCreateCasefileApplicantIndividual } from '../interfaces/cases-create-casefile-applicant-individual.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-item.interface';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
@@ -96,6 +97,14 @@ describe('CasesCreateCasefileStore', () => {
     bankDetails: { type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE },
   };
 
+  const orderDetails: ICasesCreateCasefileOrderDetails = {
+    applicationId: 901,
+    court: null,
+    dateOrderMade: null,
+    paymentFrequency: 'Weekly',
+    dateArrearsLastUpdated: '2026-09-15',
+  };
+
   const majorCreditor: IOpalMaintenanceMajorCreditorReferenceDataItem = {
     major_creditor_id: 901,
     business_unit_id: 77,
@@ -141,6 +150,25 @@ describe('CasesCreateCasefileStore', () => {
 
   it('starts without applicant details', () => {
     expect(store.applicantDetails()).toBeNull();
+  });
+
+  it('saves Order Details atomically and preserves other sections', () => {
+    store.setRespondentDetails(respondentDetails);
+    store.setApplicantDetails(applicant);
+    store.setUnsavedChanges(true);
+    store.setOrderDetails(orderDetails);
+
+    expect(store.orderDetails()).toEqual(orderDetails);
+    expect(store.respondentDetails()).toEqual(respondentDetails);
+    expect(store.applicantDetails()).toEqual(applicant);
+    expect(store.taskStatuses().orderDetails).toBe('Provided');
+    expect(store.remainingOrderTasksAvailable()).toBe(true);
+    expect(store.unsavedChanges()).toBe(false);
+    expect(store.stateChanges()).toBe(true);
+
+    store.resetStore();
+
+    expect(store.orderDetails()).toBeNull();
   });
 
   it('starts mandatory tasks as Required and optional tasks as Optional', () => {
@@ -560,6 +588,40 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.applicantDetails()).toEqual(applicant);
   });
 
+  it('preserves Order Details when the Case Type selection is unchanged', () => {
+    const selection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    store.setCaseTypeSelection(selection);
+    store.setOrderDetails(orderDetails);
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.orderDetails()).toEqual(orderDetails);
+  });
+
+  it('clears Order Details when the Case Type changes', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setOrderDetails(orderDetails);
+
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+    expect(store.orderDetails()).toBeNull();
+  });
+
+  it('clears Order Details when the REMO In Applicant Type changes', () => {
+    store.setCaseTypeSelection({
+      caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+      applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
+    });
+    store.setOrderDetails(orderDetails);
+
+    store.setCaseTypeSelection({
+      caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+      applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.ORGANISATION,
+    });
+
+    expect(store.orderDetails()).toBeNull();
+  });
+
   it('clears applicant data when the Case Type changes', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     store.setApplicantDetails(applicant);
@@ -712,6 +774,15 @@ describe('CasesCreateCasefileStore', () => {
     store.resetForCaseTypeEdit();
 
     expect(store.applicantDetails()).toBeNull();
+  });
+
+  it('clears Order Details when resetting for Case Type edit', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setOrderDetails(orderDetails);
+
+    store.resetForCaseTypeEdit();
+
+    expect(store.orderDetails()).toBeNull();
   });
 
   it('resets the complete journey state', () => {

@@ -147,8 +147,33 @@ mapping, follow [SONAR.md](SONAR.md#form-identifiers).
 - Shared form-control components commonly render their own `.govuk-form-group`. Do not wrap them in another
   `.govuk-form-group` solely for layout: GOV.UK's nested `:last-of-type` rule can remove the controls' vertical spacing.
 - Render checkbox and radio conditional content as a sibling of its controlling component when the shared component
-  owns the outer form group. Follow the maintained `fines-mac` conditional pattern and use GOV.UK spacing utilities
-  when a separate section margin is required; do not compensate for incorrect DOM nesting with bespoke SCSS.
+  owns the outer form group. Use GOV.UK spacing utilities when a separate section margin is required; do not compensate
+  for incorrect DOM nesting with bespoke SCSS. Follow this structure (and the equivalent shared radio components):
+
+  ```html
+  <opal-lib-govuk-checkboxes fieldSetId="show_details_fieldset" legendText="">
+    <div
+      opal-lib-govuk-checkboxes-item
+      labelText="Show details"
+      inputId="show_details"
+      inputName="show_details"
+      ariaControls="detailsConditional-conditional"
+      [control]="form.get('show_details')"
+    ></div>
+  </opal-lib-govuk-checkboxes>
+  @if (form.get('show_details')?.value === true) {
+    <div opal-lib-govuk-checkboxes-conditional conditionalId="detailsConditional">
+      <opal-lib-govuk-text-input
+        labelText="Detail"
+        inputId="detail"
+        inputName="detail"
+        [control]="form.get('detail')"
+        [errors]="formControlErrorMessages['detail']"
+      />
+    </div>
+  }
+  ```
+
 - Keep label emphasis consistent within a section. Add `govuk-label--s` only when the approved design explicitly calls
   for a bold label; omit it when adjacent field labels use the component's regular-weight default.
 - Within a journey, centralise repeated derived Date of birth presentation in one reusable component. Bind the source

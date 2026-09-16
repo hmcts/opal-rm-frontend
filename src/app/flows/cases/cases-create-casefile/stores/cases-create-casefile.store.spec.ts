@@ -806,4 +806,31 @@ describe('CasesCreateCasefileStore', () => {
 
     expect(store.applicantDetails()).toBeNull();
   });
+
+  it('keeps a pending Result separate from completion and clears it on journey reset', () => {
+    const statuses = { ...store.taskStatuses() };
+    store.setPendingOrderTermResultId('MOCK01');
+    expect(store.pendingOrderTermResultId()).toBe('MOCK01');
+    expect(store.taskStatuses()).toEqual(statuses);
+    store.resetStore();
+    expect(store.pendingOrderTermResultId()).toBeNull();
+  });
+
+  it('preserves the pending ID for the same case type and clears it for another', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setPendingOrderTermResultId('MOCK01');
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    expect(store.pendingOrderTermResultId()).toBe('MOCK01');
+    store.setCaseTypeSelection({
+      caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
+      applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
+    });
+    expect(store.pendingOrderTermResultId()).toBeNull();
+  });
+
+  it('clears pending selection when returning to edit case type', () => {
+    store.setPendingOrderTermResultId('MOCK01');
+    store.resetForCaseTypeEdit();
+    expect(store.pendingOrderTermResultId()).toBeNull();
+  });
 });

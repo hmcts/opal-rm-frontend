@@ -1,4 +1,10 @@
 <div class="govuk-grid-column-two-thirds">
-  <opal-lib-govuk-back-link (clickEvent)="handleBack()"></opal-lib-govuk-back-link>
-  <h1 class="govuk-heading-l">Order details</h1>
+  <opal-lib-govuk-back-link (clickEvent)="handleCancel()" />
+  <app-cases-create-casefile-order-details-form
+    [initialFormData]="initialFormData"
+    [applicationAutocompleteItems]="applicationAutocompleteItems"
+    (formSubmit)="handleFormSubmit($event)"
+    (unsavedChanges)="handleUnsavedChanges($event)"
+    (cancel)="handleCancel()"
+  />
 </div>

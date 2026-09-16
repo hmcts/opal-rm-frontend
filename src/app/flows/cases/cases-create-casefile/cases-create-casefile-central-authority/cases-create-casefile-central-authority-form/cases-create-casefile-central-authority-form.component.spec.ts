@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
+import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
 import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
@@ -101,6 +102,18 @@ describe('CasesCreateCasefileCentralAuthorityFormComponent', () => {
     expect(controls.map((control) => control.id)).toEqual(Object.values(FIELD_NAMES));
     expect(controls.map((control) => control.getAttribute('name'))).toEqual(Object.values(FIELD_NAMES));
     expect(controls.every((control) => !control.hasAttribute('maxlength'))).toBe(true);
+  });
+
+  it('prevents native submission and delegates valid form handling to the shared base', () => {
+    createComponent();
+    const sharedHandlerSpy = vi.spyOn(AbstractFormBaseComponent.prototype, 'handleFormSubmit');
+    const event = new SubmitEvent('submit', { cancelable: true });
+    fixture.detectChanges();
+
+    component.handleFormSubmit(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(sharedHandlerSpy).toHaveBeenCalledWith(event);
   });
 
   it.each([

@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES as FIELD_NAMES } from '../constants/cases-create-casefile-comments-notes-field-names.constant';
 import type { ICasesCreateCasefileCommentsNotesFormData } from '../interfaces/cases-create-casefile-comments-notes-form-data.interface';
@@ -121,6 +122,17 @@ describe('CasesCreateCasefileCommentsNotesFormComponent', () => {
     submit();
 
     expect(formSubmitSpy).toHaveBeenCalledWith({ formData: emptyFormData, nestedFlow: false });
+  });
+
+  it('prevents native submission and delegates valid form handling to the shared base', () => {
+    const sharedHandlerSpy = vi.spyOn(AbstractFormBaseComponent.prototype, 'handleFormSubmit');
+    const event = new SubmitEvent('submit', { cancelable: true });
+    fixture.detectChanges();
+
+    component.handleFormSubmit(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(sharedHandlerSpy).toHaveBeenCalledWith(event);
   });
 
   it('accepts and emits values exactly at 250 and 1,000 characters', () => {

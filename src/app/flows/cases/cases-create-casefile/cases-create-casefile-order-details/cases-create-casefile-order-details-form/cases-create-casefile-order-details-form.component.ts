@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  Renderer2,
+  inject,
+} from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
 import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
@@ -35,6 +46,7 @@ import { createCasesCreateCasefileOrderDetailsDateValidator } from '../validator
 export class CasesCreateCasefileOrderDetailsFormComponent extends AbstractFormBaseComponent implements OnInit {
   private readonly dates = inject(DateService);
   private applicationText = '';
+  private applicationSelectionConfirmed = true;
 
   @Output() protected override formSubmit = new EventEmitter<ICasesCreateCasefileOrderDetailsForm>();
   protected override fieldErrors: ICasesCreateCasefileOrderDetailsFieldErrors =
@@ -69,6 +81,24 @@ export class CasesCreateCasefileOrderDetailsFormComponent extends AbstractFormBa
     ]),
   });
 
+  public constructor() {
+    super();
+    const host = inject(ElementRef<HTMLElement>).nativeElement;
+    const renderer = inject(Renderer2);
+    const destroyRef = inject(DestroyRef);
+    // Capture the active ARIA option before the autocomplete closes its menu.
+    for (const eventName of ['keydown', 'click']) {
+      destroyRef.onDestroy(
+        renderer.listen(
+          host,
+          eventName,
+          (event: MouseEvent | KeyboardEvent) => this.handleApplicationSelection(event),
+          { capture: true },
+        ),
+      );
+    }
+  }
+
   public handleApplicationInput(event: Event): void {
     const input = event.target;
 
@@ -77,9 +107,35 @@ export class CasesCreateCasefileOrderDetailsFormComponent extends AbstractFormBa
     }
 
     this.applicationText = input.value;
+    this.applicationSelectionConfirmed = false;
     const control = this.form.controls.create_casefile_order_details_application_id;
     control.markAsDirty();
     control.setValue(input.value);
+  }
+
+  public handleApplicationSelection(event: MouseEvent | KeyboardEvent): void {
+    const target = event.target;
+    const activeOptionId =
+      event instanceof KeyboardEvent && event.key === 'Enter' && target instanceof Element
+        ? target.getAttribute('aria-activedescendant')
+        : null;
+    const option =
+      target instanceof Element
+        ? (target.closest('[role="option"]') ??
+          (activeOptionId ? target.ownerDocument.getElementById(activeOptionId) : null))
+        : null;
+    const activated = event.type === 'click' || (event instanceof KeyboardEvent && ['Enter', ' '].includes(event.key));
+
+    if (
+      !option?.id.startsWith(`${this.fieldNames.applicationId}-autocomplete__option--`) ||
+      option.getAttribute('aria-disabled') === 'true' ||
+      !activated
+    ) {
+      return;
+    }
+
+    this.applicationSelectionConfirmed = true;
+    this.form.controls.create_casefile_order_details_application_id.updateValueAndValidity();
   }
 
   public override handleFormSubmit(event: SubmitEvent): void {
@@ -102,6 +158,11 @@ export class CasesCreateCasefileOrderDetailsFormComponent extends AbstractFormBa
         this.applicationAutocompleteItems,
         () => this.applicationText,
       ),
+    );
+    // The shared autocomplete also resolves exact text to an ID on blur. This
+    // journey requires an explicit option activation after the user types.
+    this.form.controls.create_casefile_order_details_application_id.addValidators(() =>
+      this.applicationText.trim() && !this.applicationSelectionConfirmed ? { invalidSelection: true } : null,
     );
     this.setInitialErrorMessages();
     this.rePopulateForm(this.initialFormData);

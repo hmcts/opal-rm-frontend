@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": "./cypress",
+    "rootDir": ".",
     "outDir": "./out-tsc/e2e",
     "types": ["cypress", "node", "@cypress/grep"],
     "typeRoots": ["./node_modules/@types", "./node_modules/@cypress"],
@@ -9,13 +9,10 @@
       "@e2e/*": ["./cypress/e2e/*"],
       "cypress/e2e/*": ["./cypress/e2e/*"],
       "cypress/shared/*": ["./cypress/shared/*"],
-      "cypress/support/*": ["./cypress/support/*"]
+      "cypress/support/*": ["./cypress/support/*"],
+      "src/*": ["./src/*"]
     }
   },
-  "include": [
-    "cypress/e2e/**/*.ts",
-    "cypress/support/**/*.ts",
-    "cypress/shared/**/*.ts"
-  ],
+  "include": ["cypress/e2e/**/*.ts", "cypress/support/**/*.ts", "cypress/shared/**/*.ts"],
   "exclude": ["node_modules", "cypress/component", "**/*.cy.ts"]
 }

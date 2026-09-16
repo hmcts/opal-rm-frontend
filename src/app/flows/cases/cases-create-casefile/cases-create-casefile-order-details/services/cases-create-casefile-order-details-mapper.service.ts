@@ -10,6 +10,21 @@ import type { ICasesCreateCasefileOrderDetailsFormData } from '../interfaces/cas
 export class CasesCreateCasefileOrderDetailsMapperService {
   private readonly dateService = inject(DateService);
 
+  private toCanonicalDate(value: string | null): string {
+    if (value === null || !/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+      throw new Error('Invalid Order Details date');
+    }
+
+    const date = this.dateService.getFromFormat(value, 'dd/MM/yyyy');
+    const canonical = date.toFormat('yyyy-MM-dd');
+
+    if (!date.isValid || canonical > this.dateService.getDateNow().toFormat('yyyy-MM-dd')) {
+      throw new Error('Invalid Order Details date');
+    }
+
+    return canonical;
+  }
+
   public toAutocompleteItems(
     records: IOpalMaintenanceApplicationReferenceDataItem[],
   ): IAlphagovAccessibleAutocompleteItem[] {
@@ -56,20 +71,5 @@ export class CasesCreateCasefileOrderDetailsMapperService {
       paymentFrequency: frequency,
       dateArrearsLastUpdated: this.toCanonicalDate(form.create_casefile_order_details_date_arrears_last_updated),
     };
-  }
-
-  private toCanonicalDate(value: string | null): string {
-    if (value === null || !/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-      throw new Error('Invalid Order Details date');
-    }
-
-    const date = this.dateService.getFromFormat(value, 'dd/MM/yyyy');
-    const canonical = date.toFormat('yyyy-MM-dd');
-
-    if (!date.isValid || canonical > this.dateService.getDateNow().toFormat('yyyy-MM-dd')) {
-      throw new Error('Invalid Order Details date');
-    }
-
-    return canonical;
   }
 }

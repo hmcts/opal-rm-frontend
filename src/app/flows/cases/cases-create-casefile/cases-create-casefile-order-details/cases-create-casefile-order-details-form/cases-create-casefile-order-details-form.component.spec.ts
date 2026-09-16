@@ -211,4 +211,107 @@ describe('CasesCreateCasefileOrderDetailsFormComponent', () => {
     expect(submit).toHaveBeenCalledWith({ formData, nestedFlow: false });
     expect(cancel).toHaveBeenCalledOnce();
   });
+  it('rejects an exact typed label converted to an ID by autocomplete blur', () => {
+    createComponent({
+      ...emptyFormData,
+      [FIELD_NAMES.paymentFrequency]: 'Monthly',
+      [FIELD_NAMES.dateArrearsLastUpdated]: '15/09/2026',
+    });
+    const submit = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+    const input = document.createElement('input');
+    input.id = `${FIELD_NAMES.applicationId}-autocomplete`;
+    input.value = applicationAutocompleteItems[0].name;
+    component.handleApplicationInput({ target: input } as unknown as Event);
+    component.form.controls[FIELD_NAMES.applicationId].setValue(901);
+    input.addEventListener('keydown', (event) => component.handleApplicationSelection(event));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    component.handleFormSubmit(new SubmitEvent('submit', { cancelable: true }));
+    expect(component.formControlErrorMessages[FIELD_NAMES.applicationId]).toBe(
+      'Select an application code from the list',
+    );
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it.each(['Enter', ' ', 'click'])('accepts explicit option activation with %s', (activation) => {
+    createComponent();
+    fixture.detectChanges();
+    const input = document.createElement('input');
+    input.id = `${FIELD_NAMES.applicationId}-autocomplete`;
+    input.value = applicationAutocompleteItems[0].name;
+    component.handleApplicationInput({ target: input } as unknown as Event);
+    const control = component.form.controls[FIELD_NAMES.applicationId];
+    control.setValue(901);
+    const option = document.createElement('li');
+    option.id = `${FIELD_NAMES.applicationId}-autocomplete__option--0`;
+    option.setAttribute('role', 'option');
+    const event = activation === 'click' ? new MouseEvent('click') : new KeyboardEvent('keydown', { key: activation });
+    option.addEventListener(event.type, (event) =>
+      component.handleApplicationSelection(event as MouseEvent | KeyboardEvent),
+    );
+    option.dispatchEvent(event);
+    expect(control.valid).toBe(true);
+  });
+
+  it.each(['ArrowDown', 'disabled'])('does not accept %s as option confirmation', (activation) => {
+    createComponent();
+    fixture.detectChanges();
+    const input = document.createElement('input');
+    input.id = `${FIELD_NAMES.applicationId}-autocomplete`;
+    input.value = applicationAutocompleteItems[0].name;
+    component.handleApplicationInput({ target: input } as unknown as Event);
+    const control = component.form.controls[FIELD_NAMES.applicationId];
+    control.setValue(901);
+    const option = document.createElement('li');
+    option.id = `${FIELD_NAMES.applicationId}-autocomplete__option--0`;
+    option.setAttribute('role', 'option');
+    if (activation === 'disabled') option.setAttribute('aria-disabled', 'true');
+    option.addEventListener('keydown', (event) => component.handleApplicationSelection(event));
+    option.dispatchEvent(new KeyboardEvent('keydown', { key: activation === 'disabled' ? 'Enter' : activation }));
+    expect(control.errors).toEqual({ invalidSelection: true });
+  });
+  it('accepts keyboard activation of the input active ARIA suggestion before the menu closes', () => {
+    createComponent();
+    fixture.detectChanges();
+    const input = document.createElement('input');
+    input.id = `${FIELD_NAMES.applicationId}-autocomplete`;
+    input.value = 'TEST01';
+    component.handleApplicationInput({ target: input } as unknown as Event);
+    const option = document.createElement('li');
+    option.id = `${input.id}__option--0`;
+    option.setAttribute('role', 'option');
+    document.body.append(option);
+    input.setAttribute('aria-activedescendant', option.id);
+    input.addEventListener('keydown', (event) => component.handleApplicationSelection(event));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    component.form.controls[FIELD_NAMES.applicationId].setValue(901);
+    expect(component.form.controls[FIELD_NAMES.applicationId].valid).toBe(true);
+    option.remove();
+  });
+
+  it.each(['click', ' '])(
+    'does not treat %s on an input with an active descendant as option activation',
+    (activation) => {
+      createComponent();
+      fixture.detectChanges();
+      const input = document.createElement('input');
+      input.id = `${FIELD_NAMES.applicationId}-autocomplete`;
+      input.value = applicationAutocompleteItems[0].name;
+      component.handleApplicationInput({ target: input } as unknown as Event);
+      const option = document.createElement('li');
+      option.id = `${input.id}__option--0`;
+      option.setAttribute('role', 'option');
+      document.body.append(option);
+      input.setAttribute('aria-activedescendant', option.id);
+      const event =
+        activation === 'click' ? new MouseEvent('click') : new KeyboardEvent('keydown', { key: activation });
+      input.addEventListener(event.type, (event) =>
+        component.handleApplicationSelection(event as MouseEvent | KeyboardEvent),
+      );
+      input.dispatchEvent(event);
+      component.form.controls[FIELD_NAMES.applicationId].setValue(901);
+      expect(component.form.controls[FIELD_NAMES.applicationId].errors).toEqual({ invalidSelection: true });
+      option.remove();
+    },
+  );
 });

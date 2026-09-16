@@ -19,6 +19,7 @@ export const CASES_CREATE_CASEFILE_STATE: ICasesCreateCasefileState = {
   respondentDetails: null,
   interestAndIndexation: null,
   paymentArrangement: null,
+  commentsAndNotes: null,
   taskStatuses: { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES },
   unsavedChanges: false,
   stateChanges: false,

@@ -6,6 +6,7 @@ import {
 } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
+import type { ICasesCreateCasefileCommentsNotes } from '../interfaces/cases-create-casefile-comments-notes.interface';
 import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases-create-casefile-interest-indexation.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
@@ -14,6 +15,8 @@ import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-creat
 import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefile-task-status.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
 import { isCasesCreateCasefileCaseTypeSelectionValid } from '../utils/cases-create-casefile-case-type-selection';
+
+const normalizeOptionalText = (value: string | null): string | null => (value?.trim() ? value : null);
 
 const areCaseTypeSelectionsEqual = (
   currentSelection: CasesCreateCasefileCaseTypeSelection | null,
@@ -79,6 +82,7 @@ export const CasesCreateCasefileStore = signalStore(
         respondentDetails: selectionUnchanged ? store.respondentDetails() : null,
         interestAndIndexation: selectionUnchanged ? store.interestAndIndexation() : null,
         paymentArrangement: selectionUnchanged ? store.paymentArrangement() : null,
+        commentsAndNotes: selectionUnchanged ? store.commentsAndNotes() : null,
         taskStatuses,
         stateChanges: true,
         unsavedChanges: false,
@@ -123,6 +127,25 @@ export const CasesCreateCasefileStore = signalStore(
         taskStatuses: {
           ...store.taskStatuses(),
           managingPayments: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
+        },
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+    },
+    setCommentsAndNotes: (commentsAndNotes: ICasesCreateCasefileCommentsNotes): void => {
+      const normalizedCommentsAndNotes: ICasesCreateCasefileCommentsNotes = {
+        comment: normalizeOptionalText(commentsAndNotes.comment),
+        note: normalizeOptionalText(commentsAndNotes.note),
+      };
+      const hasProvidedValue = Object.values(normalizedCommentsAndNotes).some((value) => value !== null);
+
+      patchState(store, {
+        commentsAndNotes: normalizedCommentsAndNotes,
+        taskStatuses: {
+          ...store.taskStatuses(),
+          commentsAndNotes: hasProvidedValue
+            ? CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED
+            : CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL,
         },
         stateChanges: true,
         unsavedChanges: false,

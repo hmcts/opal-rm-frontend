@@ -59,6 +59,17 @@ describe('OpalMaintenanceService', () => {
 
   afterEach(() => http.verify());
 
+  it('requests active Create Casefile applications afresh on each entry', () => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      service.getMaintenanceApplications().subscribe((response) => expect(response.refData).toEqual([]));
+      const request = http.expectOne((req) => req.url === '/opal-maintenance-service/maintenance-applications');
+      expect(request.request.method).toBe('GET');
+      expect(request.request.params.get('application_group')).toBe('Create Casefile');
+      expect(request.request.params.get('active')).toBe('true');
+      request.flush({ count: 0, refData: [] });
+    }
+  });
+
   it('shares one Countries request for an identical active flag', () => {
     const first = service.getCountries(true);
     const second = service.getCountries(true);

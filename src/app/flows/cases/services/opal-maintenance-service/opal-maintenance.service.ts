@@ -1,6 +1,8 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
 import { Observable, shareReplay, tap } from 'rxjs';
+import type { IOpalMaintenanceApplicationReferenceDataResponse } from './interfaces/opal-maintenance-application-reference-data-response.interface';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorParams } from './interfaces/opal-maintenance-major-creditor-params.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
@@ -41,6 +43,16 @@ export class OpalMaintenanceService {
     );
     cache.set(cacheKey, request);
     return request;
+  }
+
+  public getMaintenanceApplications(): Observable<IOpalMaintenanceApplicationReferenceDataResponse> {
+    return this.http.get<IOpalMaintenanceApplicationReferenceDataResponse>(
+      '/opal-maintenance-service/maintenance-applications',
+      {
+        params: { application_group: 'Create Casefile', active: true },
+        context: withoutHttpRetry(),
+      },
+    );
   }
 
   public getCountries(active: boolean): Observable<IOpalMaintenanceCountryReferenceDataResponse> {

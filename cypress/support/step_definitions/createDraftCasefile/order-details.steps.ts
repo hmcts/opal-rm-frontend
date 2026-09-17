@@ -10,7 +10,9 @@ Then('Order Details is marked Provided and the remaining order tasks are availab
 When('I reopen Order Details', () => flow.reopen());
 Then('my saved Order Details are editable', () => flow.assertEditable());
 When('the Order Details applications lookup fails', () => flow.openWithFailure());
-Then('Case Details retains my parties and announces a safe correlated error', () => flow.assertSafeFailure());
+Then('Case Details retains my parties and announces the shared HTTP error and operation reference', () =>
+  flow.assertSharedHttpFailure(),
+);
 When('I retry opening Order Details using the keyboard', () => flow.retryUsingKeyboard());
 Then('Order Details opens with the available applications', () => flow.assertAvailable());
 When('I return from Order Details without entering required fields', () => flow.submitEmpty());

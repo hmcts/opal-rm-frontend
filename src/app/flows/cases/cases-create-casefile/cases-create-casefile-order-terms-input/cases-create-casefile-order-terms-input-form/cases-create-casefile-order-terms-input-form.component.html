@@ -73,10 +73,6 @@
             [control]="view.control"
             [errors]="error"
             [autoCompleteItems]="view.options"
-            [requireExplicitSelection]="true"
-            [selectionConfirmed]="view.selectionConfirmed"
-            (optionSelected)="handleAutocompleteSelection($event, field.id)"
-            (textChanged)="handleAutocompleteInput($event, field.id)"
           />
         }
         @case ('checkbox') {

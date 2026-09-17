@@ -111,10 +111,10 @@ function routedInput(creditorGuard: CanActivateFn = () => true): Routes {
 describe('Order term input routed parent', () => {
   beforeEach(() => vi.restoreAllMocks());
 
-  it('renders resolved data, restored draft confirmation and the latest frequency', async () => {
+  it('renders resolved data, restored draft values and the latest frequency', async () => {
     const store = await configure();
     store.prepareOrderTermDraft(page);
-    store.updateOrderTermDraft({ amount: '12.30', creditor: 'C1' }, true, { creditor: true });
+    store.updateOrderTermDraft({ amount: '12.30', creditor: 'C1' }, true);
     const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
     fixture.detectChanges();
     const child = fixture.debugElement.query(
@@ -122,7 +122,6 @@ describe('Order term input routed parent', () => {
     ).componentInstance as CasesCreateCasefileOrderTermsInputFormComponent;
 
     expect(child.initialValues).toEqual({ amount: '12.30', creditor: 'C1' });
-    expect(child.initialConfirmedAutocomplete).toEqual({ creditor: true });
     expect(child.initialDirty).toBe(true);
     expect(child.frequency).toBe('Monthly');
     expect(TestBed.inject(Title).getTitle()).toBe('OPAL - Maintenance');
@@ -232,7 +231,19 @@ describe('Order term input routed parent', () => {
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/creditor');
   });
 
-  it('rejects invalid payloads and unconfirmed autocomplete text without navigation', async () => {
+  it('accepts an autocomplete option ID through normal form submission', async () => {
+    const store = await configure();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    fixture.componentInstance.handleFormSubmit({
+      formData: { [amountId]: '12.3', [creditorId]: 'C1' },
+      nestedFlow: false,
+    });
+    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '12.30', creditor: 'C1' } }]);
+    expect(navigate).toHaveBeenCalledWith('/cases/create-casefile/order-terms/creditor');
+  });
+
+  it('rejects invalid payloads and unknown autocomplete values without navigation', async () => {
     const store = await configure();
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
     const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
@@ -240,8 +251,8 @@ describe('Order term input routed parent', () => {
     component.handleDraftChange({ values: { amount: 'bad', creditor: '' }, dirty: true });
 
     component.handleFormSubmit({ formData: { [amountId]: 'bad', [creditorId]: '' }, nestedFlow: false });
-    component.handleDraftChange({ values: { amount: '12.3', creditor: 'C1' }, dirty: true, confirmedAutocomplete: {} });
-    component.handleFormSubmit({ formData: { [amountId]: '12.3', [creditorId]: 'C1' }, nestedFlow: false });
+    component.handleDraftChange({ values: { amount: '12.3', creditor: 'UNKNOWN' }, dirty: true });
+    component.handleFormSubmit({ formData: { [amountId]: '12.3', [creditorId]: 'UNKNOWN' }, nestedFlow: false });
 
     expect(store.orderTerms()).toEqual([]);
     expect(navigate).not.toHaveBeenCalled();
@@ -263,11 +274,10 @@ describe('Order term input routed parent', () => {
     component.handleDraftChange({ values: { amount: 'bad', creditor: '' }, dirty: true });
     component.handleFormSubmit({ formData: { [amountId]: 'bad', [creditorId]: '' }, nestedFlow: false });
     component.handleDraftChange({
-      values: { amount: '20', creditor: 'C1' },
+      values: { amount: '20', creditor: 'UNKNOWN' },
       dirty: true,
-      confirmedAutocomplete: {},
     });
-    component.handleFormSubmit({ formData: { [amountId]: '20', [creditorId]: 'C1' }, nestedFlow: false });
+    component.handleFormSubmit({ formData: { [amountId]: '20', [creditorId]: 'UNKNOWN' }, nestedFlow: false });
     expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '12.30' } }]);
 
     component.handleDraftChange({ values: { amount: '20' }, dirty: true });

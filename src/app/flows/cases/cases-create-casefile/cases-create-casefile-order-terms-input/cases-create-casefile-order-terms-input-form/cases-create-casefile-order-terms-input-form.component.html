@@ -65,14 +65,15 @@
           </opal-lib-govuk-radio>
         }
         @case ('autocomplete') {
-          <app-cases-create-casefile-order-term-autocomplete
+          <opal-lib-alphagov-accessible-autocomplete
             [labelText]="field.label"
             [hintText]="field.hint"
             [inputId]="field.id"
             [inputName]="field.id"
             [control]="view.control"
             [errors]="error"
-            [options]="view.options"
+            [autoCompleteItems]="view.options"
+            [requireExplicitSelection]="true"
             [selectionConfirmed]="view.selectionConfirmed"
             (optionSelected)="handleAutocompleteSelection($event, field.id)"
             (textChanged)="handleAutocompleteInput($event, field.id)"

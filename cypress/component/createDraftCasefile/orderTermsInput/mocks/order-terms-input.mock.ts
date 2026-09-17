@@ -1,6 +1,9 @@
 import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-result-details.mock';
 
+const autocompleteLabels = ['synthetic A & B', "synthetic O'Brien"];
+
 export const ORDER_TERMS_INPUT_MOCK = {
+  autocompleteLabels,
   controlErrors: ['Enter short text', 'Enter count', 'Select choice', 'Select menu', 'Select lookup', 'Select confirm'],
   problem: {
     status: 503,
@@ -29,8 +32,8 @@ export const ORDER_TERMS_INPUT_MOCK = {
         mandatory: true,
         language_dependent: false,
         options: [
-          { value: 'literal', label: '<strong>synthetic</strong>' },
-          { value: 'event', label: '<img src=x onerror="alert(1)">synthetic' },
+          { value: 'literal', label: autocompleteLabels[0] },
+          { value: 'event', label: autocompleteLabels[1] },
         ],
       },
     ]),

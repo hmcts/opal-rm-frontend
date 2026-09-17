@@ -53,7 +53,6 @@ const autocompletePage: ICasesCreateCasefileOrderTermPage = {
     [page]="page"
     [initialValues]="initialValues"
     [initialDirty]="initialDirty"
-    [initialConfirmedAutocomplete]="initialConfirmedAutocomplete"
     [frequency]="frequency"
     (formSubmit)="onSubmit($event)"
     (draftChange)="onDraftChange($event)"
@@ -65,7 +64,6 @@ class FormHostComponent {
   @Input() public page = matPage;
   @Input() public initialValues: Record<string, CasesCreateCasefileOrderTermRawValue> = {};
   @Input() public initialDirty = false;
-  @Input() public initialConfirmedAutocomplete: Record<string, boolean> = {};
   @Input() public frequency = 'Weekly';
   public onSubmit =
     vi.fn<(value: { formData: Record<string, CasesCreateCasefileOrderTermRawValue>; nestedFlow: boolean }) => void>();
@@ -93,13 +91,11 @@ describe('Order terms input form', () => {
     page = matPage,
     initialValues: Record<string, CasesCreateCasefileOrderTermRawValue> = {},
     initialDirty = false,
-    initialConfirmedAutocomplete: Record<string, boolean> = {},
   ) {
     fixture = TestBed.createComponent(FormHostComponent);
     fixture.componentRef.setInput('page', page);
     fixture.componentRef.setInput('initialValues', initialValues);
     fixture.componentRef.setInput('initialDirty', initialDirty);
-    fixture.componentRef.setInput('initialConfirmedAutocomplete', initialConfirmedAutocomplete);
     fixture.componentRef.setInput('frequency', 'Weekly');
     host = fixture.componentInstance;
     fixture.detectChanges();
@@ -159,7 +155,7 @@ describe('Order terms input form', () => {
       fields: autocompletePage.fields.map((field) => ({ ...field, required: false })),
     };
     render(page, { autocomplete: '   ' });
-    expect((await autocompleteInput()).value).toBe('   ');
+    expect((await autocompleteInput()).value).toBe('');
     submit();
     expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
       formData: { [id('autocomplete')]: '   ' },
@@ -262,14 +258,12 @@ describe('Order terms input form', () => {
     expect(host.onDraftChange).toHaveBeenLastCalledWith({
       values: { amount: '20', expiry_date: '', arrears: '' },
       dirty: true,
-      confirmedAutocomplete: {},
     });
     expect(host.onUnsavedChanges).toHaveBeenLastCalledWith(true);
     input('amount', '10');
     expect(host.onDraftChange).toHaveBeenLastCalledWith({
       values: { amount: '10', expiry_date: '', arrears: '' },
       dirty: false,
-      confirmedAutocomplete: {},
     });
     expect(host.onUnsavedChanges).toHaveBeenLastCalledWith(false);
   });
@@ -306,46 +300,34 @@ describe('Order terms input form', () => {
     expect(host.onUnsavedChanges).not.toHaveBeenCalled();
   });
 
-  it('retains unknown autocomplete text across blur, invalid submit and remount', async () => {
+  it('accepts a matching label on blur using the shared control and submits its ID', async () => {
     render(autocompletePage);
-    const beforeBlur = await typeAutocomplete('Not an option');
-    beforeBlur.dispatchEvent(new FocusEvent('blur'));
+    const element = await typeAutocomplete('First option');
+    element.dispatchEvent(new FocusEvent('blur'));
     await fixture.whenStable();
-    expect((await autocompleteInput()).value).toBe('Not an option');
-    expect(component.form.controls[id('autocomplete')].value).toBe('Not an option');
+    expect(component.form.controls[id('autocomplete')].value).toBe('A');
+    submit();
+    expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
+      formData: { [id('autocomplete')]: 'A' },
+      nestedFlow: false,
+    });
+  });
+
+  it('clears an unknown label on blur and validates the required control', async () => {
+    render(autocompletePage);
+    const element = await typeAutocomplete('Unknown option');
+    element.dispatchEvent(new FocusEvent('blur'));
+    await fixture.whenStable();
+    expect(component.form.controls[id('autocomplete')].value).toBeNull();
     submit();
     expect(host.onSubmit).not.toHaveBeenCalled();
     expect(component.formErrorSummaryMessage).toEqual([
-      { fieldId: id('autocomplete'), message: 'Select a valid test autocomplete' },
+      { fieldId: id('autocomplete'), message: 'Select test autocomplete' },
     ]);
-    const draft = host.onDraftChange.mock.lastCall![0];
-    expect(draft).toEqual({
-      values: { autocomplete: 'Not an option' },
-      dirty: true,
-      confirmedAutocomplete: { autocomplete: false },
-    });
-    fixture.destroy();
-    render(autocompletePage, draft.values, draft.dirty, draft.confirmedAutocomplete);
-    expect((await autocompleteInput()).value).toBe('Not an option');
-    submit();
-    expect(host.onSubmit).not.toHaveBeenCalled();
   });
 
-  it('does not accept a typed option ID as a confirmed selection after remount', async () => {
-    render(autocompletePage);
-    await typeAutocomplete('A');
-    const draft = host.onDraftChange.mock.lastCall![0];
-    submit();
-    expect(host.onSubmit).not.toHaveBeenCalled();
-    fixture.destroy();
-    render(autocompletePage, draft.values, draft.dirty, draft.confirmedAutocomplete);
-    expect((await autocompleteInput()).value).toBe('A');
-    submit();
-    expect(host.onSubmit).not.toHaveBeenCalled();
-  });
-
-  it('restores an explicitly confirmed option as its label and submits its ID', async () => {
-    render(autocompletePage, { autocomplete: 'A' }, true, { autocomplete: true });
+  it('restores the shared control from its stored option ID', async () => {
+    render(autocompletePage, { autocomplete: 'A' }, true);
     expect((await autocompleteInput()).value).toBe('First option');
     submit();
     expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
@@ -354,20 +336,45 @@ describe('Order terms input form', () => {
     });
   });
 
-  it('renders autocomplete suggestion labels literally without interpreting metadata as HTML', async () => {
+  it('stores a clicked option ID and restores its label after remount', async () => {
+    render(autocompletePage);
+    await typeAutocomplete('First');
+    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('[role="option"]')).not.toBeNull());
+    fixture.nativeElement.querySelector('[role="option"]').click();
+    const draft = host.onDraftChange.mock.lastCall![0];
+    expect(draft).toEqual({ values: { autocomplete: 'A' }, dirty: true });
+    fixture.destroy();
+    render(autocompletePage, draft.values, draft.dirty);
+    expect((await autocompleteInput()).value).toBe('First option');
+  });
+
+  it('permits a cleared optional autocomplete after blur', async () => {
+    render(
+      { ...autocompletePage, fields: autocompletePage.fields.map((field) => ({ ...field, required: false })) },
+      { autocomplete: 'A' },
+    );
+    const element = await typeAutocomplete('');
+    element.dispatchEvent(new FocusEvent('blur'));
+    await fixture.whenStable();
+    submit();
+    expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
+      formData: { [id('autocomplete')]: null },
+      nestedFlow: false,
+    });
+  });
+
+  it('renders metadata suggestions without interpreting them as HTML', async () => {
     const label = '<b data-untrusted>First</b> & second';
-    const page = {
+    render({
       ...autocompletePage,
       fields: autocompletePage.fields.map((field) => ({ ...field, options: [{ value: 'A', label }] })),
-    };
-    render(page);
+    });
     await typeAutocomplete('First');
     await vi.waitFor(() => expect(fixture.nativeElement.querySelector('[role="option"]')).not.toBeNull());
     const option = fixture.nativeElement.querySelector('[role="option"]');
     expect(option.querySelector('[data-untrusted]')).toBeNull();
     expect(option.textContent).toBe(label);
     option.click();
-    expect((await autocompleteInput()).value).toBe(label);
     submit();
     expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
       formData: { [id('autocomplete')]: 'A' },
@@ -387,154 +394,12 @@ describe('Order terms input form', () => {
       autocomplete: 'A',
       checkbox: true,
     };
-    render(allControlsPage, values, false, { autocomplete: true });
+    render(allControlsPage, values);
     await autocompleteInput();
     submit();
     expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
       formData: Object.fromEntries(Object.entries(values).map(([name, value]) => [id(name), value])),
       nestedFlow: false,
     });
-  });
-
-  it('records a clicked suggestion as confirmed and preserves it after remount', async () => {
-    render(autocompletePage);
-    await typeAutocomplete('First');
-    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('[role="option"]')).not.toBeNull());
-    fixture.nativeElement.querySelector('[role="option"]').click();
-    expect(component.form.controls[id('autocomplete')].value).toBe('A');
-    const draft = host.onDraftChange.mock.lastCall![0];
-    expect(draft.confirmedAutocomplete).toEqual({ autocomplete: true });
-    fixture.destroy();
-    render(autocompletePage, draft.values, draft.dirty, draft.confirmedAutocomplete);
-    expect((await autocompleteInput()).value).toBe('First option');
-    submit();
-    expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
-      formData: { [id('autocomplete')]: 'A' },
-      nestedFlow: false,
-    });
-  });
-
-  it('rejects a typed option label after blur without converting its draft text to an ID', async () => {
-    render(autocompletePage);
-    const element = await typeAutocomplete('First option');
-    element.blur();
-    await fixture.whenStable();
-    expect(component.form.controls[id('autocomplete')].value).toBe('First option');
-    expect(host.onDraftChange.mock.lastCall?.[0].confirmedAutocomplete).toEqual({ autocomplete: false });
-    submit();
-    expect(host.onSubmit).not.toHaveBeenCalled();
-  });
-
-  it('permits a cleared optional autocomplete after blur', async () => {
-    const optionalPage = {
-      ...autocompletePage,
-      fields: autocompletePage.fields.map((field) => ({ ...field, required: false })),
-    };
-    render(optionalPage, { autocomplete: 'A' }, false, { autocomplete: true });
-    const element = await typeAutocomplete('');
-    element.blur();
-    await fixture.whenStable();
-    submit();
-    expect(host.onSubmit).toHaveBeenCalledTimes(1);
-    expect(component.form.controls[id('autocomplete')].value).toBe('');
-  });
-
-  it('emits a dirty draft when confirmation changes but the raw ID stays identical', async () => {
-    render(autocompletePage, { autocomplete: 'A' });
-    const element = await autocompleteInput();
-    element.focus();
-    element.value = '';
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('[role="option"]')).not.toBeNull());
-    // Restore the typed ID in the form without selecting a suggestion.
-    component.form.controls[id('autocomplete')].setValue('A');
-    host.onDraftChange.mockClear();
-    fixture.nativeElement.querySelector('[role="option"]').click();
-    expect(host.onDraftChange).toHaveBeenLastCalledWith({
-      values: { autocomplete: 'A' },
-      dirty: true,
-      confirmedAutocomplete: { autocomplete: true },
-    });
-    expect(host.onUnsavedChanges).toHaveBeenLastCalledWith(true);
-  });
-
-  it('returns to clean when raw text and confirmation revert to the initial selection', async () => {
-    render(autocompletePage, { autocomplete: 'A' }, false, { autocomplete: true });
-    await typeAutocomplete('First');
-    expect(host.onDraftChange.mock.lastCall?.[0].dirty).toBe(true);
-    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('[role="option"]')).not.toBeNull());
-    fixture.nativeElement.querySelector('[role="option"]').click();
-    expect(host.onDraftChange).toHaveBeenLastCalledWith({
-      values: { autocomplete: 'A' },
-      dirty: false,
-      confirmedAutocomplete: { autocomplete: true },
-    });
-    expect(host.onUnsavedChanges).toHaveBeenLastCalledWith(false);
-  });
-
-  it.each(['Unconfirmed replacement', 'A'])(
-    'retains a speech edit to "%s" and clears confirmation after the widget poll',
-    async (replacement) => {
-      render(autocompletePage, { autocomplete: 'A' }, false, { autocomplete: true });
-      const element = await autocompleteInput();
-      const nativeInput = vi.fn();
-      element.addEventListener('input', nativeInput);
-      element.value = replacement;
-      await vi.waitFor(() =>
-        expect(host.onDraftChange).toHaveBeenLastCalledWith({
-          values: { autocomplete: replacement },
-          dirty: true,
-          confirmedAutocomplete: { autocomplete: false },
-        }),
-      );
-      expect(nativeInput).not.toHaveBeenCalled();
-      expect(component.form.controls[id('autocomplete')].value).toBe(replacement);
-      submit();
-      expect(host.onSubmit).not.toHaveBeenCalled();
-      const draft = host.onDraftChange.mock.lastCall![0];
-      fixture.destroy();
-      render(autocompletePage, draft.values, draft.dirty, draft.confirmedAutocomplete);
-      expect((await autocompleteInput()).value).toBe(replacement);
-      submit();
-      expect(host.onSubmit).not.toHaveBeenCalled();
-    },
-  );
-
-  it('keeps a confirmed ID when ArrowDown searches all options and Enter selects its label', async () => {
-    render(autocompletePage, { autocomplete: 'A' }, false, { autocomplete: true });
-    const element = await autocompleteInput();
-    element.focus();
-    element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
-    await vi.waitFor(() => expect(element.getAttribute('aria-expanded')).toBe('false'));
-    element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', keyCode: 40, bubbles: true }));
-    await vi.waitFor(() => expect(element.getAttribute('aria-expanded')).toBe('true'));
-    expect(host.onDraftChange).not.toHaveBeenCalled();
-    expect(component.form.controls[id('autocomplete')].value).toBe('A');
-    const option = fixture.nativeElement.querySelector('[role="option"]');
-    option.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
-    await fixture.whenStable();
-    expect(host.onDraftChange).toHaveBeenLastCalledWith({
-      values: { autocomplete: 'A' },
-      dirty: false,
-      confirmedAutocomplete: { autocomplete: true },
-    });
-    host.onDraftChange.mockClear();
-    await vi.waitFor(() => expect(element.getAttribute('aria-expanded')).toBe('false'));
-    element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', keyCode: 40, bubbles: true }));
-    await vi.waitFor(() => expect(element.getAttribute('aria-expanded')).toBe('true'));
-    expect(host.onDraftChange).not.toHaveBeenCalled();
-    submit();
-    expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
-      formData: { [id('autocomplete')]: 'A' },
-      nestedFlow: false,
-    });
-  });
-
-  it('clears autocomplete confirmation when the user edits a restored selection', async () => {
-    render(autocompletePage, { autocomplete: 'A' }, true, { autocomplete: true });
-    await typeAutocomplete('First option');
-    submit();
-    expect(host.onSubmit).not.toHaveBeenCalled();
-    expect(host.onDraftChange.mock.lastCall?.[0].confirmedAutocomplete).toEqual({ autocomplete: false });
   });
 });

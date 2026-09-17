@@ -41,7 +41,6 @@ interface IOrderTermsSetup {
   detailHttp?: boolean;
   draftValues?: Record<string, CasesCreateCasefileOrderTermRawValue>;
   initialDraftDirty?: boolean;
-  confirmedAutocomplete?: Record<string, boolean>;
   source?: Observable<IOpalMaintenanceResultReferenceDataResponse>;
   savedId?: string | null;
   initialChild?: string;
@@ -54,7 +53,6 @@ export function setupOrderTerms({
   detailHttp = false,
   draftValues,
   initialDraftDirty = true,
-  confirmedAutocomplete = {},
   savedId = null,
   initialChild = PATHS.children.orderTermsSelect,
 }: IOrderTermsSetup = {}) {
@@ -77,7 +75,7 @@ export function setupOrderTerms({
       title: detail.result_title,
       fields: mapOrderTermParameters(detail.result_parameters),
     });
-    store.updateOrderTermDraft(structuredClone(draftValues), initialDraftDirty, confirmedAutocomplete);
+    store.updateOrderTermDraft(structuredClone(draftValues), initialDraftDirty);
   }
   const getResult = cy
     .stub()

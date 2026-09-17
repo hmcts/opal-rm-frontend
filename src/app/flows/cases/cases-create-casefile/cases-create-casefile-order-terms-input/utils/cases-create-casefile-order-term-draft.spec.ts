@@ -66,7 +66,7 @@ const previous: ICasesCreateCasefileOrderTermDraft = {
   resultId: 'MAT',
   fieldTypes: { amount: 'money', expiry_date: 'date', creditor: 'autocomplete', removed: 'text' },
   values: { amount: '12.30', expiry_date: '31/03/2027', creditor: 'C1', removed: 'stale', frequency: 'Weekly' },
-  confirmedAutocomplete: { creditor: true, removed: true },
+
   dirty: true,
 };
 
@@ -76,7 +76,7 @@ describe('restoreOrderTermDraft', () => {
       resultId: 'MAT',
       fieldTypes: { amount: 'money', expiry_date: 'date', creditor: 'autocomplete' },
       values: { amount: '12.30', expiry_date: '31/03/2027', creditor: 'C1' },
-      confirmedAutocomplete: { creditor: true },
+
       dirty: true,
     });
   });
@@ -93,7 +93,7 @@ describe('restoreOrderTermDraft', () => {
       resultId: 'MAT',
       fieldTypes: { amount: 'integer', creditor: 'autocomplete' },
       values: { creditor: 'C1' },
-      confirmedAutocomplete: { creditor: true },
+
       dirty: true,
     });
   });
@@ -103,7 +103,7 @@ describe('restoreOrderTermDraft', () => {
       resultId: 'MCHILD',
       fieldTypes: { amount: 'money', expiry_date: 'date', creditor: 'autocomplete' },
       values: {},
-      confirmedAutocomplete: {},
+
       dirty: false,
     });
   });
@@ -135,22 +135,8 @@ describe('restoreOrderTermDraft', () => {
       resultId: 'MAT',
       fieldTypes: { amount: 'money', frequency: 'select', expiry_date: 'date', creditor: 'autocomplete' },
       values: { amount: '12.30', expiry_date: '31/03/2027', creditor: 'C1' },
-      confirmedAutocomplete: { creditor: true },
+
       dirty: true,
     });
-  });
-
-  it('does not restore confirmation for cleared, removed or incompatible autocomplete controls', () => {
-    const changedPage = {
-      ...page,
-      fields: page.fields.map((field) => (field.name === 'creditor' ? { ...field, kind: 'select' as const } : field)),
-    };
-    const cleared = {
-      ...previous,
-      values: { ...previous.values, creditor: '   ' },
-    };
-
-    expect(restoreOrderTermDraft(changedPage, previous).confirmedAutocomplete).toEqual({});
-    expect(restoreOrderTermDraft(page, cleared).confirmedAutocomplete).toEqual({});
   });
 });

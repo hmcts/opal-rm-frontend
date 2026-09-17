@@ -35,13 +35,13 @@ describe('Order term selection parent boundary', () => {
     const statuses = { ...store.taskStatuses() };
     component.handleUnsavedChanges(true);
     component.handleFormSubmit({
-      formData: { create_casefile_order_terms_select_result_id: 'MOCK01' },
+      formData: { create_casefile_order_terms_select_result_id: 'MAT' },
       nestedFlow: false,
     });
-    expect(store.pendingOrderTermResultId()).toBe('MOCK01');
+    expect(store.pendingOrderTermResultId()).toBe('MAT');
     expect(store.taskStatuses()).toEqual(statuses);
     expect(store.unsavedChanges()).toBe(false);
-    expect(navigate).toHaveBeenCalledExactlyOnceWith(['/cases/create-casefile/order-terms/add/MOCK01'], {});
+    expect(navigate).toHaveBeenCalledExactlyOnceWith(['/cases/create-casefile/order-terms/add/MAT'], {});
   });
 
   it.each([null, 'OTHER'])('rejects forged or missing ID %s at the parent boundary', async (id) => {
@@ -54,7 +54,7 @@ describe('Order term selection parent boundary', () => {
   it('does not submit while loading even if the submitted ID looks valid', async () => {
     const { component, store, navigate } = await setup(true);
     component.handleFormSubmit({
-      formData: { create_casefile_order_terms_select_result_id: 'MOCK01' },
+      formData: { create_casefile_order_terms_select_result_id: 'MAT' },
       nestedFlow: false,
     });
     expect(store.pendingOrderTermResultId()).toBeNull();
@@ -62,11 +62,11 @@ describe('Order term selection parent boundary', () => {
   });
 
   it('retains the saved ID on failure', async () => {
-    const { fixture, owner, store, response } = await setup(true, 'MOCK01');
+    const { fixture, owner, store, response } = await setup(true, 'MAT');
     fixture.detectChanges();
     response.error(new Error('Synthetic failure'));
     await fixture.whenStable();
-    expect(store.pendingOrderTermResultId()).toBe('MOCK01');
+    expect(store.pendingOrderTermResultId()).toBe('MAT');
     owner.dispose();
   });
 
@@ -77,18 +77,18 @@ describe('Order term selection parent boundary', () => {
   });
 
   it('retains a saved ID that remains in a successful response', async () => {
-    const { fixture, store } = await setup(false, 'MOCK01');
+    const { fixture, store } = await setup(false, 'MAT');
     fixture.detectChanges();
-    expect(store.pendingOrderTermResultId()).toBe('MOCK01');
+    expect(store.pendingOrderTermResultId()).toBe('MAT');
   });
 
   it('leaves a changed choice intact until the navigation guard decides', async () => {
-    const { component, owner, navigate, store } = await setup(false, 'MOCK01');
+    const { component, owner, navigate, store } = await setup(false, 'MAT');
     const dispose = vi.spyOn(owner, 'dispose');
     component.handleUnsavedChanges(true);
     component.handleCancel();
     expect(navigate).toHaveBeenCalledWith(['/cases/create-casefile/order-terms/summary'], {});
-    expect(store.pendingOrderTermResultId()).toBe('MOCK01');
+    expect(store.pendingOrderTermResultId()).toBe('MAT');
     expect(store.unsavedChanges()).toBe(true);
     expect(dispose).not.toHaveBeenCalled();
   });

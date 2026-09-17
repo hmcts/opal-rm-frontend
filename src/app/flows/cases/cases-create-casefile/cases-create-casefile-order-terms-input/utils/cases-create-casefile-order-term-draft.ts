@@ -17,11 +17,25 @@ export function restoreOrderTermDraft(
       )
       .map((field) => [field.name, previous!.values[field.name]]),
   );
+  const confirmedAutocomplete = Object.fromEntries(
+    editable
+      .filter((field) => {
+        const value = values[field.name];
+        return (
+          field.kind === 'autocomplete' &&
+          previous?.confirmedAutocomplete?.[field.name] === true &&
+          typeof value === 'string' &&
+          value.trim().length > 0
+        );
+      })
+      .map((field) => [field.name, true]),
+  );
 
   return {
     resultId: page.resultId,
     fieldTypes,
     values,
+    confirmedAutocomplete,
     dirty: previous?.resultId === page.resultId && previous.dirty && Object.keys(values).length > 0,
   };
 }

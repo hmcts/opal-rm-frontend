@@ -17,10 +17,19 @@ import type { IOpalMaintenanceMajorCreditorReferenceDataItem } from '../../servi
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
+import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from '../../services/opal-maintenance-service/mocks/opal-maintenance-result-details.mock';
+import type { ICasesCreateCasefileOrderTermPage } from '../cases-create-casefile-order-terms-input/interfaces/cases-create-casefile-order-term-page.interface';
+import { mapOrderTermParameters } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-metadata';
 import { CasesCreateCasefileStore } from './cases-create-casefile.store';
 
 describe('CasesCreateCasefileStore', () => {
   let store: InstanceType<typeof CasesCreateCasefileStore>;
+
+  const page: ICasesCreateCasefileOrderTermPage = {
+    resultId: 'MAT',
+    title: 'Maintenance',
+    fields: mapOrderTermParameters(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK['MAT'].result_parameters),
+  };
 
   const respondentDetails: ICasesCreateCasefileRespondentDetails = {
     title: 'Mx',
@@ -832,5 +841,119 @@ describe('CasesCreateCasefileStore', () => {
     store.setPendingOrderTermResultId('MOCK01');
     store.resetForCaseTypeEdit();
     expect(store.pendingOrderTermResultId()).toBeNull();
+  });
+
+  it('accepts once, clears draft and keeps frequency out of both states', () => {
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.updateOrderTermDraft({ amount: '12.30', frequency: 'Weekly', removed: 'stale' }, true);
+
+    expect(store.orderTermDraft()?.values).toEqual({ amount: '12.30' });
+
+    const term = { resultId: 'MAT', parameters: { amount: '12.30', frequency: 'Weekly', removed: 'stale' } };
+    expect(store.acceptOrderTerm(term)).toBe(true);
+    expect(store.acceptOrderTerm(term)).toBe(false);
+    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '12.30' } }]);
+    expect(store.orderTermDraft()).toBeNull();
+    expect(store.taskStatuses().orderTerms).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
+  });
+
+  it('accepts intentional additions of the same Result as distinct terms', () => {
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '1.00' } });
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+
+    expect(store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '2.00' } })).toBe(true);
+    expect(store.orderTerms()).toEqual([
+      { resultId: 'MAT', parameters: { amount: '1.00' } },
+      { resultId: 'MAT', parameters: { amount: '2.00' } },
+    ]);
+  });
+
+  it('discards a later draft without losing accepted terms', () => {
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '1.00' } });
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.updateOrderTermDraft({ amount: '2' }, true);
+
+    store.discardOrderTermDraft();
+
+    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '1.00' } }]);
+    expect(store.orderTermDraft()).toBeNull();
+    expect(store.unsavedChanges()).toBe(false);
+  });
+
+  it('rejects terms without a compatible active draft', () => {
+    expect(store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '1.00' } })).toBe(false);
+
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+
+    expect(store.acceptOrderTerm({ resultId: 'MCHILD', parameters: { amount: '1.00' } })).toBe(false);
+    expect(store.orderTerms()).toEqual([]);
+    expect(store.orderTermDraft()?.resultId).toBe('MAT');
+  });
+
+  it('clears only the draft when the pending Result is cleared', () => {
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '1.00' } });
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+
+    store.setPendingOrderTermResultId(null);
+
+    expect(store.pendingOrderTermResultId()).toBeNull();
+    expect(store.orderTermDraft()).toBeNull();
+    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '1.00' } }]);
+  });
+
+  it('preserves accepted terms and drafts for the same Case Type', () => {
+    const selection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT } as const;
+    store.setCaseTypeSelection(selection);
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '1.00' } });
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.updateOrderTermDraft({ amount: '1.00' }, true);
+
+    store.setCaseTypeSelection(selection);
+
+    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '1.00' } }]);
+    expect(store.orderTermDraft()?.values).toEqual({ amount: '1.00' });
+    expect(store.pendingOrderTermResultId()).toBe('MAT');
+  });
+
+  it('clears accepted terms and drafts when the Case Type changes', () => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '1.00' } });
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+    expect(store.orderTerms()).toEqual([]);
+    expect(store.orderTermDraft()).toBeNull();
+  });
+
+  it.each(['resetForCaseTypeEdit', 'resetStore'] as const)('clears accepted terms and drafts on %s', (method) => {
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '1.00' } });
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+
+    store[method]();
+
+    expect(store.orderTerms()).toEqual([]);
+    expect(store.orderTermDraft()).toBeNull();
   });
 });

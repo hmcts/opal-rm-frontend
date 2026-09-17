@@ -1,3 +1,5 @@
+import { firstValueFrom } from 'rxjs';
+import { OPAL_MAINTENANCE_RESULTS_MOCK } from './mocks/opal-maintenance-results.mock';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -107,6 +109,36 @@ describe('OpalMaintenanceService', () => {
     });
     http.expectOne('/opal-maintenance-service/results?order_term=true&active=true').flush({ count: 0, refData: [] });
   });
+
+  it('resolves every selectable mock Result without HTTP', async () => {
+    const list = OPAL_MAINTENANCE_RESULTS_MOCK;
+    for (const item of list.refData) {
+      expect(await firstValueFrom(service.getResult(item.result_id))).toMatchObject({
+        ...item,
+        active: true,
+        order_term: true,
+      });
+    }
+    expect(await firstValueFrom(service.getResult('unknown'))).toBeNull();
+    expect(await firstValueFrom(service.getResult('__proto__'))).toBeNull();
+    http.expectNone((request) => request.url.includes('/results'));
+  });
+
+  it('returns a distinct Result detail that cannot mutate the fixture', async () => {
+    const request = service.getResult('MAT');
+    const first = await firstValueFrom(request);
+    const second = await firstValueFrom(request);
+
+    expect(first).not.toBe(second);
+    expect(first).not.toBeNull();
+    if (first) first.result_title = 'Changed by test';
+    expect(await firstValueFrom(service.getResult('MAT'))).toMatchObject({
+      result_id: 'MAT',
+      result_title: 'Maintenance',
+    });
+    http.expectNone((request) => request.url.includes('/results'));
+  });
+
 
   it('requests active Create Casefile applications afresh on each entry', () => {
     for (let attempt = 0; attempt < 3; attempt++) {

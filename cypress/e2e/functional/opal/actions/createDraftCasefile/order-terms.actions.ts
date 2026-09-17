@@ -96,6 +96,7 @@ export class OrderTermsActions {
     cy.location('pathname').should('eq', '/cases/create-casefile/order-terms/creditor');
     cy.get(S.orderTerms.heading).should('have.text', 'Creditor');
     cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@unexpectedResultsHttp').should('not.have.been.called');
   }
   /** Checks required amount validation and summary focus. */
   public assertAmountRequired(): void {

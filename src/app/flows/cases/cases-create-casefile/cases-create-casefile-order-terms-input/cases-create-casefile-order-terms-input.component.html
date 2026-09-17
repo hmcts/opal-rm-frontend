@@ -1,18 +1,16 @@
-<div class="govuk-grid-row">
-  <div class="govuk-grid-column-two-thirds">
-    <opal-lib-govuk-back-link (clickEvent)="handleCancel()" />
-    @for (entry of pages(); track entry) {
-      <app-cases-create-casefile-order-terms-input-form
-        [page]="entry.page"
-        [initialValues]="entry.values"
-        [initialConfirmedAutocomplete]="entry.confirmedAutocomplete"
-        [initialDirty]="entry.dirty"
-        [frequency]="frequency()"
-        (draftChange)="handleDraftChange($event)"
-        (unsavedChanges)="handleUnsavedChanges($event)"
-        (formSubmit)="handleFormSubmit($event)"
-        (cancel)="handleCancel()"
-      />
-    }
-  </div>
+<div class="govuk-grid-column-two-thirds">
+  <opal-lib-govuk-back-link (clickEvent)="handleCancel()" />
+  @for (entry of pages(); track entry) {
+    <app-cases-create-casefile-order-terms-input-form
+      [page]="entry.page"
+      [initialValues]="entry.values"
+      [initialConfirmedAutocomplete]="entry.confirmedAutocomplete"
+      [initialDirty]="entry.dirty"
+      [frequency]="frequency()"
+      (draftChange)="handleDraftChange($event)"
+      (unsavedChanges)="handleUnsavedChanges($event)"
+      (formSubmit)="handleFormSubmit($event)"
+      (cancel)="handleCancel()"
+    />
+  }
 </div>

@@ -89,6 +89,8 @@ const templatePaths = {
     'cases-create-casefile-order-terms-select/cases-create-casefile-order-terms-select-form/cases-create-casefile-order-terms-select-form.component.html',
   orderTermsInput:
     'cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input-form/cases-create-casefile-order-terms-input-form.component.html',
+  orderTermAutocomplete:
+    'cases-create-casefile-order-terms-input/cases-create-casefile-order-term-autocomplete/cases-create-casefile-order-term-autocomplete.component.html',
   orderTermsSummary:
     'cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component.html',
   respondentDetails:
@@ -562,6 +564,21 @@ const isOrderTermIdentifier = (attribute, expression) => {
   );
 };
 
+// The local adapter receives only the canonical field ID from its parent.
+const isOrderTermAutocompleteIdentifier = (attribute, expression) => {
+  const value = expression.replace(/\s+/g, ' ').trim();
+  if (attribute === 'name') return value === 'inputName';
+  return (
+    attribute === 'id' &&
+    [
+      'inputId',
+      "inputId + '-hint'",
+      "inputId + '-autocomplete-error-message'",
+      "inputId + '-autocomplete-container'",
+    ].includes(value)
+  );
+};
+
 // Angular's parser identifies mutually exclusive branches. Do not suppress
 // duplicates in the same branch or in independent conditional blocks.
 const orderTermBranchScopes = (source, displayPath, failures) => {
@@ -637,6 +654,13 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
       }
 
       if (dynamicOrderTerms && isBound && isOrderTermIdentifier(attributeName, value)) valid = true;
+
+      if (
+        templatePathWithinCreateCasefile === templatePaths.orderTermAutocomplete &&
+        isBound &&
+        isOrderTermAutocompleteIdentifier(attributeName, value)
+      )
+        valid = true;
 
       if (!valid) {
         failures.push(`${displayPath}:${line}: noncanonical ${attributeMatch[2]}="${value}"`);

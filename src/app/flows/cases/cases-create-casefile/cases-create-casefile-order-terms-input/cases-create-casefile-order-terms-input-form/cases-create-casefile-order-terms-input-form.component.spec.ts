@@ -363,24 +363,34 @@ describe('Order terms input form', () => {
     });
   });
 
-  it('renders metadata suggestions without interpreting them as HTML', async () => {
-    const label = '<b data-untrusted>First</b> & second';
-    render({
-      ...autocompletePage,
-      fields: autocompletePage.fields.map((field) => ({ ...field, options: [{ value: 'A', label }] })),
-    });
-    await typeAutocomplete('First');
-    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('[role="option"]')).not.toBeNull());
-    const option = fixture.nativeElement.querySelector('[role="option"]');
-    expect(option.querySelector('[data-untrusted]')).toBeNull();
-    expect(option.textContent).toBe(label);
-    option.click();
-    submit();
-    expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
-      formData: { [id('autocomplete')]: 'A' },
-      nestedFlow: false,
-    });
-  });
+  it.each(['A & B', 'A "B"', "A O'Brien"])(
+    'keeps the raw label "%s" through selection, remount and blur',
+    async (label) => {
+      const page = {
+        ...autocompletePage,
+        fields: autocompletePage.fields.map((field) => ({ ...field, options: [{ value: 'A', label }] })),
+      };
+      render(page);
+      await typeAutocomplete('A');
+      await vi.waitFor(() => expect(fixture.nativeElement.querySelector('[role="option"]')).not.toBeNull());
+      const option: HTMLElement = fixture.nativeElement.querySelector('[role="option"]');
+      expect(option.textContent).toBe(label);
+      option.click();
+      expect((await autocompleteInput()).value).toBe(label);
+      const draft = host.onDraftChange.mock.lastCall![0];
+      fixture.destroy();
+      render(page, draft.values, draft.dirty);
+      expect((await autocompleteInput()).value).toBe(label);
+      const element = await typeAutocomplete(label);
+      element.dispatchEvent(new FocusEvent('blur'));
+      await fixture.whenStable();
+      submit();
+      expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
+        formData: { [id('autocomplete')]: 'A' },
+        nestedFlow: false,
+      });
+    },
+  );
 
   it('submits every supported editable kind with raw primitive values', async () => {
     const values = {

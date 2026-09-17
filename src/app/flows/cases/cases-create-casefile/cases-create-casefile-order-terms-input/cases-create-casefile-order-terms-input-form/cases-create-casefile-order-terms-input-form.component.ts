@@ -77,19 +77,7 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
 
   public override ngOnInit(): void {
     this.views = this.page.fields.map((field) => {
-      // The published widget treats suggestion names as HTML. Encode metadata at that boundary.
-      const options = field.options.map((option) => ({
-        value: option.value,
-        name:
-          field.kind === 'autocomplete'
-            ? option.label
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#39;')
-            : option.label,
-      }));
+      const options = field.options.map((option) => ({ value: option.value, name: option.label }));
       const initialValue = Object.hasOwn(this.initialValues, field.name) ? this.initialValues[field.name] : null;
       const control =
         field.kind === 'readonly'

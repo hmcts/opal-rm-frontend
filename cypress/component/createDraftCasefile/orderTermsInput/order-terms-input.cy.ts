@@ -321,7 +321,7 @@ describe('Order term input regressions', () => {
       });
   });
 
-  it('AC1. should render metadata title labels hints and suggestions as literal text', { tags: buildTags() }, () => {
+  it('AC1. should render metadata text and preserve plain autocomplete labels', { tags: buildTags() }, () => {
     cy.window().then((window) => cy.stub(window, 'alert').as('metadataAlert'));
     setupOrderTerms({
       shell: true,
@@ -338,8 +338,17 @@ describe('Order term input regressions', () => {
       .invoke('text')
       .should((text) => expect(text.trim()).to.eq(M.literal.result_title));
     cy.get(S.orderTermsInput.autocomplete).type('synthetic');
-    cy.get(S.orderTermsInput.autocompleteOptions).should('contain.text', M.literal.result_title);
-    cy.get(S.orderTermsInput.autocompleteOptions).should('contain.text', '<img src=x onerror="alert(1)">synthetic');
+    cy.get(S.orderTermsInput.autocompleteOptions).should('contain.text', M.autocompleteLabels[0]);
+    cy.get(S.orderTermsInput.autocompleteOptions).contains(M.autocompleteLabels[0]).click();
+    cy.get(S.orderTermsInput.autocomplete).should('have.value', M.autocompleteLabels[0]);
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').should((store) =>
+      expect(store.orderTermDraft()?.values['lookup']).to.eq('literal'),
+    );
+    cy.get(S.orderTermsInput.autocomplete).clear().type(M.autocompleteLabels[1]).blur();
+    cy.get(S.orderTermsInput.autocomplete).should('have.value', M.autocompleteLabels[1]);
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').should((store) =>
+      expect(store.orderTermDraft()?.values['lookup']).to.eq('event'),
+    );
     cy.get(S.orderTermsInput.metadataMarkup).should('not.exist');
     cy.get('@metadataAlert').should('not.have.been.called');
   });

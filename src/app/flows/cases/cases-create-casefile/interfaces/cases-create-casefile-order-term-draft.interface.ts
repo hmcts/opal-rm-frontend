@@ -5,5 +5,6 @@ export interface ICasesCreateCasefileOrderTermDraft {
   resultId: string;
   fieldTypes: Record<string, ICasesCreateCasefileOrderTermField['kind']>;
   values: Record<string, CasesCreateCasefileOrderTermRawValue>;
+  confirmedAutocomplete?: Record<string, boolean>;
   dirty: boolean;
 }

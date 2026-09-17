@@ -46,13 +46,27 @@ const page: ICasesCreateCasefileOrderTermPage = {
       options: [],
       lookup: null,
     },
+    {
+      name: 'creditor',
+      id: 'create_casefile_order_terms_input_creditor',
+      label: 'Creditor',
+      kind: 'autocomplete',
+      required: false,
+      hint: '',
+      min: null,
+      max: null,
+      past: false,
+      options: [{ value: 'C1', label: 'Creditor one' }],
+      lookup: null,
+    },
   ],
 };
 
 const previous: ICasesCreateCasefileOrderTermDraft = {
   resultId: 'MAT',
-  fieldTypes: { amount: 'money', expiry_date: 'date', removed: 'text' },
-  values: { amount: '12.30', expiry_date: '31/03/2027', removed: 'stale', frequency: 'Weekly' },
+  fieldTypes: { amount: 'money', expiry_date: 'date', creditor: 'autocomplete', removed: 'text' },
+  values: { amount: '12.30', expiry_date: '31/03/2027', creditor: 'C1', removed: 'stale', frequency: 'Weekly' },
+  confirmedAutocomplete: { creditor: true, removed: true },
   dirty: true,
 };
 
@@ -60,8 +74,9 @@ describe('restoreOrderTermDraft', () => {
   it('restores values with the same Result, parameter name and kind', () => {
     expect(restoreOrderTermDraft(page, previous)).toEqual({
       resultId: 'MAT',
-      fieldTypes: { amount: 'money', expiry_date: 'date' },
-      values: { amount: '12.30', expiry_date: '31/03/2027' },
+      fieldTypes: { amount: 'money', expiry_date: 'date', creditor: 'autocomplete' },
+      values: { amount: '12.30', expiry_date: '31/03/2027', creditor: 'C1' },
+      confirmedAutocomplete: { creditor: true },
       dirty: true,
     });
   });
@@ -76,17 +91,19 @@ describe('restoreOrderTermDraft', () => {
 
     expect(restoreOrderTermDraft(changedPage, previous)).toEqual({
       resultId: 'MAT',
-      fieldTypes: { amount: 'integer' },
-      values: {},
-      dirty: false,
+      fieldTypes: { amount: 'integer', creditor: 'autocomplete' },
+      values: { creditor: 'C1' },
+      confirmedAutocomplete: { creditor: true },
+      dirty: true,
     });
   });
 
   it('isolates drafts for different Results', () => {
     expect(restoreOrderTermDraft({ ...page, resultId: 'MCHILD' }, previous)).toEqual({
       resultId: 'MCHILD',
-      fieldTypes: { amount: 'money', expiry_date: 'date' },
+      fieldTypes: { amount: 'money', expiry_date: 'date', creditor: 'autocomplete' },
       values: {},
+      confirmedAutocomplete: {},
       dirty: false,
     });
   });
@@ -100,6 +117,7 @@ describe('restoreOrderTermDraft', () => {
     expect(restoreOrderTermDraft(changedBounds, previous).values).toEqual({
       amount: '12.30',
       expiry_date: '31/03/2027',
+      creditor: 'C1',
     });
   });
 
@@ -115,9 +133,24 @@ describe('restoreOrderTermDraft', () => {
 
     expect(restoreOrderTermDraft(editableFrequency, previous)).toEqual({
       resultId: 'MAT',
-      fieldTypes: { amount: 'money', frequency: 'select', expiry_date: 'date' },
-      values: { amount: '12.30', expiry_date: '31/03/2027' },
+      fieldTypes: { amount: 'money', frequency: 'select', expiry_date: 'date', creditor: 'autocomplete' },
+      values: { amount: '12.30', expiry_date: '31/03/2027', creditor: 'C1' },
+      confirmedAutocomplete: { creditor: true },
       dirty: true,
     });
+  });
+
+  it('does not restore confirmation for cleared, removed or incompatible autocomplete controls', () => {
+    const changedPage = {
+      ...page,
+      fields: page.fields.map((field) => (field.name === 'creditor' ? { ...field, kind: 'select' as const } : field)),
+    };
+    const cleared = {
+      ...previous,
+      values: { ...previous.values, creditor: '   ' },
+    };
+
+    expect(restoreOrderTermDraft(changedPage, previous).confirmedAutocomplete).toEqual({});
+    expect(restoreOrderTermDraft(page, cleared).confirmedAutocomplete).toEqual({});
   });
 });

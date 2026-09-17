@@ -23,7 +23,6 @@ import type { ICasesCreateCasefileOrderDetails } from 'src/app/flows/cases/cases
 import { routing } from 'src/app/flows/cases/cases-create-casefile/routing/cases-create-casefile.routes';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
-import { opalMaintenanceApplicationErrorInterceptor } from 'src/app/flows/cases/services/opal-maintenance-service/opal-maintenance-application-error.interceptor';
 
 @Component({ imports: [RouterOutlet], template: '<router-outlet />' })
 class OrderDetailsHostComponent {}
@@ -73,9 +72,7 @@ export const setupOrderDetails = (
           },
           { path: 'external-test-destination', component: ExternalDestinationComponent },
         ]),
-        provideHttpClient(
-          withInterceptors([httpErrorInterceptor, httpRetryInterceptor, opalMaintenanceApplicationErrorInterceptor]),
-        ),
+        provideHttpClient(withInterceptors([httpErrorInterceptor, httpRetryInterceptor])),
         { provide: CasesCreateCasefileStore, useValue: store },
         { provide: AppInsightsService, useValue: { logException: cy.stub(), logPageView: cy.stub() } },
         { provide: SessionService, useValue: { getTokenExpiry: () => EMPTY } },

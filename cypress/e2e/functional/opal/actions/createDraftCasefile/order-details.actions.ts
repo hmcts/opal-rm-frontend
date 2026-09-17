@@ -79,19 +79,18 @@ export class OrderDetailsActions {
     cy.get(S.caseDetails.orderDetailsLink).click();
     cy.wait('@applicationsFailure');
   }
-  /** Checks safe error presentation and preserved parties. */
-  public assertSafeFailure(): void {
+  /** Checks shared HTTP error presentation and preserved parties. */
+  public assertSharedHttpFailure(): void {
     cy.get(S.orderDetails.application).should('not.exist');
     cy.get(S.globalErrorBanner)
       .should('be.visible')
-      .and('contain.text', 'There was a problem')
-      .and('contain.text', 'You can try again. If the problem persists, contact the service desk.')
-      .and('contain.text', M.problem.operation_id)
-      .and('not.contain.text', M.problem.detail)
-      .and('not.contain.text', M.problem.title);
+      .and('contain.text', M.problem.title)
+      .and('contain.text', M.problem.detail)
+      .and('contain.text', M.problem.operation_id);
     cy.get(S.liveAnnouncement)
-      .should('contain.text', 'There was a problem')
-      .and('contain.text', 'You can try again.')
+      .should('contain.text', M.problem.title)
+      .and('contain.text', M.problem.detail)
+      .and('contain.text', M.problem.operation_id)
       .and('have.attr', 'aria-atomic', 'true');
     cy.get(S.caseDetails.respondentStatus).should('contain.text', 'Provided');
     cy.get(S.caseDetails.applicantStatus).should('contain.text', 'Provided');

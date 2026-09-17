@@ -20,10 +20,13 @@ import type { CasesCreateCasefileOrderTermRawValue } from '../types/cases-create
   imports: [ReactiveFormsModule],
   templateUrl: './cases-create-casefile-order-term-autocomplete.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(input)': 'handleInput($event)' },
 })
 export class CasesCreateCasefileOrderTermAutocompleteComponent implements OnChanges {
   private readonly destroyRef = inject(DestroyRef);
   private readonly renderer = inject(Renderer2);
+  private displayedText = '';
+  private displayedTextConfirmed = false;
   private observer: MutationObserver | null = null;
   private widget: { componentWillUnmount: () => void } | null = null;
   @ViewChild('autocomplete') private container?: ElementRef<HTMLElement>;
@@ -35,6 +38,7 @@ export class CasesCreateCasefileOrderTermAutocompleteComponent implements OnChan
   @Input() public hintText = '';
   @Input() public errors: string | null = null;
   @Input() public selectionConfirmed = false;
+  @Output() public readonly textChanged = new EventEmitter<string>();
   @Output() public readonly optionSelected = new EventEmitter<string>();
 
   public constructor() {
@@ -59,15 +63,22 @@ export class CasesCreateCasefileOrderTermAutocompleteComponent implements OnChan
       typeof option === 'string' ? option : (option?.name ?? '');
     const value = this.control.value;
     const selectedOption = this.selectionConfirmed ? this.options.find((option) => option.value === value) : undefined;
+    this.displayedText = selectedOption?.name ?? (typeof value === 'string' ? value : '');
+    this.displayedTextConfirmed = this.selectionConfirmed;
     autocomplete<{ value: string; name: string }>({
       element: this.container.nativeElement,
       id: `${this.inputId}-autocomplete`,
       name: `${this.inputName}-autocomplete`,
-      defaultValue: selectedOption?.name ?? (typeof value === 'string' ? value : ''),
+      defaultValue: this.displayedText,
       showAllValues: true,
       confirmOnBlur: false,
-      source: (query, populate) =>
-        populate(this.options.filter((option) => option.name.toLowerCase().includes(query.toLowerCase()))),
+      source: (query, populate) => {
+        // Speech tools can change .value without an input event. The widget's poll
+        // reaches this callback, but ArrowDown also queries '' without editing text.
+        const input = this.container?.nativeElement.querySelector<HTMLInputElement>('input[role="combobox"]');
+        if (input && input.value !== this.displayedText) this.emitTextChange(input.value);
+        populate(this.options.filter((option) => option.name.toLowerCase().includes(query.toLowerCase())));
+      },
       templates: {
         inputValue: label,
         // Only the suggestion template is an HTML sink. Keep input text and option IDs intact.
@@ -80,7 +91,11 @@ export class CasesCreateCasefileOrderTermAutocompleteComponent implements OnChan
             .replaceAll("'", '&#39;'),
       },
       onConfirm: (option) => {
-        if (!this.destroyRef.destroyed && option && typeof option !== 'string') this.optionSelected.emit(option.value);
+        if (!this.destroyRef.destroyed && option && typeof option !== 'string') {
+          this.displayedText = option.name;
+          this.displayedTextConfirmed = true;
+          this.optionSelected.emit(option.value);
+        }
       },
       ref: (instance) => {
         this.widget = instance;
@@ -107,6 +122,20 @@ export class CasesCreateCasefileOrderTermAutocompleteComponent implements OnChan
     if (this.errors) ids.push(errorId);
     const next = [...new Set(ids)].join(' ');
     if (next !== current) this.renderer.setAttribute(input, 'aria-describedby', next);
+  }
+
+  private emitTextChange(value: string): void {
+    if (value === this.displayedText && !this.displayedTextConfirmed) return;
+    this.displayedText = value;
+    this.displayedTextConfirmed = false;
+    this.textChanged.emit(value);
+  }
+
+  public handleInput(event: Event): void {
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.id === `${this.inputId}-autocomplete`) {
+      this.emitTextChange(target.value);
+    }
   }
 
   public ngOnChanges(): void {

@@ -81,3 +81,7 @@ cypress/parallel/weights
 multi-reporter-config.json
 /openapi/generated
 /openapi/opal-merged.yaml
+
+# Local Superpowers via skills CLI
+/skills-lock.json
+/.agents/skills/

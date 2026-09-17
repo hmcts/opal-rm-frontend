@@ -101,14 +101,12 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
     );
   }
 
-  public handleAutocompleteInput(event: Event, id: string): void {
-    const target = event.target;
-    if (!(target instanceof HTMLInputElement) || target.id !== `${id}-autocomplete`) return;
+  public handleAutocompleteInput(value: string, id: string): void {
     const view = this.views.find((view) => view.field.id === id);
     if (!view?.control) return;
-    view.selectionConfirmed = !target.value.trim();
+    view.selectionConfirmed = !value.trim();
     view.control.markAsDirty();
-    view.control.setValue(target.value);
+    view.control.setValue(value);
   }
 
   public handleAutocompleteSelection(value: string, id: string): void {

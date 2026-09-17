@@ -75,7 +75,7 @@
             [options]="view.options"
             [selectionConfirmed]="view.selectionConfirmed"
             (optionSelected)="handleAutocompleteSelection($event, field.id)"
-            (input)="handleAutocompleteInput($event, field.id)"
+            (textChanged)="handleAutocompleteInput($event, field.id)"
           />
         }
         @case ('checkbox') {

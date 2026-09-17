@@ -47,6 +47,14 @@ export class CasesCreateCasefileCentralAuthorityFormComponent extends AbstractFo
     create_casefile_central_authority_major_creditor_id: new FormControl<number | null>(null),
   });
 
+  protected override hasUnsavedChanges(): boolean {
+    const authorityChanged =
+      this.form.controls[CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.majorCreditorId].value !==
+      this.initialFormData[CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES.majorCreditorId];
+
+    return super.hasUnsavedChanges() || (!this.formSubmitted && authorityChanged);
+  }
+
   public override handleFormSubmit(event: SubmitEvent): void {
     event.preventDefault();
     super.handleFormSubmit(event);

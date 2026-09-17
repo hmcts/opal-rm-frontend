@@ -116,6 +116,26 @@ describe('CasesCreateCasefileCentralAuthorityFormComponent', () => {
     expect(sharedHandlerSpy).toHaveBeenCalledWith(event);
   });
 
+  it('keeps cleared initial authority changes unsaved after repeated empty confirmations', () => {
+    createComponent({
+      [FIELD_NAMES.remoReference]: null,
+      [FIELD_NAMES.centralAuthorityReference]: null,
+      [FIELD_NAMES.majorCreditorId]: 901,
+    });
+    fixture.detectChanges();
+    const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
+    const autocomplete = fixture.debugElement.query(By.directive(AlphagovAccessibleAutocompleteComponent))
+      .componentInstance as AlphagovAccessibleAutocompleteComponent;
+    const confirm = Reflect.get(autocomplete, 'handleOnConfirm') as (selectedName: string) => void;
+
+    confirm.call(autocomplete, '');
+    confirm.call(autocomplete, '');
+
+    expect(component.form.controls[FIELD_NAMES.majorCreditorId].value).toBeNull();
+    expect(component.form.pristine).toBe(true);
+    expect(unsavedChangesSpy).toHaveBeenLastCalledWith(true);
+  });
+
   it.each([
     [FIELD_NAMES.remoReference, 'x'.repeat(21), 'REMO reference must be 20 characters or fewer'],
     [

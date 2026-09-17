@@ -11,12 +11,16 @@ import type { ICasesCreateCasefileInterestIndexation } from '../interfaces/cases
 import type { ICasesCreateCasefileCentralAuthorityDetails } from '../interfaces/cases-create-casefile-central-authority-details.interface';
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { ICasesCreateCasefileOrderDetails } from '../interfaces/cases-create-casefile-order-details.interface';
+import type { ICasesCreateCasefileOrderTerm } from '../interfaces/cases-create-casefile-order-term.interface';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
 import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefile-task-status.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
 import { isCasesCreateCasefileCaseTypeSelectionValid } from '../utils/cases-create-casefile-case-type-selection';
+import type { ICasesCreateCasefileOrderTermPage } from '../cases-create-casefile-order-terms-input/interfaces/cases-create-casefile-order-term-page.interface';
+import type { CasesCreateCasefileOrderTermRawValue } from '../cases-create-casefile-order-terms-input/types/cases-create-casefile-order-term-raw-value.type';
+import { restoreOrderTermDraft } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-draft';
 
 const normalizeOptionalText = (value: string | null): string | null => (value?.trim() ? value : null);
 
@@ -86,6 +90,8 @@ export const CasesCreateCasefileStore = signalStore(
         interestAndIndexation: selectionUnchanged ? store.interestAndIndexation() : null,
         centralAuthorityDetails: selectionUnchanged ? store.centralAuthorityDetails() : null,
         paymentArrangement: selectionUnchanged ? store.paymentArrangement() : null,
+        orderTerms: selectionUnchanged ? store.orderTerms() : [],
+        orderTermDraft: selectionUnchanged ? store.orderTermDraft() : null,
         commentsAndNotes: selectionUnchanged ? store.commentsAndNotes() : null,
         pendingOrderTermResultId: selectionUnchanged ? store.pendingOrderTermResultId() : null,
         taskStatuses,
@@ -201,7 +207,46 @@ export const CasesCreateCasefileStore = signalStore(
       patchState(store, { unsavedChanges });
     },
     setPendingOrderTermResultId: (pendingOrderTermResultId: string | null): void => {
-      patchState(store, { pendingOrderTermResultId });
+      patchState(store, {
+        pendingOrderTermResultId,
+        orderTermDraft: pendingOrderTermResultId === store.orderTermDraft()?.resultId ? store.orderTermDraft() : null,
+      });
+    },
+    prepareOrderTermDraft: (page: ICasesCreateCasefileOrderTermPage): void => {
+      if (store.pendingOrderTermResultId() !== page.resultId) return;
+
+      patchState(store, { orderTermDraft: restoreOrderTermDraft(page, store.orderTermDraft()) });
+    },
+    updateOrderTermDraft: (values: Record<string, CasesCreateCasefileOrderTermRawValue>, dirty: boolean): void => {
+      const draft = store.orderTermDraft();
+      if (!draft) return;
+
+      const safeValues = Object.fromEntries(
+        Object.entries(values).filter(([name]) => name !== 'frequency' && Object.hasOwn(draft.fieldTypes, name)),
+      );
+      patchState(store, { orderTermDraft: { ...draft, values: safeValues, dirty }, unsavedChanges: dirty });
+    },
+    acceptOrderTerm: (term: ICasesCreateCasefileOrderTerm): boolean => {
+      const draft = store.orderTermDraft();
+      if (!draft || term.resultId !== draft.resultId || term.resultId !== store.pendingOrderTermResultId())
+        return false;
+
+      const parameters = Object.fromEntries(
+        Object.entries(term.parameters).filter(
+          ([name]) => name !== 'frequency' && Object.hasOwn(draft.fieldTypes, name),
+        ),
+      );
+      patchState(store, {
+        orderTerms: [...store.orderTerms(), { resultId: term.resultId, parameters }],
+        orderTermDraft: null,
+        pendingOrderTermResultId: null,
+        unsavedChanges: false,
+        stateChanges: true,
+      });
+      return true;
+    },
+    discardOrderTermDraft: (): void => {
+      patchState(store, { orderTermDraft: null, unsavedChanges: false });
     },
     resetForCaseTypeEdit: (): void => {
       const caseTypeSelection = store.caseTypeSelection();

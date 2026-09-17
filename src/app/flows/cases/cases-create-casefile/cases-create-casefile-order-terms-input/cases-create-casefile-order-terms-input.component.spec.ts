@@ -279,6 +279,60 @@ describe('Order term input routed parent', () => {
     expect(router.url).toBe('/cases/create-casefile/order-terms/creditor');
   });
 
+  it('replaces an accepted optional value after a rejected navigation when the real form reverts to pristine', async () => {
+    const checkboxId = 'create_casefile_order_terms_input_apply_indexation';
+    const optionalPage: ICasesCreateCasefileOrderTermPage = {
+      resultId: 'OPTIONAL',
+      title: 'Optional term',
+      fields: [
+        {
+          name: 'apply_indexation',
+          id: checkboxId,
+          label: 'Apply indexation',
+          kind: 'checkbox',
+          required: false,
+          hint: '',
+          min: null,
+          max: null,
+          past: false,
+          options: [],
+          lookup: null,
+        },
+        { ...page.fields[2], id: 'create_casefile_order_terms_input_frequency' },
+      ],
+    };
+    let allowCreditor = false;
+    const store = await configure([
+      {
+        path: inputPath,
+        component: CasesCreateCasefileOrderTermsInputComponent,
+        canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
+        data: { orderTerm: optionalPage },
+      },
+      { path: creditorPath, component: TestDestinationComponent, canActivate: [() => allowCreditor] },
+    ]);
+    store.setPendingOrderTermResultId('OPTIONAL');
+    const harness = await RouterTestingHarness.create('/cases/create-casefile/order-terms/add/OPTIONAL');
+    const child = harness.routeDebugElement!.query(
+      (element) => element.componentInstance instanceof CasesCreateCasefileOrderTermsInputFormComponent,
+    ).componentInstance as CasesCreateCasefileOrderTermsInputFormComponent;
+
+    child.form.controls[checkboxId].setValue(true);
+    child.handleFormSubmit(new SubmitEvent('submit'));
+    await harness.fixture.whenStable();
+    expect(store.orderTerms()).toEqual([{ resultId: 'OPTIONAL', parameters: { apply_indexation: true } }]);
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/add/OPTIONAL');
+
+    child.form.controls[checkboxId].setValue(false);
+    expect(store.unsavedChanges()).toBe(false);
+    allowCreditor = true;
+    child.handleFormSubmit(new SubmitEvent('submit'));
+    await harness.fixture.whenStable();
+
+    expect(store.orderTerms()).toEqual([{ resultId: 'OPTIONAL', parameters: { apply_indexation: false } }]);
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/creditor');
+  });
+
   it('remounts the form when route data changes for another Result', async () => {
     const childPage = { ...page, resultId: 'MCHILD', title: 'Child maintenance' };
     await configure([

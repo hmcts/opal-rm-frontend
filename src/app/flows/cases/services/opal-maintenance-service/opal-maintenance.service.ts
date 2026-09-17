@@ -6,8 +6,10 @@ import type { IOpalMaintenanceApplicationReferenceDataResponse } from './interfa
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorParams } from './interfaces/opal-maintenance-major-creditor-params.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
+import type { IOpalMaintenanceResultDetail } from './interfaces/opal-maintenance-result-detail.interface';
 import type { IOpalMaintenanceResultParams } from './interfaces/opal-maintenance-result-params.interface';
 import type { IOpalMaintenanceResultReferenceDataResponse } from './interfaces/opal-maintenance-result-reference-data-response.interface';
+import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from './mocks/opal-maintenance-result-details.mock';
 import { OPAL_MAINTENANCE_RESULTS_MOCK } from './mocks/opal-maintenance-results.mock';
 
 @Injectable({ providedIn: 'root' })
@@ -72,6 +74,15 @@ export class OpalMaintenanceService {
         count: OPAL_MAINTENANCE_RESULTS_MOCK.count,
         refData: OPAL_MAINTENANCE_RESULTS_MOCK.refData.map((record) => ({ ...record })),
       });
+    });
+  }
+
+  public getResult(resultId: string): Observable<IOpalMaintenanceResultDetail | null> {
+    return defer(() => {
+      const detail = Object.hasOwn(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK, resultId)
+        ? OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[resultId]
+        : null;
+      return of(detail ? { ...detail } : null);
     });
   }
 

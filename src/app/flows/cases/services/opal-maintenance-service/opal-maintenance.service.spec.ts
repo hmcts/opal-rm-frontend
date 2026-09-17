@@ -68,8 +68,8 @@ describe('OpalMaintenanceService', () => {
     expect(second).toEqual({
       count: 2,
       refData: [
-        { result_id: 'MOCK01', result_title: 'Example maintenance term' },
-        { result_id: 'MOCK02', result_title: 'Example additional term' },
+        { result_id: 'MAT', result_title: 'Maintenance' },
+        { result_id: 'MCHILD', result_title: 'Child maintenance' },
       ],
     });
     expect(second).not.toBe(first);
@@ -81,6 +81,35 @@ describe('OpalMaintenanceService', () => {
       expect(record.result_title.length).toBeLessThanOrEqual(60);
     }
     TestBed.inject(HttpTestingController).expectNone('/opal-maintenance-service/results');
+  });
+
+  it('resolves every selectable mock Result without HTTP', async () => {
+    const list = await firstValueFrom(service.getResults({ order_term: true, active: true }));
+    for (const item of list.refData) {
+      expect(await firstValueFrom(service.getResult(item.result_id))).toMatchObject({
+        ...item,
+        active: true,
+        order_term: true,
+      });
+    }
+    expect(await firstValueFrom(service.getResult('unknown'))).toBeNull();
+    expect(await firstValueFrom(service.getResult('__proto__'))).toBeNull();
+    http.expectNone((request) => request.url.includes('/results'));
+  });
+
+  it('returns a distinct Result detail that cannot mutate the fixture', async () => {
+    const request = service.getResult('MAT');
+    const first = await firstValueFrom(request);
+    const second = await firstValueFrom(request);
+
+    expect(first).not.toBe(second);
+    expect(first).not.toBeNull();
+    if (first) first.result_title = 'Changed by test';
+    expect(await firstValueFrom(service.getResult('MAT'))).toMatchObject({
+      result_id: 'MAT',
+      result_title: 'Maintenance',
+    });
+    http.expectNone((request) => request.url.includes('/results'));
   });
 
   it('rejects filters outside the synthetic list contract', async () => {

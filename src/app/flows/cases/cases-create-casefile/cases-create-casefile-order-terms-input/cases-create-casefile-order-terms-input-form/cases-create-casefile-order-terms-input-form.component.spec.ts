@@ -2,6 +2,7 @@ import { Component, Input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
+import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from '../../../services/opal-maintenance-service/mocks/opal-maintenance-result-details.mock';
 import type { ICasesCreateCasefileOrderTermPage } from '../interfaces/cases-create-casefile-order-term-page.interface';
@@ -218,6 +219,9 @@ describe('Order terms input form', () => {
   it('renders all shared control kinds with safe hints and distinct group identifiers', async () => {
     render(allControlsPage);
     await autocompleteInput();
+    const autocomplete = fixture.debugElement.query(By.directive(AlphagovAccessibleAutocompleteComponent));
+    expect(autocomplete).not.toBeNull();
+    expect(autocomplete.componentInstance.getControl).toBe(component.form.controls[id('autocomplete')]);
     expect(fixture.nativeElement.querySelector(`#${id('long_text')}`).tagName).toBe('TEXTAREA');
     expect(fixture.nativeElement.querySelector(`#${id('select')}`).tagName).toBe('SELECT');
     expect(fixture.nativeElement.querySelector(`#${id('checkbox')}`).type).toBe('checkbox');

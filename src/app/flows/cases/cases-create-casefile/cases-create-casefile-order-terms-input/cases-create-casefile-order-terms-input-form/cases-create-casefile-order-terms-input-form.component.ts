@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormRecord, ReactiveFormsModule } from '@angular/forms';
+import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import {
@@ -26,7 +27,6 @@ import { GovukTextAreaComponent } from '@hmcts/opal-frontend-common/components/g
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { MojDatePickerComponent } from '@hmcts/opal-frontend-common/components/moj/moj-date-picker';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
-import { CasesCreateCasefileOrderTermAutocompleteComponent } from '../cases-create-casefile-order-term-autocomplete/cases-create-casefile-order-term-autocomplete.component';
 import type { ICasesCreateCasefileOrderTermDraftChange } from '../interfaces/cases-create-casefile-order-term-draft-change.interface';
 import type { ICasesCreateCasefileOrderTermField } from '../interfaces/cases-create-casefile-order-term-field.interface';
 import type { ICasesCreateCasefileOrderTermPage } from '../interfaces/cases-create-casefile-order-term-page.interface';
@@ -48,7 +48,7 @@ import { createOrderTermValidator } from '../validators/cases-create-casefile-or
     GovukErrorSummaryComponent,
     GovukCancelLinkComponent,
     MojDatePickerComponent,
-    CasesCreateCasefileOrderTermAutocompleteComponent,
+    AlphagovAccessibleAutocompleteComponent,
   ],
   templateUrl: './cases-create-casefile-order-terms-input-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -109,13 +109,14 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
     view.control.setValue(value);
   }
 
-  public handleAutocompleteSelection(value: string, id: string): void {
+  public handleAutocompleteSelection(value: string | number, id: string): void {
     const view = this.views.find((view) => view.field.id === id);
-    if (!view?.control || !view.options.some((option) => option.value === value)) return;
+    const option = view?.options.find((item) => item.value === value);
+    if (!view?.control || !option) return;
     view.selectionConfirmed = true;
     view.control.markAsDirty();
     view.control.markAsTouched();
-    view.control.setValue(value);
+    view.control.setValue(option.value);
   }
 
   public override ngOnInit(): void {

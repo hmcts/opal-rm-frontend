@@ -237,3 +237,109 @@ test('rejects a Central Authority identifier that uses the wrong page prefix', a
 
   assertRejected(runScanner(repositoryRoot), /majorCreditorId does not use create_casefile_central_authority_/);
 });
+
+const orderTermsInputTemplatePath = `${createCasefilePath}/cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input-form/cases-create-casefile-order-terms-input-form.component.html`;
+
+test('accepts metadata field identifiers in mutually exclusive input branches', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermsInputTemplatePath,
+    `
+    @for (view of views; track view.field.id) {
+      @let field = view.field;
+      @if (field.kind === 'readonly') { <dl [id]="field.id"></dl> }
+      @else { @switch (field.kind) {
+        @case ('date') { <opal-lib-moj-date-picker [inputId]="field.id" [inputName]="field.id" /> }
+        @case ('radio') {
+          <opal-lib-govuk-radio [fieldSetId]="field.id">
+            @for (option of view.options; track option.value) {
+              <div opal-lib-govuk-radios-item [inputId]="field.id + '-option-' + $index" [inputName]="field.id"></div>
+            }
+          </opal-lib-govuk-radio>
+        }
+        @case ('checkbox') {
+          <opal-lib-govuk-checkboxes [fieldSetId]="field.id + '-fieldset'">
+            <div opal-lib-govuk-checkboxes-item [inputId]="field.id" [inputName]="field.id"></div>
+          </opal-lib-govuk-checkboxes>
+        }
+        @default { <opal-lib-govuk-text-input [inputId]="field.id" [inputName]="field.id" /> }
+      } }
+    }
+    <button id="create_casefile_order_terms_input_continue">Continue</button>
+  `,
+  );
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('rejects ungoverned dynamic order-term identifiers and wrong prefixes', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermsInputTemplatePath,
+    `
+    <opal-lib-govuk-text-input [inputId]="field.name" [inputName]="field.id + '-fieldset'" />
+    <button id="create_casefile_order_details_continue">Continue</button>
+  `,
+  );
+  const result = runScanner(repositoryRoot);
+  assertRejected(result, /noncanonical inputId="field.name"/);
+  assert.match(result.stderr, /noncanonical inputName/);
+  assert.match(result.stderr, /noncanonical id="create_casefile_order_details_continue"/);
+});
+
+test('does not allow metadata field expressions on unrelated forms', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    caseTypeTemplatePath,
+    '<opal-lib-govuk-text-input [inputId]="field.id" [inputName]="field.id" />',
+  );
+  assertRejected(runScanner(repositoryRoot), /noncanonical inputId="field.id"/);
+});
+
+test('rejects dynamic IDs that can render together in the same branch', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermsInputTemplatePath,
+    `
+    @switch (field.kind) { @case ('text') {
+      <opal-lib-govuk-text-input [inputId]="field.id" />
+      <opal-lib-govuk-text-area [inputId]="field.id" />
+    } }
+  `,
+  );
+  assertRejected(runScanner(repositoryRoot), /duplicate ID declaration "field.id"/);
+});
+
+test('rejects dynamic IDs across independent conditional blocks', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermsInputTemplatePath,
+    `
+    @if (first) { <opal-lib-govuk-text-input [inputId]="field.id" /> }
+    @if (second) { <opal-lib-govuk-text-input [inputId]="field.id" /> }
+  `,
+  );
+  assertRejected(runScanner(repositoryRoot), /duplicate ID declaration "field.id"/);
+});
+
+test('accepts the creditor return identifier with its own prefix', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    `${createCasefilePath}/cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor.component.html`,
+    '<a id="create_casefile_order_term_creditor_return">Return to order terms</a>',
+  );
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('rejects malformed dynamic control-flow templates', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(repositoryRoot, orderTermsInputTemplatePath, '@if (field.kind) {');
+  assertRejected(runScanner(repositoryRoot), /invalid dynamic form template/);
+});

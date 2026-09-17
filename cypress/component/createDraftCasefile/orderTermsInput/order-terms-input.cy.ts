@@ -264,7 +264,7 @@ describe('Order term input regressions', () => {
       cy.get(S.orderTermsInput.autocompleteOptions).should('have.length', 2);
       cy.get(S.orderTermsInput.autocomplete).type('{downarrow}{enter}');
       cy.get<OrderTermsStore>('@casesCreateCasefileStore').should((store) =>
-        expect(store.orderTermDraft()?.confirmedAutocomplete?.['lookup']).to.eq(true),
+        expect(store.orderTermDraft()?.values['lookup']).to.eq('example_a'),
       );
       cy.get(S.orderTermsInput.continueButton).click();
       assertTerms({
@@ -279,26 +279,18 @@ describe('Order term input regressions', () => {
     },
   );
 
-  it(
-    'AC3. should retain unconfirmed display text and accept only an activated option ID',
-    { tags: buildTags() },
-    () => {
-      openControls();
-      fillControls();
-      cy.get(S.orderTermsInput.autocomplete).type('Example A').blur();
-      cy.get(S.orderTermsInput.continueButton).click();
-      cy.get(S.errorSummary).should('contain.text', 'Select a valid lookup');
-      cy.get(S.orderTermsInput.autocomplete).should('have.value', 'Example A').focus();
-      cy.get(S.orderTermsInput.autocomplete).type('{downarrow}{enter}');
-      cy.get<OrderTermsStore>('@casesCreateCasefileStore').should((store) =>
-        expect(store.orderTermDraft()?.confirmedAutocomplete?.['lookup']).to.eq(true),
-      );
-      cy.get(S.orderTermsInput.continueButton).click();
-      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
-        expect(store.orderTerms()[0].parameters['lookup']).to.eq('example_a'),
-      );
-    },
-  );
+  it('AC3. should accept a matching autocomplete label on blur and store its option ID', { tags: buildTags() }, () => {
+    openControls();
+    fillControls();
+    cy.get(S.orderTermsInput.autocomplete).type('Example A').blur();
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').should((store) =>
+      expect(store.orderTermDraft()?.values['lookup']).to.eq('example_a'),
+    );
+    cy.get(S.orderTermsInput.continueButton).click();
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
+      expect(store.orderTerms()[0].parameters['lookup']).to.eq('example_a'),
+    );
+  });
 
   it('AC5. should focus the first radio from a keyboard activated summary link', { tags: buildTags() }, () => {
     openControls();

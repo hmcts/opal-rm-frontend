@@ -17,7 +17,6 @@ import { canonicalOrderTerm } from './utils/cases-create-casefile-order-term-val
 interface OrderTermPageEntry {
   page: ICasesCreateCasefileOrderTermPage;
   values: Record<string, CasesCreateCasefileOrderTermRawValue>;
-  confirmedAutocomplete: Record<string, boolean>;
   dirty: boolean;
 }
 
@@ -55,31 +54,11 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
         {
           page,
           values: { ...draft?.values },
-          confirmedAutocomplete: { ...draft?.confirmedAutocomplete },
           dirty: draft?.dirty ?? false,
         },
       ]);
       this.title.setTitle(`OPAL - ${page.title}`);
     });
-  }
-
-  private autocompleteSubmissionIsConfirmed(
-    page: ICasesCreateCasefileOrderTermPage,
-    submitted: Record<string, CasesCreateCasefileOrderTermRawValue>,
-    draftChange?: ICasesCreateCasefileOrderTermDraftChange,
-  ): boolean {
-    const draft = this.store.orderTermDraft();
-    const values = draftChange?.values ?? draft?.values;
-    const confirmedAutocomplete = draftChange?.confirmedAutocomplete ?? draft?.confirmedAutocomplete;
-    if (!values) return false;
-
-    return page.fields
-      .filter((field) => field.kind === 'autocomplete')
-      .every((field) => {
-        const value = submitted[field.id];
-        if (typeof value !== 'string' || !value.trim()) return true;
-        return values[field.name] === value && confirmedAutocomplete?.[field.name] === true;
-      });
   }
 
   public handleDraftChange(change: ICasesCreateCasefileOrderTermDraftChange): void {
@@ -89,7 +68,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
       this.store.setUnsavedChanges(change.dirty);
       return;
     }
-    this.store.updateOrderTermDraft(change.values, change.dirty, change.confirmedAutocomplete);
+    this.store.updateOrderTermDraft(change.values, change.dirty);
   }
 
   public handleUnsavedChanges(changed: boolean): void {
@@ -103,7 +82,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
   }): void {
     if (!this.accepted) {
       const current = this.pages()[0];
-      if (!current || !this.autocompleteSubmissionIsConfirmed(current.page, form.formData)) return;
+      if (!current) return;
       let term: ICasesCreateCasefileOrderTerm;
       try {
         term = canonicalOrderTerm(current.page, form.formData, this.dates);
@@ -115,12 +94,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
       this.acceptedTermIndex = this.store.orderTerms().length - 1;
     } else if (this.retryDraft) {
       const current = this.pages()[0];
-      if (
-        !current ||
-        this.acceptedTermIndex === null ||
-        !this.autocompleteSubmissionIsConfirmed(current.page, form.formData, this.retryDraft)
-      )
-        return;
+      if (!current || this.acceptedTermIndex === null) return;
       let term: ICasesCreateCasefileOrderTerm;
       try {
         term = canonicalOrderTerm(current.page, form.formData, this.dates);

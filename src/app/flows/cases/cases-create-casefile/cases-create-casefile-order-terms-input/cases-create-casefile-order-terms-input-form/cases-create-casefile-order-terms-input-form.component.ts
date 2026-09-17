@@ -1,14 +1,5 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  DestroyRef,
-  EventEmitter,
-  inject,
-  Input,
-  OnInit,
-  Output,
-} from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
+import { takeUntil } from 'rxjs';
 import { FormControl, FormRecord, ReactiveFormsModule } from '@angular/forms';
 import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
 import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
@@ -55,9 +46,7 @@ import { createOrderTermValidator } from '../validators/cases-create-casefile-or
 })
 export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFormBaseComponent implements OnInit {
   private readonly dates = inject(DateService);
-  private readonly destroyRef = inject(DestroyRef);
   private initialRaw: Record<string, CasesCreateCasefileOrderTermRawValue> = {};
-  private initialConfirmation: Record<string, boolean> = {};
 
   @Output() protected override formSubmit = new EventEmitter<{
     formData: Record<string, CasesCreateCasefileOrderTermRawValue>;
@@ -68,8 +57,6 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
   @Input({ required: true }) public initialValues!: Record<string, CasesCreateCasefileOrderTermRawValue>;
   @Input({ required: true }) public frequency!: string;
   @Input() public initialDirty = false;
-  // Draft-only state distinguishes a selected ID from identical, unconfirmed text after remount.
-  @Input() public initialConfirmedAutocomplete: Record<string, boolean> = {};
   @Output() public readonly draftChange = new EventEmitter<ICasesCreateCasefileOrderTermDraftChange>();
   // eslint-disable-next-line @angular-eslint/no-output-native
   @Output() public readonly cancel = new EventEmitter<void>();
@@ -78,50 +65,31 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
     field: ICasesCreateCasefileOrderTermField;
     control: FormControl<CasesCreateCasefileOrderTermRawValue> | null;
     options: { value: string; name: string }[];
-    selectionConfirmed: boolean;
   }[] = [];
-
-  private confirmedAutocomplete(): Record<string, boolean> {
-    return Object.fromEntries(
-      this.views
-        .filter((view) => view.field.kind === 'autocomplete')
-        .map((view) => [view.field.name, view.selectionConfirmed]),
-    );
-  }
 
   protected override hasUnsavedChanges(): boolean {
     return (
       !this.formSubmitted &&
       (this.initialDirty ||
-        Object.entries(this.form.getRawValue()).some(([id, value]) => value !== this.initialRaw[id]) ||
-        this.views.some(
-          (view) =>
-            view.field.kind === 'autocomplete' && view.selectionConfirmed !== this.initialConfirmation[view.field.name],
-        ))
+        Object.entries(this.form.getRawValue()).some(([id, value]) => value !== this.initialRaw[id]))
     );
-  }
-
-  public handleAutocompleteInput(value: string, id: string): void {
-    const view = this.views.find((view) => view.field.id === id);
-    if (!view?.control) return;
-    view.selectionConfirmed = !value.trim();
-    view.control.markAsDirty();
-    view.control.setValue(value);
-  }
-
-  public handleAutocompleteSelection(value: string | number, id: string): void {
-    const view = this.views.find((view) => view.field.id === id);
-    const option = view?.options.find((item) => item.value === value);
-    if (!view?.control || !option) return;
-    view.selectionConfirmed = true;
-    view.control.markAsDirty();
-    view.control.markAsTouched();
-    view.control.setValue(option.value);
   }
 
   public override ngOnInit(): void {
     this.views = this.page.fields.map((field) => {
-      const options = field.options.map((option) => ({ value: option.value, name: option.label }));
+      // The published widget treats suggestion names as HTML. Encode metadata at that boundary.
+      const options = field.options.map((option) => ({
+        value: option.value,
+        name:
+          field.kind === 'autocomplete'
+            ? option.label
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;')
+            : option.label,
+      }));
       const initialValue = Object.hasOwn(this.initialValues, field.name) ? this.initialValues[field.name] : null;
       const control =
         field.kind === 'readonly'
@@ -134,17 +102,8 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
         field,
         control,
         options,
-        selectionConfirmed:
-          !control?.value ||
-          (typeof control.value === 'string' && !control.value.trim()) ||
-          (this.initialConfirmedAutocomplete[field.name] === true &&
-            options.some((option) => option.value === control.value)),
       };
       if (control) {
-        if (field.kind === 'autocomplete') {
-          control.addValidators(() => (view.selectionConfirmed ? null : { choice: true }));
-          control.updateValueAndValidity({ emitEvent: false });
-        }
         this.form.addControl(field.id, control);
       }
       return view;
@@ -153,16 +112,14 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
       this.views.filter((view) => view.control).map((view) => [view.field.id, orderTermErrorMessages(view.field)]),
     );
     this.initialRaw = this.form.getRawValue();
-    this.initialConfirmation = this.confirmedAutocomplete();
     this.setInitialErrorMessages();
-    this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+    this.form.valueChanges.pipe(takeUntil(this.ngUnsubscribe)).subscribe(() => {
       this.formSubmitted = false;
       this.draftChange.emit({
         values: Object.fromEntries(
           this.views.filter((view) => view.control).map((view) => [view.field.name, view.control!.value]),
         ),
         dirty: this.hasUnsavedChanges(),
-        confirmedAutocomplete: this.confirmedAutocomplete(),
       });
     });
     super.ngOnInit();

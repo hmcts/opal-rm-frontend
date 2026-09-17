@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, NavigationCancel, NavigationError, provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import {
@@ -80,6 +81,7 @@ describe('fetchCasesCreateCasefileOrderTermResolver', () => {
       ],
     });
     const harness = await RouterTestingHarness.create('/selection');
+    TestBed.inject(Title).setTitle('Selection');
     router = TestBed.inject(Router);
     store = TestBed.inject(CasesCreateCasefileStore);
     routeEvents = [];
@@ -110,6 +112,7 @@ describe('fetchCasesCreateCasefileOrderTermResolver', () => {
     expect(routeEvents.filter((event) => event instanceof NavigationCancel)).toHaveLength(1);
     expect(routeEvents.filter((event) => event instanceof NavigationError)).toHaveLength(0);
     expect(store.orderTermDraft()).toEqual(draftSnapshot);
+    expect(TestBed.inject(Title).getTitle()).toBe('Selection');
   };
 
   beforeEach(() => {

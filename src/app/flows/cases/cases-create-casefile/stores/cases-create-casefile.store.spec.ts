@@ -858,6 +858,68 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.taskStatuses().orderTerms).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
   });
 
+  it('preserves only confirmed compatible autocomplete selections in the in-memory draft', () => {
+    const autocompletePage = {
+      ...page,
+      fields: [
+        ...page.fields,
+        {
+          name: 'creditor',
+          id: 'create_casefile_order_terms_input_creditor',
+          label: 'Creditor',
+          kind: 'autocomplete' as const,
+          required: false,
+          hint: '',
+          min: null,
+          max: null,
+          past: false,
+          options: [{ value: 'C1', label: 'Creditor one' }],
+          lookup: null,
+        },
+      ],
+    };
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(autocompletePage);
+    store.updateOrderTermDraft({ amount: '12.30', creditor: 'C1' }, true, { creditor: true, amount: true });
+
+    store.prepareOrderTermDraft(autocompletePage);
+
+    expect(store.orderTermDraft()).toMatchObject({
+      values: { amount: '12.30', creditor: 'C1' },
+      confirmedAutocomplete: { creditor: true },
+    });
+  });
+
+  it('does not infer autocomplete confirmation from raw text equal to an option ID', () => {
+    const autocompletePage = {
+      ...page,
+      fields: [
+        ...page.fields,
+        {
+          name: 'creditor',
+          id: 'create_casefile_order_terms_input_creditor',
+          label: 'Creditor',
+          kind: 'autocomplete' as const,
+          required: false,
+          hint: '',
+          min: null,
+          max: null,
+          past: false,
+          options: [{ value: 'C1', label: 'Creditor one' }],
+          lookup: null,
+        },
+      ],
+    };
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(autocompletePage);
+    store.updateOrderTermDraft({ creditor: 'C1' }, true, { creditor: false });
+
+    store.prepareOrderTermDraft(autocompletePage);
+
+    expect(store.orderTermDraft()?.values).toEqual({ creditor: 'C1' });
+    expect(store.orderTermDraft()?.confirmedAutocomplete).toEqual({});
+  });
+
   it('accepts intentional additions of the same Result as distinct terms', () => {
     store.setPendingOrderTermResultId('MAT');
     store.prepareOrderTermDraft(page);
@@ -870,6 +932,16 @@ describe('CasesCreateCasefileStore', () => {
       { resultId: 'MAT', parameters: { amount: '1.00' } },
       { resultId: 'MAT', parameters: { amount: '2.00' } },
     ]);
+  });
+
+  it('replaces one accepted term after a failed navigation without appending another', () => {
+    store.setPendingOrderTermResultId('MAT');
+    store.prepareOrderTermDraft(page);
+    store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '1.00' } });
+
+    expect(store.replaceAcceptedOrderTerm(0, { resultId: 'MAT', parameters: { amount: '2.00' } })).toBe(true);
+    expect(store.replaceAcceptedOrderTerm(1, { resultId: 'MAT', parameters: { amount: '3.00' } })).toBe(false);
+    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '2.00' } }]);
   });
 
   it('discards a later draft without losing accepted terms', () => {

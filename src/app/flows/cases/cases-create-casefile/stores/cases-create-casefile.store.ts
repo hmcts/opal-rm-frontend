@@ -217,14 +217,32 @@ export const CasesCreateCasefileStore = signalStore(
 
       patchState(store, { orderTermDraft: restoreOrderTermDraft(page, store.orderTermDraft()) });
     },
-    updateOrderTermDraft: (values: Record<string, CasesCreateCasefileOrderTermRawValue>, dirty: boolean): void => {
+    updateOrderTermDraft: (
+      values: Record<string, CasesCreateCasefileOrderTermRawValue>,
+      dirty: boolean,
+      confirmedAutocomplete: Record<string, boolean> = {},
+    ): void => {
       const draft = store.orderTermDraft();
       if (!draft) return;
 
       const safeValues = Object.fromEntries(
         Object.entries(values).filter(([name]) => name !== 'frequency' && Object.hasOwn(draft.fieldTypes, name)),
       );
-      patchState(store, { orderTermDraft: { ...draft, values: safeValues, dirty }, unsavedChanges: dirty });
+      const safeConfirmation = Object.fromEntries(
+        Object.entries(confirmedAutocomplete).filter(([name, confirmed]) => {
+          const value = safeValues[name];
+          return (
+            confirmed === true &&
+            draft.fieldTypes[name] === 'autocomplete' &&
+            typeof value === 'string' &&
+            value.trim().length > 0
+          );
+        }),
+      );
+      patchState(store, {
+        orderTermDraft: { ...draft, values: safeValues, confirmedAutocomplete: safeConfirmation, dirty },
+        unsavedChanges: dirty,
+      });
     },
     acceptOrderTerm: (term: ICasesCreateCasefileOrderTerm): boolean => {
       const draft = store.orderTermDraft();
@@ -243,6 +261,15 @@ export const CasesCreateCasefileStore = signalStore(
         unsavedChanges: false,
         stateChanges: true,
       });
+      return true;
+    },
+    replaceAcceptedOrderTerm: (index: number, term: ICasesCreateCasefileOrderTerm): boolean => {
+      const accepted = store.orderTerms()[index];
+      if (!accepted || accepted.resultId !== term.resultId) return false;
+
+      const orderTerms = [...store.orderTerms()];
+      orderTerms[index] = term;
+      patchState(store, { orderTerms, unsavedChanges: false, stateChanges: true });
       return true;
     },
     discardOrderTermDraft: (): void => {

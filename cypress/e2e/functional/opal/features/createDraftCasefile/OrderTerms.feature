@@ -7,11 +7,11 @@ Feature: Select an order term
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9806
   Scenario: Continue to the selected Result and return with the choice restored
     When I start adding an order term
-    And I choose order term "MOCK01"
+    And I choose order term "MAT"
     And I continue from order term selection
-    Then the input destination identifies order term "MOCK01" without creating a draft
+    Then the input destination identifies order term "MAT" without creating a draft
     When I return from the order term input destination
-    Then order term "MOCK01" is selected
+    Then order term "MAT" is selected
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9806
   Scenario: An empty selection cannot continue
@@ -22,6 +22,6 @@ Feature: Select an order term
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9806
   Scenario: A pending choice is discarded on a full reload
     When I start adding an order term
-    And I choose order term "MOCK01"
+    And I choose order term "MAT"
     And I continue from order term selection
     Then reloading the order term destination returns to Case Type with navigation hidden

@@ -133,6 +133,27 @@ describe('Create Casefile Central authority details', () => {
     });
   });
 
+  it(
+    'AC3. should protect a repeatedly cleared restored authority when Cancel is rejected',
+    { tags: buildTags() },
+    () => {
+      const confirm = cy.stub().as('clearedAuthorityConfirm').returns(false);
+      cy.on('window:confirm', confirm);
+      setupCentralAuthorityDetails({ savedDetails: SAVED_DETAILS_WITH_STALE_COPY });
+
+      cy.get(Page.autocomplete).clear().blur();
+      cy.get(Page.autocomplete).focus().blur();
+
+      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+        expect(store.unsavedChanges()).to.equal(true);
+      });
+      cy.get(Page.cancelLink).click();
+
+      cy.get('@clearedAuthorityConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+      cy.get('@angularRouter').should((router: Router) => expect(router.url).to.equal(centralAuthorityPath));
+    },
+  );
+
   it('AC3. should navigate directly on clean Cancel', { tags: buildTags() }, () => {
     const confirm = cy.stub().as('cleanConfirm').returns(true);
     cy.on('window:confirm', confirm);

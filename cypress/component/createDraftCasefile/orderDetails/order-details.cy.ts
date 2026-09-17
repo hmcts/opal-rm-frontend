@@ -150,7 +150,7 @@ describe('Order Details independent browser contracts', () => {
   );
 
   it(
-    'AC2. should show safe correlated 503 copy, preserve parties and pass global-error Axe',
+    'AC2. should show the shared HTTP error message and operation reference, preserve parties and pass global-error Axe',
     { tags: buildTags() },
     () => {
       let attempts = 0;
@@ -165,17 +165,14 @@ describe('Order Details independent browser contracts', () => {
       cy.get(S.caseDetails.orderDetailsLink).click();
       cy.wait('@applications');
       cy.get(S.globalErrorBanner)
-        .should('contain.text', 'There was a problem')
+        .should('contain.text', M.problem.title)
         .and('contain.text', M.problem.operation_id)
-        .and('not.contain.text', M.problem.title)
-        .and('not.contain.text', M.problem.detail);
+        .and('contain.text', M.problem.detail);
       cy.get(S.liveAnnouncement)
-        .should('contain.text', 'There was a problem')
-        .and('contain.text', 'You can try again.')
+        .should('contain.text', M.problem.title)
+        .and('contain.text', M.problem.detail)
         .and('have.attr', 'aria-atomic', 'true')
-        .and('contain.text', M.problem.operation_id)
-        .and('not.contain.text', M.problem.detail)
-        .and('not.contain.text', M.problem.title);
+        .and('contain.text', M.problem.operation_id);
       cy.get(S.caseDetails.respondentStatus).should('contain.text', 'Provided');
       cy.get(S.caseDetails.applicantStatus).should('contain.text', 'Provided');
       assertSaved();

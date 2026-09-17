@@ -15,6 +15,6 @@ Feature: Create Draft Casefile Order Details
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805
   Scenario: Recover from unavailable applications without losing the parties
     When the Order Details applications lookup fails
-    Then Case Details retains my parties and announces a safe correlated error
+    Then Case Details retains my parties and announces the shared HTTP error and operation reference
     When I retry opening Order Details using the keyboard
     Then Order Details opens with the available applications

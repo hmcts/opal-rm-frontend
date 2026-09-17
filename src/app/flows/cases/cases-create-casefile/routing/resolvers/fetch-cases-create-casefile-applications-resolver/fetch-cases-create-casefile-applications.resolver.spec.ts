@@ -14,7 +14,6 @@ import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { Observable } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IOpalMaintenanceApplicationReferenceDataResponse } from '../../../../services/opal-maintenance-service/interfaces/opal-maintenance-application-reference-data-response.interface';
-import { opalMaintenanceApplicationErrorInterceptor } from '../../../../services/opal-maintenance-service/opal-maintenance-application-error.interceptor';
 import { fetchCasesCreateCasefileApplicationsResolver } from './fetch-cases-create-casefile-applications.resolver';
 
 describe('fetchCasesCreateCasefileApplicationsResolver', () => {
@@ -31,14 +30,7 @@ describe('fetchCasesCreateCasefileApplicationsResolver', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        provideHttpClient(
-          withInterceptors([
-            httpErrorInterceptor,
-            contentDigestInterceptor,
-            httpRetryInterceptor,
-            opalMaintenanceApplicationErrorInterceptor,
-          ]),
-        ),
+        provideHttpClient(withInterceptors([httpErrorInterceptor, contentDigestInterceptor, httpRetryInterceptor])),
         provideHttpClientTesting(),
         { provide: GlobalStore, useValue: { setBannerError, resetBannerError } },
         { provide: AppInsightsService, useValue: { logException: vi.fn() } },
@@ -80,7 +72,7 @@ describe('fetchCasesCreateCasefileApplicationsResolver', () => {
     expect(next).toHaveBeenCalledWith({ count: 1, refData: [record] });
   });
 
-  it('propagates a sanitised HTTP failure without fabricating usable route data', () => {
+  it('uses the shared HTTP error handler and propagates the original failure without fabricating usable route data', () => {
     const next = vi.fn();
     const error = vi.fn();
     resolve().subscribe({ next, error });
@@ -99,13 +91,15 @@ describe('fetchCasesCreateCasefileApplicationsResolver', () => {
     expect(next).not.toHaveBeenCalled();
     expect(error).toHaveBeenCalledOnce();
     expect(error.mock.calls[0][0].error).toEqual({
+      title: 'Internal title',
+      detail: 'Internal detail',
       operation_id: 'synthetic-reference',
       retriable: true,
     });
     expect(setBannerError).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: GENERIC_HTTP_ERROR_TITLE,
-        message: GENERIC_HTTP_ERROR_MESSAGE,
+        title: 'Internal title',
+        message: 'Internal detail',
         operationId: 'synthetic-reference',
       }),
     );

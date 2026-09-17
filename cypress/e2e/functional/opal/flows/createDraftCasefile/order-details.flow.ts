@@ -31,9 +31,9 @@ export class OrderDetailsFlow {
   public openWithFailure(): void {
     this.actions.openWithFailure();
   }
-  /** Checks safe error presentation and preserved parties. */
-  public assertSafeFailure(): void {
-    this.actions.assertSafeFailure();
+  /** Checks shared HTTP error presentation and preserved parties. */
+  public assertSharedHttpFailure(): void {
+    this.actions.assertSharedHttpFailure();
   }
   /** Retries entry using native keyboard activation. */
   public retryUsingKeyboard(): void {

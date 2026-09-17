@@ -27,6 +27,9 @@ describe('mapOrderTermParameters', () => {
   it.each(
     [
       [],
+      [null],
+      [[]],
+      [17],
       [{ ...amount, type: 'unknown' }],
       [amount, amount],
       [amount, { ...amount, name: 'AMOUNT' }],
@@ -62,6 +65,13 @@ describe('mapOrderTermParameters', () => {
   )('rejects unsupported metadata without a fallback', ({ parameters }) => {
     expect(() => map(parameters)).toThrow('Unsupported order-term metadata');
   });
+
+  it.each(['', '_field', '1field', 'child-name', 'child name'])(
+    'rejects a parameter name that cannot form a canonical identifier: %s',
+    (name) => {
+      expect(() => map([{ ...amount, name }])).toThrow('Unsupported order-term metadata');
+    },
+  );
 
   it('rejects malformed JSON and non-arrays', () => {
     for (const value of ['{', '{}', 'null']) expect(() => mapOrderTermParameters(value)).toThrow();
@@ -189,6 +199,13 @@ describe('mapOrderTermParameters', () => {
   });
 
   it.each([
+    { name: 'choice', type: 'select' },
+    {
+      name: 'choice',
+      type: 'autocomplete',
+      options: [{ value: 'A', label: 'First' }],
+      apidata: 'mock:order-term-options',
+    },
     { name: 'choice', type: 'select', options: [{ value: 'A', label: 'First' }], apidata: 'unknown' },
     { name: 'amount', type: 'money', options: [{ value: 'A', label: 'First' }] },
     { name: 'amount', type: 'money', apidata: 'mock:order-term-options' },
@@ -214,6 +231,7 @@ describe('mapOrderTermParameters', () => {
     { type: 'date', min: '2027-01-02', max: '2027-01-01' },
     { type: 'date', min: '2027-02-30' },
     { type: 'text', min: 1.5 },
+    { type: 'text', min: -1 },
   ])('rejects invalid or inverted bounds: $type $min $max', (bounds) => {
     expect(() =>
       map([

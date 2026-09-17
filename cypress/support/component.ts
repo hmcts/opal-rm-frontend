@@ -1,4 +1,3 @@
-/// <reference path="../../src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-terms-input/types/accessible-autocomplete.d.ts" />
 /// <reference types="@cypress/grep" />
 import { register as registerCypressGrep } from '@cypress/grep';
 import 'cypress-axe';

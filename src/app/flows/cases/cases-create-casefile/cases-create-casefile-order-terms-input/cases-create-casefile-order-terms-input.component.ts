@@ -113,7 +113,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
       if (!this.store.acceptOrderTerm(term)) return;
       this.accepted = true;
       this.acceptedTermIndex = this.store.orderTerms().length - 1;
-    } else if (this.retryDraft?.dirty) {
+    } else if (this.retryDraft) {
       const current = this.pages()[0];
       if (
         !current ||

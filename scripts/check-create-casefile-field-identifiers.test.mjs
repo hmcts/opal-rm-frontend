@@ -343,3 +343,41 @@ test('rejects malformed dynamic control-flow templates', async () => {
   await writeFixtureFile(repositoryRoot, orderTermsInputTemplatePath, '@if (field.kind) {');
   assertRejected(runScanner(repositoryRoot), /invalid dynamic form template/);
 });
+
+const orderTermAutocompleteTemplatePath = `${createCasefilePath}/cases-create-casefile-order-terms-input/cases-create-casefile-order-term-autocomplete/cases-create-casefile-order-term-autocomplete.component.html`;
+
+test('accepts the local autocomplete adapter canonical input contract', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermAutocompleteTemplatePath,
+    `
+    <div [id]="inputId + '-hint'"></div>
+    <p [id]="inputId + '-autocomplete-error-message'"></p>
+    <div [id]="inputId + '-autocomplete-container'"></div>
+    <input [id]="inputId" [name]="inputName" />
+  `,
+  );
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('rejects unsupported local autocomplete identifier expressions', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermAutocompleteTemplatePath,
+    '<input [id]="inputName" [name]="field.name" />',
+  );
+  assertRejected(runScanner(repositoryRoot), /noncanonical/);
+});
+
+test('rejects duplicate local autocomplete adapter IDs', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermAutocompleteTemplatePath,
+    '<input [id]="inputId" /><input [id]="inputId" />',
+  );
+  assertRejected(runScanner(repositoryRoot), /duplicate ID/);
+});

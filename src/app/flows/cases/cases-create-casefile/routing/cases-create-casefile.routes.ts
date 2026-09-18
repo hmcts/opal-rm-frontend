@@ -147,12 +147,23 @@ export const routing: Routes = [
     resolve: { orderTerm: fetchCasesCreateCasefileOrderTermResolver },
   },
   {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorDetails,
+    loadComponent: () =>
+      import('../cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details.component').then(
+        (component) => component.CasesCreateCasefileMinorCreditorDetailsComponent,
+      ),
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard],
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorDetails },
+    resolve: { title: TitleResolver },
+  },
+  {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermCreditor,
     loadComponent: () =>
       import('../cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor.component').then(
         (component) => component.CasesCreateCasefileOrderTermCreditorComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermCreditor },
     resolve: { title: TitleResolver, majorCreditors: fetchCasesCreateCasefileMajorCreditorsResolver },
   },

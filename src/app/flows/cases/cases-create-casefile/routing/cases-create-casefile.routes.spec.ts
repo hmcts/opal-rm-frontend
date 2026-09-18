@@ -13,6 +13,7 @@ import { CasesCreateCasefileCheckDetailsComponent } from '../cases-create-casefi
 import { CasesCreateCasefileCommentsNotesComponent } from '../cases-create-casefile-comments-notes/cases-create-casefile-comments-notes.component';
 import { CasesCreateCasefileInterestIndexationComponent } from '../cases-create-casefile-interest-indexation/cases-create-casefile-interest-indexation.component';
 import { CasesCreateCasefileManagingPaymentsComponent } from '../cases-create-casefile-managing-payments/cases-create-casefile-managing-payments.component';
+import { CasesCreateCasefileMinorCreditorDetailsComponent } from '../cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details.component';
 import { CasesCreateCasefileOrderTermCreditorComponent } from '../cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor.component';
 import { CasesCreateCasefileOrderTermLookupsService } from '../cases-create-casefile-order-terms-input/services/cases-create-casefile-order-term-lookups.service';
 import { CasesCreateCasefileOrderDetailsComponent } from '../cases-create-casefile-order-details/cases-create-casefile-order-details.component';
@@ -224,6 +225,7 @@ describe('Create Casefile routes', () => {
     );
 
     expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard]);
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermCreditor });
     expect(route?.resolve).toEqual({
       title: TitleResolver,
@@ -231,6 +233,104 @@ describe('Create Casefile routes', () => {
     });
     const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
     expect(component?.name).toBe(CasesCreateCasefileOrderTermCreditorComponent.name);
+  });
+
+  it('registers Minor creditor details before Creditor with strict current-term guards', async () => {
+    const detailsIndex = routing.findIndex(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorDetails,
+    );
+    const creditorIndex = routing.findIndex(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermCreditor,
+    );
+    const route = routing[detailsIndex];
+
+    expect(detailsIndex).toBeGreaterThan(-1);
+    expect(detailsIndex).toBeLessThan(creditorIndex);
+    expect(route.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard]);
+    expect(route.canDeactivate).toBeUndefined();
+    expect(route.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorDetails });
+    expect(route.resolve).toEqual({ title: TitleResolver });
+    const component = await (route.loadComponent?.() as Promise<{ name: string }>);
+    expect(component.name).toBe(CasesCreateCasefileMinorCreditorDetailsComponent.name);
+  });
+
+  it.each([null, 999])(
+    'rejects direct Minor creditor details entry for current term %s',
+    async (currentOrderTermId) => {
+      TestBed.configureTestingModule({
+        providers: [
+          CasesCreateCasefileStore,
+          provideRouter([
+            {
+              path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsSelect}`,
+              component: TestDestinationComponent,
+            },
+            {
+              path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorDetails}`,
+              component: TestDestinationComponent,
+              canActivate: [casesCreateCasefileOrderTermCreditorGuard],
+            },
+          ]),
+        ],
+      });
+      patchState(
+        TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>,
+        {
+          orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+          currentOrderTermId,
+        },
+      );
+
+      await RouterTestingHarness.create('/cases/create-casefile/order-terms/creditor/minor-creditor-details');
+
+      expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/select');
+    },
+  );
+
+  it('allows direct Minor creditor details entry for the current accepted term', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        CasesCreateCasefileStore,
+        provideRouter([
+          {
+            path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorDetails}`,
+            component: TestDestinationComponent,
+            canActivate: [casesCreateCasefileOrderTermCreditorGuard],
+          },
+        ]),
+      ],
+    });
+    patchState(TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      currentOrderTermId: 1,
+    });
+
+    await RouterTestingHarness.create('/cases/create-casefile/order-terms/creditor/minor-creditor-details');
+
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/creditor/minor-creditor-details');
+  });
+
+  it('redirects a refreshed Minor creditor details URL without journey state to Case Type', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        CasesCreateCasefileStore,
+        provideRouter([
+          {
+            path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType}`,
+            component: TestDestinationComponent,
+          },
+          {
+            path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorDetails}`,
+            component: TestDestinationComponent,
+            canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard],
+          },
+        ]),
+      ],
+    });
+
+    await RouterTestingHarness.create('/cases/create-casefile/order-terms/creditor/minor-creditor-details');
+
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
   });
 
   it('prevents creditor data resolution when the current order term is stale', async () => {

@@ -1,0 +1,95 @@
+<span class="govuk-caption-l">Order terms</span>
+<h1 class="govuk-heading-l">Creditor</h1>
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+<form (submit)="handleFormSubmit($event)">
+  <opal-lib-govuk-radio
+    [fieldSetId]="fieldNames.choice"
+    legendText="Select creditor"
+    [errors]="formControlErrorMessages[fieldNames.choice]"
+  >
+    <div
+      opal-lib-govuk-radios-item
+      [labelText]="applicantLabel"
+      [inputId]="fieldNames.choice + '-applicant'"
+      [inputName]="fieldNames.choice"
+      inputValue="applicant"
+      [control]="form.controls[fieldNames.choice]"
+    ></div>
+    @for (creditor of minorCreditors; track creditor.sequenceNumber) {
+      <div
+        opal-lib-govuk-radios-item
+        [labelText]="creditor.displayName + ' (Minor creditor)'"
+        [inputId]="fieldNames.choice + '-minor-' + creditor.sequenceNumber"
+        [inputName]="fieldNames.choice"
+        [inputValue]="'minor:' + creditor.sequenceNumber"
+        [control]="form.controls[fieldNames.choice]"
+      ></div>
+    }
+    <div
+      opal-lib-govuk-radios-item
+      labelText="Major creditor"
+      [inputId]="fieldNames.choice + '-major'"
+      [inputName]="fieldNames.choice"
+      inputValue="major"
+      [control]="form.controls[fieldNames.choice]"
+      [ariaControls]="conditionalId"
+    ></div>
+    <div opal-lib-govuk-radios-conditional [conditionalId]="conditionalId">
+      @if (form.controls[fieldNames.choice].value === 'major') {
+        @if (loadState.status === 'ready') {
+          <p class="govuk-visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+            {{ statusMessage }}
+          </p>
+          <opal-lib-govuk-select
+            labelText="Select major creditor"
+            [selectId]="fieldNames.majorCreditorId"
+            [selectName]="fieldNames.majorCreditorId"
+            [options]="majorOptions"
+            [control]="form.controls[fieldNames.majorCreditorId]"
+            [errors]="formControlErrorMessages[fieldNames.majorCreditorId]"
+          />
+        } @else {
+          <div [id]="fieldNames.majorCreditorId" tabindex="-1" aria-label="Select major creditor">
+            <p class="govuk-body" role="status" aria-live="polite" aria-atomic="true">{{ statusMessage }}</p>
+            @if (formControlErrorMessages[fieldNames.majorCreditorId]) {
+              <p class="govuk-error-message">
+                <span class="govuk-visually-hidden">Error:</span>
+                {{ formControlErrorMessages[fieldNames.majorCreditorId] }}
+              </p>
+            }
+          </div>
+        }
+        @if (loadState.correlationReference) {
+          <p class="govuk-body">Reference: {{ loadState.correlationReference }}</p>
+        }
+        @if (retryVisible) {
+          <button
+            class="govuk-button govuk-button--secondary"
+            id="create_casefile_order_term_creditor_retry"
+            type="button"
+            (click)="handleRetry()"
+          >
+            Try again
+          </button>
+        }
+      }
+    </div>
+    <opal-lib-govuk-radios-divider>or</opal-lib-govuk-radios-divider>
+    <div
+      opal-lib-govuk-radios-item
+      labelText="Add a new minor creditor"
+      [inputId]="fieldNames.choice + '-add-new'"
+      [inputName]="fieldNames.choice"
+      inputValue="add-new"
+      [control]="form.controls[fieldNames.choice]"
+    ></div>
+  </opal-lib-govuk-radio>
+  <div class="govuk-button-group">
+    <button type="submit" class="govuk-button govuk-!-margin-right-4" id="create_casefile_order_term_creditor_continue">
+      Continue
+    </button>
+    <span id="create_casefile_order_term_creditor_cancel">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

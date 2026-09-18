@@ -24,7 +24,10 @@ import { routing } from 'src/app/flows/cases/cases-create-casefile/routing/cases
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import type { IOpalMaintenanceResultReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-result-reference-data-response.interface';
+import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
 import { OpalMaintenanceService } from 'src/app/flows/cases/services/opal-maintenance-service/opal-maintenance.service';
+import { SAVED_APPLICANT_ORGANISATION } from '../../mocks/applicant-organisation.mock';
+import { CREDITOR_MAJOR_RESPONSE } from '../../creditor/mocks/creditor.mock';
 import { ORDER_TERMS_MOCK } from '../mocks/order-terms.mock';
 
 @Component({ imports: [RouterOutlet], template: '<router-outlet />' })
@@ -60,6 +63,7 @@ export function setupOrderTerms({
   store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
   store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
   store.setTaskStatus('applicant', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+  store.setApplicantDetails(structuredClone(SAVED_APPLICANT_ORGANISATION));
   store.setOrderDetails({
     applicationId: 1,
     court: null,
@@ -98,6 +102,10 @@ export function setupOrderTerms({
     .stub()
     .callsFake(() => (source ?? defer(() => of(structuredClone(ORDER_TERMS_MOCK.response)))).pipe(finalize(disposed)))
     .as('getResults');
+  const getMajorCreditors = cy
+    .stub()
+    .callsFake(() => defer(() => of(structuredClone(CREDITOR_MAJOR_RESPONSE))))
+    .as('getMajorCreditors');
 
   return cy.document().then((document) => {
     document.documentElement.lang = 'en';
@@ -128,7 +136,16 @@ export function setupOrderTerms({
           },
         },
         { provide: CasesCreateCasefileStore, useValue: store },
-        { provide: OpalMaintenanceService, useValue: { getResults, getResult } },
+        {
+          provide: OpalMaintenanceService,
+          useValue: {
+            getResults,
+            getResult,
+            getMajorCreditors: getMajorCreditors as (
+              params: unknown,
+            ) => Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse>,
+          },
+        },
       ],
     }).then(({ fixture }) => {
       TestBed.inject(GlobalStore).setAuthenticated(true);

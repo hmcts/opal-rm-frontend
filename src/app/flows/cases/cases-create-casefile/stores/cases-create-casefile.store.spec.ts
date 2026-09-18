@@ -981,6 +981,9 @@ describe('CasesCreateCasefileStore', () => {
     ['unknown term', 999, { type: 'applicant' } as const],
     ['non-positive major ID', 1, { type: 'major', majorCreditorId: 0 } as const],
     ['fractional major ID', 1, { type: 'major', majorCreditorId: 1.5 } as const],
+    ['zero minor sequence', 1, { type: 'minor', sequenceNumber: 0 } as const],
+    ['negative minor sequence', 1, { type: 'minor', sequenceNumber: -1 } as const],
+    ['fractional minor sequence', 1, { type: 'minor', sequenceNumber: 1.5 } as const],
     ['unknown minor sequence', 1, { type: 'minor', sequenceNumber: 99 } as const],
   ])('rejects a %s creditor assignment', (_description, termId, creditor) => {
     const acceptedId = acceptMat();

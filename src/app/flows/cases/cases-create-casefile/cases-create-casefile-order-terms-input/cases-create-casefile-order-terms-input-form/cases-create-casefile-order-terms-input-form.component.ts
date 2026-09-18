@@ -75,6 +75,14 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
     );
   }
 
+  public readonly suggestionTemplate = (label: string): string =>
+    label
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+
   public override ngOnInit(): void {
     this.views = this.page.fields.map((field) => {
       const options = field.options.map((option) => ({ value: option.value, name: option.label }));

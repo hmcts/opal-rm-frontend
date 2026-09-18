@@ -4,6 +4,9 @@ import { CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES } from 'src/app/flo
 import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-comments-notes/constants/cases-create-casefile-comments-notes-field-names.constant';
 
 export const CreateCasefileSelectors = {
+  dashboard: {
+    createCasefileLink: '#casesCreateCasefileLink',
+  },
   heading: 'h1',
   globalErrorBanner: '.moj-alert--error',
   globalErrorBannerHeading: '.moj-alert--error .moj-alert__heading',

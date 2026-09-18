@@ -402,6 +402,17 @@ test('accepts the creditor return identifier with its own prefix', async () => {
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('accepts the exact Minor creditor details return identifier', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    `${createCasefilePath}/cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details.component.html`,
+    '<a id="returnToCreditor">Return to creditor selection</a>',
+  );
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('rejects malformed dynamic control-flow templates', async () => {
   const repositoryRoot = await createFixtureRepository();
   await writeFixtureFile(repositoryRoot, orderTermsInputTemplatePath, '@if (field.kind) {');

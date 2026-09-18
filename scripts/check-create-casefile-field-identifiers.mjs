@@ -90,6 +90,8 @@ const templatePaths = {
     'cases-create-casefile-interest-indexation/cases-create-casefile-interest-indexation-form/cases-create-casefile-interest-indexation-form.component.html',
   managingPayments:
     'cases-create-casefile-managing-payments/cases-create-casefile-managing-payments-form/cases-create-casefile-managing-payments-form.component.html',
+  minorCreditorDetails:
+    'cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details.component.html',
   orderDetails:
     'cases-create-casefile-order-details/cases-create-casefile-order-details-form/cases-create-casefile-order-details-form.component.html',
   orderTermsSelect:
@@ -241,6 +243,7 @@ const structuralIdentifierAllowlist = new Set([
     '[conditionalId]',
     'conditionalId',
   ),
+  structuralIdentifierKey(templatePaths.minorCreditorDetails, 'a', 'id', 'returnToCreditor'),
 
   structuralIdentifierKey(
     templatePaths.orderTermsSummary,

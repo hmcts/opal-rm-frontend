@@ -34,7 +34,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
   private readonly title = inject(Title);
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
   private accepted = false;
-  private acceptedTermIndex: number | null = null;
+  private acceptedTermId: number | null = null;
   private retryDraft: ICasesCreateCasefileOrderTermDraftChange | null = null;
   public readonly pages = signal<OrderTermPageEntry[]>([]);
   public readonly frequency = computed(() => this.store.orderDetails()?.paymentFrequency ?? '');
@@ -46,7 +46,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
       this.store.prepareOrderTermDraft(page);
       const draft = this.store.orderTermDraft();
       this.accepted = false;
-      this.acceptedTermIndex = null;
+      this.acceptedTermId = null;
       this.retryDraft = null;
       this.stateUnsavedChanges = draft?.dirty ?? false;
       this.store.setUnsavedChanges(this.stateUnsavedChanges);
@@ -59,6 +59,14 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
       ]);
       this.title.setTitle(`OPAL - ${page.title}`);
     });
+  }
+
+  private async navigateToCreditor(): Promise<void> {
+    try {
+      await this.navigationRouter.navigateByUrl('/' + this.paths.root + '/' + this.paths.children.orderTermCreditor);
+    } catch {
+      // Keep the accepted term identity available so a safe retry can update the same record.
+    }
   }
 
   public handleDraftChange(change: ICasesCreateCasefileOrderTermDraftChange): void {
@@ -91,21 +99,21 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
       }
       if (!this.store.acceptOrderTerm(term)) return;
       this.accepted = true;
-      this.acceptedTermIndex = this.store.orderTerms().length - 1;
+      this.acceptedTermId = this.store.currentOrderTermId();
     } else if (this.retryDraft) {
       const current = this.pages()[0];
-      if (!current || this.acceptedTermIndex === null) return;
+      if (!current || this.acceptedTermId === null) return;
       let term: ICasesCreateCasefileOrderTerm;
       try {
         term = canonicalOrderTerm(current.page, form.formData, this.dates);
       } catch {
         return;
       }
-      if (!this.store.replaceAcceptedOrderTerm(this.acceptedTermIndex, term)) return;
+      if (!this.store.replaceAcceptedOrderTerm(this.acceptedTermId, term)) return;
       this.retryDraft = null;
     }
     this.handleUnsavedChanges(false);
-    void this.navigationRouter.navigateByUrl('/' + this.paths.root + '/' + this.paths.children.orderTermCreditor);
+    void this.navigateToCreditor();
   }
 
   public async handleCancel(): Promise<void> {

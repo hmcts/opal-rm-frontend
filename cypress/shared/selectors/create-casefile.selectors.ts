@@ -4,6 +4,7 @@ import { CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES } from 'src/app/flo
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant';
 import { CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-managing-payments/constants/cases-create-casefile-managing-payments-field-names.constant';
 import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-comments-notes/constants/cases-create-casefile-comments-notes-field-names.constant';
+import { CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-term-creditor/constants/cases-create-casefile-order-term-creditor-field-names.constant';
 
 export const CreateCasefileSelectors = {
   heading: 'h1',
@@ -82,6 +83,22 @@ export const CreateCasefileSelectors = {
     select: '#create_casefile_order_terms_input_menu',
     autocomplete: '#create_casefile_order_terms_input_lookup-autocomplete',
     checkbox: '#create_casefile_order_terms_input_confirm',
+  },
+  creditor: {
+    applicant: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-applicant`,
+    major: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-major`,
+    majorId: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.majorCreditorId}`,
+    addNew: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-add-new`,
+    minor: (sequenceNumber: number) =>
+      `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-minor-${sequenceNumber}`,
+    choiceFieldset: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}`,
+    choiceError: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-error-message`,
+    majorError: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.majorCreditorId}-error-message`,
+    continueButton: '#create_casefile_order_term_creditor_continue',
+    cancel: '#create_casefile_order_term_creditor_cancel a',
+  },
+  minorCreditorDetails: {
+    returnLink: '#returnToCreditor',
   },
   liveAnnouncement: '.moj-alert--error [role="alert"]',
   primaryNavigation: '#primaryNavigation',

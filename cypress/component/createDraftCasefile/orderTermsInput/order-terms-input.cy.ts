@@ -2,6 +2,7 @@ import { Router } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { CasesCreateCasefileComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile.component';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
+import type { CasesCreateCasefileCreditorAssignment } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-creditor-assignment.type';
 import type { IOpalMaintenanceResultDetail } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-result-detail.interface';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
 import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
@@ -19,10 +20,13 @@ const openControls = () =>
     initialChild: inputPath(),
     detailSource: of(structuredClone(M.allControls)),
   });
-const assertTerms = (parameters: Record<string, string | number | boolean>) =>
+const assertTerms = (
+  parameters: Record<string, string | number | boolean>,
+  creditor: CasesCreateCasefileCreditorAssignment | null = null,
+) =>
   cy
     .get<OrderTermsStore>('@casesCreateCasefileStore')
-    .then((store) => expect(store.orderTerms()).to.deep.equal([{ resultId: 'MAT', parameters }]));
+    .then((store) => expect(store.orderTerms()).to.deep.equal([{ termId: 1, resultId: 'MAT', parameters, creditor }]));
 const dateText = (date: Date) =>
   `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 const fillControls = () => {
@@ -51,7 +55,9 @@ describe('Order term input', () => {
     cy.get<Router>('@angularRouter').its('url').should('eq', '/cases/create-casefile/order-terms/creditor');
     cy.screenshot('po-9807-creditor');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.orderTerms()).to.deep.equal([{ resultId: 'MAT', parameters: { amount: '25.10' } }]);
+      expect(store.orderTerms()).to.deep.equal([
+        { termId: 1, resultId: 'MAT', parameters: { amount: '25.10' }, creditor: null },
+      ]);
       expect(store.orderTermDraft()).to.eq(null);
       expect(store.pendingOrderTermResultId()).to.eq(null);
     });
@@ -159,12 +165,14 @@ describe('Order term input regressions', () => {
       cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
         expect(store.orderTerms()).to.deep.equal([
           {
+            termId: 1,
             resultId: 'MCHILD',
             parameters: {
               child_name: M.childValid.child_name,
               child_date_of_birth: `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`,
               amount: '20.00',
             },
+            creditor: null,
           },
         ]),
       );
@@ -185,14 +193,15 @@ describe('Order term input regressions', () => {
     openInput();
     cy.get(S.orderTermsInput.amount).type('10');
     cy.get(S.orderTermsInput.continueButton).click();
-    cy.get(S.orderTermsInput.creditorReturn).click();
+    cy.get(S.creditor.applicant).check();
+    cy.get(S.creditor.continueButton).click();
     cy.get(S.orderTerms.add).click();
     cy.get(S.orderTerms.select).select('MAT');
     cy.get(S.orderTerms.continueButton).click();
     cy.get(S.orderTermsInput.amount).type('20');
     cy.on('window:confirm', () => true);
     cy.get(S.orderTermsInput.cancel).click();
-    assertTerms({ amount: '10.00' });
+    assertTerms({ amount: '10.00' }, { type: 'applicant' });
   });
 
   it('AC2. should announce failed detail in the real shell and allow keyboard retry', { tags: buildTags() }, () => {
@@ -401,7 +410,8 @@ describe('Order term input regressions', () => {
     setupOrderTerms({ shell: true, savedId: 'MAT', initialChild: inputPath() });
     cy.get(S.orderTermsInput.amount).type('10');
     cy.get(S.orderTermsInput.continueButton).click();
-    cy.get(S.orderTermsInput.creditorReturn).should('be.visible');
+    cy.get(S.creditor.applicant).should('exist').and('be.enabled');
+    cy.get(S.creditor.continueButton).should('be.visible');
     cy.document().should((document) =>
       expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
     );

@@ -16,10 +16,9 @@
     [initialFormData]="initialFormData()"
     [applicantLabel]="applicantLabel()"
     [minorCreditors]="minorCreditors()"
-    [loadState]="loadState()"
+    [majorCreditors]="majorCreditors"
     (formSubmit)="handleFormSubmit($event)"
     (unsavedChanges)="handleUnsavedChanges($event)"
     (cancel)="handleCancel()"
-    (retry)="handleRetry()"
   />
 </div>

@@ -1,11 +1,8 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Subject } from 'rxjs';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
-import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
 import { UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
-import { CREDITOR_MAJOR_RESPONSE, CREDITOR_PROBLEM } from './mocks/creditor.mock';
+import { CREDITOR_MAJOR_RESPONSE } from './mocks/creditor.mock';
 import { setupCreditor } from './setup/creditor.setup';
 
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9808', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
@@ -14,14 +11,16 @@ const scan = () => {
   cy.title().should('eq', 'OPAL - Creditor');
   cy.get('main').should('exist');
   cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-  cy.checkA11y(undefined, { rules: { 'aria-allowed-attr': { enabled: false } } });
+  cy.checkA11y();
 };
 
 describe('Order term creditor accessibility', () => {
   it('AC1, AC5. should support keyboard choice, conditional focus and Continue', { tags: buildTags() }, () => {
     setupCreditor({ shell: true });
-    cy.get(S.creditor.major).focus();
+    cy.get(S.creditor.applicant).focus();
     cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(S.creditor.applicant).should('be.checked').and('be.focused');
+    cy.press(Cypress.Keyboard.Keys.DOWN);
     cy.get(S.creditor.major).should('be.checked').and('be.focused');
     cy.get(S.creditor.majorId).should('be.visible');
     cy.press(Cypress.Keyboard.Keys.TAB);
@@ -64,25 +63,25 @@ describe('Order term creditor accessibility', () => {
     cy.get(S.creditor.applicant).should('be.checked');
   });
 
-  it('AC5. should pass Axe in initial and validation states', { tags: buildTags() }, () => {
-    setupCreditor({ shell: true });
-    scan();
-    cy.screenshot('po-9808-after-creditor-initial');
-    cy.get(S.creditor.continueButton).click();
-    scan();
-    cy.screenshot('po-9808-after-creditor-validation');
-  });
-
-  it('AC2, AC5. should pass Axe in loading and correlated failure states', { tags: buildTags() }, () => {
-    const source = new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>();
-    setupCreditor({ shell: true, majorSource: source });
-    cy.get(S.creditor.major).check();
-    scan();
-    cy.then(() => source.error(new HttpErrorResponse({ status: 503, error: structuredClone(CREDITOR_PROBLEM) })));
-    cy.contains('Reference: ' + CREDITOR_PROBLEM.operation_id).should('be.visible');
-    scan();
-    cy.screenshot('po-9808-after-creditor-status-error');
-  });
+  it(
+    'AC5. should pass strict Axe scans with the Major conditional hidden and visible, and after validation',
+    { tags: buildTags() },
+    () => {
+      setupCreditor({ shell: true });
+      scan();
+      cy.get(S.creditor.major)
+        .should('have.attr', 'aria-controls', 'create_casefile_order_term_creditor_major')
+        .and('not.have.attr', 'aria-expanded');
+      cy.get(S.creditor.major).check();
+      cy.get(S.creditor.majorId).should('be.visible');
+      scan();
+      cy.screenshot('po-9808-after-creditor-initial');
+      cy.get(S.creditor.continueButton).click();
+      cy.get(S.errorSummary).should('be.focused');
+      scan();
+      cy.screenshot('po-9808-after-creditor-validation');
+    },
+  );
 
   it('AC5. should pass Axe on the details destination', { tags: buildTags() }, () => {
     setupCreditor({ shell: true });

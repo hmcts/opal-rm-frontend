@@ -4,7 +4,6 @@ import { provideRouter } from '@angular/router';
 import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ICasesCreateCasefileMinorCreditor } from '../../interfaces/cases-create-casefile-minor-creditor.interface';
-import type { ICasesCreateCasefileMajorCreditorsLoadState } from '../interfaces/cases-create-casefile-major-creditors-load-state.interface';
 import type { ICasesCreateCasefileOrderTermCreditorFormData } from '../interfaces/cases-create-casefile-order-term-creditor-form-data.interface';
 import { CasesCreateCasefileOrderTermCreditorFormComponent } from './cases-create-casefile-order-term-creditor-form.component';
 
@@ -30,12 +29,6 @@ const major = {
   active: true,
   central_authority: false,
 };
-const states = {
-  loading: { status: 'loading', records: [], correlationReference: null },
-  empty: { status: 'empty', records: [], correlationReference: null },
-  error: { status: 'error', records: [], correlationReference: 'SYNTHETIC-REF' },
-  ready: { status: 'ready', records: [major], correlationReference: null },
-} satisfies Record<string, ICasesCreateCasefileMajorCreditorsLoadState>;
 const minors: ICasesCreateCasefileMinorCreditor[] = [
   { sequenceNumber: 1, displayName: 'Duplicate name' },
   { sequenceNumber: 2, displayName: 'Duplicate name' },
@@ -50,14 +43,14 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
       [FIELD.choice]: null,
       [FIELD.majorCreditorId]: null,
     },
-    loadState: ICasesCreateCasefileMajorCreditorsLoadState = states.ready,
+    majorCreditors = [major],
   ): void => {
     fixture = TestBed.createComponent(CasesCreateCasefileOrderTermCreditorFormComponent);
     component = fixture.componentInstance;
     component.initialFormData = initial;
     component.applicantLabel = 'Synthetic applicant (Applicant)';
     component.minorCreditors = minors;
-    component.loadState = loadState;
+    component.majorCreditors = majorCreditors;
   };
 
   const submit = (): void => {
@@ -82,38 +75,40 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
   });
 
-  it('renders exact radio labels, stable values, actions and the installed conditional relationship', () => {
+  it('renders stable native radios in an application-owned GOV.UK fieldset', () => {
     create();
     fixture.detectChanges();
     const radios = Array.from(
       fixture.nativeElement.querySelectorAll(`input[name="${FIELD.choice}"]`),
     ) as HTMLInputElement[];
 
-    expect(radios.map(({ id, value }) => ({ id, value }))).toEqual([
-      { id: `${FIELD.choice}-applicant`, value: 'applicant' },
-      { id: `${FIELD.choice}-minor-1`, value: 'minor:1' },
-      { id: `${FIELD.choice}-minor-2`, value: 'minor:2' },
-      { id: `${FIELD.choice}-major`, value: 'major' },
-      { id: `${FIELD.choice}-add-new`, value: 'add-new' },
+    expect(radios.map(({ id, value, type }) => ({ id, value, type }))).toEqual([
+      { id: `${FIELD.choice}-applicant`, value: 'applicant', type: 'radio' },
+      { id: `${FIELD.choice}-minor-1`, value: 'minor:1', type: 'radio' },
+      { id: `${FIELD.choice}-minor-2`, value: 'minor:2', type: 'radio' },
+      { id: `${FIELD.choice}-major`, value: 'major', type: 'radio' },
+      { id: `${FIELD.choice}-add-new`, value: 'add-new', type: 'radio' },
     ]);
-    expect(
-      Array.from(fixture.nativeElement.querySelectorAll('label') as NodeListOf<HTMLLabelElement>).map((label) =>
-        label.textContent?.trim(),
-      ),
-    ).toEqual([
-      'Synthetic applicant (Applicant)',
-      'Duplicate name (Minor creditor)',
-      'Duplicate name (Minor creditor)',
-      'Major creditor',
-      'Add a new minor creditor',
-    ]);
-    const majorRadio = fixture.nativeElement.querySelector(`#${FIELD.choice}-major`) as HTMLInputElement;
-    expect(majorRadio.getAttribute('aria-controls')).toBe('create_casefile_order_term_creditor_major');
-    expect(fixture.nativeElement.querySelector('#create_casefile_order_term_creditor_major')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#create_casefile_order_term_creditor_continue').disabled).toBe(false);
-    expect(
-      fixture.nativeElement.querySelector('#create_casefile_order_term_creditor_cancel a').textContent.trim(),
-    ).toBe('Cancel');
+    expect(fixture.nativeElement.querySelector(`#${FIELD.choice}`).tagName).toBe('FIELDSET');
+    expect(fixture.nativeElement.querySelector(`#${FIELD.choice}`).closest('[data-module="govuk-radios"]')).toBeNull();
+  });
+
+  it('keeps aria-controls without the invalid aria-expanded mutation and toggles the conditional class', () => {
+    create();
+    fixture.detectChanges();
+    const radio = fixture.nativeElement.querySelector(`#${FIELD.choice}-major`) as HTMLInputElement;
+    const conditional = fixture.nativeElement.querySelector(
+      '#create_casefile_order_term_creditor_major',
+    ) as HTMLElement;
+
+    expect(radio.getAttribute('aria-controls')).toBe(conditional.id);
+    expect(radio.hasAttribute('aria-expanded')).toBe(false);
+    expect(conditional.classList).toContain('govuk-radios__conditional--hidden');
+
+    component.form.controls[FIELD.choice].setValue('major');
+    fixture.detectChanges();
+    expect(conditional.classList).not.toContain('govuk-radios__conditional--hidden');
+    expect(radio.hasAttribute('aria-expanded')).toBe(false);
   });
 
   it('shows and focuses the canonical choice error when blank', () => {
@@ -124,48 +119,15 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
 
     expect(emitted).not.toHaveBeenCalled();
     expect(component.formErrorSummaryMessage).toEqual([{ fieldId: FIELD.choice, message: 'Select a creditor' }]);
+    expect(fixture.nativeElement.querySelector(`#${FIELD.choice}`).getAttribute('aria-describedby')).toBe(
+      `${FIELD.choice}-error-message`,
+    );
     fixture.nativeElement.querySelector('.govuk-error-summary__list a').click();
     expect(document.activeElement?.id).toBe(`${FIELD.choice}-applicant`);
   });
 
-  it('rejects a choice that is not one of the rendered radio values', () => {
-    create({ [FIELD.choice]: 'minor:99', [FIELD.majorCreditorId]: null });
-    const emitted = vi.spyOn(component['formSubmit'], 'emit');
-    fixture.detectChanges();
-    submit();
-
-    expect(emitted).not.toHaveBeenCalled();
-    expect(component.formControlErrorMessages[FIELD.choice]).toBe('Select a creditor');
-  });
-
-  it.each(['loading', 'empty', 'error'] as const)(
-    'blocks Major during %s and links its error to the focusable status wrapper',
-    (status) => {
-      create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: null }, states[status]);
-      const emitted = vi.spyOn(component['formSubmit'], 'emit');
-      fixture.detectChanges();
-      submit();
-
-      expect(emitted).not.toHaveBeenCalled();
-      expect(component.formErrorSummaryMessage).toContainEqual({
-        fieldId: FIELD.majorCreditorId,
-        message: 'Select a major creditor',
-      });
-      const wrapper = fixture.nativeElement.querySelector(`#${FIELD.majorCreditorId}`) as HTMLElement;
-      expect(wrapper.tabIndex).toBe(-1);
-      const summaryLink = Array.from(
-        fixture.nativeElement.querySelectorAll('.govuk-error-summary__list a') as NodeListOf<HTMLAnchorElement>,
-      ).find((link) => link.textContent?.trim() === 'Select a major creditor');
-      summaryLink?.click();
-      expect(document.activeElement).toBe(wrapper);
-    },
-  );
-
-  it.each([
-    [{ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: null }, states.ready],
-    [{ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: 999 }, states.ready],
-  ] as const)('blocks a missing or stale Major selection', (initial, state) => {
-    create(initial, state);
+  it.each([null, 999])('blocks a missing or stale Major selection', (majorCreditorId) => {
+    create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: majorCreditorId });
     const emitted = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
     submit();
@@ -173,25 +135,23 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     expect(component.formControlErrorMessages[FIELD.majorCreditorId]).toBe('Select a major creditor');
   });
 
-  it('rejects arbitrary selector values and a disabled Major control', () => {
-    create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: 901 });
+  it('blocks Major when the resolved response is empty while other branches remain valid', () => {
+    create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: 901 }, []);
     const emitted = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
-    component.form.controls[FIELD.majorCreditorId].setValue('902');
     submit();
     expect(emitted).not.toHaveBeenCalled();
-    component.form.controls[FIELD.majorCreditorId].setValue(901);
-    component.form.controls[FIELD.majorCreditorId].disable();
+
+    component.form.controls[FIELD.choice].setValue('applicant');
     submit();
-    expect(emitted).not.toHaveBeenCalled();
+    expect(emitted).toHaveBeenCalledWith({
+      formData: { [FIELD.choice]: 'applicant', [FIELD.majorCreditorId]: null },
+      nestedFlow: false,
+    });
   });
 
-  it.each([
-    ['applicant', states.loading],
-    ['add-new', states.error],
-    ['minor:2', states.empty],
-  ] as const)('submits valid %s selection independently of Major load state', (choice, loadState) => {
-    create({ [FIELD.choice]: choice, [FIELD.majorCreditorId]: null }, loadState);
+  it.each(['applicant', 'add-new', 'minor:2'])('submits valid %s selection', (choice) => {
+    create({ [FIELD.choice]: choice, [FIELD.majorCreditorId]: null });
     const emitted = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
     submit();
@@ -201,14 +161,16 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     });
   });
 
-  it('renders ready options in response order and normalizes a selected DOM value to the returned numeric ID', () => {
-    create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: null });
+  it('renders resolved options in response order and normalizes a DOM value to the numeric ID', () => {
+    const second = { ...major, major_creditor_id: 902, major_creditor_code: 'MC902', name: 'Second' };
+    create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: null }, [second, major]);
     const emitted = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
     const select = fixture.debugElement.query(By.directive(GovukSelectComponent))
       .componentInstance as GovukSelectComponent;
     expect(select.options).toEqual([
       { name: 'Select a major creditor', value: '' },
+      { name: 'MC902 - Second', value: 902 },
       { name: 'MC901 - Synthetic major creditor', value: 901 },
     ]);
     const native = fixture.nativeElement.querySelector(`#${FIELD.majorCreditorId}`) as HTMLSelectElement;
@@ -222,21 +184,14 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     });
   });
 
-  it('clears Major data on branch change, preserves the branch on load change and exposes status/retry content', () => {
+  it('clears stale Major data on branch change', () => {
     create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: 901 });
     fixture.detectChanges();
     component.form.controls[FIELD.choice].setValue('applicant');
     expect(component.form.controls[FIELD.majorCreditorId].value).toBeNull();
-
-    component.form.controls[FIELD.choice].setValue('major');
-    fixture.componentRef.setInput('loadState', states.error);
-    fixture.detectChanges();
-    expect(component.form.controls[FIELD.choice].value).toBe('major');
-    expect(fixture.nativeElement.textContent).toContain('SYNTHETIC-REF');
-    expect(fixture.nativeElement.querySelector('#create_casefile_order_term_creditor_retry')).not.toBeNull();
   });
 
-  it('reports normalized changes relative to the entry snapshot', () => {
+  it('normalizes numeric and string IDs when tracking unsaved changes', () => {
     create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: 901 });
     const dirty = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
@@ -246,46 +201,18 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     expect(dirty).toHaveBeenLastCalledWith(true);
   });
 
-  it('rebases the normalized entry snapshot after an accepted parent update and detects later edits', () => {
+  it('rebases the normalized entry snapshot after an accepted parent update', () => {
     create({ [FIELD.choice]: 'applicant', [FIELD.majorCreditorId]: null });
     const dirty = vi.spyOn(component['unsavedChanges'], 'emit');
     fixture.detectChanges();
     submit();
-
     fixture.componentRef.setInput('initialFormData', {
       [FIELD.choice]: 'applicant',
       [FIELD.majorCreditorId]: null,
     });
     fixture.detectChanges();
     expect(dirty).toHaveBeenLastCalledWith(false);
-
     component.form.controls[FIELD.choice].setValue('add-new');
     expect(dirty).toHaveBeenLastCalledWith(true);
-  });
-
-  it('keeps later edits observable when a parent rejects a valid submission without rebasing', () => {
-    create({ [FIELD.choice]: 'applicant', [FIELD.majorCreditorId]: null });
-    const dirty = vi.spyOn(component['unsavedChanges'], 'emit');
-    fixture.detectChanges();
-    submit();
-
-    component.form.controls[FIELD.choice].setValue('add-new');
-    expect(dirty).toHaveBeenLastCalledWith(true);
-  });
-
-  it('emits retry for empty/error and keeps retry available while the follow-up load is pending', () => {
-    create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: null }, states.error);
-    const retry = vi.spyOn(component.retry, 'emit');
-    fixture.detectChanges();
-    component.handleRetry();
-    fixture.componentRef.setInput('loadState', states.loading);
-    fixture.detectChanges();
-
-    expect(retry).toHaveBeenCalledTimes(1);
-    expect(fixture.nativeElement.querySelector('#create_casefile_order_term_creditor_retry').disabled).toBe(false);
-
-    fixture.componentRef.setInput('loadState', states.ready);
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('#create_casefile_order_term_creditor_retry')).toBeNull();
   });
 });

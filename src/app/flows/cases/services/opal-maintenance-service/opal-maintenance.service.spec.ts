@@ -9,7 +9,6 @@ import { EMPTY, firstValueFrom, take } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
-import { CasesCreateCasefileMajorCreditorsLoadService } from '../../cases-create-casefile/cases-create-casefile-order-term-creditor/services/cases-create-casefile-major-creditors-load.service';
 import { OpalMaintenanceService } from './opal-maintenance.service';
 
 describe('OpalMaintenanceService', () => {
@@ -316,22 +315,6 @@ describe('OpalMaintenanceService', () => {
     expect(second).not.toBe(first);
     second.subscribe((response) => expect(response).toEqual(majorCreditors));
     http.expectOne(url).flush(majorCreditors);
-  });
-
-  it('permits an owner retry when a non-empty response contains no usable Major Creditors', () => {
-    const owner = new CasesCreateCasefileMajorCreditorsLoadService(service, 77);
-    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=false&active=true';
-    owner.load();
-    http.expectOne(url).flush({
-      count: 1,
-      refData: [majorCreditors.refData[0]],
-    });
-    expect(owner.state().status).toBe('empty');
-
-    owner.load();
-    http.expectOne(url).flush({ count: 0, refData: [] });
-    expect(owner.state().status).toBe('empty');
-    owner.dispose();
   });
 
   it('issues a fresh Major Creditor request after the error interceptor consumes a retriable conflict', () => {

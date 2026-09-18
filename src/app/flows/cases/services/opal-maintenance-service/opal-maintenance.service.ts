@@ -125,7 +125,6 @@ export class OpalMaintenanceService {
     request = defer(() =>
       this.http.get<IOpalMaintenanceMajorCreditorReferenceDataResponse>(this.majorCreditorsUrl, {
         params: httpParams,
-        context: withoutHttpRetry(),
       }),
     ).pipe(
       tap({

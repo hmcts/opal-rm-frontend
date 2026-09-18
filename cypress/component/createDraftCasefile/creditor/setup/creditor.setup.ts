@@ -39,6 +39,7 @@ export interface CreditorRequestCounters {
 }
 
 interface CreditorSetupOptions {
+  awaitNavigation?: boolean;
   shell?: boolean;
   initialChild?: string;
   majorSource?:
@@ -49,6 +50,7 @@ interface CreditorSetupOptions {
 }
 
 export function setupCreditor({
+  awaitNavigation = true,
   shell = false,
   initialChild = PATHS.children.orderTermCreditor,
   majorSource,
@@ -138,10 +140,22 @@ export function setupCreditor({
       cy.wrap(store).as('casesCreateCasefileStore');
       cy.wrap(router).as('angularRouter');
       cy.wrap(counters).as('majorCreditorRequestCounters');
-      return cy.wrap(router.navigateByUrl('/' + PATHS.root + '/' + initialChild)).then(() => {
+      const navigation = router
+        .navigateByUrl('/' + PATHS.root + '/' + initialChild)
+        .then((value) => ({ value, error: null }))
+        .catch((error: unknown) => ({ value: false, error }));
+      cy.wrap({ navigation }, { log: false }).as('creditorNavigation');
+      const finishSetup = () => {
         fixture.detectChanges();
         const outlet = TestBed.inject(ChildrenOutletContexts).getContext('primary')?.outlet;
         if (outlet?.isActivated) cy.wrap(outlet.component).as('journeyComponent');
+      };
+      if (!awaitNavigation) {
+        finishSetup();
+        return;
+      }
+      return cy.wrap(navigation).then(() => {
+        finishSetup();
       });
     });
   });

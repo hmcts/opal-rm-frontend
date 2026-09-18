@@ -7,7 +7,6 @@ import {
   OnDestroy,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
 import { GENERIC_HTTP_ERROR_MESSAGE } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
@@ -15,16 +14,9 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileOrderTermCreditorFormComponent } from './cases-create-casefile-order-term-creditor-form/cases-create-casefile-order-term-creditor-form.component';
-import type { ICasesCreateCasefileMajorCreditorsLoadState } from './interfaces/cases-create-casefile-major-creditors-load-state.interface';
 import type { ICasesCreateCasefileOrderTermCreditorForm } from './interfaces/cases-create-casefile-order-term-creditor-form.interface';
-import type { CasesCreateCasefileMajorCreditorsLoadService } from './services/cases-create-casefile-major-creditors-load.service';
+import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
 import { creditorAssignment, creditorFormValue } from './utils/cases-create-casefile-creditor-form-value';
-
-const LOADING_STATE: ICasesCreateCasefileMajorCreditorsLoadState = {
-  status: 'loading',
-  records: [],
-  correlationReference: null,
-};
 
 function applicantLabel(details: CasesCreateCasefileApplicantDetails | null): string {
   if (!details) return 'Applicant (Applicant)';
@@ -57,8 +49,9 @@ export class CasesCreateCasefileOrderTermCreditorComponent
   private readonly summaryPath = '/' + this.paths.root + '/' + this.paths.children.orderTermsSummary;
   private readonly minorCreditorDetailsPath = '/' + this.paths.root + '/' + this.paths.children.minorCreditorDetails;
   private navigationInFlight = false;
-  public readonly owner = signal<CasesCreateCasefileMajorCreditorsLoadService | null>(null);
-  public readonly loadState = computed(() => this.owner()?.state() ?? LOADING_STATE);
+  public readonly majorCreditors = (
+    this.route.snapshot.data['majorCreditors'] as IOpalMaintenanceMajorCreditorReferenceDataResponse
+  ).refData;
   public readonly applicantLabel = computed(() => applicantLabel(this.store.applicantDetails()));
   public readonly minorCreditors = this.store.minorCreditors;
   public readonly navigationFailed = signal(false);
@@ -67,16 +60,6 @@ export class CasesCreateCasefileOrderTermCreditorComponent
     const term = this.store.orderTerms().find((candidate) => candidate.termId === this.entryTermId);
     return creditorFormValue(term?.creditor ?? null, this.store.creditorDraft()?.termId === this.entryTermId);
   });
-
-  public constructor() {
-    super();
-    this.route.data.pipe(takeUntilDestroyed()).subscribe((data) => {
-      const nextOwner = data['majorCreditors'] as CasesCreateCasefileMajorCreditorsLoadService | undefined;
-      if (!nextOwner || nextOwner === this.owner()) return;
-      this.owner()?.dispose();
-      this.owner.set(nextOwner);
-    });
-  }
 
   private async navigateAccepted(path: string): Promise<void> {
     if (this.navigationInFlight) return;
@@ -90,10 +73,6 @@ export class CasesCreateCasefileOrderTermCreditorComponent
     } finally {
       this.navigationInFlight = false;
     }
-  }
-
-  public handleRetry(): void {
-    this.owner()?.load();
   }
 
   public handleUnsavedChanges(unsavedChanges: boolean): void {
@@ -114,11 +93,7 @@ export class CasesCreateCasefileOrderTermCreditorComponent
       return;
     }
 
-    const assignment = creditorAssignment(
-      value.formData,
-      this.store.minorCreditors(),
-      this.owner()?.state() ?? LOADING_STATE,
-    );
+    const assignment = creditorAssignment(value.formData, this.store.minorCreditors(), this.majorCreditors);
     if (!assignment || !this.store.assignCurrentOrderTermCreditor(termId, assignment)) return;
     this.handleUnsavedChanges(false);
     this.changeDetector.detectChanges();
@@ -142,7 +117,6 @@ export class CasesCreateCasefileOrderTermCreditorComponent
   }
 
   public ngOnDestroy(): void {
-    this.owner()?.dispose();
     this.store.setUnsavedChanges(false);
   }
 }

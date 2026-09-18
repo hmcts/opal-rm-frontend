@@ -94,10 +94,8 @@ export const CreateCasefileSelectors = {
     choiceFieldset: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}`,
     choiceError: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-error-message`,
     majorError: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.majorCreditorId}-error-message`,
-    status: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.majorCreditorId} [role="status"]`,
     continueButton: '#create_casefile_order_term_creditor_continue',
     cancel: '#create_casefile_order_term_creditor_cancel a',
-    retry: '#create_casefile_order_term_creditor_retry',
   },
   minorCreditorDetails: {
     returnLink: '#returnToCreditor',

@@ -1,5 +1,10 @@
+import { Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
-import { describe, expect, it } from 'vitest';
+import { patchState, WritableStateSource } from '@ngrx/signals';
+import { describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileApplicantIndividualComponent } from '../cases-create-casefile-applicant-individual/cases-create-casefile-applicant-individual.component';
 import { CasesCreateCasefileApplicantOrganisationComponent } from '../cases-create-casefile-applicant-organisation/cases-create-casefile-applicant-organisation.component';
 import { CasesCreateCasefileCancelComponent } from '../cases-create-casefile-cancel/cases-create-casefile-cancel.component';
@@ -14,6 +19,8 @@ import { CasesCreateCasefileOrderDetailsComponent } from '../cases-create-casefi
 import { CasesCreateCasefileOrderTermsSummaryComponent } from '../cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component';
 import { CasesCreateCasefileRespondentDetailsComponent } from '../cases-create-casefile-respondent-details/cases-create-casefile-respondent-details.component';
 import { CasesCreateCasefileTaskListComponent } from '../cases-create-casefile-task-list/cases-create-casefile-task-list.component';
+import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
+import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-casefile-routing-titles.constant';
 import { routing } from './cases-create-casefile.routes';
@@ -28,6 +35,9 @@ import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/
 import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 import { fetchCasesCreateCasefileOrderTermsResolver } from './resolvers/fetch-cases-create-casefile-order-terms-resolver/fetch-cases-create-casefile-order-terms.resolver';
+
+@Component({ template: '' })
+class TestDestinationComponent {}
 
 const guardedRouteCases = [
   ['taskList', 'Case details'],
@@ -216,6 +226,36 @@ describe('Create Casefile routes', () => {
     expect(route?.resolve).toEqual({ title: TitleResolver });
     const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
     expect(component?.name).toBe(CasesCreateCasefileOrderTermCreditorComponent.name);
+  });
+
+  it('prevents creditor data resolution when the current order term is stale', async () => {
+    const creditorResolver = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [
+        CasesCreateCasefileStore,
+        provideRouter([
+          {
+            path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsSelect}`,
+            component: TestDestinationComponent,
+          },
+          {
+            path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermCreditor}`,
+            component: TestDestinationComponent,
+            canActivate: [casesCreateCasefileOrderTermCreditorGuard],
+            resolve: { majorCreditors: creditorResolver },
+          },
+        ]),
+      ],
+    });
+    patchState(TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      currentOrderTermId: 999,
+    });
+
+    await RouterTestingHarness.create('/cases/create-casefile/order-terms/creditor');
+
+    expect(creditorResolver).not.toHaveBeenCalled();
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/select');
   });
 
   it('registers Interest and indexation with flow and unsaved-change guards and no permission metadata', async () => {

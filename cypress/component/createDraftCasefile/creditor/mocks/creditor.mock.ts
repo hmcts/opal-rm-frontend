@@ -70,10 +70,3 @@ export const CREDITOR_ACCEPTED_TERMS: ICasesCreateCasefileAcceptedOrderTerm[] = 
   },
   { termId: 6, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null },
 ];
-
-export const CREDITOR_PROBLEM = {
-  status: 503,
-  title: 'Synthetic private title',
-  detail: 'Synthetic private detail',
-  operation_id: 'synthetic-creditor-reference',
-};

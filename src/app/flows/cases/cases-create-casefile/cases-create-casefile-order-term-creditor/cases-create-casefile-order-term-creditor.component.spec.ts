@@ -1,10 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, provideRouter, Router, Routes } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { patchState, WritableStateSource } from '@ngrx/signals';
-import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../cases-create-casefile-applicant-individual/mocks/cases-create-casefile-applicant-individual.mock';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from '../cases-create-casefile-applicant-organisation/mocks/cases-create-casefile-applicant-organisation.mock';
@@ -12,7 +11,6 @@ import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casef
 import { casesCreateCasefileChildCanDeactivateGuard } from '../routing/guards/cases-create-casefile-child-can-deactivate.guard';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileOrderTermCreditorFormComponent } from './cases-create-casefile-order-term-creditor-form/cases-create-casefile-order-term-creditor-form.component';
-import type { CasesCreateCasefileMajorCreditorsLoadService } from './services/cases-create-casefile-major-creditors-load.service';
 import { CasesCreateCasefileOrderTermCreditorComponent } from './cases-create-casefile-order-term-creditor.component';
 
 @Component({ template: '<h1>Summary</h1>' })
@@ -38,18 +36,6 @@ const majorCreditor = {
   central_authority: false,
 };
 
-function owner(status: 'loading' | 'ready' | 'empty' = 'loading', majorCreditorId = 47) {
-  return {
-    state: signal({
-      status,
-      records: status === 'ready' ? [{ ...majorCreditor, major_creditor_id: majorCreditorId }] : [],
-      correlationReference: null,
-    }),
-    load: vi.fn(),
-    dispose: vi.fn(),
-  } as unknown as CasesCreateCasefileMajorCreditorsLoadService;
-}
-
 function seedCurrentTerm(store: InstanceType<typeof CasesCreateCasefileStore>): void {
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
     orderTerms: [{ ...acceptedTerm }],
@@ -58,25 +44,31 @@ function seedCurrentTerm(store: InstanceType<typeof CasesCreateCasefileStore>): 
   });
 }
 
-async function setup(firstOwner = owner()) {
-  const data = new BehaviorSubject({ majorCreditors: firstOwner });
+async function setup(majorCreditors = [majorCreditor]) {
   await TestBed.configureTestingModule({
     imports: [CasesCreateCasefileOrderTermCreditorComponent],
-    providers: [CasesCreateCasefileStore, provideRouter([]), { provide: ActivatedRoute, useValue: { data } }],
+    providers: [
+      CasesCreateCasefileStore,
+      provideRouter([]),
+      {
+        provide: ActivatedRoute,
+        useValue: { snapshot: { data: { majorCreditors: { count: majorCreditors.length, refData: majorCreditors } } } },
+      },
+    ],
   }).compileComponents();
   const store = TestBed.inject(CasesCreateCasefileStore);
   seedCurrentTerm(store);
   const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermCreditorComponent);
-  return { fixture, component: fixture.componentInstance, data, firstOwner, store, router: TestBed.inject(Router) };
+  return { fixture, component: fixture.componentInstance, store, router: TestBed.inject(Router) };
 }
 
-function routedCreditor(loadOwner: CasesCreateCasefileMajorCreditorsLoadService): Routes {
+function routedCreditor(): Routes {
   return [
     {
       path: 'cases/create-casefile/order-terms/creditor',
       component: CasesCreateCasefileOrderTermCreditorComponent,
       canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
-      data: { majorCreditors: loadOwner },
+      data: { majorCreditors: { count: 1, refData: [majorCreditor] } },
     },
     { path: 'cases/create-casefile/order-terms/summary', component: TestDestinationComponent },
   ];
@@ -85,26 +77,14 @@ function routedCreditor(loadOwner: CasesCreateCasefileMajorCreditorsLoadService)
 describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
   beforeEach(() => vi.restoreAllMocks());
 
-  it('renders the creditor form with reactive owner state and entry term data', async () => {
+  it('renders the creditor form with resolved Major records and entry term data', async () => {
     const { fixture } = await setup();
     fixture.detectChanges();
     const child = fixture.debugElement.query(By.directive(CasesCreateCasefileOrderTermCreditorFormComponent))
       .componentInstance as CasesCreateCasefileOrderTermCreditorFormComponent;
     expect(fixture.nativeElement.querySelector('h1').textContent.trim()).toBe('Creditor');
-    expect(child.loadState.status).toBe('loading');
+    expect(child.majorCreditors).toEqual([majorCreditor]);
     expect(child.initialFormData.create_casefile_order_term_creditor_choice).toBeNull();
-  });
-
-  it('disposes the previous load owner when resolved route data changes', async () => {
-    const { fixture, component, data, firstOwner } = await setup();
-    const secondOwner = owner('empty');
-    data.next({ majorCreditors: secondOwner });
-    expect(firstOwner.dispose).toHaveBeenCalledOnce();
-    expect(component.owner()).toBe(secondOwner);
-    fixture.detectChanges();
-    const child = fixture.debugElement.query(By.directive(CasesCreateCasefileOrderTermCreditorFormComponent))
-      .componentInstance as CasesCreateCasefileOrderTermCreditorFormComponent;
-    expect(child.loadState.status).toBe('empty');
   });
 
   it.each([
@@ -164,11 +144,9 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('accepts only a Major ID from the current resolved owner', async () => {
-    const { component, data, store, router } = await setup(owner('ready'));
+  it('accepts only a Major ID from the resolved records', async () => {
+    const { component, store, router } = await setup([{ ...majorCreditor, major_creditor_id: 99 }]);
     const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
-    const replacement = owner('ready', 99);
-    data.next({ majorCreditors: replacement });
     component.handleFormSubmit({
       formData: {
         create_casefile_order_term_creditor_choice: 'major',
@@ -310,23 +288,9 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     expect(store.unsavedChanges()).toBe(false);
   });
 
-  it('routes retry through the current load owner', async () => {
-    const firstOwner = owner('empty');
-    const { component } = await setup(firstOwner);
-    component.handleRetry();
-    expect(firstOwner.load).toHaveBeenCalledOnce();
-  });
-
-  it('disposes the current load owner when destroyed', async () => {
-    const { fixture, firstOwner } = await setup();
-    fixture.destroy();
-    expect(firstOwner.dispose).toHaveBeenCalledOnce();
-  });
-
   it('retains dirty edits when routed Cancel confirmation is declined and clears draft after confirmation', async () => {
-    const loadOwner = owner('ready');
     await TestBed.configureTestingModule({
-      providers: [CasesCreateCasefileStore, provideRouter(routedCreditor(loadOwner))],
+      providers: [CasesCreateCasefileStore, provideRouter(routedCreditor())],
     }).compileComponents();
     const store = TestBed.inject(CasesCreateCasefileStore);
     seedCurrentTerm(store);

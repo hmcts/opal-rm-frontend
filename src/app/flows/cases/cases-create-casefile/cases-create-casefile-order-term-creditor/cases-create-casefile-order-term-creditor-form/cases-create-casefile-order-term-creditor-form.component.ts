@@ -5,19 +5,16 @@ import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/component
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
 import {
-  GovukRadioComponent,
-  GovukRadiosConditionalComponent,
   GovukRadiosDividerComponent,
   GovukRadiosItemComponent,
 } from '@hmcts/opal-frontend-common/components/govuk/govuk-radio';
 import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import type { IGovUkSelectOptions } from '@hmcts/opal-frontend-common/components/govuk/govuk-select/interfaces';
-import { GENERIC_HTTP_ERROR_MESSAGE } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { takeUntil } from 'rxjs';
+import type { IOpalMaintenanceMajorCreditorReferenceDataItem } from '../../../services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-item.interface';
 import type { ICasesCreateCasefileMinorCreditor } from '../../interfaces/cases-create-casefile-minor-creditor.interface';
 import { CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_ERRORS } from '../constants/cases-create-casefile-order-term-creditor-field-errors.constant';
 import { CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES } from '../constants/cases-create-casefile-order-term-creditor-field-names.constant';
-import type { ICasesCreateCasefileMajorCreditorsLoadState } from '../interfaces/cases-create-casefile-major-creditors-load-state.interface';
 import type { ICasesCreateCasefileOrderTermCreditorFormData } from '../interfaces/cases-create-casefile-order-term-creditor-form-data.interface';
 import type { ICasesCreateCasefileOrderTermCreditorForm } from '../interfaces/cases-create-casefile-order-term-creditor-form.interface';
 
@@ -32,8 +29,6 @@ interface CreditorFormControls {
     ReactiveFormsModule,
     GovukCancelLinkComponent,
     GovukErrorSummaryComponent,
-    GovukRadioComponent,
-    GovukRadiosConditionalComponent,
     GovukRadiosDividerComponent,
     GovukRadiosItemComponent,
     GovukSelectComponent,
@@ -53,17 +48,14 @@ export class CasesCreateCasefileOrderTermCreditorFormComponent
 
   // eslint-disable-next-line @angular-eslint/no-output-native
   @Output() public readonly cancel = new EventEmitter<void>();
-  @Output() public readonly retry = new EventEmitter<void>();
   @Input({ required: true }) public initialFormData!: ICasesCreateCasefileOrderTermCreditorFormData;
   @Input({ required: true }) public applicantLabel!: string;
   @Input({ required: true }) public minorCreditors!: ICasesCreateCasefileMinorCreditor[];
-  @Input({ required: true }) public loadState!: ICasesCreateCasefileMajorCreditorsLoadState;
+  @Input({ required: true }) public majorCreditors!: IOpalMaintenanceMajorCreditorReferenceDataItem[];
 
   public readonly fieldNames = CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES;
   public readonly conditionalId = 'create_casefile_order_term_creditor_major';
   public majorOptions: IGovUkSelectOptions[] = [];
-  public retryVisible = false;
-  public statusMessage = '';
   public override form = new FormGroup<CreditorFormControls>({
     create_casefile_order_term_creditor_choice: new FormControl<string | null>(null, [
       Validators.required,
@@ -83,31 +75,18 @@ export class CasesCreateCasefileOrderTermCreditorFormComponent
     const control = this.form.controls[this.fieldNames.majorCreditorId];
     return (
       control.enabled &&
-      this.loadState?.status === 'ready' &&
-      this.loadState.records.some((record) => String(record.major_creditor_id) === String(control.value))
+      this.majorCreditors?.some((record) => String(record.major_creditor_id) === String(control.value))
     );
   }
 
-  private applyLoadState(): void {
+  private applyMajorCreditors(): void {
     this.majorOptions = [
       { name: 'Select a major creditor', value: '' },
-      ...this.loadState.records.map((record) => ({
+      ...this.majorCreditors.map((record) => ({
         name: `${record.major_creditor_code} - ${record.name}`,
         value: record.major_creditor_id,
       })),
     ];
-    this.retryVisible =
-      this.loadState.status === 'empty' ||
-      this.loadState.status === 'error' ||
-      (this.loadState.status === 'loading' && this.retryVisible);
-    this.statusMessage =
-      this.loadState.status === 'loading'
-        ? 'Loading major creditors…'
-        : this.loadState.status === 'empty'
-          ? 'No major creditors are available. Choose another creditor or try again.'
-          : this.loadState.status === 'error'
-            ? GENERIC_HTTP_ERROR_MESSAGE
-            : 'Major creditors loaded.';
     this.revalidate();
   }
 
@@ -145,7 +124,7 @@ export class CasesCreateCasefileOrderTermCreditorFormComponent
         this.entrySnapshot = this.normalized(this.initialFormData);
         this.formSubmitted = false;
       }
-      this.applyLoadState();
+      this.applyMajorCreditors();
       this.unsavedChanges.emit(this.hasUnsavedChanges());
     }
   }
@@ -173,19 +152,15 @@ export class CasesCreateCasefileOrderTermCreditorFormComponent
       this.revalidate();
     });
     this.initialized = true;
-    this.applyLoadState();
+    this.applyMajorCreditors();
     super.ngOnInit();
-  }
-
-  public handleRetry(): void {
-    if (this.retryVisible) this.retry.emit();
   }
 
   public override handleFormSubmit(event: SubmitEvent): void {
     event.preventDefault();
     const major = this.form.controls[this.fieldNames.majorCreditorId];
-    if (this.form.controls[this.fieldNames.choice].value === 'major' && this.loadState.status === 'ready') {
-      const record = this.loadState.records.find(
+    if (this.form.controls[this.fieldNames.choice].value === 'major') {
+      const record = this.majorCreditors.find(
         (candidate) => String(candidate.major_creditor_id) === String(major.value),
       );
       if (record) major.setValue(record.major_creditor_id, { emitEvent: false });

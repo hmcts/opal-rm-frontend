@@ -1,31 +1,29 @@
 import { inject } from '@angular/core';
-import { NavigationCancel, NavigationEnd, NavigationError, ResolveFn, Router } from '@angular/router';
-import { filter, take } from 'rxjs';
-import { CasesCreateCasefileMajorCreditorsLoadService } from '../../../cases-create-casefile-order-term-creditor/services/cases-create-casefile-major-creditors-load.service';
+import { ResolveFn } from '@angular/router';
+import { map, Observable } from 'rxjs';
 import { OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID } from '../../../../services/opal-maintenance-service/constants/opal-maintenance-business-unit-ids.constant';
+import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from '../../../../services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
 import { OpalMaintenanceService } from '../../../../services/opal-maintenance-service/opal-maintenance.service';
 
 export const fetchCasesCreateCasefileMajorCreditorsResolver: ResolveFn<
-  CasesCreateCasefileMajorCreditorsLoadService
-> = () => {
-  const owner = new CasesCreateCasefileMajorCreditorsLoadService(
-    inject(OpalMaintenanceService),
-    OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID,
-  );
-  const router = inject(Router);
-  const navigationId = router.currentNavigation()?.id;
-  router.events
+  IOpalMaintenanceMajorCreditorReferenceDataResponse
+> = (): Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse> =>
+  inject(OpalMaintenanceService)
+    .getMajorCreditors({
+      business_unit_id: OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID,
+      active: true,
+      central_authority: false,
+    })
     .pipe(
-      filter(
-        (event) =>
-          (event instanceof NavigationEnd || event instanceof NavigationCancel || event instanceof NavigationError) &&
-          event.id === navigationId,
-      ),
-      take(1),
-    )
-    .subscribe((event) => {
-      if (!(event instanceof NavigationEnd)) owner.dispose();
-    });
-  owner.load();
-  return owner;
-};
+      map((response) => {
+        const refData = response.refData.filter(
+          (record) =>
+            record.business_unit_id === OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID &&
+            record.active &&
+            !record.central_authority &&
+            Number.isInteger(record.major_creditor_id) &&
+            record.major_creditor_id > 0,
+        );
+        return { count: refData.length, refData };
+      }),
+    );

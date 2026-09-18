@@ -11,6 +11,8 @@ export const CASES_CREATE_CASEFILE_ROUTING_PATHS: ICasesCreateCasefileRoutingPat
     centralAuthorityDetails: 'central-authority-details',
     orderDetails: 'order-details',
     orderTermsSummary: 'order-terms/summary',
+    orderTermsSelect: 'order-terms/select',
+    orderTermsInput: 'order-terms/add',
     interestAndIndexation: 'interest-and-indexation',
     managingPayments: 'managing-payments',
     commentsAndNotes: 'comments-and-notes',

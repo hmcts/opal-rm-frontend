@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { firstValueFrom } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
@@ -58,6 +59,38 @@ describe('OpalMaintenanceService', () => {
   });
 
   afterEach(() => http.verify());
+
+  it('returns filtered synthetic Results without HTTP and clones each subscription', async () => {
+    const request = service.getResults({ order_term: true, active: true });
+    const first = await firstValueFrom(request);
+    first.refData[0].result_title = 'Changed by test';
+    const second = await firstValueFrom(request);
+    expect(second).toEqual({
+      count: 2,
+      refData: [
+        { result_id: 'MOCK01', result_title: 'Example maintenance term' },
+        { result_id: 'MOCK02', result_title: 'Example additional term' },
+      ],
+    });
+    expect(second).not.toBe(first);
+    expect(Number.isInteger(second.count)).toBe(true);
+    expect(second.count).toBe(second.refData.length);
+    for (const record of second.refData) {
+      expect(Object.keys(record).sort()).toEqual(['result_id', 'result_title']);
+      expect(record.result_id.length).toBeLessThanOrEqual(6);
+      expect(record.result_title.length).toBeLessThanOrEqual(60);
+    }
+    TestBed.inject(HttpTestingController).expectNone('/opal-maintenance-service/results');
+  });
+
+  it('rejects filters outside the synthetic list contract', async () => {
+    const params = { order_term: true as const, active: true as const };
+    Reflect.set(params, 'active', false);
+    await expect(firstValueFrom(service.getResults(params))).rejects.toThrow(
+      'Results mock requires active order terms',
+    );
+    TestBed.inject(HttpTestingController).expectNone('/opal-maintenance-service/results');
+  });
 
   it('requests active Create Casefile applications afresh on each entry', () => {
     for (let attempt = 0; attempt < 3; attempt++) {

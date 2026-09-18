@@ -22,6 +22,7 @@ export const CASES_CREATE_CASEFILE_STATE: ICasesCreateCasefileState = {
   centralAuthorityDetails: null,
   paymentArrangement: null,
   commentsAndNotes: null,
+  pendingOrderTermResultId: null,
   taskStatuses: { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES },
   unsavedChanges: false,
   stateChanges: false,

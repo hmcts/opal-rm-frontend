@@ -87,6 +87,7 @@ export const CasesCreateCasefileStore = signalStore(
         centralAuthorityDetails: selectionUnchanged ? store.centralAuthorityDetails() : null,
         paymentArrangement: selectionUnchanged ? store.paymentArrangement() : null,
         commentsAndNotes: selectionUnchanged ? store.commentsAndNotes() : null,
+        pendingOrderTermResultId: selectionUnchanged ? store.pendingOrderTermResultId() : null,
         taskStatuses,
         stateChanges: true,
         unsavedChanges: false,
@@ -198,6 +199,9 @@ export const CasesCreateCasefileStore = signalStore(
     },
     setUnsavedChanges: (unsavedChanges: boolean): void => {
       patchState(store, { unsavedChanges });
+    },
+    setPendingOrderTermResultId: (pendingOrderTermResultId: string | null): void => {
+      patchState(store, { pendingOrderTermResultId });
     },
     resetForCaseTypeEdit: (): void => {
       const caseTypeSelection = store.caseTypeSelection();

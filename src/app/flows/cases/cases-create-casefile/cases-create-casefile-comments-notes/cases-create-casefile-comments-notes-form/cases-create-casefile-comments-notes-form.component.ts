@@ -44,16 +44,7 @@ export class CasesCreateCasefileCommentsNotesFormComponent extends AbstractFormB
 
   public override handleFormSubmit(event: SubmitEvent): void {
     event.preventDefault();
-
-    if (!this.form.valid) {
-      super.handleFormSubmit(event);
-      return;
-    }
-
-    this.handleErrorMessages();
-    this.formSubmitted = true;
-    this.unsavedChanges.emit(this.hasUnsavedChanges());
-    this.formSubmit.emit({ formData: this.form.getRawValue(), nestedFlow: false });
+    super.handleFormSubmit(event);
   }
 
   public override ngOnInit(): void {

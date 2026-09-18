@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
 import { CasesCreateCasefileFormParentBaseComponent } from '../components/abstract/cases-create-casefile-form-parent-base/cases-create-casefile-form-parent-base.component';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from '../services/interfaces/cases-create-casefile-country-reference-data-response.interface';
+import type { IOpalMaintenanceCountryReferenceDataResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS } from './mocks/cases-create-casefile-respondent-details.mock';
 import { CasesCreateCasefileRespondentDetailsComponent } from './cases-create-casefile-respondent-details.component';
@@ -14,7 +14,7 @@ describe('CasesCreateCasefileRespondentDetailsComponent', () => {
   let component: CasesCreateCasefileRespondentDetailsComponent;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
   const router = createSpyObj(Router, ['navigate']);
-  const countriesResponse: ICasesCreateCasefileCountryReferenceDataResponse = {
+  const countriesResponse: IOpalMaintenanceCountryReferenceDataResponse = {
     count: 2,
     refData: [
       {

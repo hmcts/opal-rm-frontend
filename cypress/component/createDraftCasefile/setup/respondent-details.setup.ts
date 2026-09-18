@@ -18,7 +18,7 @@ import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-crea
 import type { ICasesCreateCasefileRespondentDetails } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-respondent-details.interface';
 import { routing } from 'src/app/flows/cases/cases-create-casefile/routing/cases-create-casefile.routes';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
-import type { ICasesCreateCasefileCountryReferenceDataResponse } from 'src/app/flows/cases/cases-create-casefile/services/interfaces/cases-create-casefile-country-reference-data-response.interface';
+import type { IOpalMaintenanceCountryReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import { STARTER_USER_STATE_CASES_ONLY } from 'cypress/shared/mocks/user-state.mock';
 import { COUNTRIES_RESPONSE } from '../mocks/countries.mock';
@@ -38,7 +38,7 @@ const testRoutes: Routes = [
 ];
 
 interface IRespondentDetailsSetup {
-  countries?: ICasesCreateCasefileCountryReferenceDataResponse | StaticResponse;
+  countries?: IOpalMaintenanceCountryReferenceDataResponse | StaticResponse;
   savedRespondent?: ICasesCreateCasefileRespondentDetails | null;
   initialChildPath?: string;
   useHttpErrorInterceptor?: boolean;

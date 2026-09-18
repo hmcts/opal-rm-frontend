@@ -155,6 +155,34 @@ describe('fetchCasesCreateCasefileOrderTermResolver', () => {
     expect(setBannerError).not.toHaveBeenCalled();
   });
 
+  it.each(['inline', 'lookup'])('preserves plain autocomplete labels from %s options', async (source) => {
+    const options = [
+      { value: 'a', label: 'A & B' },
+      { value: 'b', label: 'A "B"' },
+      { value: 'c', label: "A O'Brien" },
+    ];
+    const detail = choiceDetail(true);
+    const parameters = JSON.parse(detail.result_parameters);
+    parameters[0].type = 'autocomplete';
+    if (source === 'lookup') {
+      delete parameters[0].options;
+      parameters[0].apidata = 'mock:order-term-options';
+    } else {
+      parameters[0].options = options;
+    }
+    detail.result_parameters = JSON.stringify(parameters);
+    detailsSource = of(detail);
+    if (source === 'lookup') {
+      lookupSource = of([{ ...mapOrderTermParameters(detail.result_parameters)[0], options }]);
+    }
+    const harness = await configure();
+
+    const component = await harness.navigateByUrl('/input/MAT', TestInputComponent);
+
+    expect(component.page.fields[0].options).toEqual(options);
+    expect(setBannerError).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['null detail', of(null)],
     ['empty detail response', EMPTY],

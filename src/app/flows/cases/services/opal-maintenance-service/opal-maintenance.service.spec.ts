@@ -1,14 +1,15 @@
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
-import { firstValueFrom } from 'rxjs';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { EMPTY, firstValueFrom, take } from 'rxjs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
+import { CasesCreateCasefileMajorCreditorsLoadService } from '../../cases-create-casefile/cases-create-casefile-order-term-creditor/services/cases-create-casefile-major-creditors-load.service';
 import { OpalMaintenanceService } from './opal-maintenance.service';
 
 describe('OpalMaintenanceService', () => {
@@ -215,6 +216,13 @@ describe('OpalMaintenanceService', () => {
       .flush(majorCreditors);
   });
 
+  it('serializes false Major Creditor filters explicitly', () => {
+    service.getMajorCreditors({ business_unit_id: 77, central_authority: false, active: false }).subscribe();
+    http
+      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=false&active=false')
+      .flush(majorCreditors);
+  });
+
   it('omits undefined optional Major Creditor filters', () => {
     service.getMajorCreditors({ business_unit_id: 77, central_authority: undefined, active: undefined }).subscribe();
     const request = http.expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77');
@@ -248,8 +256,47 @@ describe('OpalMaintenanceService', () => {
     http
       .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&active=true')
       .flush({ detail: 'Unavailable' }, { status: 503, statusText: 'Service Unavailable' });
-    result.subscribe((response) => expect(response).toEqual(majorCreditors));
+    const retry = service.getMajorCreditors({ business_unit_id: 77, active: true });
+    expect(retry).not.toBe(result);
+    retry.subscribe((response) => expect(response).toEqual(majorCreditors));
     http.expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&active=true').flush(majorCreditors);
+  });
+
+  it('preserves a successful Major Creditor response after a take-one consumer unsubscribes', async () => {
+    const params = { business_unit_id: 77, central_authority: false, active: true };
+    const nonCentralMajorCreditors = {
+      count: 1,
+      refData: [{ ...majorCreditors.refData[0], central_authority: false }],
+    };
+    const responsePromise = firstValueFrom(service.getMajorCreditors(params).pipe(take(1)));
+    http
+      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=false&active=true')
+      .flush(nonCentralMajorCreditors);
+    expect(await responsePromise).toEqual(nonCentralMajorCreditors);
+
+    expect(await firstValueFrom(service.getMajorCreditors(params))).toEqual(nonCentralMajorCreditors);
+    http.expectNone((request) => request.url === '/opal-maintenance-service/major-creditors');
+  });
+
+  it('cancels a pending Major Creditor request when its final subscriber unsubscribes', () => {
+    const result = service.getMajorCreditors({ business_unit_id: 77, central_authority: false, active: true });
+    const first = result.subscribe();
+    const second = result.subscribe();
+    const request = http.expectOne(
+      '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=false&active=true',
+    );
+    first.unsubscribe();
+    expect(request.cancelled).toBe(false);
+    second.unsubscribe();
+    expect(request.cancelled).toBe(true);
+  });
+
+  it('evicts a Major Creditor source that completes without a response', () => {
+    vi.spyOn(TestBed.inject(HttpClient), 'get').mockReturnValue(EMPTY);
+    const params = { business_unit_id: 77, central_authority: false, active: true };
+    const first = service.getMajorCreditors(params);
+    first.subscribe();
+    expect(service.getMajorCreditors(params)).not.toBe(first);
   });
 
   it('does not retain an empty Major Creditor response in the cache', () => {
@@ -263,6 +310,22 @@ describe('OpalMaintenanceService', () => {
     expect(second).not.toBe(first);
     second.subscribe((response) => expect(response).toEqual(majorCreditors));
     http.expectOne(url).flush(majorCreditors);
+  });
+
+  it('permits an owner retry when a non-empty response contains no usable Major Creditors', () => {
+    const owner = new CasesCreateCasefileMajorCreditorsLoadService(service, 77);
+    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=false&active=true';
+    owner.load();
+    http.expectOne(url).flush({
+      count: 1,
+      refData: [majorCreditors.refData[0]],
+    });
+    expect(owner.state().status).toBe('empty');
+
+    owner.load();
+    http.expectOne(url).flush({ count: 0, refData: [] });
+    expect(owner.state().status).toBe('empty');
+    owner.dispose();
   });
 
   it('issues a fresh Major Creditor request after the error interceptor consumes a retriable conflict', () => {

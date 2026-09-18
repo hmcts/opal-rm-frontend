@@ -35,6 +35,8 @@ import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/
 import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 import { fetchCasesCreateCasefileOrderTermsResolver } from './resolvers/fetch-cases-create-casefile-order-terms-resolver/fetch-cases-create-casefile-order-terms.resolver';
+import { fetchCasesCreateCasefileMajorCreditorsResolver } from './resolvers/fetch-cases-create-casefile-major-creditors-resolver/fetch-cases-create-casefile-major-creditors.resolver';
+import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 
 @Component({ template: '' })
 class TestDestinationComponent {}
@@ -223,16 +225,20 @@ describe('Create Casefile routes', () => {
 
     expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermCreditor });
-    expect(route?.resolve).toEqual({ title: TitleResolver });
+    expect(route?.resolve).toEqual({
+      title: TitleResolver,
+      majorCreditors: fetchCasesCreateCasefileMajorCreditorsResolver,
+    });
     const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
     expect(component?.name).toBe(CasesCreateCasefileOrderTermCreditorComponent.name);
   });
 
   it('prevents creditor data resolution when the current order term is stale', async () => {
-    const creditorResolver = vi.fn();
+    const getMajorCreditors = vi.fn();
     TestBed.configureTestingModule({
       providers: [
         CasesCreateCasefileStore,
+        { provide: OpalMaintenanceService, useValue: { getMajorCreditors } },
         provideRouter([
           {
             path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsSelect}`,
@@ -242,7 +248,7 @@ describe('Create Casefile routes', () => {
             path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermCreditor}`,
             component: TestDestinationComponent,
             canActivate: [casesCreateCasefileOrderTermCreditorGuard],
-            resolve: { majorCreditors: creditorResolver },
+            resolve: { majorCreditors: fetchCasesCreateCasefileMajorCreditorsResolver },
           },
         ]),
       ],
@@ -254,7 +260,7 @@ describe('Create Casefile routes', () => {
 
     await RouterTestingHarness.create('/cases/create-casefile/order-terms/creditor');
 
-    expect(creditorResolver).not.toHaveBeenCalled();
+    expect(getMajorCreditors).not.toHaveBeenCalled();
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/select');
   });
 

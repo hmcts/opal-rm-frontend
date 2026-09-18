@@ -392,6 +392,39 @@ describe('Order terms input form', () => {
     },
   );
 
+  it('renders an event-handler label as text and preserves it through selection and blur', async () => {
+    const label = '<img src=x onerror="window.alert(1)">';
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
+    render({
+      ...autocompletePage,
+      fields: autocompletePage.fields.map((field) => ({ ...field, options: [{ value: 'A', label }] })),
+    });
+
+    await typeAutocomplete('img');
+    await vi.waitFor(() => expect(fixture.nativeElement.querySelector('[role="option"]')).not.toBeNull());
+    const option: HTMLElement = fixture.nativeElement.querySelector('[role="option"]');
+    expect(option.querySelector('img, [onerror]')).toBeNull();
+    expect(option.childElementCount).toBe(0);
+    expect(option.textContent).toBe(label);
+    expect(alert).not.toHaveBeenCalled();
+
+    option.click();
+    expect((await autocompleteInput()).value).toBe(label);
+    expect(host.onDraftChange).toHaveBeenLastCalledWith({ values: { autocomplete: 'A' }, dirty: true });
+
+    const element = await typeAutocomplete(label);
+    element.dispatchEvent(new FocusEvent('blur'));
+    await fixture.whenStable();
+    expect(element.value).toBe(label);
+    submit();
+    expect(host.onSubmit).toHaveBeenCalledExactlyOnceWith({
+      formData: { [id('autocomplete')]: 'A' },
+      nestedFlow: false,
+    });
+    expect(fixture.nativeElement.querySelector('img, [onerror]')).toBeNull();
+    expect(alert).not.toHaveBeenCalled();
+  });
+
   it('submits every supported editable kind with raw primitive values', async () => {
     const values = {
       money: '12.30',

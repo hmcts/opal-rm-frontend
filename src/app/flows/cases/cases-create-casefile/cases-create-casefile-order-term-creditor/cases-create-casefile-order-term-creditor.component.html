@@ -1,7 +1,9 @@
 <div class="govuk-grid-column-two-thirds">
-  <h1 class="govuk-heading-l">Creditor</h1>
-  <p class="govuk-body">Creditor details will be available in a later update.</p>
-  <a class="govuk-link" id="create_casefile_order_term_creditor_return" [routerLink]="summaryPath"
-    >Return to order terms</a
-  >
+  <app-cases-create-casefile-order-term-creditor-form
+    [initialFormData]="initialFormData()"
+    [applicantLabel]="applicantLabel()"
+    [minorCreditors]="minorCreditors()"
+    [loadState]="loadState()"
+    (retry)="handleRetry()"
+  />
 </div>

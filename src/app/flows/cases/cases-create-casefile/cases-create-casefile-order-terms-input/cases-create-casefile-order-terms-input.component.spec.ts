@@ -68,6 +68,11 @@ const inputPath = 'cases/create-casefile/order-terms/add/:resultId';
 const selectionPath = 'cases/create-casefile/order-terms/select';
 const creditorPath = 'cases/create-casefile/order-terms/creditor';
 const taskListPath = 'cases/create-casefile/task-list';
+const acceptedTerm = (
+  parameters: Record<string, string | number | boolean>,
+  termId = 1,
+  creditor: { type: 'applicant' } | null = null,
+) => ({ termId, resultId: 'MAT', parameters, creditor });
 
 function seed(store: InstanceType<typeof CasesCreateCasefileStore>): void {
   store.setOrderDetails({
@@ -145,13 +150,13 @@ describe('Order term input routed parent', () => {
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/add/MAT');
     expect(store.orderTermDraft()?.values).toEqual({ amount: '12.3' });
     expect(store.orderTermDraft()?.dirty).toBe(true);
-    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '1.00' } }]);
+    expect(store.orderTerms()).toEqual([acceptedTerm({ amount: '1.00' })]);
 
     confirm.mockReturnValue(true);
     await component.handleCancel();
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/select');
     expect(store.orderTermDraft()).toBeNull();
-    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '1.00' } }]);
+    expect(store.orderTerms()).toEqual([acceptedTerm({ amount: '1.00' })]);
   });
 
   it('allows clean Cancel without a warning', async () => {
@@ -226,7 +231,7 @@ describe('Order term input routed parent', () => {
     component.handleFormSubmit({ formData: { [amountId]: '12.3' }, nestedFlow: false });
     await harness.fixture.whenStable();
 
-    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '12.30' } }]);
+    expect(store.orderTerms()).toEqual([acceptedTerm({ amount: '12.30' })]);
     expect(store.orderTermDraft()).toBeNull();
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/creditor');
   });
@@ -239,7 +244,7 @@ describe('Order term input routed parent', () => {
       formData: { [amountId]: '12.3', [creditorId]: 'C1' },
       nestedFlow: false,
     });
-    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '12.30', creditor: 'C1' } }]);
+    expect(store.orderTerms()).toEqual([acceptedTerm({ amount: '12.30', creditor: 'C1' })]);
     expect(navigate).toHaveBeenCalledWith('/cases/create-casefile/order-terms/creditor');
   });
 
@@ -269,7 +274,7 @@ describe('Order term input routed parent', () => {
     component.handleFormSubmit({ formData: { [amountId]: '12.3' }, nestedFlow: false });
     await harness.fixture.whenStable();
     expect(router.url).toBe('/cases/create-casefile/order-terms/add/MAT');
-    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '12.30' } }]);
+    expect(store.orderTerms()).toEqual([acceptedTerm({ amount: '12.30' })]);
 
     component.handleDraftChange({ values: { amount: 'bad', creditor: '' }, dirty: true });
     component.handleFormSubmit({ formData: { [amountId]: 'bad', [creditorId]: '' }, nestedFlow: false });
@@ -278,15 +283,57 @@ describe('Order term input routed parent', () => {
       dirty: true,
     });
     component.handleFormSubmit({ formData: { [amountId]: '20', [creditorId]: 'UNKNOWN' }, nestedFlow: false });
-    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '12.30' } }]);
+    expect(store.orderTerms()).toEqual([acceptedTerm({ amount: '12.30' })]);
 
     component.handleDraftChange({ values: { amount: '20' }, dirty: true });
     allowCreditor = true;
     component.handleFormSubmit({ formData: { [amountId]: '20' }, nestedFlow: false });
     await harness.fixture.whenStable();
 
-    expect(store.orderTerms()).toEqual([{ resultId: 'MAT', parameters: { amount: '20.00' } }]);
+    expect(store.orderTerms()).toEqual([acceptedTerm({ amount: '20.00' })]);
     expect(router.url).toBe('/cases/create-casefile/order-terms/creditor');
+  });
+
+  it('keeps stable identity through false, rejected and successful navigation attempts', async () => {
+    const store = await configure();
+    const navigate = vi
+      .spyOn(TestBed.inject(Router), 'navigateByUrl')
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new Error('Synthetic navigation failure'))
+      .mockResolvedValueOnce(true);
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    const component = fixture.componentInstance;
+
+    component.handleFormSubmit({ formData: { [amountId]: '12.3' }, nestedFlow: false });
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledTimes(1));
+    const originalId = store.currentOrderTermId()!;
+    expect(store.assignCurrentOrderTermCreditor(originalId, { type: 'applicant' })).toBe(true);
+
+    component.handleDraftChange({ values: { amount: '20' }, dirty: true });
+    component.handleFormSubmit({ formData: { [amountId]: '20' }, nestedFlow: false });
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+
+    component.handleDraftChange({ values: { amount: '25.1' }, dirty: true });
+    component.handleFormSubmit({ formData: { [amountId]: '25.1' }, nestedFlow: false });
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledTimes(3));
+
+    expect(store.orderTerms()).toHaveLength(1);
+    expect(store.orderTerms()[0]).toEqual(acceptedTerm({ amount: '25.10' }, originalId, { type: 'applicant' }));
+  });
+
+  it('keeps the first accepted term intact when retry context becomes stale', async () => {
+    const store = await configure();
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    const component = fixture.componentInstance;
+
+    component.handleFormSubmit({ formData: { [amountId]: '12.3' }, nestedFlow: false });
+    const originalId = store.currentOrderTermId()!;
+    store.setPendingOrderTermResultId('MCHILD');
+    component.handleDraftChange({ values: { amount: '25.1' }, dirty: true });
+    component.handleFormSubmit({ formData: { [amountId]: '25.1' }, nestedFlow: false });
+
+    expect(store.orderTerms()).toEqual([acceptedTerm({ amount: '12.30' }, originalId)]);
   });
 
   it('replaces an accepted optional value after a rejected navigation when the real form reverts to pristine', async () => {
@@ -330,7 +377,9 @@ describe('Order term input routed parent', () => {
     child.form.controls[checkboxId].setValue(true);
     child.handleFormSubmit(new SubmitEvent('submit'));
     await harness.fixture.whenStable();
-    expect(store.orderTerms()).toEqual([{ resultId: 'OPTIONAL', parameters: { apply_indexation: true } }]);
+    expect(store.orderTerms()).toEqual([
+      { termId: 1, resultId: 'OPTIONAL', parameters: { apply_indexation: true }, creditor: null },
+    ]);
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/add/OPTIONAL');
 
     child.form.controls[checkboxId].setValue(false);
@@ -339,7 +388,9 @@ describe('Order term input routed parent', () => {
     child.handleFormSubmit(new SubmitEvent('submit'));
     await harness.fixture.whenStable();
 
-    expect(store.orderTerms()).toEqual([{ resultId: 'OPTIONAL', parameters: { apply_indexation: false } }]);
+    expect(store.orderTerms()).toEqual([
+      { termId: 1, resultId: 'OPTIONAL', parameters: { apply_indexation: false }, creditor: null },
+    ]);
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/creditor');
   });
 

@@ -85,3 +85,5 @@ multi-reporter-config.json
 # Local Superpowers via skills CLI
 /skills-lock.json
 /.agents/skills/
+
+/.opal.env

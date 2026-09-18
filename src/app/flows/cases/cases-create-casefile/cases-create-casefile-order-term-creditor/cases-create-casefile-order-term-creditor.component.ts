@@ -131,10 +131,7 @@ export class CasesCreateCasefileOrderTermCreditorComponent
     this.navigationFailed.set(false);
     try {
       const navigated = await this.navigationRouter.navigateByUrl(this.summaryPath);
-      if (!navigated) {
-        this.navigationFailed.set(true);
-        return;
-      }
+      if (!navigated) return;
       this.store.clearCreditorDraft();
       this.handleUnsavedChanges(false);
     } catch {

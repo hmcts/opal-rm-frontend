@@ -102,12 +102,41 @@ export class OpalMaintenanceService {
       httpParams = httpParams.set('active', params.active);
     }
 
-    return this.cacheRequest(
-      this.majorCreditorsCache,
-      cacheKey,
+    let emitted = false;
+    let request: Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse>;
+    const evictIfCurrent = () => {
+      if (this.majorCreditorsCache.get(cacheKey) === request) this.majorCreditorsCache.delete(cacheKey);
+    };
+
+    request = defer(() =>
       this.http.get<IOpalMaintenanceMajorCreditorReferenceDataResponse>(this.majorCreditorsUrl, {
         params: httpParams,
+        context: withoutHttpRetry(),
       }),
+    ).pipe(
+      tap({
+        next: (response) => {
+          emitted = true;
+          if (this.majorCreditorsCache.get(cacheKey) !== request) return;
+          const hasUsableRecord = response.refData.some(
+            (record) =>
+              record.business_unit_id === params.business_unit_id &&
+              (params.active === undefined || record.active === params.active) &&
+              (params.central_authority === undefined || record.central_authority === params.central_authority) &&
+              Number.isInteger(record.major_creditor_id) &&
+              record.major_creditor_id > 0,
+          );
+          if (hasUsableRecord) this.majorCreditorsCache.set(cacheKey, of(response));
+          else this.majorCreditorsCache.delete(cacheKey);
+        },
+        error: evictIfCurrent,
+        complete: () => {
+          if (!emitted) evictIfCurrent();
+        },
+      }),
+      shareReplay({ bufferSize: 1, refCount: true }),
     );
+    this.majorCreditorsCache.set(cacheKey, request);
+    return request;
   }
 }

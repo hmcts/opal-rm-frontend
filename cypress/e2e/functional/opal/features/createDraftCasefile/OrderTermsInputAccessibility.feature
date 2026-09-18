@@ -2,6 +2,7 @@
 Feature: Order term input accessibility
   Background:
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
+    And active non-Central-Authority Major creditors are available
     And I open the Order Terms Summary for a new casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9807

@@ -2,6 +2,7 @@
 Feature: Capture an order term
   Background:
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
+    And active non-Central-Authority Major creditors are available
     And I open the Order Terms Summary for a new casefile
     When I start adding an order term
     And I choose order term "MAT"

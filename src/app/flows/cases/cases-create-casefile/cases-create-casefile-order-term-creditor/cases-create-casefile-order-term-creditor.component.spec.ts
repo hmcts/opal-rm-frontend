@@ -338,9 +338,11 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     const component = harness.routeDebugElement!.componentInstance as CasesCreateCasefileOrderTermCreditorComponent;
     component.handleUnsavedChanges(true);
     await component.handleCancel();
+    harness.fixture.detectChanges();
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/creditor');
     expect(store.creditorDraft()).toEqual({ termId: 1, branch: 'add-new' });
     expect(store.unsavedChanges()).toBe(true);
+    expect(harness.fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
     confirm.mockReturnValue(true);
     await component.handleCancel();
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/summary');

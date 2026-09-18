@@ -1,3 +1,4 @@
+import { ORDER_DETAILS_MOCK } from '../orderDetails/mocks/order-details.mock';
 import { provideHttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -46,6 +47,9 @@ export const setupCaseDetailsTaskList = ({
   providedTasks = [],
   initialChildPath = CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
 }: ICaseDetailsTaskListSetup = {}) => {
+  cy.intercept('GET', '**/opal-maintenance-service/maintenance-applications*', {
+    body: structuredClone(ORDER_DETAILS_MOCK.response),
+  });
   cy.intercept('GET', '**/opal-maintenance-service/countries?active=true', {
     statusCode: 200,
     body: COUNTRIES_RESPONSE,

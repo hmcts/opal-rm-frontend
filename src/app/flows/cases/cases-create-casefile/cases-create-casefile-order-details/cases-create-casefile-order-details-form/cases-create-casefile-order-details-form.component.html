@@ -1,0 +1,66 @@
+<h1 class="govuk-heading-l">Order details</h1>
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+<form (submit)="handleFormSubmit($event)">
+  <opal-lib-alphagov-accessible-autocomplete
+    labelText="Application"
+    labelClasses="govuk-label--s"
+    (input)="handleApplicationInput($event)"
+    [inputId]="fieldNames.applicationId"
+    [inputName]="fieldNames.applicationId"
+    [showAllValues]="true"
+    [autoCompleteItems]="applicationAutocompleteItems"
+    [control]="form.controls[fieldNames.applicationId]"
+    [errors]="formControlErrorMessages[fieldNames.applicationId]"
+  />
+  <opal-lib-govuk-text-input
+    labelText="Court that made the order"
+    labelClasses="govuk-label--s"
+    [inputId]="fieldNames.court"
+    [inputName]="fieldNames.court"
+    [control]="form.controls[fieldNames.court]"
+    [errors]="formControlErrorMessages[fieldNames.court]"
+  />
+  <opal-lib-moj-date-picker
+    labelText="Date order made"
+    labelClasses="govuk-label--s"
+    hintText="For example, 31/03/2026"
+    [inputId]="fieldNames.dateOrderMade"
+    [inputName]="fieldNames.dateOrderMade"
+    [control]="form.controls[fieldNames.dateOrderMade]"
+    [maxDate]="today"
+    [errors]="formControlErrorMessages[fieldNames.dateOrderMade]"
+    (dateChange)="setInputValue($event, fieldNames.dateOrderMade)"
+  />
+  <opal-lib-govuk-select
+    labelText="Payment frequency"
+    labelClasses="govuk-label--s"
+    [selectId]="fieldNames.paymentFrequency"
+    [selectName]="fieldNames.paymentFrequency"
+    [options]="paymentFrequencyOptions"
+    [control]="form.controls[fieldNames.paymentFrequency]"
+    [errors]="formControlErrorMessages[fieldNames.paymentFrequency]"
+  />
+  <opal-lib-moj-date-picker
+    labelText="Date arrears last updated"
+    labelClasses="govuk-label--s"
+    hintText="For example, 31/03/2026"
+    [inputId]="fieldNames.dateArrearsLastUpdated"
+    [inputName]="fieldNames.dateArrearsLastUpdated"
+    [control]="form.controls[fieldNames.dateArrearsLastUpdated]"
+    [maxDate]="today"
+    [errors]="formControlErrorMessages[fieldNames.dateArrearsLastUpdated]"
+    (dateChange)="setInputValue($event, fieldNames.dateArrearsLastUpdated)"
+  />
+  <div class="govuk-button-group">
+    <button
+      class="govuk-button govuk-!-margin-right-4"
+      id="create_casefile_order_details_return_to_case_details"
+      type="submit"
+    >
+      Return to case details
+    </button>
+    <span id="create_casefile_order_details_cancel">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

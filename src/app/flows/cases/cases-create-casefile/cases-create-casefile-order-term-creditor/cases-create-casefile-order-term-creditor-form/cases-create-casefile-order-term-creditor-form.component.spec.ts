@@ -203,6 +203,7 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
 
   it('renders ready options in response order and normalizes a selected DOM value to the returned numeric ID', () => {
     create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: null });
+    const emitted = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
     const select = fixture.debugElement.query(By.directive(GovukSelectComponent))
       .componentInstance as GovukSelectComponent;
@@ -215,6 +216,10 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     native.dispatchEvent(new Event('change', { bubbles: true }));
     submit();
     expect(component.form.controls[FIELD.majorCreditorId].value).toBe(901);
+    expect(emitted).toHaveBeenCalledWith({
+      formData: { [FIELD.choice]: 'major', [FIELD.majorCreditorId]: 901 },
+      nestedFlow: false,
+    });
   });
 
   it('clears Major data on branch change, preserves the branch on load change and exposes status/retry content', () => {

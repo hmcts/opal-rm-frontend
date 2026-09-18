@@ -44,6 +44,12 @@ describe('OpalMaintenanceService', () => {
       },
     ],
   };
+  const clearMajorCreditorCache = () =>
+    (
+      service as unknown as {
+        majorCreditorsCache: Map<string, unknown>;
+      }
+    ).majorCreditorsCache.clear();
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -363,5 +369,39 @@ describe('OpalMaintenanceService', () => {
     expect(second).not.toBe(first);
     second.subscribe((response) => expect(response).toEqual(majorCreditors));
     http.expectOne(url).flush(majorCreditors);
+  });
+
+  it('does not let an original Major Creditor response overwrite its replacement after cache clear', async () => {
+    const params = { business_unit_id: 77, central_authority: true, active: true };
+    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true&active=true';
+    const originalResponse = structuredClone(majorCreditors);
+    originalResponse.refData[0].name = 'Stale original';
+    const replacementResponse = structuredClone(majorCreditors);
+    replacementResponse.refData[0].name = 'Current replacement';
+    service.getMajorCreditors(params).subscribe();
+    clearMajorCreditorCache();
+    service.getMajorCreditors(params).subscribe();
+    const requests = http.match(url);
+
+    requests[1].flush(replacementResponse);
+    requests[0].flush(originalResponse);
+
+    expect(await firstValueFrom(service.getMajorCreditors(params))).toEqual(replacementResponse);
+    http.expectNone(url);
+  });
+
+  it('does not let an original Major Creditor error evict its replacement after cache clear', () => {
+    const params = { business_unit_id: 77, central_authority: true, active: true };
+    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true&active=true';
+    service.getMajorCreditors(params).subscribe({ error: () => undefined });
+    clearMajorCreditorCache();
+    const replacement = service.getMajorCreditors(params);
+    replacement.subscribe();
+    const requests = http.match(url);
+
+    requests[0].flush({ title: 'Stale failure' }, { status: 503, statusText: 'Service Unavailable' });
+
+    expect(service.getMajorCreditors(params)).toBe(replacement);
+    requests[1].flush(majorCreditors);
   });
 });

@@ -1,0 +1,117 @@
+<h1 class="govuk-heading-l">{{ page.title }}</h1>
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+<form (submit)="handleFormSubmit($event)">
+  @for (view of views; track view.field.id) {
+    @let field = view.field; @let error = formControlErrorMessages[field.id];
+    @if (field.kind === 'readonly') {
+      <dl class="govuk-!-margin-top-0 govuk-!-margin-bottom-6" [id]="field.id">
+        <dt class="govuk-body govuk-!-margin-bottom-1">{{ field.label }}</dt>
+        <dd class="govuk-body govuk-!-margin-left-0 govuk-!-margin-bottom-0">{{ frequency }}</dd>
+      </dl>
+      @if (field.hint) {
+        <p class="govuk-hint">{{ field.hint }}</p>
+      }
+    } @else if (view.control) {
+      @switch (field.kind) {
+        @case ('long_text') {
+          <opal-lib-govuk-text-area
+            [labelText]="field.label"
+            [hintText]="field.hint"
+            [inputId]="field.id"
+            [inputName]="field.id"
+            [control]="view.control"
+            [errors]="error"
+          />
+        }
+        @case ('date') {
+          <opal-lib-moj-date-picker
+            [labelText]="field.label"
+            [hintText]="field.hint"
+            [inputId]="field.id"
+            [inputName]="field.id"
+            [control]="view.control"
+            [errors]="error"
+            (dateChange)="setInputValue($event, field.id)"
+          />
+        }
+        @case ('select') {
+          <opal-lib-govuk-select
+            [labelText]="field.label"
+            [selectHint]="field.hint"
+            [selectId]="field.id"
+            [selectName]="field.id"
+            [options]="view.options"
+            [control]="form.controls[field.id]"
+            [errors]="error"
+          />
+        }
+        @case ('radio') {
+          <opal-lib-govuk-radio
+            [fieldSetId]="field.id"
+            [legendText]="field.label"
+            [legendHint]="field.hint"
+            [errors]="error"
+          >
+            @for (option of view.options; track option.value) {
+              <div
+                opal-lib-govuk-radios-item
+                [labelText]="option.name"
+                [inputId]="field.id + '-option-' + $index"
+                [inputName]="field.id"
+                [inputValue]="option.value"
+                [control]="view.control"
+              ></div>
+            }
+          </opal-lib-govuk-radio>
+        }
+        @case ('autocomplete') {
+          <opal-lib-alphagov-accessible-autocomplete
+            [labelText]="field.label"
+            [hintText]="field.hint"
+            [inputId]="field.id"
+            [inputName]="field.id"
+            [control]="view.control"
+            [errors]="error"
+            [autoCompleteItems]="view.options"
+            [suggestionTemplate]="suggestionTemplate"
+          />
+        }
+        @case ('checkbox') {
+          <opal-lib-govuk-checkboxes
+            [fieldSetId]="field.id + '-fieldset'"
+            legendText=""
+            [legendHint]="field.hint"
+            [errors]="error"
+          >
+            <div
+              opal-lib-govuk-checkboxes-item
+              [labelText]="field.label"
+              [inputId]="field.id"
+              [inputName]="field.id"
+              [control]="view.control"
+            ></div>
+          </opal-lib-govuk-checkboxes>
+        }
+        @default {
+          <opal-lib-govuk-text-input
+            [labelText]="field.label"
+            [hintText]="field.hint"
+            [hintHtml]="false"
+            [inputId]="field.id"
+            [inputName]="field.id"
+            [control]="view.control"
+            [errors]="error"
+          />
+        }
+      }
+    }
+  }
+  <div class="govuk-button-group">
+    <button id="create_casefile_order_terms_input_continue" type="submit" class="govuk-button govuk-!-margin-right-4">
+      Continue
+    </button>
+    <span id="create_casefile_order_terms_input_cancel">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

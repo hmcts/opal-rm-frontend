@@ -3,7 +3,7 @@ import type { IOpalMaintenanceResultReferenceDataResponse } from '../interfaces/
 export const OPAL_MAINTENANCE_RESULTS_MOCK: IOpalMaintenanceResultReferenceDataResponse = {
   count: 2,
   refData: [
-    { result_id: 'MOCK01', result_title: 'Example maintenance term' },
-    { result_id: 'MOCK02', result_title: 'Example additional term' },
+    { result_id: 'MAT', result_title: 'Maintenance' },
+    { result_id: 'MCHILD', result_title: 'Child maintenance' },
   ],
 };

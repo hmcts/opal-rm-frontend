@@ -8,6 +8,8 @@ import { CasesCreateCasefileCheckDetailsComponent } from '../cases-create-casefi
 import { CasesCreateCasefileCommentsNotesComponent } from '../cases-create-casefile-comments-notes/cases-create-casefile-comments-notes.component';
 import { CasesCreateCasefileInterestIndexationComponent } from '../cases-create-casefile-interest-indexation/cases-create-casefile-interest-indexation.component';
 import { CasesCreateCasefileManagingPaymentsComponent } from '../cases-create-casefile-managing-payments/cases-create-casefile-managing-payments.component';
+import { CasesCreateCasefileOrderTermCreditorComponent } from '../cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor.component';
+import { CasesCreateCasefileOrderTermLookupsService } from '../cases-create-casefile-order-terms-input/services/cases-create-casefile-order-term-lookups.service';
 import { CasesCreateCasefileOrderDetailsComponent } from '../cases-create-casefile-order-details/cases-create-casefile-order-details.component';
 import { CasesCreateCasefileOrderTermsSummaryComponent } from '../cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component';
 import { CasesCreateCasefileRespondentDetailsComponent } from '../cases-create-casefile-respondent-details/cases-create-casefile-respondent-details.component';
@@ -20,6 +22,8 @@ import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-cr
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
+import { casesCreateCasefileOrderTermCreditorGuard } from './guards/cases-create-casefile-order-term-creditor.guard';
+import { fetchCasesCreateCasefileOrderTermResolver } from './resolvers/fetch-cases-create-casefile-order-term-resolver/fetch-cases-create-casefile-order-term.resolver';
 import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
 import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
@@ -189,15 +193,29 @@ describe('Create Casefile routes', () => {
     });
   });
 
-  it('registers Order term input with exact selection and flow guards', () => {
+  it('registers Order term input with guards, route-scoped lookups and resolved page data', () => {
     const route = routing.find(
       (candidate) => candidate.path === `${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsInput}/:resultId`,
     );
 
     expect(route?.loadComponent).toEqual(expect.any(Function));
     expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermSelectionGuard]);
-    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsInput });
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
+    expect(route?.providers).toEqual([CasesCreateCasefileOrderTermLookupsService]);
+    expect(route?.data).toBeUndefined();
+    expect(route?.resolve).toEqual({ orderTerm: fetchCasesCreateCasefileOrderTermResolver });
+  });
+
+  it('registers the guarded Creditor placeholder destination', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermCreditor,
+    );
+
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard]);
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermCreditor });
     expect(route?.resolve).toEqual({ title: TitleResolver });
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
+    expect(component?.name).toBe(CasesCreateCasefileOrderTermCreditorComponent.name);
   });
 
   it('registers Interest and indexation with flow and unsaved-change guards and no permission metadata', async () => {

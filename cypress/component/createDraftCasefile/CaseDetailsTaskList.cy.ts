@@ -336,8 +336,8 @@ describe('Create Casefile Case Details Task List', () => {
                     : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.managingPayments
                       ? Page.managingPayments.cancelLink
                       : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.commentsAndNotes
-                      ? Page.commentsAndNotes.cancelLink
-                      : Page.caseDetails.backLink,
+                        ? Page.commentsAndNotes.cancelLink
+                        : Page.caseDetails.backLink,
         ).click();
         assertRouterPath(taskListPath);
         assertExactText(Page.caseDetails.heading, 'Case details');

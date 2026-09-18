@@ -6,7 +6,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../constants/cases-create-c
 export const casesCreateCasefileOrderTermCreditorGuard: CanActivateFn = () => {
   const store = inject(CasesCreateCasefileStore);
   const paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
-  return store.orderTerms().length > 0
-    ? true
-    : inject(Router).parseUrl('/' + paths.root + '/' + paths.children.orderTermsSelect);
+  const currentId = store.currentOrderTermId();
+  const hasCurrentTerm = currentId !== null && store.orderTerms().some((term) => term.termId === currentId);
+  return hasCurrentTerm ? true : inject(Router).parseUrl('/' + paths.root + '/' + paths.children.orderTermsSelect);
 };

@@ -237,12 +237,7 @@ const structuralIdentifierAllowlist = new Set([
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_continue'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'span', 'id', 'create_casefile_order_terms_cancel'),
 
-  structuralIdentifierKey(
-    templatePaths.orderTermCreditor,
-    'div[opal-lib-govuk-radios-conditional]',
-    '[conditionalId]',
-    'conditionalId',
-  ),
+  structuralIdentifierKey(templatePaths.orderTermCreditor, 'div', '[id]', 'conditionalId'),
   structuralIdentifierKey(templatePaths.minorCreditorDetails, 'a', 'id', 'returnToCreditor'),
 
   structuralIdentifierKey(
@@ -625,8 +620,7 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
   const templatePathWithinCreateCasefile = relative(createCasefileRoot, templatePath);
   const dynamicOrderTerms = templatePathWithinCreateCasefile === templatePaths.orderTermsInput;
   const creditorForm = templatePathWithinCreateCasefile === templatePaths.orderTermCreditor;
-  const branchScopes =
-    dynamicOrderTerms || creditorForm ? orderTermBranchScopes(source, displayPath, failures) : new Map();
+  const branchScopes = dynamicOrderTerms ? orderTermBranchScopes(source, displayPath, failures) : new Map();
   const pageDefinition = pageDefinitionFor(templatePath);
   const acceptedPrefixes = acceptedPrefixesFor(templatePath);
   const fieldNames = pageDefinition === undefined ? undefined : fieldNamesByDirectory.get(pageDefinition.directory);

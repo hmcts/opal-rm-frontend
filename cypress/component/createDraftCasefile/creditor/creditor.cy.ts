@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { GENERIC_HTTP_ERROR_MESSAGE } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { Subject } from 'rxjs';
@@ -8,8 +7,8 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/case
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
 import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
-import { CREDITOR_STATUS_COPY, CREDITOR_VALIDATION_COPY } from './constants/creditor-copy.constant';
-import { CREDITOR_MAJOR_RESPONSE, CREDITOR_PROBLEM } from './mocks/creditor.mock';
+import { CREDITOR_VALIDATION_COPY } from './constants/creditor-copy.constant';
+import { CREDITOR_MAJOR_RESPONSE } from './mocks/creditor.mock';
 import { setupCreditor, type CreditorStore } from './setup/creditor.setup';
 
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9808', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
@@ -120,7 +119,7 @@ describe('Order term creditor', () => {
         expect(store.orderTerms()[0].creditor).to.eq(null),
       );
       cy.get(S.creditor.applicant).check();
-      cy.get(S.creditor.majorId).should('not.exist');
+      cy.get(S.creditor.majorId).should('not.be.visible').and('have.value', null);
       cy.get(S.creditor.continueButton).click();
       cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) =>
         expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'applicant' }),
@@ -128,93 +127,59 @@ describe('Order term creditor', () => {
     },
   );
 
-  it('AC2, AC3. should keep Applicant and add-new available while Major data loads', { tags: buildTags() }, () => {
-    setupCreditor({ majorSource: new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>() });
-    cy.get(S.creditor.major).check();
-    cy.get(S.creditor.status).should('contain.text', CREDITOR_STATUS_COPY.loading);
-    cy.get(S.creditor.continueButton).click();
-    cy.get(S.errorSummaryLinks).contains(CREDITOR_VALIDATION_COPY.major).click();
-    cy.get(S.creditor.majorId).should('be.focused').and('have.attr', 'aria-label', 'Select major creditor');
-    cy.get(S.creditor.applicant).check().should('be.checked');
-    cy.get(S.creditor.addNew).should('be.enabled');
+  it('AC2. should wait for the unconditional Major request before activating the page', { tags: buildTags() }, () => {
+    const source = new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>();
+    setupCreditor({ awaitNavigation: false, majorSource: source });
+    cy.get('@majorCreditorsRequest').should('have.been.calledOnceWithExactly', {
+      business_unit_id: 77,
+      active: true,
+      central_authority: false,
+    });
+    cy.get(S.creditor.continueButton).should('not.exist');
+    cy.then(() => {
+      source.next(structuredClone(CREDITOR_MAJOR_RESPONSE));
+      source.complete();
+    });
+    cy.get<{ navigation: Promise<{ value: boolean; error: unknown }> }>('@creditorNavigation')
+      .then(({ navigation }) => cy.wrap(navigation))
+      .its('value')
+      .should('eq', true);
+    cy.get(S.heading).should('have.text', 'Creditor');
   });
 
-  it('AC2, AC4. should accept Applicant while the Major request remains pending', { tags: buildTags() }, () => {
-    setupCreditor({ majorSource: new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>() });
+  it('AC2, AC3. should activate with empty Majors and keep non-Major choices usable', { tags: buildTags() }, () => {
+    const source = new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>();
+    setupCreditor({
+      awaitNavigation: false,
+      majorSource: source,
+    });
+    cy.get('@majorCreditorsRequest').should('have.been.calledOnce');
+    cy.then(() => {
+      source.next({ count: 0, refData: [] });
+      source.complete();
+    });
+    cy.get<{ navigation: Promise<{ value: boolean; error: unknown }> }>('@creditorNavigation')
+      .then(({ navigation }) => cy.wrap(navigation))
+      .its('value')
+      .should('eq', true);
+    cy.get(S.creditor.major).check();
+    cy.get(S.creditor.majorId).should('be.visible').find('option[value="901"]').should('not.exist');
+    cy.get(S.creditor.continueButton).click();
+    cy.get(S.errorSummaryLinks).contains(CREDITOR_VALIDATION_COPY.major);
     cy.get(S.creditor.applicant).check();
     cy.get(S.creditor.continueButton).click();
     assertRoute(PATHS.children.orderTermsSummary);
-    cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) =>
-      expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'applicant' }),
-    );
   });
 
-  it(
-    'AC2, AC4. should open add-new while the Major request remains pending without allocating a Minor',
-    { tags: buildTags() },
-    () => {
-      setupCreditor({ majorSource: new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>() });
-      cy.get(S.creditor.addNew).check();
-      cy.get(S.creditor.continueButton).click();
-      assertRoute(PATHS.children.minorCreditorDetails);
-      cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
-        expect(store.creditorDraft()).to.deep.equal({ termId: 1, branch: 'add-new' });
-        expect(store.minorCreditors()).to.deep.equal([]);
-        expect(store.nextMinorCreditorSequence()).to.eq(1);
-      });
-    },
-  );
-
-  it('AC2, AC3. should show exact empty validation and permit an explicit retry', { tags: buildTags() }, () => {
-    const retry = new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>();
-    let request = 0;
-    setupCreditor({
-      majorSource: () => (request++ === 0 ? new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>() : retry),
-    });
-    cy.get<CreditorStore>('@casesCreateCasefileStore').should('exist');
-    cy.get('@majorCreditorsRequest').then((stub) => {
-      const first = (stub as unknown as sinon.SinonStub).firstCall
-        .returnValue as Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>;
-      first.next({ count: 0, refData: [] });
-      first.complete();
-    });
-    cy.get(S.creditor.major).check();
-    cy.get(S.creditor.status).should('contain.text', CREDITOR_STATUS_COPY.empty);
-    cy.get(S.creditor.retry).click();
-    cy.get('@majorCreditorsRequest').should('have.been.calledTwice');
-    cy.get(S.creditor.retry).click();
-    cy.get('@majorCreditorsRequest').should('have.been.calledTwice');
-    cy.then(() => {
-      retry.next(structuredClone(CREDITOR_MAJOR_RESPONSE));
-      retry.complete();
-    });
-    cy.get(S.creditor.majorId).should('be.visible');
-  });
-
-  it('AC2. should expose safe failure copy, correlation and explicit retry', { tags: buildTags() }, () => {
-    const failed = new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>();
-    const retried = new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>();
-    let request = 0;
-    setupCreditor({ majorSource: () => (request++ === 0 ? failed : retried) });
-    cy.then(() =>
-      failed.error(
-        new HttpErrorResponse({
-          status: 503,
-          error: structuredClone(CREDITOR_PROBLEM),
-        }),
-      ),
-    );
-    cy.get(S.creditor.major).check();
-    cy.get(S.creditor.status).should('contain.text', GENERIC_HTTP_ERROR_MESSAGE);
-    cy.contains('Reference: ' + CREDITOR_PROBLEM.operation_id).should('be.visible');
-    cy.contains(CREDITOR_PROBLEM.title).should('not.exist');
-    cy.get(S.creditor.retry).click();
-    cy.get('@majorCreditorsRequest').should('have.been.calledTwice');
-    cy.then(() => {
-      retried.next(structuredClone(CREDITOR_MAJOR_RESPONSE));
-      retried.complete();
-    });
-    cy.get(S.creditor.majorId).should('be.visible');
+  it('AC2. should prevent activation when the Major request fails', { tags: buildTags() }, () => {
+    const source = new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>();
+    setupCreditor({ awaitNavigation: false, majorSource: source });
+    cy.then(() => source.error(new Error('Synthetic Major request failure')));
+    cy.get<{ navigation: Promise<{ value: boolean; error: unknown }> }>('@creditorNavigation')
+      .then(({ navigation }) => cy.wrap(navigation))
+      .its('error')
+      .should('be.instanceOf', Error);
+    cy.get(S.creditor.continueButton).should('not.exist');
   });
 
   for (const confirmed of [false, true]) {

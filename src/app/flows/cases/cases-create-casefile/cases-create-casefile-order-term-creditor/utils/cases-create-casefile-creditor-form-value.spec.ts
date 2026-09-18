@@ -1,36 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import type { ICasesCreateCasefileMinorCreditor } from '../../interfaces/cases-create-casefile-minor-creditor.interface';
-import type { ICasesCreateCasefileMajorCreditorsLoadState } from '../interfaces/cases-create-casefile-major-creditors-load-state.interface';
 import { creditorAssignment, creditorFormValue } from './cases-create-casefile-creditor-form-value';
 
 const minorCreditors: ICasesCreateCasefileMinorCreditor[] = [
   { sequenceNumber: 1, displayName: 'Duplicate name' },
   { sequenceNumber: 2, displayName: 'Duplicate name' },
 ];
-const ready: ICasesCreateCasefileMajorCreditorsLoadState = {
-  status: 'ready',
-  records: [
-    {
-      major_creditor_id: 901,
-      business_unit_id: 77,
-      major_creditor_code: 'MC901',
-      name: 'Synthetic major creditor',
-      address_line_1: '1 Test Street',
-      address_line_2: null,
-      address_line_3: null,
-      address_line_4: null,
-      address_line_5: null,
-      postcode: null,
-      country_id: null,
-      country_name: null,
-      contact_name: null,
-      contact_email: null,
-      active: true,
-      central_authority: false,
-    },
-  ],
-  correlationReference: null,
-};
+const majorCreditors = [
+  {
+    major_creditor_id: 901,
+    business_unit_id: 77,
+    major_creditor_code: 'MC901',
+    name: 'Synthetic major creditor',
+    address_line_1: '1 Test Street',
+    address_line_2: null,
+    address_line_3: null,
+    address_line_4: null,
+    address_line_5: null,
+    postcode: null,
+    country_id: null,
+    country_name: null,
+    contact_name: null,
+    contact_email: null,
+    active: true,
+    central_authority: false,
+  },
+];
 
 describe('creditor form mapping', () => {
   it('maps persisted branches and gives a pending new minor creditor precedence', () => {
@@ -60,7 +55,7 @@ describe('creditor form mapping', () => {
           create_casefile_order_term_creditor_major_creditor_id: null,
         },
         minorCreditors,
-        ready,
+        majorCreditors,
       ),
     ).toEqual({ type: 'applicant' });
     expect(
@@ -70,7 +65,7 @@ describe('creditor form mapping', () => {
           create_casefile_order_term_creditor_major_creditor_id: '901',
         },
         minorCreditors,
-        ready,
+        majorCreditors,
       ),
     ).toEqual({ type: 'major', majorCreditorId: 901 });
     expect(
@@ -80,20 +75,19 @@ describe('creditor form mapping', () => {
           create_casefile_order_term_creditor_major_creditor_id: null,
         },
         minorCreditors,
-        ready,
+        majorCreditors,
       ),
     ).toEqual({ type: 'minor', sequenceNumber: 2 });
   });
 
   it.each([
-    ['add-new', null, ready],
-    [null, null, ready],
-    ['minor:1abc', null, ready],
-    ['minor:3', null, ready],
-    ['major', 999, ready],
-    ['major', 901, { ...ready, status: 'loading' }],
-    ['major', 901, { ...ready, status: 'error' }],
-  ] as const)('rejects an unavailable or invalid selection %s', (choice, majorCreditorId, loadState) => {
+    ['add-new', null, majorCreditors],
+    [null, null, majorCreditors],
+    ['minor:1abc', null, majorCreditors],
+    ['minor:3', null, majorCreditors],
+    ['major', 999, majorCreditors],
+    ['major', 901, []],
+  ] as const)('rejects an unavailable or invalid selection %s', (choice, majorCreditorId, records) => {
     expect(
       creditorAssignment(
         {
@@ -101,7 +95,7 @@ describe('creditor form mapping', () => {
           create_casefile_order_term_creditor_major_creditor_id: majorCreditorId,
         },
         minorCreditors,
-        loadState as ICasesCreateCasefileMajorCreditorsLoadState,
+        records,
       ),
     ).toBeNull();
   });

@@ -307,7 +307,7 @@ test('does not allow metadata field expressions on unrelated forms', async () =>
   assertRejected(runScanner(repositoryRoot), /noncanonical inputId="field.id"/);
 });
 
-test('accepts creditor sequence IDs, radio conditional IDs and mutually exclusive Major targets', async () => {
+test('accepts creditor sequence IDs and the native radio conditional target', async () => {
   const repositoryRoot = await createFixtureRepository();
   await writeFixtureFile(
     repositoryRoot,
@@ -321,20 +321,16 @@ test('accepts creditor sequence IDs, radio conditional IDs and mutually exclusiv
   await writeFixtureFile(
     repositoryRoot,
     orderTermCreditorTemplatePath,
-    `<opal-lib-govuk-radio [fieldSetId]="fieldNames.choice">
+    `<fieldset [id]="fieldNames.choice">
   @for (creditor of minorCreditors; track creditor.sequenceNumber) {
     <div opal-lib-govuk-radios-item
       [inputId]="fieldNames.choice + '-minor-' + creditor.sequenceNumber"
       [inputName]="fieldNames.choice"></div>
   }
-  <div opal-lib-govuk-radios-conditional [conditionalId]="conditionalId">
-    @if (ready) {
-      <opal-lib-govuk-select [selectId]="fieldNames.majorCreditorId" [selectName]="fieldNames.majorCreditorId" />
-    } @else {
-      <div [id]="fieldNames.majorCreditorId"></div>
-    }
+  <div [id]="conditionalId">
+    <opal-lib-govuk-select [selectId]="fieldNames.majorCreditorId" [selectName]="fieldNames.majorCreditorId" />
   </div>
-</opal-lib-govuk-radio>
+</fieldset>
 <button id="create_casefile_order_term_creditor_continue">Continue</button>
 `,
   );

@@ -17,6 +17,8 @@ Feature: Creditor accessibility
     When I continue from creditor selection
     Then the creditor validation summary links to the required choice
     And I check the page for accessibility
+    When I choose a Major creditor
+    Then I check the page for accessibility
     When I choose to add a new minor creditor
     And I continue from creditor selection
     Then I check the page for accessibility

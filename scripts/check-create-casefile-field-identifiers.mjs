@@ -65,6 +65,13 @@ const pageDefinitions = [
     fieldNamesFile:
       'cases-create-casefile-order-terms-select/constants/cases-create-casefile-order-terms-select-field-names.constant.ts',
   },
+  {
+    directory: 'cases-create-casefile-order-term-creditor',
+    prefix: 'create_casefile_order_term_creditor_',
+    constantName: 'CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES',
+    fieldNamesFile:
+      'cases-create-casefile-order-term-creditor/constants/cases-create-casefile-order-term-creditor-field-names.constant.ts',
+  },
 ];
 
 const templatePaths = {
@@ -89,6 +96,8 @@ const templatePaths = {
     'cases-create-casefile-order-terms-select/cases-create-casefile-order-terms-select-form/cases-create-casefile-order-terms-select-form.component.html',
   orderTermsInput:
     'cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input-form/cases-create-casefile-order-terms-input-form.component.html',
+  orderTermCreditor:
+    'cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor-form/cases-create-casefile-order-term-creditor-form.component.html',
   orderTermsSummary:
     'cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component.html',
   respondentDetails:
@@ -225,6 +234,13 @@ const structuralIdentifierAllowlist = new Set([
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_retry'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_continue'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'span', 'id', 'create_casefile_order_terms_cancel'),
+
+  structuralIdentifierKey(
+    templatePaths.orderTermCreditor,
+    'div[opal-lib-govuk-radios-conditional]',
+    '[conditionalId]',
+    'conditionalId',
+  ),
 
   structuralIdentifierKey(
     templatePaths.orderTermsSummary,
@@ -373,7 +389,11 @@ const resolveIdExpression = (expression, fieldNames) => {
 };
 
 const tagIdentityFor = (tagName, attributes) => {
-  for (const directive of ['opal-lib-govuk-checkboxes-conditional', 'opal-lib-govuk-summary-list-row']) {
+  for (const directive of [
+    'opal-lib-govuk-checkboxes-conditional',
+    'opal-lib-govuk-radios-conditional',
+    'opal-lib-govuk-summary-list-row',
+  ]) {
     if (new RegExp(`(?:^|\\s)${directive}(?:\\s|$)`).test(attributes)) return `${tagName}[${directive}]`;
   }
   return tagName;
@@ -396,7 +416,9 @@ const duplicateKeyFor = (attributeName, value, isBound, fieldNames, tagName, att
   }
 
   const resolved = isBound ? resolveIdExpression(value, fieldNames) : `literal:${value}`;
-  if (attributeName === 'conditionalId') return `${resolved}-conditional`;
+  if (attributeName === 'conditionalId' && !attributes.includes('opal-lib-govuk-radios-conditional')) {
+    return `${resolved}-conditional`;
+  }
   return resolved;
 };
 
@@ -562,6 +584,10 @@ const isOrderTermIdentifier = (attribute, expression) => {
   );
 };
 
+const isCreditorIdentifier = (attribute, expression) =>
+  attribute === 'inputId' &&
+  expression.replace(/\s+/g, ' ').trim() === "fieldNames.choice + '-minor-' + creditor.sequenceNumber";
+
 // Angular's parser identifies mutually exclusive branches. Do not suppress
 // duplicates in the same branch or in independent conditional blocks.
 const orderTermBranchScopes = (source, displayPath, failures) => {
@@ -595,7 +621,9 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
   const displayPath = relative(repositoryRoot, templatePath);
   const templatePathWithinCreateCasefile = relative(createCasefileRoot, templatePath);
   const dynamicOrderTerms = templatePathWithinCreateCasefile === templatePaths.orderTermsInput;
-  const branchScopes = dynamicOrderTerms ? orderTermBranchScopes(source, displayPath, failures) : new Map();
+  const creditorForm = templatePathWithinCreateCasefile === templatePaths.orderTermCreditor;
+  const branchScopes =
+    dynamicOrderTerms || creditorForm ? orderTermBranchScopes(source, displayPath, failures) : new Map();
   const pageDefinition = pageDefinitionFor(templatePath);
   const acceptedPrefixes = acceptedPrefixesFor(templatePath);
   const fieldNames = pageDefinition === undefined ? undefined : fieldNamesByDirectory.get(pageDefinition.directory);
@@ -637,6 +665,7 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
       }
 
       if (dynamicOrderTerms && isBound && isOrderTermIdentifier(attributeName, value)) valid = true;
+      if (creditorForm && isBound && isCreditorIdentifier(attributeName, value)) valid = true;
 
       if (!valid) {
         failures.push(`${displayPath}:${line}: noncanonical ${attributeMatch[2]}="${value}"`);

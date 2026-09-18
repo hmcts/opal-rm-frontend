@@ -22,7 +22,9 @@ const openControls = () =>
 const assertTerms = (parameters: Record<string, string | number | boolean>) =>
   cy
     .get<OrderTermsStore>('@casesCreateCasefileStore')
-    .then((store) => expect(store.orderTerms()).to.deep.equal([{ resultId: 'MAT', parameters }]));
+    .then((store) =>
+      expect(store.orderTerms()).to.deep.equal([{ termId: 1, resultId: 'MAT', parameters, creditor: null }]),
+    );
 const dateText = (date: Date) =>
   `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 const fillControls = () => {
@@ -51,7 +53,9 @@ describe('Order term input', () => {
     cy.get<Router>('@angularRouter').its('url').should('eq', '/cases/create-casefile/order-terms/creditor');
     cy.screenshot('po-9807-creditor');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.orderTerms()).to.deep.equal([{ resultId: 'MAT', parameters: { amount: '25.10' } }]);
+      expect(store.orderTerms()).to.deep.equal([
+        { termId: 1, resultId: 'MAT', parameters: { amount: '25.10' }, creditor: null },
+      ]);
       expect(store.orderTermDraft()).to.eq(null);
       expect(store.pendingOrderTermResultId()).to.eq(null);
     });

@@ -18,6 +18,7 @@ const setupAmendment = (): void => {
 const openSecondInput = (): void => {
   cy.get(S.orderTermsSummary.change(2)).click();
   cy.get(S.orderTermsInput.amount).should('have.value', '20.00');
+  cy.get(S.orderTermsInput.expiry).should('have.value', '31/12/2026');
 };
 const continueToCreditor = (amount = '25'): void => {
   cy.get(S.orderTermsInput.amount).clear().type(amount);
@@ -77,7 +78,6 @@ describe('Order term amendment routed transaction', () => {
     () => {
       setupAmendment();
       openSecondInput();
-      cy.get(S.orderTermsInput.expiry).should('have.value', '');
       continueToCreditor();
       assertOriginalAcceptedState();
       cy.get(S.creditor.minor(1)).should('be.checked');
@@ -86,6 +86,10 @@ describe('Order term amendment routed transaction', () => {
       cy.get(S.orderTermsSummary.card(1)).should('contain.text', '£10.00');
       cy.get(S.orderTermsSummary.card(2)).should('contain.text', '£25.00');
       cy.get(S.orderTermsSummary.cards).should('have.length', 2);
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTerms()[0]).to.deep.equal(SUMMARY_TERMS[0]);
+        expect(store.orderTerms()[1].parameters).to.deep.equal({ amount: '25.00', expiry_date: '2026-12-31' });
+      });
     },
   );
 
@@ -104,7 +108,7 @@ describe('Order term amendment routed transaction', () => {
       expect(store.orderTerms()[0]).to.deep.equal(SUMMARY_TERMS[0]);
       expect(store.orderTerms()[1]).to.deep.include({
         termId: 2,
-        parameters: { amount: '30.00' },
+        parameters: { amount: '30.00', expiry_date: '2026-12-31' },
         creditor: { type: 'minor', sequenceNumber: 2 },
       });
       expect(store.minorCreditors()).to.have.length(2);
@@ -163,7 +167,7 @@ describe('Order term amendment routed transaction', () => {
     assertOriginalAcceptedState();
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
       expect(store.orderTermAmendment()?.termId).to.eq(2);
-      expect(store.orderTermDraft()?.values).to.deep.equal({ amount: '31', expiry_date: '', arrears: '' });
+      expect(store.orderTermDraft()?.values).to.deep.equal({ amount: '31', expiry_date: '31/12/2026', arrears: '' });
     });
   });
 
@@ -241,7 +245,7 @@ describe('Order term amendment routed transaction', () => {
         cy.get(S.orderTermsSummary.cards).should('have.length', 2);
         cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
           expect(store.orderTerms()).to.have.length(2);
-          expect(store.orderTerms()[1].parameters).to.deep.equal({ amount: '43.00' });
+          expect(store.orderTerms()[1].parameters).to.deep.equal({ amount: '43.00', expiry_date: '2026-12-31' });
           expect(store.minorCreditors()).to.have.length(2);
           expect(store.nextMinorCreditorSequence()).to.eq(3);
           expect(store.orderTermAmendment()).to.eq(null);
@@ -272,7 +276,7 @@ describe('Order term amendment routed transaction', () => {
         cy.get(S.orderTermsSummary.cards).should('have.length', 2);
         cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
           expect(store.orderTerms()).to.have.length(2);
-          expect(store.orderTerms()[1].parameters).to.deep.equal({ amount: '44.00' });
+          expect(store.orderTerms()[1].parameters).to.deep.equal({ amount: '44.00', expiry_date: '2026-12-31' });
           expect(store.minorCreditors()).to.have.length(2);
           expect(store.nextMinorCreditorSequence()).to.eq(3);
           expect(store.orderTermAmendment()).to.eq(null);
@@ -316,11 +320,44 @@ describe('Order term amendment routed transaction', () => {
     });
   });
 
+  it(
+    'changes one shared reference to a different existing minor without changing either creditor',
+    { tags: buildTags() },
+    () => {
+      const secondCreditor = SUMMARY_CREDITORS[1];
+      setupOrderTerms({
+        initialChild: PATHS.children.orderTermsSummary,
+        acceptedTerms: SUMMARY_TERMS,
+        minorCreditors: [originalCreditor, secondCreditor],
+      });
+      openSecondInput();
+      continueToCreditor();
+      cy.get(S.creditor.minor(2)).check();
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTerms()).to.deep.equal(SUMMARY_TERMS);
+        expect(store.minorCreditors()).to.deep.equal([originalCreditor, secondCreditor]);
+        expect(store.nextOrderTermId()).to.eq(3);
+        expect(store.nextMinorCreditorSequence()).to.eq(3);
+      });
+      cy.get(S.creditor.continueButton).click();
+
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTerms()[0]).to.deep.equal(SUMMARY_TERMS[0]);
+        expect(store.orderTerms()[1]).to.deep.include({
+          termId: 2,
+          creditor: { type: 'minor', sequenceNumber: 2 },
+        });
+        expect(store.minorCreditors()).to.deep.equal([originalCreditor, secondCreditor]);
+        expect(store.nextMinorCreditorSequence()).to.eq(3);
+      });
+    },
+  );
+
   it('preserves raw input values through a routed revisit, including date conversion', { tags: buildTags() }, () => {
     setupAmendment();
     openSecondInput();
     cy.get(S.orderTermsInput.amount).clear().type('26');
-    cy.get(S.orderTermsInput.expiry).type('03/11/2026');
+    cy.get(S.orderTermsInput.expiry).clear().type('03/11/2026');
     cy.get(S.orderTermsInput.continueButton).click();
     cy.get<Router>('@angularRouter').then((router) =>
       router.navigateByUrl('/' + PATHS.root + '/' + PATHS.children.orderTermsInput + '/MAT'),

@@ -24,7 +24,18 @@ export function setupMinorCreditor({ details, state = {} }: MinorCreditorSetupOp
   const store = new CasesCreateCasefileStore();
   store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-    orderTerms: [{ termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null }],
+    orderTerms: [
+      {
+        termId: 1,
+        resultId: 'MAT',
+        parameters: { amount: '12.30' },
+        creditor: null,
+        presentation: {
+          title: 'Maintenance',
+          fields: [{ name: 'amount', label: 'Amount', kind: 'money', options: [] }],
+        },
+      },
+    ],
     currentOrderTermId: 1,
     nextOrderTermId: 2,
     creditorDraft: { termId: 1, branch: 'add-new' },

@@ -68,24 +68,25 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     expect(component.initialFormData[F.creditorType]).toBeNull();
   });
 
-  it('saves and assigns once, clears dirty flags and requests Summary', async () => {
+  it('stages resolved country text and reaches Summary without accepting', async () => {
     const { fixture, component, store, router } = await setup();
     const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     fixture.detectChanges();
     component.handleUnsavedChanges(true);
     component.handleFormSubmit(submission());
     await fixture.whenStable();
-    expect(store.minorCreditors()[0].details).toEqual(MINOR_CREDITOR_DETAILS_MOCK);
-    expect(store.orderTerms()[0].creditor).toEqual({ type: 'minor', sequenceNumber: 1 });
-    expect(store.nextMinorCreditorSequence()).toBe(2);
-    expect(store.creditorDraft()).toBeNull();
+    expect(store.creditorDraft()?.details).toEqual(MINOR_CREDITOR_DETAILS_MOCK);
+    expect(store.creditorDraft()?.countryName).toBe('United Kingdom');
+    expect(store.minorCreditors()).toEqual([]);
+    expect(store.orderTerms()[0].creditor).toBeNull();
+    expect(store.nextMinorCreditorSequence()).toBe(1);
     expect(store.unsavedChanges()).toBe(false);
     expect(component.stateUnsavedChanges).toBe(false);
     expect(navigate).toHaveBeenCalledExactlyOnceWith(summaryPath);
   });
 
   it.each([false, new Error('Synthetic navigation error')])(
-    'retains saved data and retries without allocating after %s',
+    'retains pending data and retries without accepting after %s',
     async (result) => {
       const { fixture, component, store, router } = await setup();
       const navigate = vi.spyOn(router, 'navigateByUrl');
@@ -97,17 +98,16 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
       await fixture.whenStable();
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
-      const update = vi.spyOn(store, 'updateAssignedMinorCreditor');
       component.handleFormSubmit(submission());
       await fixture.whenStable();
-      expect(store.minorCreditors()).toHaveLength(1);
-      expect(store.nextMinorCreditorSequence()).toBe(2);
-      expect(update).not.toHaveBeenCalled();
+      expect(store.creditorDraft()?.details).toEqual(MINOR_CREDITOR_DETAILS_MOCK);
+      expect(store.minorCreditors()).toEqual([]);
+      expect(store.nextMinorCreditorSequence()).toBe(1);
       expect(navigate).toHaveBeenCalledTimes(2);
     },
   );
 
-  it('rebases the child after failed navigation and saves later edits on the same sequence', async () => {
+  it('rebases the child after failed navigation and stages later edits', async () => {
     const { fixture, component, store, router } = await setup();
     vi.spyOn(router, 'navigateByUrl').mockResolvedValue(false);
     fixture.detectChanges();
@@ -119,11 +119,12 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     expect(store.unsavedChanges()).toBe(true);
     child.handleFormSubmit(new SubmitEvent('submit'));
     await fixture.whenStable();
-    expect(store.minorCreditors()[0].details.identity).toEqual({
+    expect(store.creditorDraft()?.details?.identity).toEqual({
       type: 'organisation',
       organisationName: 'Changed creditor',
     });
-    expect(store.nextMinorCreditorSequence()).toBe(2);
+    expect(store.minorCreditors()).toEqual([]);
+    expect(store.nextMinorCreditorSequence()).toBe(1);
     expect(store.unsavedChanges()).toBe(false);
   });
 
@@ -140,8 +141,46 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     const form = submission();
     form.formData[F.organisationName] = 'Updated creditor';
     component.handleFormSubmit(form);
-    expect(store.minorCreditors()[0].displayName).toBe('Updated creditor');
+    expect(store.creditorDraft()).toMatchObject({
+      existingSequenceNumber: 4,
+      countryName: 'United Kingdom',
+      details: { identity: { type: 'organisation', organisationName: 'Updated creditor' } },
+    });
+    expect(store.minorCreditors()).toEqual([saved]);
     expect(store.nextMinorCreditorSequence()).toBe(5);
+  });
+
+  it('restores pending details on Change and stages a changed country label', async () => {
+    const pending = {
+      ...MINOR_CREDITOR_DETAILS_MOCK,
+      identity: { type: 'organisation' as const, organisationName: 'Pending creditor' },
+    };
+    const { fixture, component, store, router } = await setup({
+      creditorDraft: {
+        termId: 1,
+        branch: 'add-new',
+        details: pending,
+        countryName: 'United Kingdom',
+      },
+    });
+    expect(component.initialFormData).toEqual(toMinorCreditorFormData(pending));
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    fixture.detectChanges();
+    const form = submission();
+    form.formData[F.organisationName] = 'Changed pending creditor';
+    form.formData[F.countryId] = 250;
+
+    component.handleFormSubmit(form);
+
+    expect(store.creditorDraft()).toMatchObject({
+      countryName: 'France',
+      details: {
+        identity: { type: 'organisation', organisationName: 'Changed pending creditor' },
+        address: { countryId: 250 },
+      },
+    });
+    expect(store.minorCreditors()).toEqual([]);
+    expect(store.orderTerms()[0].creditor).toBeNull();
   });
 
   it('starts empty when adding another creditor despite an existing assignment', async () => {
@@ -168,16 +207,16 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('rejects retries when another pending draft replaces the saved context', async () => {
+  it('rejects retries when another pending draft replaces the entry context', async () => {
     const { fixture, component, store, router } = await setup();
     const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(false);
     fixture.detectChanges();
     component.handleFormSubmit(submission());
     await fixture.whenStable();
-    patch(store, { creditorDraft: { termId: 1, branch: 'add-new' } });
+    patch(store, { creditorDraft: { termId: 2, branch: 'add-new' } });
     component.handleFormSubmit(submission());
     expect(navigate).toHaveBeenCalledOnce();
-    expect(store.minorCreditors()).toHaveLength(1);
+    expect(store.minorCreditors()).toEqual([]);
   });
 
   it('ignores repeated Save and Cancel while navigation is pending', async () => {
@@ -194,7 +233,7 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     component.handleFormSubmit(submission());
     void component.handleCancel();
     expect(navigate).toHaveBeenCalledOnce();
-    expect(store.minorCreditors()).toHaveLength(1);
+    expect(store.minorCreditors()).toEqual([]);
     finish(false);
     await fixture.whenStable();
   });
@@ -267,7 +306,7 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     expect(store.unsavedChanges()).toBe(true);
   });
 
-  it('preserves dirty edits if the bounded store update refuses them', async () => {
+  it('preserves dirty edits if the bounded store staging refuses them', async () => {
     const { fixture, component, store, router } = await setup({
       creditorDraft: null,
       minorCreditors: [saved],
@@ -275,7 +314,7 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     });
     fixture.detectChanges();
     const navigate = vi.spyOn(router, 'navigateByUrl');
-    vi.spyOn(store, 'updateAssignedMinorCreditor').mockReturnValue(false);
+    vi.spyOn(store, 'savePendingMinorCreditorDetails').mockReturnValue(false);
     component.handleUnsavedChanges(true);
     const form = submission();
     form.formData[F.organisationName] = 'Unaccepted edit';
@@ -283,6 +322,21 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     expect(store.minorCreditors()).toEqual([saved]);
     expect(navigate).not.toHaveBeenCalled();
     expect(store.unsavedChanges()).toBe(true);
+  });
+
+  it('refuses staging when the country reference label is missing', async () => {
+    const { component, store, router } = await setup();
+    component.handleUnsavedChanges(true);
+    const form = submission();
+    form.formData[F.countryId] = 999;
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+
+    component.handleFormSubmit(form);
+
+    expect(store.creditorDraft()).toEqual({ termId: 1, branch: 'add-new' });
+    expect(store.minorCreditors()).toEqual([]);
+    expect(store.unsavedChanges()).toBe(true);
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('clears the page dirty state on destruction', async () => {

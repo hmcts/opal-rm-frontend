@@ -336,6 +336,36 @@ export const CasesCreateCasefileStore = signalStore(
       patchState(store, { creditorDraft: { termId, branch: 'add-new' } });
       return true;
     },
+    savePendingMinorCreditorDetails: (
+      termId: number,
+      details: ICasesCreateCasefileMinorCreditorDetails,
+      countryName: string,
+    ): boolean => {
+      const draft = store.creditorDraft();
+      const term = store.orderTerms().find((item) => item.termId === termId);
+      if (store.currentOrderTermId() !== termId || !term || !countryName) return false;
+      if (draft && draft.termId !== termId) return false;
+
+      const assignedSequence = term.creditor?.type === 'minor' ? term.creditor.sequenceNumber : undefined;
+      if (
+        !draft &&
+        (assignedSequence === undefined ||
+          !store.minorCreditors().some((item) => item.sequenceNumber === assignedSequence))
+      )
+        return false;
+      if (draft?.existingSequenceNumber !== undefined && draft.existingSequenceNumber !== assignedSequence)
+        return false;
+
+      patchState(store, {
+        creditorDraft: {
+          ...(draft ?? { termId, branch: 'add-new' as const, existingSequenceNumber: assignedSequence }),
+          details: structuredClone(details),
+          countryName,
+        },
+        unsavedChanges: false,
+      });
+      return true;
+    },
     acceptNewMinorCreditor: (termId: number, details: ICasesCreateCasefileMinorCreditorDetails): number | null => {
       if (
         store.currentOrderTermId() !== termId ||
@@ -421,6 +451,34 @@ export const CasesCreateCasefileStore = signalStore(
         ...CASES_CREATE_CASEFILE_STATE,
         taskStatuses: { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES },
       });
+    },
+  })),
+  withMethods((store) => ({
+    acceptPendingMinorCreditor: (termId: number): number | null => {
+      const draft = store.creditorDraft();
+      const term = store.orderTerms().find((item) => item.termId === termId);
+      if (
+        store.currentOrderTermId() !== termId ||
+        !term ||
+        draft?.termId !== termId ||
+        !draft.details ||
+        !draft.countryName
+      )
+        return null;
+      if (draft.existingSequenceNumber === undefined) return store.acceptNewMinorCreditor(termId, draft.details);
+
+      const sequence = draft.existingSequenceNumber;
+      if (
+        term.creditor?.type !== 'minor' ||
+        term.creditor.sequenceNumber !== sequence ||
+        !store.minorCreditors().some((item) => item.sequenceNumber === sequence)
+      )
+        return null;
+
+      store.clearCreditorDraft();
+      if (store.updateAssignedMinorCreditor(termId, sequence, draft.details)) return sequence;
+      patchState(store, { creditorDraft: draft });
+      return null;
     },
   })),
 );

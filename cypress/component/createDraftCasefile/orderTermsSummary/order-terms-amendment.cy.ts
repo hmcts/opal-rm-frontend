@@ -370,6 +370,59 @@ describe('Order term amendment routed transaction', () => {
     assertOriginalAcceptedState();
   });
 
+  it('resumes a pending amendment when selection is re-entered and completes it once', { tags: buildTags() }, () => {
+    setupAmendment();
+    openSecondInput();
+    cy.get(S.orderTermsInput.amount).clear().type('27');
+    cy.get(S.orderTermsInput.expiry).clear().type('04/11/2026');
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      const acceptedTerms = store.orderTerms();
+      const amendment = store.orderTermAmendment();
+      cy.once('window:confirm', () => true);
+      cy.get<Router>('@angularRouter').then((router) =>
+        router.navigateByUrl('/' + PATHS.root + '/' + PATHS.children.orderTermsSelect),
+      );
+
+      cy.get<Router>('@angularRouter')
+        .its('url')
+        .should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermsInput + '/MAT');
+      cy.get(S.orderTermsInput.amount).should('have.value', '27');
+      cy.get(S.orderTermsInput.expiry).should('have.value', '04/11/2026');
+      cy.then(() => {
+        expect(store.orderTerms()).to.eq(acceptedTerms);
+        expect(store.orderTermAmendment()).to.eq(amendment);
+        expect(store.currentOrderTermId()).to.eq(2);
+        expect(store.orderTermDraft()?.values).to.deep.equal({
+          amount: '27',
+          expiry_date: '04/11/2026',
+          arrears: '',
+        });
+      });
+    });
+
+    cy.get(S.orderTermsInput.continueButton).click();
+    cy.get(S.creditor.minor(1)).should('be.checked');
+    cy.get(S.creditor.continueButton).click();
+    assertCompletedExistingCreditorAmendment('27');
+  });
+
+  it('starts Add with a blank selection after cancelling an amendment', { tags: buildTags() }, () => {
+    setupAmendment();
+    openSecondInput();
+    cy.get(S.orderTermsInput.amendmentCancel).click();
+    cy.get(S.heading).should('have.text', 'Order terms');
+
+    cy.get(S.orderTerms.add).click();
+
+    cy.get(S.orderTerms.select).should('have.value', '');
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      expect(store.orderTermAmendment()).to.eq(null);
+      expect(store.currentOrderTermId()).to.eq(null);
+      expect(store.orderTerms()).to.deep.equal(SUMMARY_TERMS);
+      expect(store.minorCreditors()).to.deep.equal([originalCreditor]);
+    });
+  });
+
   it(
     'retains the whole transaction when external departure is declined and resets it when confirmed',
     { tags: buildTags() },

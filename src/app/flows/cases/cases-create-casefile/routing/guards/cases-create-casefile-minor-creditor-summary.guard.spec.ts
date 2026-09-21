@@ -91,4 +91,21 @@ describe('casesCreateCasefileMinorCreditorSummaryGuard', () => {
       );
     },
   );
+
+  it('rejects an amendment draft that points at a shared existing creditor', () => {
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    seed(1, {
+      termId: 1,
+      branch: 'add-new',
+      details: MINOR_CREDITOR_DETAILS_MOCK,
+      countryName: 'United Kingdom',
+      existingSequenceNumber: 4,
+    });
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTermAmendment: { termId: 1, term: acceptedTerm, inputComplete: true, ready: false },
+    });
+
+    const result = runGuard();
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/cases/create-casefile/order-terms/creditor');
+  });
 });

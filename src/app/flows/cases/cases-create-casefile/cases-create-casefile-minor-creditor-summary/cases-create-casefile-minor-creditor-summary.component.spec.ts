@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { patchState, WritableStateSource } from '@ngrx/signals';
+import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../cases-create-casefile-applicant-individual/mocks/cases-create-casefile-applicant-individual.mock';
@@ -105,6 +105,80 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
       expect(navigate).toHaveBeenCalledTimes(2);
     },
   );
+
+  it.each([
+    ['missing', null],
+    ['missing details', { termId: 1, branch: 'add-new' as const, countryName: 'United Kingdom' }],
+    ['missing country label', { termId: 1, branch: 'add-new' as const, details: MINOR_CREDITOR_DETAILS_MOCK }],
+  ])('refuses Continue when the live pending draft is %s', async (_description, creditorDraft) => {
+    const { component, store, router } = await setup();
+    patch(store, { creditorDraft });
+    const before = structuredClone(getState(store));
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+
+    await component.handleContinue();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(getState(store)).toEqual(before);
+  });
+
+  it.each([
+    ['a replacement draft', { creditorDraft: draft }],
+    ['a removed term', { orderTerms: [] }],
+    ['a removed assignment', { orderTerms: [term] }],
+    ['an applicant assignment', { orderTerms: [{ ...term, creditor: { type: 'applicant' as const } }] }],
+    [
+      'another minor creditor',
+      {
+        orderTerms: [{ ...term, creditor: { type: 'minor' as const, sequenceNumber: 2 } }],
+        minorCreditors: [
+          { sequenceNumber: 2, displayName: 'Replacement creditor', details: MINOR_CREDITOR_DETAILS_MOCK },
+        ],
+        nextMinorCreditorSequence: 3,
+      },
+    ],
+  ])('refuses a Continue retry after declined navigation and %s', async (_description, replacementState) => {
+    const { component, store, router } = await setup();
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(false);
+    await component.handleContinue();
+    expect(store.orderTerms()[0].creditor).toEqual({ type: 'minor', sequenceNumber: 1 });
+    expect(store.nextMinorCreditorSequence()).toBe(2);
+    patch(store, replacementState);
+    const before = structuredClone(getState(store));
+
+    await component.handleContinue();
+
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/cases/create-casefile/order-terms/summary');
+    expect(getState(store)).toEqual(before);
+  });
+
+  it('preserves a replacement draft when earlier Cancel navigation completes', async () => {
+    const { component, store, router } = await setup();
+    let finish!: (value: boolean) => void;
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const cancellation = component.handleCancel();
+    const replacementDraft = {
+      ...draft,
+      details: {
+        ...MINOR_CREDITOR_DETAILS_MOCK,
+        identity: { type: 'organisation' as const, organisationName: 'New pending creditor' },
+      },
+    };
+    patch(store, { creditorDraft: replacementDraft });
+    const before = structuredClone(getState(store));
+
+    finish(true);
+    await cancellation;
+
+    expect(store.creditorDraft()).toBe(replacementDraft);
+    expect(getState(store)).toEqual(before);
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/cases/create-casefile/order-terms/creditor');
+  });
 
   it('cancels only the pending draft after successful navigation', async () => {
     const { component, store, router } = await setup({

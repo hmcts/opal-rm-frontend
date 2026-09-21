@@ -109,6 +109,7 @@ const templatePaths = {
     'cases-create-casefile-order-terms-select/cases-create-casefile-order-terms-select-form/cases-create-casefile-order-terms-select-form.component.html',
   orderTermsInput:
     'cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input-form/cases-create-casefile-order-terms-input-form.component.html',
+  orderTermsInputPage: 'cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input.component.html',
   orderTermCreditor:
     'cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor-form/cases-create-casefile-order-term-creditor-form.component.html',
   orderTermsSummary:
@@ -247,6 +248,12 @@ const structuralIdentifierAllowlist = new Set([
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_retry'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_continue'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'span', 'id', 'create_casefile_order_terms_cancel'),
+  structuralIdentifierKey(
+    templatePaths.orderTermsInputPage,
+    'opal-lib-govuk-cancel-link',
+    'id',
+    'order-term-amendment-cancel',
+  ),
 
   structuralIdentifierKey(templatePaths.minorCreditorRemove, 'a', 'id', 'minor-creditor-remove-back'),
   structuralIdentifierKey(
@@ -290,7 +297,53 @@ const structuralIdentifierAllowlist = new Set([
     'buttonId',
     'create_casefile_order_terms_add',
   ),
-  structuralIdentifierKey(templatePaths.orderTermsSummary, 'a', 'id', 'create_casefile_order_terms_return'),
+  structuralIdentifierKey(
+    templatePaths.orderTermsSummary,
+    'opal-lib-govuk-button',
+    'buttonId',
+    'create_casefile_order_terms_return',
+  ),
+  structuralIdentifierKey(
+    templatePaths.orderTermsSummary,
+    'opal-lib-govuk-summary-card-list',
+    '[summaryListId]',
+    'card.id',
+  ),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'opal-lib-govuk-summary-list', '[summaryListId]', 'card.id'),
+  structuralIdentifierKey(
+    templatePaths.orderTermsSummary,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListId]',
+    'card.id',
+  ),
+  structuralIdentifierKey(
+    templatePaths.orderTermsSummary,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListRowId]',
+    'row.id',
+  ),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'a', '[id]', "card.id + '-change'"),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'a', '[id]', "card.id + '-remove'"),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'button', '[attr.id]', "card.id + '-creditor-toggle'"),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'div', '[id]', 'card.bankId'),
+  structuralIdentifierKey(
+    templatePaths.orderTermsSummary,
+    'opal-lib-govuk-summary-list',
+    '[summaryListId]',
+    'card.bankListId',
+  ),
+  structuralIdentifierKey(
+    templatePaths.orderTermsSummary,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListId]',
+    'card.bankListId',
+  ),
+  structuralIdentifierKey(
+    templatePaths.orderTermsSummary,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListRowId]',
+    'bankRow.id',
+  ),
 
   structuralIdentifierKey(templatePaths.managingPayments, 'button', 'id', 'returnToCaseDetails'),
   structuralIdentifierKey(templatePaths.managingPayments, 'span', 'id', 'cancelManagingPayments'),
@@ -458,6 +511,9 @@ const duplicateKeyFor = (attributeName, value, isBound, fieldNames, tagName, att
   }
 
   const resolved = isBound ? resolveIdExpression(value, fieldNames) : `literal:${value}`;
+  if (attributeName === 'summaryListId' && tagName === 'opal-lib-govuk-summary-card-list') {
+    return `${resolved}-summary-card-list`;
+  }
   if (attributeName === 'conditionalId' && !attributes.includes('opal-lib-govuk-radios-conditional')) {
     return `${resolved}-conditional`;
   }

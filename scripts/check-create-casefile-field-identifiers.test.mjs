@@ -21,6 +21,7 @@ const orderDetailsTemplatePath = `${createCasefilePath}/${orderDetailsDirectory}
 const orderTermsSelectDirectory = 'cases-create-casefile-order-terms-select';
 const orderTermsSelectTemplatePath = `${createCasefilePath}/${orderTermsSelectDirectory}/cases-create-casefile-order-terms-select-form/cases-create-casefile-order-terms-select-form.component.html`;
 const orderTermsSummaryTemplatePath = `${createCasefilePath}/cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component.html`;
+const orderTermsInputPageTemplatePath = `${createCasefilePath}/cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input.component.html`;
 const orderTermCreditorDirectory = 'cases-create-casefile-order-term-creditor';
 const orderTermCreditorTemplatePath = `${createCasefilePath}/${orderTermCreditorDirectory}/cases-create-casefile-order-term-creditor-form/cases-create-casefile-order-term-creditor-form.component.html`;
 const minorCreditorDirectory = 'cases-create-casefile-minor-creditor-details';
@@ -230,14 +231,56 @@ test('accepts the maintained form structural action identifiers', async () => {
       repositoryRoot,
       orderTermsSummaryTemplatePath,
       `<opal-lib-govuk-button buttonId="create_casefile_order_terms_add">Add terms</opal-lib-govuk-button>
-<a id="create_casefile_order_terms_return">Return to case details</a>
+<opal-lib-govuk-button buttonId="create_casefile_order_terms_return">Return to case details</opal-lib-govuk-button>
 `,
+    ),
+    writeFixtureFile(
+      repositoryRoot,
+      orderTermsInputPageTemplatePath,
+      '<opal-lib-govuk-cancel-link id="order-term-amendment-cancel" />',
     ),
   ]);
 
   const result = runScanner(repositoryRoot);
 
   assert.equal(result.status, 0, result.stderr);
+});
+
+test('accepts only the maintained order-term summary structural projections', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermsSummaryTemplatePath,
+    `<opal-lib-govuk-summary-card-list [summaryListId]="card.id"></opal-lib-govuk-summary-card-list>
+<opal-lib-govuk-summary-list [summaryListId]="card.id"></opal-lib-govuk-summary-list>
+<div opal-lib-govuk-summary-list-row [summaryListId]="card.id" [summaryListRowId]="row.id"></div>
+<a [id]="card.id + '-change'"></a>
+<a [id]="card.id + '-remove'"></a>
+<button [attr.id]="card.id + '-creditor-toggle'"></button>
+<div [id]="card.bankId"></div>
+<opal-lib-govuk-summary-list [summaryListId]="card.bankListId"></opal-lib-govuk-summary-list>
+<div opal-lib-govuk-summary-list-row [summaryListId]="card.bankListId" [summaryListRowId]="bankRow.id"></div>
+`,
+  );
+
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('rejects order-term summary structural expressions on forms and unrelated templates', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await Promise.all([
+    writeFixtureFile(repositoryRoot, orderTermsSummaryTemplatePath, '<input [id]="card.bankId" name="example" />'),
+    writeFixtureFile(
+      repositoryRoot,
+      managingPaymentsTemplatePath,
+      '<opal-lib-govuk-summary-list [summaryListId]="card.id"></opal-lib-govuk-summary-list>',
+    ),
+  ]);
+
+  const result = runScanner(repositoryRoot);
+  assertRejected(result, /noncanonical id="card.bankId"/);
+  assert.match(result.stderr, /noncanonical summaryListId="card.id"/);
 });
 
 test('rejects a Central Authority identifier that uses the wrong page prefix', async () => {

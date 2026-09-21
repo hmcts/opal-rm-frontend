@@ -13,6 +13,7 @@ export const CASES_CREATE_CASEFILE_ROUTING_PATHS: ICasesCreateCasefileRoutingPat
     orderTermsSummary: 'order-terms/summary',
     orderTermsSelect: 'order-terms/select',
     orderTermsInput: 'order-terms/add',
+    orderTermsRemove: 'order-terms/remove',
     orderTermCreditor: 'order-terms/creditor',
     minorCreditorDetails: 'order-terms/creditor/minor-creditor-details',
     minorCreditorSummary: 'order-terms/creditor/minor-creditor-summary',

@@ -12,7 +12,13 @@ import { MINOR_CREDITOR_DETAILS_MOCK } from './mocks/cases-create-casefile-minor
 import { toMinorCreditorFormData } from './utils/cases-create-casefile-minor-creditor-mapper';
 import { CASES_CREATE_CASEFILE_MINOR_CREDITOR_FIELD_NAMES as F } from './constants/cases-create-casefile-minor-creditor-field-names.constant';
 
-const term = { termId: 1, resultId: 'MAT', parameters: {}, creditor: null };
+const term = {
+  termId: 1,
+  resultId: 'MAT',
+  parameters: {},
+  creditor: null,
+  presentation: { title: 'Maintenance', fields: [] },
+};
 const saved = { sequenceNumber: 4, displayName: 'Example creditor', details: MINOR_CREDITOR_DETAILS_MOCK };
 const submission = () => ({
   formData: toMinorCreditorFormData(MINOR_CREDITOR_DETAILS_MOCK),

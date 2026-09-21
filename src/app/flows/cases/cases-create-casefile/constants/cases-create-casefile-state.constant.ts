@@ -28,6 +28,7 @@ export const CASES_CREATE_CASEFILE_STATE: ICasesCreateCasefileState = {
   nextMinorCreditorSequence: 1,
   creditorDraft: null,
   orderTermDraft: null,
+  orderTermAmendment: null,
   commentsAndNotes: null,
   pendingOrderTermResultId: null,
   taskStatuses: { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES },

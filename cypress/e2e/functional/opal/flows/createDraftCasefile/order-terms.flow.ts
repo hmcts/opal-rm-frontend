@@ -85,4 +85,67 @@ export class OrderTermsFlow {
   public assertAmountRequired(): void {
     this.actions.assertAmountRequired();
   }
+
+  /** Creates two accepted Maintenance orders with controlled identities. */
+  public givenTwoAcceptedMaintenanceOrders(): void {
+    this.openSummary();
+    this.actions.addTwoAcceptedMaintenanceOrders();
+  }
+
+  /** Amends the second accepted order. */
+  public amendSecondMaintenanceOrder(): void {
+    this.actions.amendSecondMaintenanceOrder();
+  }
+
+  /** Checks only the second accepted order changed. */
+  public assertOnlySecondOrderAmended(): void {
+    this.actions.assertOnlySecondOrderAmended();
+  }
+
+  /** Creates a shared-minor-creditor amendment ready for creditor selection. */
+  public givenSharedMinorCreditorAmendment(): void {
+    this.openSummary();
+    this.actions.addSharedMinorCreditorOrders();
+  }
+
+  /** Reviews and cancels a new creditor during amendment. */
+  public enterNewCreditorAndCancelReview(): void {
+    this.actions.enterNewCreditorAndCancelReview();
+  }
+
+  /** Checks the original terms and shared creditor remain. */
+  public assertOriginalOrderAndCreditor(): void {
+    this.actions.assertOriginalOrderAndCreditor();
+  }
+
+  /** Checks the cancelled creditor is unavailable. */
+  public assertNewCreditorUnavailable(): void {
+    this.actions.assertNewCreditorUnavailable();
+  }
+
+  /** Opens removal for the second term and returns. */
+  public openSecondRemovalAndReturn(): void {
+    this.actions.openSecondRemoval();
+    this.actions.returnFromRemoval();
+  }
+
+  /** Opens removal for accessibility evidence. */
+  public openSecondRemoval(): void {
+    this.actions.openSecondRemoval();
+  }
+
+  /** Returns from the removal placeholder. */
+  public returnFromRemoval(): void {
+    this.actions.returnFromRemoval();
+  }
+
+  /** Checks both original orders remain. */
+  public assertBothOriginalOrders(): void {
+    this.actions.assertBothOriginalOrders();
+  }
+
+  /** Checks the draft-casefile write boundary was untouched. */
+  public assertCasefileNotSubmitted(): void {
+    this.actions.assertCasefileNotSubmitted();
+  }
 }

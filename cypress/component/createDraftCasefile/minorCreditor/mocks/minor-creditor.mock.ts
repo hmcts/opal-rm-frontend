@@ -1,6 +1,16 @@
 import type { ICasesCreateCasefileMinorCreditorDetails } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-minor-creditor-details.interface';
 import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-state.interface';
 import { MINOR_CREDITOR_DETAILS_MOCK } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
+import { mapOrderTermParameters } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-metadata';
+import { orderTermPresentation } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-presentation';
+import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-result-details.mock';
+
+const mat = OPAL_MAINTENANCE_RESULT_DETAILS_MOCK['MAT'];
+export const MINOR_CREDITOR_MAT_PRESENTATION_MOCK = orderTermPresentation({
+  resultId: mat.result_id,
+  title: mat.result_title,
+  fields: mapOrderTermParameters(mat.result_parameters),
+});
 
 export const MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK: ICasesCreateCasefileMinorCreditorDetails = {
   ...structuredClone(MINOR_CREDITOR_DETAILS_MOCK),
@@ -39,6 +49,7 @@ export const MINOR_CREDITOR_SAVED_STATE_MOCK: Partial<ICasesCreateCasefileState>
       resultId: 'MAT',
       parameters: { amount: '12.30' },
       creditor: { type: 'minor', sequenceNumber: 1 },
+      presentation: MINOR_CREDITOR_MAT_PRESENTATION_MOCK,
     },
   ],
   currentOrderTermId: 1,
@@ -54,6 +65,7 @@ export const MINOR_CREDITOR_PENDING_STATE_MOCK: Partial<ICasesCreateCasefileStat
       resultId: 'MAT',
       parameters: { amount: '12.30' },
       creditor: null,
+      presentation: MINOR_CREDITOR_MAT_PRESENTATION_MOCK,
     },
   ],
   currentOrderTermId: 1,

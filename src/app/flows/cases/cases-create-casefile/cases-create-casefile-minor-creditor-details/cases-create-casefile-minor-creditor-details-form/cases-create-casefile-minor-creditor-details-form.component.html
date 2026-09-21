@@ -2,7 +2,10 @@
 <h1 class="govuk-heading-l">Minor creditor details</h1>
 <opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
 <form (submit)="handleFormSubmit($event)">
-  <div class="govuk-form-group" [class.govuk-form-group--error]="!!formControlErrorMessages[fieldNames.creditorType]">
+  <div
+    class="govuk-!-margin-bottom-6"
+    [class.govuk-form-group--error]="!!formControlErrorMessages[fieldNames.creditorType]"
+  >
     <fieldset
       class="govuk-fieldset"
       [id]="fieldNames.creditorType"
@@ -28,8 +31,12 @@
             [control]="form.controls[fieldNames.creditorType]"
             [ariaControls]="option.conditionalId"
           ></div>
-          @if (form.controls[fieldNames.creditorType].value === option.value) {
-            <div class="govuk-radios__conditional" [id]="option.conditionalId">
+          <div
+            class="govuk-radios__conditional"
+            [class.govuk-radios__conditional--hidden]="form.controls[fieldNames.creditorType].value !== option.value"
+            [id]="option.conditionalId"
+          >
+            @if (form.controls[fieldNames.creditorType].value === option.value) {
               @for (field of option.fields; track field.name) {
                 <opal-lib-govuk-text-input
                   [labelText]="field.label"
@@ -39,8 +46,8 @@
                   [errors]="formControlErrorMessages[field.name]"
                 />
               }
-            </div>
-          }
+            }
+          </div>
         }
       </div>
     </fieldset>

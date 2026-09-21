@@ -1,8 +1,25 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <span class="govuk-caption-l">Order terms</span>
-    <h1 class="govuk-heading-l">Minor creditor details</h1>
-    <p class="govuk-body">Minor creditor details cannot be added yet.</p>
-    <a class="govuk-link" id="returnToCreditor" [routerLink]="creditorPath">Return to creditor selection</a>
+    @if (navigationFailed()) {
+      <div
+        class="govuk-error-summary"
+        role="alert"
+        aria-labelledby="create_casefile_minor_creditor_navigation_error_title"
+        tabindex="-1"
+      >
+        <h2 class="govuk-error-summary__title" id="create_casefile_minor_creditor_navigation_error_title">
+          There is a problem
+        </h2>
+        <div class="govuk-error-summary__body">{{ safeNavigationErrorMessage }}</div>
+      </div>
+    }
+    <app-cases-create-casefile-minor-creditor-details-form
+      [initialFormData]="initialFormData"
+      [countryAutocompleteItems]="countryAutocompleteItems"
+      [countrySelectOptions]="countrySelectOptions"
+      (formSubmit)="handleFormSubmit($event)"
+      (unsavedChanges)="handleUnsavedChanges($event)"
+      (cancel)="handleCancel()"
+    />
   </div>
 </div>

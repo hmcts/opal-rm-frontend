@@ -461,3 +461,72 @@ test('does not accept minor-creditor identity metadata bindings in other forms',
   await writeFixtureFile(repositoryRoot, caseTypeTemplatePath, '<opal-lib-govuk-text-input [inputId]="field.name" />');
   assertRejected(runScanner(repositoryRoot), /noncanonical inputId="field.name"/);
 });
+
+const minorCreditorSummaryTemplatePath = `${createCasefilePath}/cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component.html`;
+const minorCreditorRemoveTemplatePath = `${createCasefilePath}/cases-create-casefile-minor-creditor-remove/cases-create-casefile-minor-creditor-remove.component.html`;
+const minorCreditorSummaryStructure = `<opal-lib-govuk-summary-list summaryListId="minorCreditorDetails">
+  @for (row of rows(); track row.id) {
+    <div opal-lib-govuk-summary-list-row summaryListId="minorCreditorDetails" [summaryListRowId]="row.id"></div>
+  }
+</opal-lib-govuk-summary-list>
+<button id="minor-creditor-summary-continue" type="button">Continue</button>`;
+
+test('accepts the exact Minor creditor summary and removal structural identifiers', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(repositoryRoot, minorCreditorSummaryTemplatePath, minorCreditorSummaryStructure);
+  await writeFixtureFile(
+    repositoryRoot,
+    minorCreditorRemoveTemplatePath,
+    '<a id="minor-creditor-remove-back">Back</a>',
+  );
+
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+for (const [templatePath, value] of [
+  [minorCreditorSummaryTemplatePath, 'minorCreditorDetails'],
+  [minorCreditorSummaryTemplatePath, 'minor-creditor-summary-continue'],
+  [minorCreditorRemoveTemplatePath, 'minor-creditor-remove-back'],
+]) {
+  test(`rejects structural identifier ${value} on native and shared form controls`, async () => {
+    const repositoryRoot = await createFixtureRepository();
+    await writeFixtureFile(
+      repositoryRoot,
+      templatePath,
+      `<input id="${value}" name="${value}" />
+<opal-lib-govuk-text-input inputId="${value}" inputName="${value}" />`,
+    );
+
+    const result = runScanner(repositoryRoot);
+    assertRejected(result, new RegExp(`noncanonical id="${value}"`));
+    assert.match(result.stderr, new RegExp(`noncanonical name="${value}"`));
+    assert.match(result.stderr, new RegExp(`noncanonical inputId="${value}"`));
+    assert.match(result.stderr, new RegExp(`noncanonical inputName="${value}"`));
+  });
+}
+
+test('rejects the summary row expression on form controls', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    minorCreditorSummaryTemplatePath,
+    '<input [id]="row.id" [name]="row.id" /><opal-lib-govuk-text-input [inputId]="row.id" [inputName]="row.id" />',
+  );
+
+  const result = runScanner(repositoryRoot);
+  assertRejected(result, /noncanonical id="row\.id"/);
+  assert.match(result.stderr, /noncanonical name="row\.id"/);
+  assert.match(result.stderr, /noncanonical inputId="row\.id"/);
+  assert.match(result.stderr, /noncanonical inputName="row\.id"/);
+});
+
+test('rejects Minor creditor summary structure on a different template', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(repositoryRoot, caseTypeTemplatePath, minorCreditorSummaryStructure);
+
+  const result = runScanner(repositoryRoot);
+  assertRejected(result, /noncanonical summaryListId="minorCreditorDetails"/);
+  assert.match(result.stderr, /noncanonical summaryListRowId="row\.id"/);
+  assert.match(result.stderr, /noncanonical id="minor-creditor-summary-continue"/);
+});

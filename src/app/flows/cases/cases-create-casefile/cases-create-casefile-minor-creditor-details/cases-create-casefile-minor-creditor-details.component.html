@@ -1,18 +1,5 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    @if (navigationFailed()) {
-      <div
-        class="govuk-error-summary"
-        role="alert"
-        aria-labelledby="create_casefile_minor_creditor_navigation_error_title"
-        tabindex="-1"
-      >
-        <h2 class="govuk-error-summary__title" id="create_casefile_minor_creditor_navigation_error_title">
-          There is a problem
-        </h2>
-        <div class="govuk-error-summary__body">{{ safeNavigationErrorMessage }}</div>
-      </div>
-    }
     <app-cases-create-casefile-minor-creditor-details-form
       [initialFormData]="initialFormData"
       [countryAutocompleteItems]="countryAutocompleteItems"

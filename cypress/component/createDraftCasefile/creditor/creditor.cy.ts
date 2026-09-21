@@ -458,7 +458,7 @@ describe('Order term creditor', () => {
         });
 
         cy.get(S.minorCreditor.save).click();
-        cy.get(S.minorCreditor.navigationError).should('contain.text', 'There is a problem');
+        cy.get(S.minorCreditor.save).should('be.visible');
         cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
           expect(store.minorCreditors()).to.have.length(1);
           expect(store.nextMinorCreditorSequence()).to.eq(2);

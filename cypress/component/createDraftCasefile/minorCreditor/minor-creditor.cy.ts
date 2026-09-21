@@ -162,7 +162,7 @@ describe('Minor creditor details', () => {
     );
 
     cy.get(S.minorCreditor.save).click();
-    cy.get(S.minorCreditor.navigationError).should('contain.text', ERROR_SUMMARY_TITLE);
+    cy.get(S.minorCreditor.save).should('be.visible');
     cy.get(S.minorCreditor.save).click();
 
     cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
@@ -180,7 +180,7 @@ describe('Minor creditor details', () => {
     );
 
     cy.get(S.minorCreditor.save).click();
-    cy.get(S.minorCreditor.navigationError).should('exist');
+    cy.get(S.minorCreditor.save).should('be.visible');
     cy.get(S.minorCreditor.organisationName).clear().type('Updated creditor');
     cy.get(S.minorCreditor.save).click();
 

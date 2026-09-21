@@ -132,7 +132,6 @@ export const CreateCasefileSelectors = {
     countryOptions: `#${MINOR_FIELDS.countryId}-autocomplete__listbox [role="option"]`,
     save: '#create_casefile_minor_creditor_save',
     cancel: '#create_casefile_minor_creditor_cancel a',
-    navigationError: '#create_casefile_minor_creditor_navigation_error_title',
   },
   minorCreditorDetails: {
     returnLink: '#returnToCreditor',

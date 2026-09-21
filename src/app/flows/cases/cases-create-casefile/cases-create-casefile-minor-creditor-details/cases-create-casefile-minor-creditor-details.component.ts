@@ -1,15 +1,6 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  inject,
-  OnDestroy,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnDestroy, viewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
-import { GENERIC_HTTP_ERROR_MESSAGE } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
@@ -54,8 +45,6 @@ export class CasesCreateCasefileMinorCreditorDetailsComponent
     value: country.country_id,
   }));
   public readonly countrySelectOptions = [{ name: 'Select', value: '' }, ...this.countryAutocompleteItems];
-  public readonly navigationFailed = signal(false);
-  public readonly safeNavigationErrorMessage = GENERIC_HTTP_ERROR_MESSAGE;
 
   private findEntryCreditor() {
     if (this.store.creditorDraft()?.termId === this.entryTermId) return null;
@@ -91,11 +80,10 @@ export class CasesCreateCasefileMinorCreditorDetailsComponent
 
   private async navigateAccepted(): Promise<void> {
     this.navigationInFlight = true;
-    this.navigationFailed.set(false);
     try {
-      if (!(await this.navigationRouter.navigateByUrl(this.summaryPath))) this.navigationFailed.set(true);
+      await this.navigationRouter.navigateByUrl(this.summaryPath);
     } catch {
-      this.navigationFailed.set(true);
+      return;
     } finally {
       this.navigationInFlight = false;
     }
@@ -120,13 +108,12 @@ export class CasesCreateCasefileMinorCreditorDetailsComponent
   public async handleCancel(): Promise<void> {
     if (this.navigationInFlight) return;
     this.navigationInFlight = true;
-    this.navigationFailed.set(false);
     try {
       if (!(await this.navigationRouter.navigateByUrl(this.creditorPath))) return;
       if (this.store.creditorDraft()?.termId === this.entryTermId) this.store.clearCreditorDraft();
       this.handleUnsavedChanges(false);
     } catch {
-      this.navigationFailed.set(true);
+      return;
     } finally {
       this.navigationInFlight = false;
     }

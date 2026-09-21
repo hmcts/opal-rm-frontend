@@ -8,10 +8,12 @@ import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import type { ICasesCreateCasefileOrderTerm } from '../interfaces/cases-create-casefile-order-term.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
+import { cancelOrderTermAmendmentAfterNavigation } from '../utils/cases-create-casefile-order-term-amendment-navigation';
 import { CasesCreateCasefileOrderTermsInputFormComponent } from './cases-create-casefile-order-terms-input-form/cases-create-casefile-order-terms-input-form.component';
 import type { ICasesCreateCasefileOrderTermDraftChange } from './interfaces/cases-create-casefile-order-term-draft-change.interface';
 import type { ICasesCreateCasefileOrderTermPage } from './interfaces/cases-create-casefile-order-term-page.interface';
 import type { CasesCreateCasefileOrderTermRawValue } from './types/cases-create-casefile-order-term-raw-value.type';
+import { amendmentRawValues } from './utils/cases-create-casefile-order-term-amendment-values';
 import { canonicalOrderTerm } from './utils/cases-create-casefile-order-term-values';
 
 interface OrderTermPageEntry {
@@ -35,6 +37,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
   private acceptedTermId: number | null = null;
   private retryDraft: ICasesCreateCasefileOrderTermDraftChange | null = null;
+  private navigationInFlight = false;
   public readonly pages = signal<OrderTermPageEntry[]>([]);
   public readonly frequency = computed(() => this.store.orderDetails()?.paymentFrequency ?? '');
 
@@ -42,7 +45,17 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
     super();
     this.route.data.pipe(takeUntilDestroyed()).subscribe((data) => {
       const page = data['orderTerm'] as ICasesCreateCasefileOrderTermPage;
+      const hadDraft = this.store.orderTermDraft() !== null;
       this.store.prepareOrderTermDraft(page);
+      const amendment = this.store.orderTermAmendment();
+      if (
+        amendment &&
+        !hadDraft &&
+        amendment.termId === this.store.currentOrderTermId() &&
+        amendment.term.resultId === page.resultId
+      ) {
+        this.store.updateOrderTermDraft(amendmentRawValues(amendment.term, page, this.dates), false);
+      }
       const draft = this.store.orderTermDraft();
       this.acceptedTermId = null;
       this.retryDraft = null;
@@ -60,10 +73,14 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
   }
 
   private async navigateToCreditor(): Promise<void> {
+    if (this.navigationInFlight) return;
+    this.navigationInFlight = true;
     try {
       await this.navigationRouter.navigateByUrl('/' + this.paths.root + '/' + this.paths.children.orderTermCreditor);
     } catch {
       // Keep the accepted term identity available so a safe retry can update the same record.
+    } finally {
+      this.navigationInFlight = false;
     }
   }
 
@@ -86,6 +103,22 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
     formData: Record<string, CasesCreateCasefileOrderTermRawValue>;
     nestedFlow: boolean;
   }): void {
+    if (this.navigationInFlight) return;
+    const amendment = this.store.orderTermAmendment();
+    if (amendment) {
+      const current = this.pages()[0];
+      if (!current || amendment.termId !== this.store.currentOrderTermId()) return;
+      let term: ICasesCreateCasefileOrderTerm;
+      try {
+        term = canonicalOrderTerm(current.page, form.formData, this.dates);
+      } catch {
+        return;
+      }
+      if (!this.store.stageOrderTermAmendment(term, current.page)) return;
+      this.handleUnsavedChanges(false);
+      void this.navigateToCreditor();
+      return;
+    }
     if (this.acceptedTermId === null) {
       const current = this.pages()[0];
       if (!current) return;
@@ -114,6 +147,18 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
   }
 
   public async handleCancel(): Promise<void> {
+    const amendment = this.store.orderTermAmendment();
+    if (amendment) {
+      if (this.navigationInFlight) return;
+      this.navigationInFlight = true;
+      try {
+        const destination = '/' + this.paths.root + '/' + this.paths.children.orderTermsSummary;
+        await cancelOrderTermAmendmentAfterNavigation(this.navigationRouter, this.store, destination, amendment);
+      } finally {
+        this.navigationInFlight = false;
+      }
+      return;
+    }
     const navigated = await this.navigationRouter.navigateByUrl(
       '/' + this.paths.root + '/' + this.paths.children.orderTermsSelect,
     );

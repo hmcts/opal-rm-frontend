@@ -7,6 +7,9 @@ import {
   MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK,
   MINOR_CREDITOR_NON_UK_MOCK,
   MINOR_CREDITOR_PENDING_STATE_MOCK,
+  MINOR_CREDITOR_PENDING_INDIVIDUAL_UK_STATE_MOCK,
+  MINOR_CREDITOR_PENDING_NON_UK_STATE_MOCK,
+  MINOR_CREDITOR_PENDING_NONE_STATE_MOCK,
   MINOR_CREDITOR_SAVED_STATE_MOCK,
   MINOR_CREDITOR_UK_MOCK,
 } from './mocks/minor-creditor.mock';
@@ -156,4 +159,132 @@ describe('Minor creditor details accessibility', () => {
       cy.screenshot('po-9809-minor-creditor-summary-320px');
     },
   );
+});
+
+const reviewTags = (): string[] => ['@JIRA-STORY:PO-9810', '@JIRA-LABEL:create-draft-casefile'];
+
+describe('Minor creditor review accessibility', () => {
+  it('AC4. presents semantic rows, meaningful actions and the expected keyboard order', { tags: reviewTags() }, () => {
+    setupCreditor({
+      shell: true,
+      initialChild: PATHS.children.minorCreditorSummary,
+      state: MINOR_CREDITOR_PENDING_STATE_MOCK,
+    });
+    cy.get(S.heading).should('have.length', 1).and('have.text', 'Minor creditor summary');
+    cy.title().should('eq', 'OPAL - Minor creditor summary');
+    cy.get(S.primaryNavigation).should('not.exist');
+    for (const selector of [S.minorCreditorSummary.change, S.minorCreditorSummary.remove]) {
+      cy.get(selector).should('have.prop', 'tagName', 'A').and('contain.text', 'minor creditor details');
+    }
+    cy.get(S.minorCreditorSummary.rows)
+      .should('have.length', 7)
+      .each(($row) => {
+        cy.wrap($row).children('dt').should('have.length', 1);
+        cy.wrap($row).children('dd').should('have.length', 1);
+      });
+    cy.get(S.minorCreditorSummary.change).focus();
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.minorCreditorSummary.remove).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.minorCreditorSummary.continue).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.minorCreditorSummary.cancel).should('be.focused');
+  });
+
+  for (const [name, selector, initialChild, destination] of [
+    ['Change', S.minorCreditorSummary.change, PATHS.children.minorCreditorSummary, PATHS.children.minorCreditorDetails],
+    ['Remove', S.minorCreditorSummary.remove, PATHS.children.minorCreditorSummary, PATHS.children.minorCreditorRemove],
+    ['Back', S.minorCreditorSummary.back, PATHS.children.minorCreditorRemove, PATHS.children.minorCreditorSummary],
+    ['Cancel', S.minorCreditorSummary.cancel, PATHS.children.minorCreditorSummary, PATHS.children.orderTermCreditor],
+  ] as const) {
+    it(`AC4. activates ${name} with native Enter and preserves the expected state`, { tags: reviewTags() }, () => {
+      setupCreditor({ initialChild, state: MINOR_CREDITOR_PENDING_STATE_MOCK });
+      cy.get(selector).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get<Router>('@angularRouter').its('url').should('eq', route(destination));
+      cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.creditorDraft()).to.deep.equal(
+          name === 'Cancel' ? null : MINOR_CREDITOR_PENDING_STATE_MOCK.creditorDraft,
+        );
+        expect(store.currentOrderTermId()).to.eq(1);
+        expect(store.orderTerms()).to.deep.equal(MINOR_CREDITOR_PENDING_STATE_MOCK.orderTerms);
+        expect(store.minorCreditors()).to.deep.equal([]);
+      });
+      if (name === 'Change') cy.get(S.minorCreditor.organisationName).should('have.value', 'Example creditor');
+    });
+  }
+
+  it('AC3, AC4. activates Continue with Enter and accepts the reviewed details', { tags: reviewTags() }, () => {
+    setupCreditor({ initialChild: PATHS.children.minorCreditorSummary, state: MINOR_CREDITOR_PENDING_STATE_MOCK });
+    // Element-bound Enter reliably exercises the native button activation in the component runner.
+    cy.get(S.minorCreditorSummary.continue).focus().type('{enter}');
+    cy.get<Router>('@angularRouter').its('url').should('eq', route(PATHS.children.orderTermsSummary));
+    cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
+      expect(store.creditorDraft()).to.eq(null);
+      expect(store.minorCreditors()[0].details).to.deep.equal(MINOR_CREDITOR_UK_MOCK);
+      expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
+    });
+  });
+
+  for (const [name, state] of [
+    ['individual-uk', MINOR_CREDITOR_PENDING_INDIVIDUAL_UK_STATE_MOCK],
+    ['organisation-non-uk-fallback', MINOR_CREDITOR_PENDING_NON_UK_STATE_MOCK],
+    ['none', MINOR_CREDITOR_PENDING_NONE_STATE_MOCK],
+  ] as const) {
+    it(`AC1, AC4. passes Axe on Summary with ${name}`, { tags: reviewTags() }, () => {
+      setupCreditor({ shell: true, initialChild: PATHS.children.minorCreditorSummary, state });
+      cy.get(S.heading).should('have.text', 'Minor creditor summary');
+      cy.get(S.minorCreditorSummary.rowValue('BankType')).should(
+        'have.text',
+        name === 'none' ? 'None' : name === 'individual-uk' ? 'UK' : 'Non-UK',
+      );
+      if (name === 'organisation-non-uk-fallback') {
+        cy.get(S.minorCreditorSummary.rowValue('BicSwiftCode')).should('have.text', '-');
+        cy.get(S.minorCreditorSummary.rowValue('Iban')).should('have.text', '-');
+        cy.get(S.minorCreditorSummary.rowValue('BankName')).should('have.text', '-');
+        cy.get(S.minorCreditorSummary.rowValue('Address')).should('contain.text', 'France');
+      }
+      if (name === 'none') cy.get(S.minorCreditorSummary.rows).should('have.length', 3);
+      if (name === 'individual-uk')
+        cy.get(S.minorCreditorSummary.rowValue('Name')).should('have.text', 'Dr Example Person');
+      scan();
+      cy.screenshot(`po-9810-summary-${name}`);
+    });
+  }
+
+  it('AC4. passes Axe on removal with the correct title and hidden primary navigation', { tags: reviewTags() }, () => {
+    setupCreditor({
+      shell: true,
+      initialChild: PATHS.children.minorCreditorRemove,
+      state: MINOR_CREDITOR_PENDING_STATE_MOCK,
+    });
+    cy.get(S.heading).should('have.length', 1).and('have.text', 'Remove minor creditor');
+    cy.title().should('eq', 'OPAL - Remove minor creditor');
+    cy.get(S.primaryNavigation).should('not.exist');
+    scan();
+    cy.screenshot('po-9810-removal');
+  });
+
+  it('AC4. reflows Summary and removal at 320 CSS pixels without horizontal overflow', { tags: reviewTags() }, () => {
+    cy.viewport(320, 900);
+    setupCreditor({
+      shell: true,
+      initialChild: PATHS.children.minorCreditorSummary,
+      state: MINOR_CREDITOR_PENDING_NON_UK_STATE_MOCK,
+    });
+    cy.get(S.heading).should('have.text', 'Minor creditor summary');
+    cy.document().then((document) =>
+      expect(document.documentElement.scrollWidth).to.be.at.most(document.defaultView!.innerWidth),
+    );
+    cy.get(S.minorCreditorSummary.continue).should('be.visible');
+    cy.get(S.minorCreditorSummary.cancel).should('be.visible');
+    cy.screenshot('po-9810-summary-320px');
+    cy.get(S.minorCreditorSummary.remove).click();
+    cy.get(S.heading).should('have.text', 'Remove minor creditor');
+    cy.document().then((document) =>
+      expect(document.documentElement.scrollWidth).to.be.at.most(document.defaultView!.innerWidth),
+    );
+    cy.get(S.minorCreditorSummary.back).should('be.visible');
+    cy.screenshot('po-9810-removal-320px');
+  });
 });

@@ -35,11 +35,7 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
   private navigationInFlight = false;
   private acceptedSequence: number | null = null;
 
-  public readonly detailsPath = this.root + this.paths.children.minorCreditorDetails;
-  public readonly removePath = this.root + this.paths.children.minorCreditorRemove;
-  public readonly creditorPath = this.root + this.paths.children.orderTermCreditor;
-  public readonly orderTermsPath = this.root + this.paths.children.orderTermsSummary;
-  public readonly pendingDraft = computed(() => {
+  private readonly pendingDraft = computed(() => {
     const draft = this.store.creditorDraft();
     return this.entryTermId !== null &&
       this.store.currentOrderTermId() === this.entryTermId &&
@@ -49,6 +45,11 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
       : null;
   });
   private readonly reviewedDraft: ICasesCreateCasefileCreditorDraft | null = this.pendingDraft();
+  public readonly detailsPath = this.root + this.paths.children.minorCreditorDetails;
+  public readonly removePath = this.root + this.paths.children.minorCreditorRemove;
+  public readonly creditorPath = this.root + this.paths.children.orderTermCreditor;
+  public readonly orderTermsPath = this.root + this.paths.children.orderTermsSummary;
+
   public readonly rows = computed(() => {
     if (
       this.store.currentOrderTermId() !== this.entryTermId ||

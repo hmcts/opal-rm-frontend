@@ -61,6 +61,8 @@ export const CreateCasefileSelectors = {
   orderTermsSummary: {
     cards: '[data-order-term-id]',
     card: (termId: number) => `[data-order-term-id="${termId}"]`,
+    change: (termId: number) => `#order-term-${termId}-change`,
+    remove: (termId: number) => `#order-term-${termId}-remove`,
     creditorToggle: (termId: number) => `#order-term-${termId}-creditor-toggle`,
     creditorDetails: (termId: number) => `#order-term-${termId}-bank`,
     removeReturn: '#create_casefile_order_terms_remove_return',
@@ -81,6 +83,7 @@ export const CreateCasefileSelectors = {
     childBirth: '#create_casefile_order_terms_input_child_date_of_birth',
     continueButton: '#create_casefile_order_terms_input_continue',
     cancel: '#create_casefile_order_terms_input_cancel a',
+    amendmentCancel: '#order-term-amendment-cancel .button-link',
     creditorReturn: '#create_casefile_order_term_creditor_return',
     shortText: '#create_casefile_order_terms_input_short_text',
     shortTextLabel: 'label[for="create_casefile_order_terms_input_short_text"]',

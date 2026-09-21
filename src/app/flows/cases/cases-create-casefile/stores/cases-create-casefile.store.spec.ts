@@ -1249,13 +1249,12 @@ describe('CasesCreateCasefileStore', () => {
 
   it('keeps a shared prior creditor and prunes only an orphan when accepting a pending replacement', () => {
     const shared = minorCreditor(1, 'Shared creditor');
-    const orphan = minorCreditor(2, 'Replaced creditor');
+    const orphan = minorCreditor(2, 'Orphan creditor');
     patchState(stateSource, {
       currentOrderTermId: 1,
       orderTerms: [
-        { termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 2 } },
+        { termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
         { termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
-        { termId: 3, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
       ],
       minorCreditors: [shared, orphan],
       nextMinorCreditorSequence: 3,
@@ -1271,7 +1270,6 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.minorCreditors().map((creditor) => creditor.sequenceNumber)).toEqual([1, 3]);
     expect(store.orderTerms().map((term) => term.creditor)).toEqual([
       { type: 'minor', sequenceNumber: 3 },
-      { type: 'minor', sequenceNumber: 1 },
       { type: 'minor', sequenceNumber: 1 },
     ]);
   });

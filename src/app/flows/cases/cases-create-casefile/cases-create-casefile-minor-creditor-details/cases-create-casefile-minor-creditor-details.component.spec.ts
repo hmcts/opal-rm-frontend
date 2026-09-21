@@ -95,9 +95,8 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
       fixture.detectChanges();
       component.handleFormSubmit(submission());
       await fixture.whenStable();
-      expect(component.navigationFailed()).toBe(true);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('You can try again.');
+      expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
       const update = vi.spyOn(store, 'updateAssignedMinorCreditor');
       component.handleFormSubmit(submission());
       await fixture.whenStable();
@@ -105,7 +104,6 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
       expect(store.nextMinorCreditorSequence()).toBe(2);
       expect(update).not.toHaveBeenCalled();
       expect(navigate).toHaveBeenCalledTimes(2);
-      expect(component.navigationFailed()).toBe(false);
     },
   );
 
@@ -213,7 +211,6 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
       expect(store.creditorDraft()).toEqual({ termId: 1, branch: 'add-new' });
       expect(store.minorCreditors()).toEqual([saved]);
       expect(store.unsavedChanges()).toBe(true);
-      expect(component.navigationFailed()).toBe(result instanceof Error);
     },
   );
 

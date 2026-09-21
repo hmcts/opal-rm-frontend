@@ -82,9 +82,10 @@ export class CreditorActions {
   /** Checks Cancel discarded pending add-new intent and did not create a Minor creditor. */
   public assertNoNewMinorCreditor(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermCreditor);
-    cy.get(S.creditor.applicant).should('be.visible').and('not.be.checked');
-    cy.get(S.creditor.major).should('be.visible').and('not.be.checked');
-    cy.get(S.creditor.addNew).should('be.visible').and('not.be.checked');
+    cy.get(S.creditor.choiceFieldset).should('be.visible');
+    cy.get(S.creditor.applicant).should('be.enabled').and('not.be.checked');
+    cy.get(S.creditor.major).should('be.enabled').and('not.be.checked');
+    cy.get(S.creditor.addNew).should('be.enabled').and('not.be.checked');
     cy.get(S.creditor.minor(1)).should('not.exist');
     cy.get('@draftCreation').should('not.have.been.called');
   }

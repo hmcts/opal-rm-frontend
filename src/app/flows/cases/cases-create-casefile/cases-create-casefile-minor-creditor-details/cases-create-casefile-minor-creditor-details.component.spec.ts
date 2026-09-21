@@ -243,6 +243,51 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     expect(store.creditorDraft()).toEqual({ termId: 2, branch: 'add-new' });
   });
 
+  it.each([
+    { orderTerms: [term] },
+    { orderTerms: [{ ...term, creditor: { type: 'minor' as const, sequenceNumber: 99 } }] },
+  ])('enters without restoring unrelated creditors when no saved details match %j', async (state) => {
+    const { component } = await setup({ creditorDraft: null, minorCreditors: [saved], ...state });
+    expect(component.initialFormData).toEqual(toMinorCreditorFormData(null));
+  });
+
+  it.each([
+    { orderTerms: [] },
+    { orderTerms: [{ ...term, creditor: { type: 'minor' as const, sequenceNumber: 99 } }] },
+    { minorCreditors: [] },
+  ])('does not navigate or overwrite after the assigned saved context disappears %j', async (state) => {
+    const { fixture, component, store, router } = await setup({
+      creditorDraft: null,
+      minorCreditors: [saved],
+      orderTerms: [{ ...term, creditor: { type: 'minor', sequenceNumber: 4 } }],
+    });
+    fixture.detectChanges();
+    patch(store, state);
+    component.handleUnsavedChanges(true);
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    component.handleFormSubmit(submission());
+    expect(navigate).not.toHaveBeenCalled();
+    expect(store.unsavedChanges()).toBe(true);
+  });
+
+  it('preserves dirty edits if the bounded store update refuses them', async () => {
+    const { fixture, component, store, router } = await setup({
+      creditorDraft: null,
+      minorCreditors: [saved],
+      orderTerms: [{ ...term, creditor: { type: 'minor', sequenceNumber: 4 } }],
+    });
+    fixture.detectChanges();
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    vi.spyOn(store, 'updateAssignedMinorCreditor').mockReturnValue(false);
+    component.handleUnsavedChanges(true);
+    const form = submission();
+    form.formData[F.organisationName] = 'Unaccepted edit';
+    component.handleFormSubmit(form);
+    expect(store.minorCreditors()).toEqual([saved]);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(store.unsavedChanges()).toBe(true);
+  });
+
   it('clears the page dirty state on destruction', async () => {
     const { fixture, component, store } = await setup();
     component.handleUnsavedChanges(true);

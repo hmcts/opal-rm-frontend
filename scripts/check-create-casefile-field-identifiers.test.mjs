@@ -23,9 +23,17 @@ const orderTermsSelectTemplatePath = `${createCasefilePath}/${orderTermsSelectDi
 const orderTermsSummaryTemplatePath = `${createCasefilePath}/cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component.html`;
 const orderTermCreditorDirectory = 'cases-create-casefile-order-term-creditor';
 const orderTermCreditorTemplatePath = `${createCasefilePath}/${orderTermCreditorDirectory}/cases-create-casefile-order-term-creditor-form/cases-create-casefile-order-term-creditor-form.component.html`;
+const minorCreditorDirectory = 'cases-create-casefile-minor-creditor-details';
+const minorCreditorTemplatePath = `${createCasefilePath}/${minorCreditorDirectory}/cases-create-casefile-minor-creditor-details-form/cases-create-casefile-minor-creditor-details-form.component.html`;
 const temporaryRepositories = [];
 
 const supportingFieldNameConstants = [
+  {
+    path: `${minorCreditorDirectory}/constants/cases-create-casefile-minor-creditor-field-names.constant.ts`,
+    exportName: 'CASES_CREATE_CASEFILE_MINOR_CREDITOR_FIELD_NAMES',
+    key: 'creditorType',
+    value: 'create_casefile_minor_creditor_type',
+  },
   {
     path: 'cases-create-casefile-respondent-details/constants/cases-create-casefile-respondent-details-field-names.constant.ts',
     exportName: 'CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES',
@@ -398,12 +406,12 @@ test('accepts the creditor return identifier with its own prefix', async () => {
   assert.equal(result.status, 0, result.stderr);
 });
 
-test('accepts the exact Minor creditor details return identifier', async () => {
+test('accepts the Minor creditor navigation error identifier', async () => {
   const repositoryRoot = await createFixtureRepository();
   await writeFixtureFile(
     repositoryRoot,
     `${createCasefilePath}/cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details.component.html`,
-    '<a id="returnToCreditor">Return to creditor selection</a>',
+    '<h2 id="create_casefile_minor_creditor_navigation_error_title">There is a problem</h2>',
   );
   const result = runScanner(repositoryRoot);
   assert.equal(result.status, 0, result.stderr);
@@ -413,4 +421,43 @@ test('rejects malformed dynamic control-flow templates', async () => {
   const repositoryRoot = await createFixtureRepository();
   await writeFixtureFile(repositoryRoot, orderTermsInputTemplatePath, '@if (field.kind) {');
   assertRejected(runScanner(repositoryRoot), /invalid dynamic form template/);
+});
+
+test('accepts minor-creditor canonical controls and scoped identity metadata bindings', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    minorCreditorTemplatePath,
+    `
+    <fieldset [id]="fieldNames.creditorType"></fieldset>
+    <div opal-lib-govuk-radios-item [inputId]="fieldNames.creditorType + '-' + option.value" [inputName]="fieldNames.creditorType"></div>
+    <div [id]="option.conditionalId"><opal-lib-govuk-text-input [inputId]="field.name" [inputName]="field.name" /></div>
+    <app-cases-create-casefile-bank-details [ukBankConditionalId]="ukBankConditionalId" [nonUkBankConditionalId]="nonUkBankConditionalId" />
+    <button id="create_casefile_minor_creditor_save"></button>
+    <span id="create_casefile_minor_creditor_cancel"></span>
+  `,
+  );
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('rejects wrong prefixes and unapproved identity metadata bindings on the minor-creditor form', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    minorCreditorTemplatePath,
+    `
+    <input id="create_casefile_applicant_individual_first_names" />
+    <opal-lib-govuk-text-input [inputId]="field.unapproved" />
+  `,
+  );
+  const result = runScanner(repositoryRoot);
+  assertRejected(result, /noncanonical id="create_casefile_applicant_individual_first_names"/);
+  assert.match(result.stderr, /noncanonical inputId="field.unapproved"/);
+});
+
+test('does not accept minor-creditor identity metadata bindings in other forms', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(repositoryRoot, caseTypeTemplatePath, '<opal-lib-govuk-text-input [inputId]="field.name" />');
+  assertRejected(runScanner(repositoryRoot), /noncanonical inputId="field.name"/);
 });

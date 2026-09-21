@@ -6,6 +6,7 @@ import { setupCreditor, type CreditorStore } from '../creditor/setup/creditor.se
 import {
   MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK,
   MINOR_CREDITOR_NON_UK_MOCK,
+  MINOR_CREDITOR_PENDING_STATE_MOCK,
   MINOR_CREDITOR_SAVED_STATE_MOCK,
   MINOR_CREDITOR_UK_MOCK,
 } from './mocks/minor-creditor.mock';
@@ -77,7 +78,8 @@ describe('Minor creditor details accessibility', () => {
     cy.get(S.minorCreditor.save).focus().type('{enter}');
     cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.minorCreditorSummary));
     cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
+      expect(store.orderTerms()[0].creditor).to.eq(null);
+      expect(store.creditorDraft()?.details).to.deep.equal(MINOR_CREDITOR_UK_MOCK);
     });
   });
 
@@ -122,7 +124,7 @@ describe('Minor creditor details accessibility', () => {
     setupCreditor({
       shell: true,
       initialChild: PATHS.children.minorCreditorSummary,
-      state: MINOR_CREDITOR_SAVED_STATE_MOCK,
+      state: MINOR_CREDITOR_PENDING_STATE_MOCK,
     });
     cy.get(S.heading).should('have.text', 'Minor creditor summary');
     scan();
@@ -145,7 +147,7 @@ describe('Minor creditor details accessibility', () => {
       setupCreditor({
         shell: true,
         initialChild: PATHS.children.minorCreditorSummary,
-        state: MINOR_CREDITOR_SAVED_STATE_MOCK,
+        state: MINOR_CREDITOR_PENDING_STATE_MOCK,
       });
       cy.get(S.heading).should('be.visible').and('have.text', 'Minor creditor summary');
       cy.document().then((document) => {

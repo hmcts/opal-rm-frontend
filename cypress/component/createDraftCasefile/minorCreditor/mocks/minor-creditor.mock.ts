@@ -46,3 +46,23 @@ export const MINOR_CREDITOR_SAVED_STATE_MOCK: Partial<ICasesCreateCasefileState>
   nextMinorCreditorSequence: 2,
   creditorDraft: null,
 };
+
+export const MINOR_CREDITOR_PENDING_STATE_MOCK: Partial<ICasesCreateCasefileState> = {
+  orderTerms: [
+    {
+      termId: 1,
+      resultId: 'MAT',
+      parameters: { amount: '12.30' },
+      creditor: null,
+    },
+  ],
+  currentOrderTermId: 1,
+  minorCreditors: [],
+  nextMinorCreditorSequence: 1,
+  creditorDraft: {
+    termId: 1,
+    branch: 'add-new',
+    details: MINOR_CREDITOR_UK_MOCK,
+    countryName: 'United Kingdom',
+  },
+};

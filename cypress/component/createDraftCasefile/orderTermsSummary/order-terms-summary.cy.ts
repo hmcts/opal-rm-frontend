@@ -1,4 +1,5 @@
 import { Router } from '@angular/router';
+import { getState } from '@ngrx/signals';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
 import { setupOrderTerms, type OrderTermsStore } from '../orderTerms/setup/order-terms.setup';
@@ -121,6 +122,29 @@ describe('Order terms summary', () => {
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
       expect(store.orderTerms()).to.deep.equal(SUMMARY_TERMS);
       expect(store.minorCreditors()).to.deep.equal(SUMMARY_CREDITORS);
+    });
+  });
+
+  it('AC2. should open Remove by array index and return without changing journey state', { tags: buildTags() }, () => {
+    setupSummary();
+
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      const before = structuredClone(getState(store));
+
+      cy.get(S.orderTermsSummary.card(2)).contains('a', 'Remove').click();
+      cy.get<Router>('@angularRouter')
+        .its('url')
+        .should('eq', path(PATHS.children.orderTermsRemove + '/1'));
+      cy.get(S.orderTerms.heading).should('have.text', 'Remove order term');
+      cy.get(S.orderTermsSummary.removeReturn).click();
+      cy.get<Router>('@angularRouter').its('url').should('eq', path(PATHS.children.orderTermsSummary));
+
+      cy.then(() => {
+        expect(getState(store)).to.deep.equal(before);
+        expect(store.orderTerms()).to.deep.equal(SUMMARY_TERMS);
+        expect(store.minorCreditors()).to.deep.equal(SUMMARY_CREDITORS);
+        expect(store.taskStatuses()).to.deep.equal(before.taskStatuses);
+      });
     });
   });
 });

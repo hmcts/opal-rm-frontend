@@ -110,6 +110,7 @@ const templatePaths = {
   orderTermsInput:
     'cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input-form/cases-create-casefile-order-terms-input-form.component.html',
   orderTermsInputPage: 'cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input.component.html',
+  orderTermsRemove: 'cases-create-casefile-order-terms-remove/cases-create-casefile-order-terms-remove.component.html',
   orderTermCreditor:
     'cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor-form/cases-create-casefile-order-term-creditor-form.component.html',
   orderTermsSummary:
@@ -253,6 +254,12 @@ const structuralIdentifierAllowlist = new Set([
     'opal-lib-govuk-cancel-link',
     'id',
     'order-term-amendment-cancel',
+  ),
+  structuralIdentifierKey(
+    templatePaths.orderTermsRemove,
+    'opal-lib-govuk-button',
+    'buttonId',
+    'create_casefile_order_terms_remove_return',
   ),
 
   structuralIdentifierKey(templatePaths.minorCreditorRemove, 'a', 'id', 'minor-creditor-remove-back'),

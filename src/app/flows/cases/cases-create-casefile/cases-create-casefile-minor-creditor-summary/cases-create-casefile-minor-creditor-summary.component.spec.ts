@@ -42,6 +42,22 @@ async function setup(state: Partial<ICasesCreateCasefileState> = {}) {
   return { fixture, component: fixture.componentInstance, store, router: TestBed.inject(Router) };
 }
 
+const amendmentState = (): Partial<ICasesCreateCasefileState> => {
+  const selected = { ...term, termId: 2, parameters: { amount: '20.00' }, creditor: { type: 'applicant' as const } };
+  return {
+    orderTerms: [{ ...term, termId: 1, parameters: { amount: '10.00' } }, selected],
+    currentOrderTermId: 2,
+    nextOrderTermId: 3,
+    orderTermAmendment: {
+      termId: 2,
+      term: { ...selected, parameters: { amount: '30.00' } },
+      inputComplete: true,
+      ready: false,
+    },
+    creditorDraft: { ...draft, termId: 2 },
+  };
+};
+
 describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
   beforeEach(() => vi.restoreAllMocks());
 
@@ -311,5 +327,84 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     expect(store.minorCreditors()).toHaveLength(1);
     finish(true);
     await continuing;
+  });
+
+  it('commits the selected amendment and one new creditor only after successful navigation', async () => {
+    const { component, store, router } = await setup(amendmentState());
+    const acceptedBefore = structuredClone(store.orderTerms());
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+
+    const first = component.handleContinue();
+    void component.handleContinue();
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(store.minorCreditors()).toEqual([]);
+
+    finish(false);
+    await first;
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(store.orderTermAmendment()).toMatchObject({ termId: 2, ready: true });
+
+    navigate.mockRejectedValueOnce(new Error('Synthetic navigation failure')).mockResolvedValueOnce(true);
+    await component.handleContinue();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    await component.handleContinue();
+
+    expect(store.orderTerms()).toHaveLength(2);
+    expect(store.orderTerms()[0]).toEqual(acceptedBefore[0]);
+    expect(store.orderTerms()[1]).toMatchObject({
+      termId: 2,
+      parameters: { amount: '30.00' },
+      creditor: { type: 'minor', sequenceNumber: 1 },
+    });
+    expect(store.minorCreditors()).toEqual([
+      { sequenceNumber: 1, displayName: 'Example creditor', details: MINOR_CREDITOR_DETAILS_MOCK },
+    ]);
+    expect(store.nextMinorCreditorSequence()).toBe(2);
+    expect(store.orderTermAmendment()).toBeNull();
+    expect(store.creditorDraft()).toBeNull();
+  });
+
+  it('cancels the whole amendment from review only after successful summary navigation', async () => {
+    const { component, store, router } = await setup(amendmentState());
+    const acceptedBefore = structuredClone(store.orderTerms());
+    vi.spyOn(router, 'navigateByUrl')
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new Error('Synthetic cancellation failure'))
+      .mockResolvedValueOnce(true);
+
+    await component.handleCancel();
+    expect(store.orderTermAmendment()).not.toBeNull();
+    expect(store.creditorDraft()).not.toBeNull();
+    await component.handleCancel();
+    expect(store.orderTermAmendment()).not.toBeNull();
+    await component.handleCancel();
+
+    expect(router.navigateByUrl).toHaveBeenLastCalledWith('/cases/create-casefile/order-terms/summary');
+    expect(store.orderTermAmendment()).toBeNull();
+    expect(store.creditorDraft()).toBeNull();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+  });
+
+  it('does not complete a replacement amendment after late review navigation succeeds', async () => {
+    const { component, store, router } = await setup(amendmentState());
+    let finish!: (value: boolean) => void;
+    vi.spyOn(router, 'navigateByUrl').mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    const completion = component.handleContinue();
+    const original = store.orderTermAmendment();
+
+    store.resetStore();
+    patch(store, amendmentState());
+    const replacement = store.orderTermAmendment();
+    expect(replacement).not.toBe(original);
+    finish(true);
+    await completion;
+
+    expect(store.orderTermAmendment()).toBe(replacement);
+    expect(store.orderTerms()).toHaveLength(2);
+    expect(store.minorCreditors()).toEqual([]);
   });
 });

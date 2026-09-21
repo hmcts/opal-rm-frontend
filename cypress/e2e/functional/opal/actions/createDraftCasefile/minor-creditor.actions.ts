@@ -31,6 +31,20 @@ export class MinorCreditorActions {
     cy.get(S.minorCreditor.save).click();
   }
 
+  /** Checks empty submission rendered the complete ordered required-error state. */
+  public assertRequiredValidation(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.minorCreditorDetails);
+    cy.get(S.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
+    cy.get(S.errorSummaryLinks).then(($links) => {
+      expect([...$links].map((link) => link.textContent?.trim())).to.deep.equal([
+        'Select minor creditor type',
+        'Enter an address',
+        'Select a country',
+        'Select an option',
+      ]);
+    });
+  }
+
   /** Checks Summary was reached without calling the draft-write endpoint. */
   public assertSummaryWithoutDraftWrite(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.minorCreditorSummary);

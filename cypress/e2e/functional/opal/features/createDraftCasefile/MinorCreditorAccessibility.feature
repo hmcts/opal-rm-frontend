@@ -21,7 +21,7 @@ Feature: Minor creditor accessibility
     Then I reach Minor Creditor Summary without creating a draft casefile
     And I check the page for accessibility
 
-  @JIRA-STORY:PO-9810
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9810
   Scenario: Review and removal preserve an accessible minor creditor journey
     When I provide valid organisation creditor details with a non-UK bank and no international identifiers
     And I save the minor creditor details

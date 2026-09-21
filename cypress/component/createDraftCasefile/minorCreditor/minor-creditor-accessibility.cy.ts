@@ -166,7 +166,7 @@ describe('Minor creditor details accessibility', () => {
   );
 });
 
-const reviewTags = (): string[] => ['@JIRA-STORY:PO-9810', '@JIRA-LABEL:create-draft-casefile'];
+const reviewTags = (): string[] => ['@JIRA-STORY:PO-9810', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
 
 describe('Minor creditor review accessibility', () => {
   it('AC4. presents semantic rows, meaningful actions and the expected keyboard order', { tags: reviewTags() }, () => {

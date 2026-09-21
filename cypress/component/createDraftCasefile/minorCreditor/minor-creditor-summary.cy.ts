@@ -10,7 +10,7 @@ import {
   MINOR_CREDITOR_UK_MOCK,
 } from './mocks/minor-creditor.mock';
 
-const buildTags = (): string[] => ['@JIRA-STORY:PO-9810', '@JIRA-LABEL:create-draft-casefile'];
+const buildTags = (): string[] => ['@JIRA-STORY:PO-9810', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
 
 describe('Minor creditor summary journey', () => {

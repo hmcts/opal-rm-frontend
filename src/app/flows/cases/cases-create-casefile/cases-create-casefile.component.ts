@@ -14,11 +14,11 @@ export class CasesCreateCasefileComponent implements OnDestroy {
 
   @HostListener('window:beforeunload')
   public handleBeforeUnload(): boolean {
-    return !this.store.unsavedChanges() && !this.store.stateChanges();
+    return !this.store.unsavedChanges() && !this.store.stateChanges() && this.store.creditorDraft() === null;
   }
 
   public canDeactivate(): CanDeactivateTypes {
-    return !this.store.unsavedChanges() && !this.store.stateChanges();
+    return !this.store.unsavedChanges() && !this.store.stateChanges() && this.store.creditorDraft() === null;
   }
 
   public ngOnDestroy(): void {

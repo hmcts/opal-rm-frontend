@@ -1,3 +1,5 @@
+import type { IOpalMaintenanceCountryReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
+import { COUNTRIES_RESPONSE } from '../../mocks/countries.mock';
 import { provideHttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -45,6 +47,9 @@ interface CreditorSetupOptions {
   majorSource?:
     | Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse>
     | (() => Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse>);
+  countriesSource?:
+    | Observable<IOpalMaintenanceCountryReferenceDataResponse>
+    | (() => Observable<IOpalMaintenanceCountryReferenceDataResponse>);
   seedFiveMinorCreditors?: boolean;
   state?: Partial<ICasesCreateCasefileState>;
 }
@@ -54,6 +59,7 @@ export function setupCreditor({
   shell = false,
   initialChild = PATHS.children.orderTermCreditor,
   majorSource,
+  countriesSource,
   seedFiveMinorCreditors = false,
   state = {},
 }: CreditorSetupOptions = {}) {
@@ -129,6 +135,14 @@ export function setupCreditor({
           provide: OpalMaintenanceService,
           useValue: {
             getMajorCreditors,
+            getCountries: cy
+              .stub()
+              .callsFake(() =>
+                typeof countriesSource === 'function'
+                  ? countriesSource()
+                  : (countriesSource ?? of(structuredClone(COUNTRIES_RESPONSE))),
+              )
+              .as('countriesRequest'),
             getResults: () => of(structuredClone(ORDER_TERMS_MOCK.response)),
             getResult: (id: string) => of(structuredClone(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[id]) ?? null),
           },

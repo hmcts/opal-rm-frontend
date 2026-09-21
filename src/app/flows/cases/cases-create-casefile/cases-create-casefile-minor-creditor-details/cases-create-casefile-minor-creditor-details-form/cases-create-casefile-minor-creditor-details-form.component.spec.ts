@@ -94,6 +94,36 @@ describe('CasesCreateCasefileMinorCreditorDetailsFormComponent', () => {
     expect(bank.nonUkBankConditionalId).toBe('create_casefile_minor_creditor_non_uk_bank');
   });
 
+  it.each([
+    ['individual', [F.title, F.firstNames, F.lastName]],
+    ['organisation', [F.organisationName]],
+  ] as const)('renders canonical IDs and names for every %s identity control', (creditorType, fields) => {
+    const fixture = render({ ...validOrganisationNone(), [F.creditorType]: creditorType });
+    for (const name of fields) {
+      const control = fixture.nativeElement.querySelector(`#${name}`) as HTMLInputElement;
+      expect(control).toBeInstanceOf(HTMLInputElement);
+      expect(control.name).toBe(name);
+      expect(fixture.nativeElement.querySelector(`label[for="${name}"]`)).not.toBeNull();
+    }
+  });
+
+  it('keeps every identity aria-controls target present in empty and selected states', () => {
+    const fixture = render();
+    const assertTargets = (): void => {
+      for (const creditorType of ['individual', 'organisation']) {
+        const radio = fixture.nativeElement.querySelector(`#${F.creditorType}-${creditorType}`) as HTMLInputElement;
+        const targetId = radio.getAttribute('aria-controls');
+        expect(targetId).toBe(`create_casefile_minor_creditor_${creditorType}`);
+        expect(fixture.nativeElement.querySelector(`#${targetId}`)).not.toBeNull();
+      }
+    };
+
+    assertTargets();
+    (fixture.nativeElement.querySelector(`#${F.creditorType}-individual`) as HTMLInputElement).click();
+    fixture.detectChanges();
+    assertTargets();
+  });
+
   it('shows the three top-level errors in rendered order and does not submit an empty form', () => {
     const fixture = render();
     const emitted = vi.spyOn(fixture.componentInstance['formSubmit'], 'emit');

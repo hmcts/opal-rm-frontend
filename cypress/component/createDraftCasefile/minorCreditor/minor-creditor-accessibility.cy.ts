@@ -139,7 +139,12 @@ describe('Minor creditor details accessibility', () => {
     { tags: buildTags() },
     () => {
       cy.viewport(320, 900);
-      setupMinorCreditor({ details: MINOR_CREDITOR_UK_MOCK });
+      setupCreditor({
+        shell: true,
+        initialChild: PATHS.children.minorCreditorDetails,
+        state: MINOR_CREDITOR_SAVED_STATE_MOCK,
+      });
+      cy.get(S.heading).should('be.visible').and('have.text', 'Minor creditor details');
       cy.document().then((document) => {
         expect(document.documentElement.scrollWidth).to.be.at.most(document.defaultView!.innerWidth);
       });

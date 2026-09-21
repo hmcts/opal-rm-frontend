@@ -12,7 +12,7 @@ describe('CasesCreateCasefileMinorCreditorRemoveComponent', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    const heading = element.querySelector('.govuk-grid-row .govuk-grid-column-two-thirds h1');
+    const heading = element.querySelector('.govuk-grid-column-two-thirds h1');
     const backLink = element.querySelector<HTMLAnchorElement>('#minor-creditor-remove-back');
 
     expect(element.querySelector('.govuk-caption-l')?.textContent).toBe('Order terms');

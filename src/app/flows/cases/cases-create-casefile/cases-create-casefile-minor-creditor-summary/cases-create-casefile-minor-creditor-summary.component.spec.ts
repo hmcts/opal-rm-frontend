@@ -45,7 +45,7 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     const { fixture, component } = await setup({ creditorDraft: { ...draft, details } });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.govuk-grid-row .govuk-grid-column-two-thirds h1').textContent).toBe(
+    expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds h1').textContent).toBe(
       'Minor creditor summary',
     );
     expect(fixture.nativeElement.querySelector('.govuk-caption-l').textContent).toBe('Order terms');

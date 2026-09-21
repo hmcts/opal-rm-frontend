@@ -102,6 +102,7 @@ export class CasesCreateCasefileOrderTermsSummaryComponent {
   }
 
   public handleAddTerms(): void {
+    if (this.navigationInFlight) return;
     const amendment = this.store.orderTermAmendment();
     if (amendment) this.store.cancelOrderTermAmendment(amendment.termId);
     else this.store.setPendingOrderTermResultId(null);

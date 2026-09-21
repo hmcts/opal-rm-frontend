@@ -138,6 +138,22 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     await first;
   });
 
+  it('prevents Add from cancelling an amendment while Change navigation is active', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    let resolveNavigation!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(new Promise<boolean>((resolve) => (resolveNavigation = resolve)));
+    const change = fixture.componentInstance.handleChange(7);
+
+    fixture.componentInstance.handleAddTerms();
+
+    expect(router.navigateByUrl).toHaveBeenCalledTimes(1);
+    expect(store.orderTermAmendment()?.termId).toBe(7);
+    resolveNavigation(true);
+    await change;
+  });
+
   it('navigates Remove by the current array index without changing accepted data', () => {
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
       orderTerms: structuredClone(acceptedTerms),

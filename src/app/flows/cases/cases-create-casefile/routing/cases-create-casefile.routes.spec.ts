@@ -20,6 +20,7 @@ import { CasesCreateCasefileOrderTermCreditorComponent } from '../cases-create-c
 import { CasesCreateCasefileOrderTermLookupsService } from '../cases-create-casefile-order-terms-input/services/cases-create-casefile-order-term-lookups.service';
 import { CasesCreateCasefileOrderDetailsComponent } from '../cases-create-casefile-order-details/cases-create-casefile-order-details.component';
 import { CasesCreateCasefileOrderTermsSummaryComponent } from '../cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component';
+import { CasesCreateCasefileOrderTermsRemoveComponent } from '../cases-create-casefile-order-terms-remove/cases-create-casefile-order-terms-remove.component';
 import { CasesCreateCasefileRespondentDetailsComponent } from '../cases-create-casefile-respondent-details/cases-create-casefile-respondent-details.component';
 import { CasesCreateCasefileTaskListComponent } from '../cases-create-casefile-task-list/cases-create-casefile-task-list.component';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
@@ -32,6 +33,7 @@ import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-cr
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
+import { casesCreateCasefileOrderTermsRemoveGuard } from './guards/cases-create-casefile-order-terms-remove.guard';
 import { casesCreateCasefileOrderTermCreditorGuard } from './guards/cases-create-casefile-order-term-creditor.guard';
 import { casesCreateCasefileMinorCreditorSummaryGuard } from './guards/cases-create-casefile-minor-creditor-summary.guard';
 import { fetchCasesCreateCasefileOrderTermResolver } from './resolvers/fetch-cases-create-casefile-order-term-resolver/fetch-cases-create-casefile-order-term.resolver';
@@ -228,6 +230,20 @@ describe('Create Casefile routes', () => {
     expect(route?.providers).toEqual([CasesCreateCasefileOrderTermLookupsService]);
     expect(route?.data).toBeUndefined();
     expect(route?.resolve).toEqual({ orderTerm: fetchCasesCreateCasefileOrderTermResolver });
+  });
+
+  it('registers protected Order term removal with an index guard, title resolution and lazy component', async () => {
+    const route = routing.find(
+      (candidate) =>
+        candidate.path === `${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsRemove}/:orderTermIndex`,
+    );
+
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermsRemoveGuard]);
+    expect(route?.canDeactivate).toBeUndefined();
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsRemove });
+    expect(route?.resolve).toEqual({ title: TitleResolver });
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }>);
+    expect(component.name).toBe(CasesCreateCasefileOrderTermsRemoveComponent.name);
   });
 
   it('registers the guarded Creditor placeholder destination', async () => {

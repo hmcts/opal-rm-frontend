@@ -58,6 +58,12 @@ export const CreateCasefileSelectors = {
     return: '#create_casefile_order_terms_return',
     back: 'a.govuk-back-link',
   },
+  orderTermsSummary: {
+    cards: '[data-order-term-id]',
+    card: (termId: number) => `[data-order-term-id="${termId}"]`,
+    creditorToggle: (termId: number) => `#order-term-${termId}-creditor-toggle`,
+    creditorDetails: (termId: number) => `#order-term-${termId}-bank`,
+  },
   orderTermsInput: {
     field: (name: string) => `#create_casefile_order_terms_input_${name.toLowerCase()}`,
     fieldError: (name: string) => `#create_casefile_order_terms_input_${name.toLowerCase()}-error-message`,

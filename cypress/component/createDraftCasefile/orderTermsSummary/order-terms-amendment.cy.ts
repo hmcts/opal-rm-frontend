@@ -342,9 +342,11 @@ describe('Order term amendment routed transaction', () => {
       cy.get(S.creditor.continueButton).click();
 
       cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTerms()).to.have.length(2);
         expect(store.orderTerms()[0]).to.deep.equal(SUMMARY_TERMS[0]);
-        expect(store.orderTerms()[1]).to.deep.include({
-          termId: 2,
+        expect(store.orderTerms()[1]).to.deep.equal({
+          ...SUMMARY_TERMS[1],
+          parameters: { amount: '25.00', expiry_date: '2026-12-31' },
           creditor: { type: 'minor', sequenceNumber: 2 },
         });
         expect(store.minorCreditors()).to.deep.equal([originalCreditor, secondCreditor]);

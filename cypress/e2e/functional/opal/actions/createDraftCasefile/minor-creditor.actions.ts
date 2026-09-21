@@ -9,7 +9,8 @@ export class MinorCreditorActions {
   public assertDetails(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.minorCreditorDetails);
     cy.get(S.heading).should('have.text', 'Minor creditor details');
-    cy.get(S.minorCreditor.organisation).should('be.visible');
+    cy.get(S.minorCreditor.type).should('be.visible');
+    cy.get(S.minorCreditor.organisation).should('be.enabled');
     cy.get(S.primaryNavigation).should('not.exist');
   }
 
@@ -80,9 +81,10 @@ export class MinorCreditorActions {
   public assertCreditorWithoutNewMinor(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermCreditor);
     cy.get(S.heading).should('have.text', 'Creditor');
-    cy.get(S.creditor.applicant).should('be.visible').and('not.be.checked');
-    cy.get(S.creditor.major).should('be.visible').and('not.be.checked');
-    cy.get(S.creditor.addNew).should('be.visible').and('not.be.checked');
+    cy.get(S.creditor.choiceFieldset).should('be.visible');
+    cy.get(S.creditor.applicant).should('be.enabled').and('not.be.checked');
+    cy.get(S.creditor.major).should('be.enabled').and('not.be.checked');
+    cy.get(S.creditor.addNew).should('be.enabled').and('not.be.checked');
     cy.get(S.creditor.minor(1)).should('not.exist');
     cy.get('@draftCreation').should('not.have.been.called');
   }

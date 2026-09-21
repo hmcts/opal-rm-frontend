@@ -9,7 +9,16 @@ import { casesCreateCasefileOrderTermCreditorGuard } from './cases-create-casefi
 describe('casesCreateCasefileOrderTermCreditorGuard', () => {
   const route = new ActivatedRouteSnapshot();
   const state = {} as RouterStateSnapshot;
-  const accepted = { termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null };
+  const accepted = {
+    termId: 1,
+    resultId: 'MAT',
+    parameters: { amount: '12.30' },
+    creditor: null,
+    presentation: {
+      title: 'Maintenance',
+      fields: [{ name: 'amount', label: 'Amount', kind: 'money' as const, options: [] }],
+    },
+  };
 
   beforeEach(() => TestBed.configureTestingModule({ providers: [provideRouter([]), CasesCreateCasefileStore] }));
 

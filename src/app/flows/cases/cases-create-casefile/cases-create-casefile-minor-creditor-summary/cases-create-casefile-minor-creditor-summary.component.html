@@ -2,5 +2,47 @@
   <div class="govuk-grid-column-two-thirds">
     <span class="govuk-caption-l">Order terms</span>
     <h1 class="govuk-heading-l">Minor creditor summary</h1>
+    <opal-lib-govuk-summary-card-list
+      summaryCardListId="minorCreditorDetails"
+      cardTitle="Minor creditor details"
+      [headingLevel]="2"
+    >
+      <ng-container actions>
+        <li
+          opal-lib-govuk-summary-card-action
+          actionText="Change"
+          visuallyHiddenText="minor creditor details"
+          [actionRoute]="detailsPath"
+          (clickEvent)="navigateTo($event)"
+        ></li>
+        <li
+          opal-lib-govuk-summary-card-action
+          actionText="Remove"
+          visuallyHiddenText="minor creditor details"
+          [actionRoute]="removePath"
+          (clickEvent)="navigateTo($event)"
+        ></li>
+      </ng-container>
+      <ng-container content>
+        <opal-lib-govuk-summary-list summaryListId="minorCreditorDetails">
+          @for (row of rows(); track row.id) {
+            <div opal-lib-govuk-summary-list-row summaryListId="minorCreditorDetails" [summaryListRowId]="row.id">
+              <ng-container name>{{ row.label }}</ng-container>
+              <ng-container value>
+                @for (line of row.values; track $index) {
+                  <div>{{ line }}</div>
+                }
+              </ng-container>
+            </div>
+          }
+        </opal-lib-govuk-summary-list>
+      </ng-container>
+    </opal-lib-govuk-summary-card-list>
+    <div class="govuk-button-group">
+      <button id="minor-creditor-summary-continue" class="govuk-button" type="button" (click)="handleContinue()">
+        Continue
+      </button>
+      <opal-lib-govuk-cancel-link (linkClickEvent)="handleCancel()" />
+    </div>
   </div>
 </div>

@@ -1,2 +1,4 @@
 export type CasesCreateCasefileCreditorAssignment =
-  { type: 'applicant' } | { type: 'major'; majorCreditorId: number } | { type: 'minor'; sequenceNumber: number };
+  | { type: 'applicant' }
+  | { type: 'major'; majorCreditorId: number; displayName: string }
+  | { type: 'minor'; sequenceNumber: number };

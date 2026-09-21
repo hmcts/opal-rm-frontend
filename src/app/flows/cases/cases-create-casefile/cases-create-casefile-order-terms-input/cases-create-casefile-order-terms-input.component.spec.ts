@@ -12,6 +12,7 @@ import { CasesCreateCasefileComponent } from '../cases-create-casefile.component
 import { CasesCreateCasefileOrderTermsInputFormComponent } from './cases-create-casefile-order-terms-input-form/cases-create-casefile-order-terms-input-form.component';
 import { CasesCreateCasefileOrderTermsInputComponent } from './cases-create-casefile-order-terms-input.component';
 import type { ICasesCreateCasefileOrderTermPage } from './interfaces/cases-create-casefile-order-term-page.interface';
+import { orderTermPresentation } from './utils/cases-create-casefile-order-term-presentation';
 
 @Component({ template: '<h1>Destination</h1>' })
 class TestDestinationComponent {}
@@ -72,7 +73,7 @@ const acceptedTerm = (
   parameters: Record<string, string | number | boolean>,
   termId = 1,
   creditor: { type: 'applicant' } | null = null,
-) => ({ termId, resultId: 'MAT', parameters, creditor });
+) => ({ termId, resultId: 'MAT', parameters, creditor, presentation: orderTermPresentation(page) });
 
 function seed(store: InstanceType<typeof CasesCreateCasefileStore>): void {
   store.setOrderDetails({
@@ -378,7 +379,13 @@ describe('Order term input routed parent', () => {
     child.handleFormSubmit(new SubmitEvent('submit'));
     await harness.fixture.whenStable();
     expect(store.orderTerms()).toEqual([
-      { termId: 1, resultId: 'OPTIONAL', parameters: { apply_indexation: true }, creditor: null },
+      {
+        termId: 1,
+        resultId: 'OPTIONAL',
+        parameters: { apply_indexation: true },
+        creditor: null,
+        presentation: orderTermPresentation(optionalPage),
+      },
     ]);
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/add/OPTIONAL');
 
@@ -389,7 +396,13 @@ describe('Order term input routed parent', () => {
     await harness.fixture.whenStable();
 
     expect(store.orderTerms()).toEqual([
-      { termId: 1, resultId: 'OPTIONAL', parameters: { apply_indexation: false }, creditor: null },
+      {
+        termId: 1,
+        resultId: 'OPTIONAL',
+        parameters: { apply_indexation: false },
+        creditor: null,
+        presentation: orderTermPresentation(optionalPage),
+      },
     ]);
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/creditor');
   });

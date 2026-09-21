@@ -1,5 +1,6 @@
 import type { ICasesCreateCasefileOrderTermDraft } from '../../interfaces/cases-create-casefile-order-term-draft.interface';
 import type { ICasesCreateCasefileOrderTermPage } from '../interfaces/cases-create-casefile-order-term-page.interface';
+import { orderTermPresentation } from './cases-create-casefile-order-term-presentation';
 
 export function restoreOrderTermDraft(
   page: ICasesCreateCasefileOrderTermPage,
@@ -22,5 +23,6 @@ export function restoreOrderTermDraft(
     fieldTypes,
     values,
     dirty: previous?.resultId === page.resultId && previous.dirty && Object.keys(values).length > 0,
+    presentation: orderTermPresentation(page),
   };
 }

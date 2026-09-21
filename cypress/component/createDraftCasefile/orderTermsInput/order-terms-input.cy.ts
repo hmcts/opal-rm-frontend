@@ -4,6 +4,8 @@ import { CasesCreateCasefileComponent } from 'src/app/flows/cases/cases-create-c
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { CasesCreateCasefileCreditorAssignment } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-creditor-assignment.type';
 import type { IOpalMaintenanceResultDetail } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-result-detail.interface';
+import { mapOrderTermParameters } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-metadata';
+import { orderTermPresentation } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-presentation';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
 import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
 import { setupOrderTerms, type OrderTermsStore } from '../orderTerms/setup/order-terms.setup';
@@ -20,13 +22,22 @@ const openControls = () =>
     initialChild: inputPath(),
     detailSource: of(structuredClone(M.allControls)),
   });
+const matPresentation = orderTermPresentation({
+  resultId: M.mat.result_id,
+  title: M.mat.result_title,
+  fields: mapOrderTermParameters(M.mat.result_parameters),
+});
 const assertTerms = (
   parameters: Record<string, string | number | boolean>,
   creditor: CasesCreateCasefileCreditorAssignment | null = null,
 ) =>
   cy
     .get<OrderTermsStore>('@casesCreateCasefileStore')
-    .then((store) => expect(store.orderTerms()).to.deep.equal([{ termId: 1, resultId: 'MAT', parameters, creditor }]));
+    .then((store) =>
+      expect(store.orderTerms()).to.deep.equal([
+        { termId: 1, resultId: 'MAT', parameters, creditor, presentation: matPresentation },
+      ]),
+    );
 const dateText = (date: Date) =>
   `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 const fillControls = () => {
@@ -56,7 +67,13 @@ describe('Order term input', () => {
     cy.screenshot('po-9807-creditor');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
       expect(store.orderTerms()).to.deep.equal([
-        { termId: 1, resultId: 'MAT', parameters: { amount: '25.10' }, creditor: null },
+        {
+          termId: 1,
+          resultId: 'MAT',
+          parameters: { amount: '25.10' },
+          creditor: null,
+          presentation: matPresentation,
+        },
       ]);
       expect(store.orderTermDraft()).to.eq(null);
       expect(store.pendingOrderTermResultId()).to.eq(null);

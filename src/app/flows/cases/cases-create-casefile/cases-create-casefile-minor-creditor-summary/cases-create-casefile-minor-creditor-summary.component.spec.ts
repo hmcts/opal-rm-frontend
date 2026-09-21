@@ -9,7 +9,13 @@ import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS } from '../cases-create-
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileMinorCreditorSummaryComponent } from './cases-create-casefile-minor-creditor-summary.component';
 
-const term = { termId: 1, resultId: 'MAT', parameters: {}, creditor: null };
+const term = {
+  termId: 1,
+  resultId: 'MAT',
+  parameters: {},
+  creditor: null,
+  presentation: { title: 'Maintenance', fields: [] },
+};
 const draft = {
   termId: 1,
   branch: 'add-new' as const,

@@ -39,7 +39,9 @@ describe('creditor form mapping', () => {
       create_casefile_order_term_creditor_choice: 'applicant',
       create_casefile_order_term_creditor_major_creditor_id: null,
     });
-    expect(creditorFormValue({ type: 'major', majorCreditorId: 901 }, false)).toEqual({
+    expect(
+      creditorFormValue({ type: 'major', majorCreditorId: 901, displayName: 'Synthetic major creditor' }, false),
+    ).toEqual({
       create_casefile_order_term_creditor_choice: 'major',
       create_casefile_order_term_creditor_major_creditor_id: 901,
     });
@@ -47,7 +49,9 @@ describe('creditor form mapping', () => {
       create_casefile_order_term_creditor_choice: 'minor:2',
       create_casefile_order_term_creditor_major_creditor_id: null,
     });
-    expect(creditorFormValue({ type: 'major', majorCreditorId: 901 }, true)).toEqual({
+    expect(
+      creditorFormValue({ type: 'major', majorCreditorId: 901, displayName: 'Synthetic major creditor' }, true),
+    ).toEqual({
       create_casefile_order_term_creditor_choice: 'add-new',
       create_casefile_order_term_creditor_major_creditor_id: null,
     });
@@ -73,7 +77,7 @@ describe('creditor form mapping', () => {
         minorCreditors,
         majorCreditors,
       ),
-    ).toEqual({ type: 'major', majorCreditorId: 901 });
+    ).toEqual({ type: 'major', majorCreditorId: 901, displayName: 'Synthetic major creditor' });
     expect(
       creditorAssignment(
         {

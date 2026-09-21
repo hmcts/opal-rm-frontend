@@ -109,7 +109,11 @@ describe('Order term creditor', () => {
     {
       label: 'Major',
       selector: S.creditor.major,
-      expected: { type: 'major', majorCreditorId: CREDITOR_MAJOR_RESPONSE.refData[1].major_creditor_id },
+      expected: {
+        type: 'major',
+        majorCreditorId: CREDITOR_MAJOR_RESPONSE.refData[1].major_creditor_id,
+        displayName: CREDITOR_MAJOR_RESPONSE.refData[1].name,
+      },
     },
   ]) {
     it(`AC1, AC4. should accept ${selection.label} locally without persistence`, { tags: buildTags() }, () => {
@@ -398,12 +402,25 @@ describe('Order term creditor', () => {
       setupCreditor({
         state: {
           orderTerms: [
-            { termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null },
+            {
+              termId: 1,
+              resultId: 'MAT',
+              parameters: { amount: '12.30' },
+              creditor: null,
+              presentation: {
+                title: 'Maintenance',
+                fields: [{ name: 'amount', label: 'Amount', kind: 'money', options: [] }],
+              },
+            },
             {
               termId: 2,
               resultId: 'MAT',
               parameters: { amount: '2.00' },
               creditor: { type: 'minor', sequenceNumber: 1 },
+              presentation: {
+                title: 'Maintenance',
+                fields: [{ name: 'amount', label: 'Amount', kind: 'money', options: [] }],
+              },
             },
           ],
           currentOrderTermId: 1,

@@ -34,6 +34,11 @@ export class MinorCreditorFlow {
     this.actions.saveDetails();
   }
 
+  /** Checks the required validation state. */
+  public assertRequiredValidation(): void {
+    this.actions.assertRequiredValidation();
+  }
+
   /** Checks the Summary destination and no-write boundary. */
   public assertSummaryWithoutDraftWrite(): void {
     this.actions.assertSummaryWithoutDraftWrite();

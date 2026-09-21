@@ -3,6 +3,7 @@ Feature: Capture a creditor for an order term
   Background:
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
     And active non-Central-Authority Major creditors are available
+    And Countries are available for minor creditor details
     And I open the Order Terms Summary for a new casefile
     When I start adding an order term
     And I choose order term "MAT"
@@ -30,11 +31,11 @@ Feature: Capture a creditor for an order term
     Then I reach Order Terms Summary without creating a draft casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
-  Scenario: Return from the minor creditor details destination
+  Scenario: Cancel pending minor creditor details without creating a creditor
     When I choose to add a new minor creditor
     And I continue from creditor selection
-    And I return from minor creditor details
-    Then Add a new minor creditor remains selected
+    And I cancel minor creditor details without edits
+    Then I return to Creditor without a selected creditor
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
   Scenario: Decline cancellation with a local edit

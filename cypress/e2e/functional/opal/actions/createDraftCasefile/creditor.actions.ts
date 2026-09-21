@@ -1,6 +1,8 @@
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
+import { UNSAVED_CHANGES_WARNING } from '../../../../../component/createDraftCasefile/constants/create-casefile-test-copy.constant';
 import { E2E_CREDITOR_MAJOR_RESPONSE } from '../../mocks/createDraftCasefile/creditor.mock';
+import { COUNTRIES_RESPONSE } from '../../mocks/createDraftCasefile/countries.mock';
 
 /** Drives the creditor page of the Create draft casefile journey. */
 export class CreditorActions {
@@ -9,6 +11,13 @@ export class CreditorActions {
     cy.intercept('GET', '**/opal-maintenance-service/major-creditors*', {
       body: structuredClone(E2E_CREDITOR_MAJOR_RESPONSE),
     }).as('majorCreditors');
+  }
+
+  /** Installs Countries reference data before the Minor Creditor route resolves. */
+  public prepareCountries(): void {
+    cy.intercept('GET', '**/opal-maintenance-service/countries*', {
+      body: structuredClone(COUNTRIES_RESPONSE),
+    });
   }
 
   /** Checks the creditor route and its resolver query. */
@@ -62,15 +71,21 @@ export class CreditorActions {
     cy.get(S.creditor.majorId).should('have.value', String(E2E_CREDITOR_MAJOR_RESPONSE.refData[1].major_creditor_id));
   }
 
-  /** Follows the native return link from the pending details destination. */
-  public returnFromDetails(): void {
-    cy.get(S.minorCreditorDetails.returnLink).click();
+  /** Cancels clean Minor Creditor details without invoking an unsaved-changes warning. */
+  public cancelMinorDetailsWithoutEdits(): void {
+    cy.once('window:confirm', () => {
+      throw new Error('Clean Minor Creditor Cancel unexpectedly requested confirmation');
+    });
+    cy.get(S.minorCreditor.cancel).click();
   }
 
-  /** Checks the add-new branch is restored on return. */
-  public assertAddNewRestored(): void {
+  /** Checks Cancel discarded pending add-new intent and did not create a Minor creditor. */
+  public assertNoNewMinorCreditor(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermCreditor);
-    cy.get(S.creditor.addNew).should('be.checked');
+    cy.get(S.creditor.applicant).should('be.visible').and('not.be.checked');
+    cy.get(S.creditor.major).should('be.visible').and('not.be.checked');
+    cy.get(S.creditor.addNew).should('be.visible').and('not.be.checked');
+    cy.get(S.creditor.minor(1)).should('not.exist');
     cy.get('@draftCreation').should('not.have.been.called');
   }
 
@@ -79,7 +94,10 @@ export class CreditorActions {
    * @param confirmed Whether to accept the unsaved-changes warning.
    */
   public cancel(confirmed: boolean): void {
-    cy.on('window:confirm', () => confirmed);
+    cy.once('window:confirm', (message) => {
+      expect(message).to.eq(UNSAVED_CHANGES_WARNING);
+      return confirmed;
+    });
     cy.get(S.creditor.cancel).click();
   }
 

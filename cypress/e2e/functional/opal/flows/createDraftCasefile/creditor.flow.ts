@@ -8,6 +8,10 @@ export class CreditorFlow {
   public prepareMajorCreditors(): void {
     this.actions.prepareMajorCreditors();
   }
+  /** Prepares Countries for Minor Creditor details. */
+  public prepareCountries(): void {
+    this.actions.prepareCountries();
+  }
   /** Checks routed creditor readiness. */
   public assertReady(): void {
     this.actions.assertReady();
@@ -40,13 +44,13 @@ export class CreditorFlow {
   public assertMajorSelected(): void {
     this.actions.assertMajorSelected();
   }
-  /** Returns from pending Minor details. */
-  public returnFromDetails(): void {
-    this.actions.returnFromDetails();
+  /** Cancels clean pending Minor details. */
+  public cancelMinorDetailsWithoutEdits(): void {
+    this.actions.cancelMinorDetailsWithoutEdits();
   }
-  /** Checks restored add-new intent. */
-  public assertAddNewRestored(): void {
-    this.actions.assertAddNewRestored();
+  /** Checks pending add-new intent was discarded without creating a creditor. */
+  public assertNoNewMinorCreditor(): void {
+    this.actions.assertNoNewMinorCreditor();
   }
   /**
    * Cancels with the chosen confirmation outcome.

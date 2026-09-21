@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ICasesCreateCasefileMinorCreditor } from '../../interfaces/cases-create-casefile-minor-creditor.interface';
+import { MINOR_CREDITOR_DETAILS_MOCK } from '../../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
 import type { ICasesCreateCasefileOrderTermCreditorFormData } from '../interfaces/cases-create-casefile-order-term-creditor-form-data.interface';
 import { CasesCreateCasefileOrderTermCreditorFormComponent } from './cases-create-casefile-order-term-creditor-form.component';
 
@@ -29,10 +30,15 @@ const major = {
   active: true,
   central_authority: false,
 };
-const minors: ICasesCreateCasefileMinorCreditor[] = [
-  { sequenceNumber: 1, displayName: 'Duplicate name' },
-  { sequenceNumber: 2, displayName: 'Duplicate name' },
-];
+const minor = (sequenceNumber: number, displayName: string): ICasesCreateCasefileMinorCreditor => ({
+  sequenceNumber,
+  displayName,
+  details: {
+    ...MINOR_CREDITOR_DETAILS_MOCK,
+    identity: { type: 'organisation', organisationName: displayName },
+  },
+});
+const minors = [minor(1, 'Duplicate name'), minor(2, 'Duplicate name')];
 
 describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileOrderTermCreditorFormComponent>;

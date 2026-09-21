@@ -80,7 +80,7 @@ describe('Minor creditor summary journey', () => {
     });
   });
 
-  for (const [assignment, state] of [
+  const priorAssignments: [string, Partial<ICasesCreateCasefileState>][] = [
     [
       'applicant',
       {
@@ -89,7 +89,8 @@ describe('Minor creditor summary journey', () => {
       },
     ],
     ['minor creditor', MINOR_CREDITOR_PENDING_REPLACEMENT_STATE_MOCK],
-  ] as const) {
+  ];
+  for (const [assignment, state] of priorAssignments) {
     it(
       `AC3. Cancel preserves the prior ${assignment} assignment and wider casefile state`,
       { tags: buildTags() },

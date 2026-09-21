@@ -15,6 +15,16 @@ export const casesCreateCasefileMinorCreditorSummaryGuard: CanActivateFn = () =>
   }
 
   const draft = store.creditorDraft();
+  const amendment = store.orderTermAmendment();
+  if (
+    amendment &&
+    (amendment.termId !== termId ||
+      !amendment.inputComplete ||
+      draft?.branch !== 'add-new' ||
+      draft.existingSequenceNumber !== undefined)
+  ) {
+    return path(paths.children.orderTermCreditor);
+  }
   return draft?.termId === termId && !!draft.details && !!draft.countryName
     ? true
     : path(paths.children.orderTermCreditor);

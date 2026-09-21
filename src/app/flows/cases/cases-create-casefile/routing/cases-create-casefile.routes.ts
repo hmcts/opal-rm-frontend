@@ -153,7 +153,18 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileMinorCreditorDetailsComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorDetails },
+    resolve: { title: TitleResolver, countries: fetchCasesCreateCasefileCountriesResolver },
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorSummary,
+    loadComponent: () =>
+      import('../cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component').then(
+        (component) => component.CasesCreateCasefileMinorCreditorSummaryComponent,
+      ),
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard],
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorSummary },
     resolve: { title: TitleResolver },
   },
   {

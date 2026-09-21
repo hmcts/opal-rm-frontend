@@ -6,6 +6,7 @@ import type { CasesCreateCasefileCreditorAssignment } from 'src/app/flows/cases/
 import type { IOpalMaintenanceResultDetail } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-result-detail.interface';
 import { mapOrderTermParameters } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-metadata';
 import { orderTermPresentation } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-presentation';
+import { CASES_CREATE_CASEFILE_ORDER_TERM_LOOKUP_MOCK } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-terms-input/mocks/cases-create-casefile-order-term-lookup.mock';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
 import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
 import { setupOrderTerms, type OrderTermsStore } from '../orderTerms/setup/order-terms.setup';
@@ -27,16 +28,27 @@ const matPresentation = orderTermPresentation({
   title: M.mat.result_title,
   fields: mapOrderTermParameters(M.mat.result_parameters),
 });
+const childPresentation = orderTermPresentation({
+  resultId: M.child.result_id,
+  title: M.child.result_title,
+  fields: mapOrderTermParameters(M.child.result_parameters),
+});
+const allControlsPresentation = orderTermPresentation({
+  resultId: M.allControls.result_id,
+  title: M.allControls.result_title,
+  fields: mapOrderTermParameters(M.allControls.result_parameters).map((field) =>
+    field.lookup ? { ...field, options: [...CASES_CREATE_CASEFILE_ORDER_TERM_LOOKUP_MOCK] } : field,
+  ),
+});
 const assertTerms = (
   parameters: Record<string, string | number | boolean>,
   creditor: CasesCreateCasefileCreditorAssignment | null = null,
+  presentation = matPresentation,
 ) =>
   cy
     .get<OrderTermsStore>('@casesCreateCasefileStore')
     .then((store) =>
-      expect(store.orderTerms()).to.deep.equal([
-        { termId: 1, resultId: 'MAT', parameters, creditor, presentation: matPresentation },
-      ]),
+      expect(store.orderTerms()).to.deep.equal([{ termId: 1, resultId: 'MAT', parameters, creditor, presentation }]),
     );
 const dateText = (date: Date) =>
   `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
@@ -190,6 +202,7 @@ describe('Order term input regressions', () => {
               amount: '20.00',
             },
             creditor: null,
+            presentation: childPresentation,
           },
         ]),
       );
@@ -320,15 +333,19 @@ describe('Order term input regressions', () => {
         expect(store.orderTermDraft()?.values['lookup']).to.eq('example_a'),
       );
       cy.get(S.orderTermsInput.continueButton).click();
-      assertTerms({
-        short_text: 'Valid',
-        long_text: 'Synthetic long text',
-        count: 3,
-        choice: 'a',
-        menu: 'x',
-        lookup: 'example_a',
-        confirm: true,
-      });
+      assertTerms(
+        {
+          short_text: 'Valid',
+          long_text: 'Synthetic long text',
+          count: 3,
+          choice: 'a',
+          menu: 'x',
+          lookup: 'example_a',
+          confirm: true,
+        },
+        null,
+        allControlsPresentation,
+      );
     },
   );
 

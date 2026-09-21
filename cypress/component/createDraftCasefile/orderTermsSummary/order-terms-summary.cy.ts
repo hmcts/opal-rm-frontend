@@ -111,6 +111,24 @@ describe('Order terms summary', () => {
     },
   );
 
+  it(
+    'AC2, AC5. should activate Remove with native Enter without changing accepted state',
+    { tags: buildTags() },
+    () => {
+      setupSummary();
+      cy.get(S.orderTermsSummary.remove(2)).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+
+      cy.get<Router>('@angularRouter')
+        .its('url')
+        .should('eq', path(PATHS.children.orderTermsRemove + '/1'));
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTerms()).to.deep.equal(SUMMARY_TERMS);
+        expect(store.minorCreditors()).to.deep.equal(SUMMARY_CREDITORS);
+      });
+    },
+  );
+
   it('AC1, AC3. should render unique IDs, non-UK details and no-bank creditors', { tags: buildTags() }, () => {
     setupOrderTerms({
       initialChild: PATHS.children.orderTermsSummary,
@@ -288,12 +306,22 @@ describe('Order terms summary visual evidence', () => {
   });
 
   it('AC3. should capture expanded creditor details', { tags: buildTags() }, () => {
-    setupSummary();
-    cy.get(S.orderTermsSummary.creditorToggle(1)).click();
-    cy.get(S.orderTermsSummary.creditorToggle(1))
+    setupOrderTerms({
+      initialChild: PATHS.children.orderTermsSummary,
+      acceptedTerms: [SUMMARY_TERMS[0], { ...SUMMARY_TERMS[1], creditor: { type: 'minor', sequenceNumber: 2 } }],
+      minorCreditors: SUMMARY_CREDITORS,
+    });
+    cy.get(S.orderTermsSummary.creditorToggle(2)).click();
+    cy.get(S.orderTermsSummary.creditorToggle(2))
       .invoke('text')
       .should((text) => expect(text.trim()).to.eq('Hide creditor details'));
-    cy.get(S.orderTermsSummary.creditorDetails(1)).should('be.visible').and('contain.text', '00112233');
+    cy.get(S.orderTermsSummary.creditorDetails(2))
+      .should('be.visible')
+      .and('contain.text', 'Synthetic international bank with a deliberately long descriptive name')
+      .and('contain.text', 'SYNTHETIC-LONG-PAYMENT-REFERENCE-00000001');
+    cy.document().should((document) => {
+      expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth);
+    });
     cy.screenshot('po-9811-order-terms-summary-expanded');
   });
 

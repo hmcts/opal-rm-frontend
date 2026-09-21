@@ -227,7 +227,7 @@ export class OrderTermsActions {
   public assertNewCreditorUnavailable(): void {
     cy.get(S.orderTermsSummary.change(this.secondTermId)).click();
     cy.get(S.orderTermsInput.continueButton).click();
-    cy.get(S.creditor.minor(1)).should('exist');
+    cy.get(S.creditor.minor(1)).should('exist').and('be.enabled');
     cy.get(S.creditor.minor(2)).should('not.exist');
     cy.contains('label', 'Cancelled synthetic creditor').should('not.exist');
   }

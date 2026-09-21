@@ -1,0 +1,75 @@
+<span class="govuk-caption-l">Order terms</span>
+<h1 class="govuk-heading-l">Minor creditor details</h1>
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+<form (submit)="handleFormSubmit($event)">
+  <div class="govuk-form-group" [class.govuk-form-group--error]="!!formControlErrorMessages[fieldNames.creditorType]">
+    <fieldset
+      class="govuk-fieldset"
+      [id]="fieldNames.creditorType"
+      [attr.aria-describedby]="
+        formControlErrorMessages[fieldNames.creditorType] ? fieldNames.creditorType + '-error-message' : null
+      "
+    >
+      <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">Select minor creditor type</legend>
+      @if (formControlErrorMessages[fieldNames.creditorType]) {
+        <p class="govuk-error-message" [id]="fieldNames.creditorType + '-error-message'">
+          <span class="govuk-visually-hidden">Error:</span>
+          {{ formControlErrorMessages[fieldNames.creditorType] }}
+        </p>
+      }
+      <div class="govuk-radios">
+        @for (option of identityOptions; track option.value) {
+          <div
+            opal-lib-govuk-radios-item
+            [labelText]="option.label"
+            [inputId]="fieldNames.creditorType + '-' + option.value"
+            [inputName]="fieldNames.creditorType"
+            [inputValue]="option.value"
+            [control]="form.controls[fieldNames.creditorType]"
+            [ariaControls]="option.conditionalId"
+          ></div>
+          @if (form.controls[fieldNames.creditorType].value === option.value) {
+            <div class="govuk-radios__conditional" [id]="option.conditionalId">
+              @for (field of option.fields; track field.name) {
+                <opal-lib-govuk-text-input
+                  [labelText]="field.label"
+                  [inputId]="field.name"
+                  [inputName]="field.name"
+                  [control]="form.controls[field.name]"
+                  [errors]="formControlErrorMessages[field.name]"
+                />
+              }
+            </div>
+          }
+        }
+      </div>
+    </fieldset>
+  </div>
+
+  <app-cases-create-casefile-address
+    [form]="form"
+    [formControlErrorMessages]="formControlErrorMessages"
+    [fieldNames]="addressFieldNames"
+    [countryAutocompleteItems]="countryAutocompleteItems"
+  />
+
+  <app-cases-create-casefile-bank-details
+    [form]="form"
+    [formControlErrorMessages]="formControlErrorMessages"
+    [fieldNames]="bankFieldNames"
+    [bankOptions]="bankOptions"
+    [bankTypes]="bankTypes"
+    [ukBankConditionalId]="ukBankConditionalId"
+    [nonUkBankConditionalId]="nonUkBankConditionalId"
+    [layout]="bankLayout"
+  />
+
+  <div class="govuk-button-group">
+    <button type="submit" class="govuk-button govuk-!-margin-right-4" id="create_casefile_minor_creditor_save">
+      Save details
+    </button>
+    <span id="create_casefile_minor_creditor_cancel">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

@@ -97,6 +97,10 @@ const templatePaths = {
     'cases-create-casefile-interest-indexation/cases-create-casefile-interest-indexation-form/cases-create-casefile-interest-indexation-form.component.html',
   managingPayments:
     'cases-create-casefile-managing-payments/cases-create-casefile-managing-payments-form/cases-create-casefile-managing-payments-form.component.html',
+  minorCreditorSummary:
+    'cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component.html',
+  minorCreditorRemove:
+    'cases-create-casefile-minor-creditor-remove/cases-create-casefile-minor-creditor-remove.component.html',
   minorCreditorForm:
     'cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details-form/cases-create-casefile-minor-creditor-details-form.component.html',
   orderDetails:
@@ -243,6 +247,27 @@ const structuralIdentifierAllowlist = new Set([
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_retry'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_continue'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'span', 'id', 'create_casefile_order_terms_cancel'),
+
+  structuralIdentifierKey(templatePaths.minorCreditorRemove, 'a', 'id', 'minor-creditor-remove-back'),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorSummary,
+    'opal-lib-govuk-summary-list',
+    'summaryListId',
+    'minorCreditorDetails',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorSummary,
+    'div[opal-lib-govuk-summary-list-row]',
+    'summaryListId',
+    'minorCreditorDetails',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorSummary,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListRowId]',
+    'row.id',
+  ),
+  structuralIdentifierKey(templatePaths.minorCreditorSummary, 'button', 'id', 'minor-creditor-summary-continue'),
 
   structuralIdentifierKey(templatePaths.orderTermCreditor, 'div', '[id]', 'conditionalId'),
   structuralIdentifierKey(templatePaths.minorCreditorForm, 'div', '[id]', 'option.conditionalId'),

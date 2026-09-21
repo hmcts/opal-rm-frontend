@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { patchState, WritableStateSource } from '@ngrx/signals';
+import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../constants/cases-create-casefile-applicant-bank-types.constant';
@@ -1132,6 +1132,35 @@ describe('CasesCreateCasefileStore', () => {
       }).toEqual(before);
     },
   );
+
+  it.each([
+    ['another minor creditor', { type: 'minor' as const, sequenceNumber: 2 }],
+    ['the applicant', { type: 'applicant' as const }],
+  ])('preserves a pending accepted edit when the term now assigns %s', (_description, creditor) => {
+    patchState(stateSource, {
+      currentOrderTermId: 1,
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor }],
+      minorCreditors: [minorCreditor(1), minorCreditor(2)],
+      nextMinorCreditorSequence: 3,
+      creditorDraft: {
+        termId: 1,
+        branch: 'add-new',
+        existingSequenceNumber: 1,
+        details: MINOR_CREDITOR_DETAILS_MOCK,
+        countryName: 'United Kingdom',
+      },
+      unsavedChanges: true,
+      stateChanges: false,
+    });
+    const before = structuredClone(getState(store));
+    const changedDetails = {
+      ...MINOR_CREDITOR_DETAILS_MOCK,
+      identity: { type: 'organisation' as const, organisationName: 'Unaccepted replacement' },
+    };
+
+    expect(store.savePendingMinorCreditorDetails(1, changedDetails, 'France')).toBe(false);
+    expect(getState(store)).toEqual(before);
+  });
 
   it('clones staged details and keeps accepted details isolated from later input mutation', () => {
     const details = structuredClone(MINOR_CREDITOR_DETAILS_MOCK);

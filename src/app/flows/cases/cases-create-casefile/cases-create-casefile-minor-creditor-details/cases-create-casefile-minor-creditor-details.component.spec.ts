@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
-import { patchState, WritableStateSource } from '@ngrx/signals';
+import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
@@ -304,6 +304,35 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     component.handleFormSubmit(submission());
     expect(navigate).not.toHaveBeenCalled();
     expect(store.unsavedChanges()).toBe(true);
+  });
+
+  it.each([
+    ['a new creditor', { termId: 1, branch: 'add-new' as const }],
+    ['another accepted creditor', { termId: 1, branch: 'add-new' as const, existingSequenceNumber: 9 }],
+  ])('preserves the replacement draft for %s when submitting an older accepted edit', async (_description, draft) => {
+    const { component, store, router } = await setup({
+      creditorDraft: null,
+      minorCreditors: [saved],
+      nextMinorCreditorSequence: 5,
+      orderTerms: [{ ...term, creditor: { type: 'minor', sequenceNumber: 4 } }],
+    });
+    const replacementDraft = {
+      ...draft,
+      details: MINOR_CREDITOR_DETAILS_MOCK,
+      countryName: 'United Kingdom',
+    };
+    patch(store, { creditorDraft: replacementDraft });
+    component.handleUnsavedChanges(true);
+    const before = structuredClone(getState(store));
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    const form = submission();
+    form.formData[F.organisationName] = 'Stale accepted edit';
+
+    component.handleFormSubmit(form);
+
+    expect(getState(store)).toEqual(before);
+    expect(component.stateUnsavedChanges).toBe(true);
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('preserves dirty edits if the bounded store staging refuses them', async () => {

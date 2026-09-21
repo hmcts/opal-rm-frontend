@@ -1,3 +1,4 @@
+import { CasesCreateCasefileMinorCreditorSummaryComponent } from '../cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -247,11 +248,22 @@ describe('Create Casefile routes', () => {
     expect(detailsIndex).toBeGreaterThan(-1);
     expect(detailsIndex).toBeLessThan(creditorIndex);
     expect(route.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard]);
-    expect(route.canDeactivate).toBeUndefined();
+    expect(route.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
     expect(route.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorDetails });
-    expect(route.resolve).toEqual({ title: TitleResolver });
+    expect(route.resolve).toEqual({ title: TitleResolver, countries: fetchCasesCreateCasefileCountriesResolver });
     const component = await (route.loadComponent?.() as Promise<{ name: string }>);
     expect(component.name).toBe(CasesCreateCasefileMinorCreditorDetailsComponent.name);
+  });
+
+  it('registers Minor creditor Summary with current-term guards and title resolution', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorSummary,
+    );
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard]);
+    expect(route?.data).toEqual({ title: 'Minor creditor summary' });
+    expect(route?.resolve).toEqual({ title: TitleResolver });
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }>);
+    expect(component.name).toBe(CasesCreateCasefileMinorCreditorSummaryComponent.name);
   });
 
   it.each([null, 999])(

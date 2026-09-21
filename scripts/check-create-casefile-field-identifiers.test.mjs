@@ -507,6 +507,7 @@ test('does not accept minor-creditor identity metadata bindings in other forms',
 
 const minorCreditorSummaryTemplatePath = `${createCasefilePath}/cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component.html`;
 const minorCreditorRemoveTemplatePath = `${createCasefilePath}/cases-create-casefile-minor-creditor-remove/cases-create-casefile-minor-creditor-remove.component.html`;
+const orderTermsRemoveTemplatePath = `${createCasefilePath}/cases-create-casefile-order-terms-remove/cases-create-casefile-order-terms-remove.component.html`;
 const minorCreditorSummaryStructure = `<opal-lib-govuk-summary-list summaryListId="minorCreditorDetails">
   @for (row of rows(); track row.id) {
     <div opal-lib-govuk-summary-list-row summaryListId="minorCreditorDetails" [summaryListRowId]="row.id"></div>
@@ -525,6 +526,39 @@ test('accepts the exact Minor creditor summary and removal structural identifier
 
   const result = runScanner(repositoryRoot);
   assert.equal(result.status, 0, result.stderr);
+});
+
+test('accepts the exact Order term removal return action identifier', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermsRemoveTemplatePath,
+    '<opal-lib-govuk-button buttonId="create_casefile_order_terms_remove_return">Return</opal-lib-govuk-button>',
+  );
+
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('rejects the Order term removal return identifier on form controls and unrelated templates', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await Promise.all([
+    writeFixtureFile(
+      repositoryRoot,
+      orderTermsRemoveTemplatePath,
+      '<input id="create_casefile_order_terms_remove_return" name="create_casefile_order_terms_remove_return" />',
+    ),
+    writeFixtureFile(
+      repositoryRoot,
+      minorCreditorRemoveTemplatePath,
+      '<opal-lib-govuk-button buttonId="create_casefile_order_terms_remove_return">Return</opal-lib-govuk-button>',
+    ),
+  ]);
+
+  const result = runScanner(repositoryRoot);
+  assertRejected(result, /noncanonical id="create_casefile_order_terms_remove_return"/);
+  assert.match(result.stderr, /noncanonical name="create_casefile_order_terms_remove_return"/);
+  assert.match(result.stderr, /noncanonical buttonId="create_casefile_order_terms_remove_return"/);
 });
 
 for (const [templatePath, value] of [

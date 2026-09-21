@@ -45,6 +45,14 @@ import { OpalMaintenanceService } from '../../services/opal-maintenance-service/
 @Component({ template: '' })
 class TestDestinationComponent {}
 
+const acceptedTerm = {
+  termId: 1,
+  resultId: 'MAT',
+  parameters: {},
+  creditor: null,
+  presentation: { title: 'Maintenance', fields: [] },
+};
+
 const guardedRouteCases = [
   ['taskList', 'Case details'],
   ['orderTermsSummary', 'Order terms'],
@@ -306,7 +314,7 @@ describe('Create Casefile routes', () => {
       ],
     });
     patchState(TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ ...acceptedTerm }],
       currentOrderTermId: 1,
       creditorDraft: null,
     });
@@ -338,7 +346,7 @@ describe('Create Casefile routes', () => {
       patchState(
         TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>,
         {
-          orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+          orderTerms: [{ ...acceptedTerm }],
           currentOrderTermId,
         },
       );
@@ -363,7 +371,7 @@ describe('Create Casefile routes', () => {
       ],
     });
     patchState(TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ ...acceptedTerm }],
       currentOrderTermId: 1,
     });
 
@@ -416,7 +424,7 @@ describe('Create Casefile routes', () => {
       ],
     });
     patchState(TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ ...acceptedTerm }],
       currentOrderTermId: 999,
     });
 

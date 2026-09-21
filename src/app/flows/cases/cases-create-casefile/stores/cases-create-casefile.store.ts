@@ -12,12 +12,15 @@ import type { ICasesCreateCasefileCentralAuthorityDetails } from '../interfaces/
 import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
 import type { ICasesCreateCasefileOrderDetails } from '../interfaces/cases-create-casefile-order-details.interface';
 import type { ICasesCreateCasefileOrderTerm } from '../interfaces/cases-create-casefile-order-term.interface';
+import type { ICasesCreateCasefileMinorCreditor } from '../interfaces/cases-create-casefile-minor-creditor.interface';
+import type { ICasesCreateCasefileMinorCreditorDetails } from '../interfaces/cases-create-casefile-minor-creditor-details.interface';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
 import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefile-task-status.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
 import type { CasesCreateCasefileCreditorAssignment } from '../types/cases-create-casefile-creditor-assignment.type';
+import type { CasesCreateCasefileMinorCreditorIdentity } from '../types/cases-create-casefile-minor-creditor-identity.type';
 import { isCasesCreateCasefileCaseTypeSelectionValid } from '../utils/cases-create-casefile-case-type-selection';
 import { associatedMinorCreditors } from '../utils/cases-create-casefile-associated-minor-creditors';
 import type { ICasesCreateCasefileOrderTermPage } from '../cases-create-casefile-order-terms-input/interfaces/cases-create-casefile-order-term-page.interface';
@@ -25,6 +28,11 @@ import type { CasesCreateCasefileOrderTermRawValue } from '../cases-create-casef
 import { restoreOrderTermDraft } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-draft';
 
 const normalizeOptionalText = (value: string | null): string | null => (value?.trim() ? value : null);
+
+const minorCreditorDisplayName = (identity: CasesCreateCasefileMinorCreditorIdentity): string =>
+  identity.type === 'organisation'
+    ? identity.organisationName
+    : [identity.title, identity.firstNames, identity.lastName].filter(Boolean).join(' ');
 
 const areCaseTypeSelectionsEqual = (
   currentSelection: CasesCreateCasefileCaseTypeSelection | null,
@@ -325,8 +333,69 @@ export const CasesCreateCasefileStore = signalStore(
       if (store.currentOrderTermId() !== termId || !store.orderTerms().some((term) => term.termId === termId)) {
         return false;
       }
-      // PO-9809 owns allocating the next sequence, creating details and assigning the term atomically.
       patchState(store, { creditorDraft: { termId, branch: 'add-new' } });
+      return true;
+    },
+    acceptNewMinorCreditor: (termId: number, details: ICasesCreateCasefileMinorCreditorDetails): number | null => {
+      if (
+        store.currentOrderTermId() !== termId ||
+        !store.orderTerms().some((term) => term.termId === termId) ||
+        store.creditorDraft()?.termId !== termId ||
+        store.creditorDraft()?.branch !== 'add-new'
+      ) {
+        return null;
+      }
+
+      const sequenceNumber = store.nextMinorCreditorSequence();
+      const creditor: ICasesCreateCasefileMinorCreditor = {
+        sequenceNumber,
+        displayName: minorCreditorDisplayName(details.identity),
+        details: structuredClone(details),
+      };
+      const orderTerms = store
+        .orderTerms()
+        .map((term) =>
+          term.termId === termId ? { ...term, creditor: { type: 'minor' as const, sequenceNumber } } : term,
+        );
+      patchState(store, {
+        orderTerms,
+        minorCreditors: associatedMinorCreditors(orderTerms, [...store.minorCreditors(), creditor]),
+        nextMinorCreditorSequence: sequenceNumber + 1,
+        creditorDraft: null,
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+      return sequenceNumber;
+    },
+    updateAssignedMinorCreditor: (
+      termId: number,
+      sequenceNumber: number,
+      details: ICasesCreateCasefileMinorCreditorDetails,
+    ): boolean => {
+      const term = store.orderTerms().find((candidate) => candidate.termId === termId);
+      if (
+        store.currentOrderTermId() !== termId ||
+        store.creditorDraft() !== null ||
+        term?.creditor?.type !== 'minor' ||
+        term.creditor.sequenceNumber !== sequenceNumber ||
+        !store.minorCreditors().some((creditor) => creditor.sequenceNumber === sequenceNumber)
+      ) {
+        return false;
+      }
+
+      patchState(store, {
+        minorCreditors: store.minorCreditors().map((creditor) =>
+          creditor.sequenceNumber === sequenceNumber
+            ? {
+                ...creditor,
+                displayName: minorCreditorDisplayName(details.identity),
+                details: structuredClone(details),
+              }
+            : creditor,
+        ),
+        stateChanges: true,
+        unsavedChanges: false,
+      });
       return true;
     },
     clearCreditorDraft: (): void => {

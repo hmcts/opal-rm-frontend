@@ -10,6 +10,7 @@ import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefil
 import { casesCreateCasefileMinorCreditorSummaryGuard } from './guards/cases-create-casefile-minor-creditor-summary.guard';
 import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
 import { casesCreateCasefileOrderTermCreditorGuard } from './guards/cases-create-casefile-order-term-creditor.guard';
+import { casesCreateCasefileOrderTermsSelectGuard } from './guards/cases-create-casefile-order-terms-select.guard';
 import { casesCreateCasefileOrderTermsRemoveGuard } from './guards/cases-create-casefile-order-terms-remove.guard';
 import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
 import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
@@ -127,7 +128,7 @@ export const routing: Routes = [
       import('../cases-create-casefile-order-terms-select/cases-create-casefile-order-terms-select.component').then(
         (component) => component.CasesCreateCasefileOrderTermsSelectComponent,
       ),
-    canActivate: [casesCreateCasefileFlowStateGuard],
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermsSelectGuard],
     canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsSelect },
     resolve: { title: TitleResolver, orderTerms: fetchCasesCreateCasefileOrderTermsResolver },

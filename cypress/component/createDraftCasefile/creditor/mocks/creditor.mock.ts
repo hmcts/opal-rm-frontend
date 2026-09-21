@@ -4,6 +4,11 @@ import { MINOR_CREDITOR_DETAILS_MOCK } from 'src/app/flows/cases/cases-create-ca
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
 import { FIRST_MAJOR_CREDITOR } from '../../centralAuthority/mocks/major-creditors.mock';
 
+const maintenancePresentation = {
+  title: 'Maintenance',
+  fields: [{ name: 'amount', label: 'Amount', kind: 'money' as const, options: [] }],
+};
+
 export const CREDITOR_MAJOR_RESPONSE: IOpalMaintenanceMajorCreditorReferenceDataResponse = {
   count: 2,
   refData: [
@@ -53,30 +58,41 @@ export const CREDITOR_ACCEPTED_TERMS: ICasesCreateCasefileAcceptedOrderTerm[] = 
     resultId: 'MAT',
     parameters: { amount: '1.00' },
     creditor: { type: 'minor', sequenceNumber: 1 },
+    presentation: maintenancePresentation,
   },
   {
     termId: 2,
     resultId: 'MAT',
     parameters: { amount: '2.00' },
     creditor: { type: 'minor', sequenceNumber: 2 },
+    presentation: maintenancePresentation,
   },
   {
     termId: 3,
     resultId: 'MAT',
     parameters: { amount: '3.00' },
     creditor: { type: 'minor', sequenceNumber: 3 },
+    presentation: maintenancePresentation,
   },
   {
     termId: 4,
     resultId: 'MAT',
     parameters: { amount: '4.00' },
     creditor: { type: 'minor', sequenceNumber: 4 },
+    presentation: maintenancePresentation,
   },
   {
     termId: 5,
     resultId: 'MAT',
     parameters: { amount: '5.00' },
     creditor: { type: 'minor', sequenceNumber: 5 },
+    presentation: maintenancePresentation,
   },
-  { termId: 6, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null },
+  {
+    termId: 6,
+    resultId: 'MAT',
+    parameters: { amount: '12.30' },
+    creditor: null,
+    presentation: maintenancePresentation,
+  },
 ];

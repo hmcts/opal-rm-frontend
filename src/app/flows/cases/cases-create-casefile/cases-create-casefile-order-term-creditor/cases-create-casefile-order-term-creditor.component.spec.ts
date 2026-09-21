@@ -17,7 +17,16 @@ import { CasesCreateCasefileOrderTermCreditorComponent } from './cases-create-ca
 @Component({ template: '<h1>Summary</h1>' })
 class TestDestinationComponent {}
 
-const acceptedTerm = { termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null };
+const acceptedTerm = {
+  termId: 1,
+  resultId: 'MAT',
+  parameters: { amount: '12.30' },
+  creditor: null,
+  presentation: {
+    title: 'Maintenance',
+    fields: [{ name: 'amount', label: 'Amount', kind: 'money' as const, options: [] }],
+  },
+};
 const existingMinorCreditor = {
   sequenceNumber: 4,
   displayName: 'Existing Synthetic Creditor',
@@ -172,7 +181,11 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
       nestedFlow: false,
     });
     await vi.waitFor(() => expect(navigate).toHaveBeenCalledOnce());
-    expect(store.orderTerms()[0].creditor).toEqual({ type: 'major', majorCreditorId: 99 });
+    expect(store.orderTerms()[0].creditor).toEqual({
+      type: 'major',
+      majorCreditorId: 99,
+      displayName: 'Synthetic Major Creditor',
+    });
   });
 
   it('keeps accepted assignments and minor allocation state when starting add-new details', async () => {

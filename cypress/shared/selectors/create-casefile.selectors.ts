@@ -63,6 +63,7 @@ export const CreateCasefileSelectors = {
     card: (termId: number) => `[data-order-term-id="${termId}"]`,
     creditorToggle: (termId: number) => `#order-term-${termId}-creditor-toggle`,
     creditorDetails: (termId: number) => `#order-term-${termId}-bank`,
+    removeReturn: '#create_casefile_order_terms_remove_return',
   },
   orderTermsInput: {
     field: (name: string) => `#create_casefile_order_terms_input_${name.toLowerCase()}`,

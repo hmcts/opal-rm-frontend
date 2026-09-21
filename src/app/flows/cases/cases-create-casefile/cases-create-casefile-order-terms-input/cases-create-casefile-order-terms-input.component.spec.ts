@@ -163,6 +163,8 @@ describe('Order term input routed parent', () => {
     expect(child.initialDirty).toBe(true);
     expect(child.frequency).toBe('Monthly');
     expect(TestBed.inject(Title).getTitle()).toBe('OPAL - Maintenance');
+    expect(fixture.nativeElement.querySelector('.govuk-back-link')?.textContent.trim()).toBe('Back');
+    expect(fixture.nativeElement.querySelector('#order-term-amendment-cancel')).toBeNull();
 
     store.setOrderDetails({ ...store.orderDetails()!, paymentFrequency: 'Weekly' });
     fixture.detectChanges();
@@ -560,6 +562,11 @@ describe('Order term input routed parent', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const harness = await RouterTestingHarness.create('/cases/create-casefile/order-terms/add/MAT');
     const component = harness.routeDebugElement!.componentInstance as CasesCreateCasefileOrderTermsInputComponent;
+    harness.fixture.detectChanges();
+    expect(harness.fixture.nativeElement.querySelector('.govuk-back-link')).toBeNull();
+    expect(
+      harness.fixture.nativeElement.querySelector('#order-term-amendment-cancel .button-link')?.textContent.trim(),
+    ).toBe('Cancel amendment');
     component.handleDraftChange({ values: { amount: '31' }, dirty: true });
 
     await component.handleCancel();

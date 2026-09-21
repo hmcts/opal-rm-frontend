@@ -4,6 +4,7 @@ import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
+import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import type { ICasesCreateCasefileOrderTerm } from '../interfaces/cases-create-casefile-order-term.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
@@ -24,7 +25,7 @@ interface OrderTermPageEntry {
 
 @Component({
   selector: 'app-cases-create-casefile-order-terms-input',
-  imports: [GovukBackLinkComponent, CasesCreateCasefileOrderTermsInputFormComponent],
+  imports: [GovukBackLinkComponent, GovukCancelLinkComponent, CasesCreateCasefileOrderTermsInputFormComponent],
   templateUrl: './cases-create-casefile-order-terms-input.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -41,6 +42,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
   private navigationInFlight = false;
   public readonly pages = signal<OrderTermPageEntry[]>([]);
   public readonly frequency = computed(() => this.store.orderDetails()?.paymentFrequency ?? '');
+  public readonly amendmentInProgress = computed(() => this.store.orderTermAmendment() !== null);
 
   public constructor() {
     super();

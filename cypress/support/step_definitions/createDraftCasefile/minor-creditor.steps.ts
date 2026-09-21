@@ -8,6 +8,7 @@ When('I provide valid organisation creditor details with a non-UK bank and no in
   flow.enterInternationalOrganisation(),
 );
 When('I save the minor creditor details', () => flow.saveDetails());
+Then('the minor creditor validation summary shows all required errors', () => flow.assertRequiredValidation());
 Then('I reach Minor Creditor Summary without creating a draft casefile', () => flow.assertSummaryWithoutDraftWrite());
 When('I enter an unsaved minor creditor name', () => flow.enterUnsavedName());
 When('I cancel minor creditor details and decline the warning', () => flow.cancelDetails(false));

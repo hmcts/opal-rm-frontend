@@ -11,7 +11,8 @@ Feature: Minor creditor accessibility
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9809
   Scenario: Minor Creditor validation errors are accessible
     When I save the minor creditor details
-    Then I check the page for accessibility
+    Then the minor creditor validation summary shows all required errors
+    And I check the page for accessibility
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9809
   Scenario: Minor Creditor Summary is accessible

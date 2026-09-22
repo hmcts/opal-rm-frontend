@@ -86,9 +86,10 @@ describe('Cancellation route lifecycle', () => {
     seedReview();
     const store = TestBed.inject(CasesCreateCasefileStore);
     const context = TestBed.inject(CasesCreateCasefileReviewNavigationService);
-    context.setContext({ origin: 'review', section: 'commentsAndNotes' });
     const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
     await click(harness, '#create_casefile_review_cancel');
+    context.setContext({ origin: 'review', section: 'commentsAndNotes' });
+    expect(context.context()).toEqual({ origin: 'review', section: 'commentsAndNotes' });
     await click(harness, '#create_casefile_cancel_confirm');
     expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
     expect(context.context()).toBeNull();

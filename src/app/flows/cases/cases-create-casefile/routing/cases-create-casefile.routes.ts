@@ -1,3 +1,6 @@
+import { casesCreateCasefileCheckDetailsGuard } from './guards/cases-create-casefile-check-details.guard';
+import { casesCreateCasefileReceiptGuard } from './guards/cases-create-casefile-receipt.guard';
+import { casesCreateCasefileSubmissionPendingGuard } from './guards/cases-create-casefile-submission-pending.guard';
 import { Routes } from '@angular/router';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
 import { CasesCreateCasefileOrderTermLookupsService } from '../cases-create-casefile-order-terms-input/services/cases-create-casefile-order-term-lookups.service';
@@ -25,6 +28,16 @@ export const routing: Routes = [
     path: '',
     redirectTo: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType,
     pathMatch: 'full',
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.submissionConfirmation,
+    loadComponent: () =>
+      import('../cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component').then(
+        (m) => m.CasesCreateCasefileSubmissionConfirmationComponent,
+      ),
+    canActivate: [casesCreateCasefileReceiptGuard],
+    data: { title: 'Mock submission complete' },
+    resolve: { title: TitleResolver },
   },
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType,
@@ -241,9 +254,14 @@ export const routing: Routes = [
       import('../cases-create-casefile-check-details/cases-create-casefile-check-details.component').then(
         (component) => component.CasesCreateCasefileCheckDetailsComponent,
       ),
-    canActivate: [casesCreateCasefileFlowStateGuard],
+    canActivate: [casesCreateCasefileCheckDetailsGuard],
+    canDeactivate: [casesCreateCasefileSubmissionPendingGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.checkCaseDetails },
-    resolve: { title: TitleResolver },
+    resolve: {
+      title: TitleResolver,
+      countries: fetchCasesCreateCasefileCountriesResolver,
+      applications: fetchCasesCreateCasefileApplicationsResolver,
+    },
   },
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.cancel,

@@ -678,3 +678,33 @@ The following tags can be used in your test scenarios to control ticket creation
 
 - Tags are case-sensitive and must be used exactly as shown.
 - `yarn check:cypress:test-metadata` uses `@hmcts/opal-frontend-common-cypress` to report executable Cypress tests with missing epic metadata, multiple epic references, or unresolved placeholder epic values.
+
+### PO-9817 local mock submission
+
+While the RM draft-casefile endpoint is unavailable, run the explicit mock configuration:
+
+```sh
+corepack yarn ng run opal-rm-frontend:serve-ssr:local-mock --port 5200
+```
+
+Use the normal local authentication and reference-data services described above. Complete the Create casefile
+journey and open **Check case details**. Review and correction use the accepted draft. **Submit for review**
+simulates an asynchronous success and opens a clearly labelled receipt such as `MOCK-9817-1`. No create request
+is sent and no case is saved. The receipt exists only in memory; refresh starts a new journey.
+
+The `local-mock` configuration enables a synthetic authority solely for this simulation. Standard development
+and production configurations leave submission unavailable. This does not implement or demonstrate the real RM
+business-unit/permission mapping. Do not use real personal or bank data for mock testing.
+
+Run the focused browser checks with:
+
+```sh
+corepack yarn test:component --spec 'cypress/component/createDraftCasefile/review/*.cy.ts' --browser chrome
+TEST_URL=http://localhost:5200 corepack yarn test:functional --serial --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails*.feature' --browser chrome
+```
+
+The functional scenarios require the local mock server and the existing test-login configuration. Component
+and unit tests supply controlled success, rejection and uncertain outcomes without a backend. Uncertain outcomes
+retain the draft and prevent replay. The cancellation destination remains the existing adjacent-ticket screen.
+Before live submission is enabled, replace the mock gateway and authority adapter with confirmed API and RM
+permission contracts, approve validation copy and outcome recovery, and complete the full confirmation journey.

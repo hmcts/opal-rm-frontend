@@ -1,3 +1,6 @@
+import { CasesCreateCasefileSubmissionConfirmationComponent } from '../cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component';
+import { casesCreateCasefileCheckDetailsGuard } from './guards/cases-create-casefile-check-details.guard';
+import { casesCreateCasefileReceiptGuard } from './guards/cases-create-casefile-receipt.guard';
 import { CasesCreateCasefileMinorCreditorSummaryComponent } from '../cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component';
 import { CasesCreateCasefileMinorCreditorRemoveComponent } from '../cases-create-casefile-minor-creditor-remove/cases-create-casefile-minor-creditor-remove.component';
 import { Component } from '@angular/core';
@@ -508,13 +511,32 @@ describe('Create Casefile routes', () => {
       );
 
       expect(route?.loadComponent).toEqual(expect.any(Function));
-      expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
+      expect(route?.canActivate).toEqual(
+        pathKey === 'checkCaseDetails' ? [casesCreateCasefileCheckDetailsGuard] : [casesCreateCasefileFlowStateGuard],
+      );
       expect(route?.data).toEqual({ title });
-      expect(route?.resolve).toEqual({ title: TitleResolver });
+      expect(route?.resolve).toEqual(
+        pathKey === 'checkCaseDetails'
+          ? {
+              title: TitleResolver,
+              countries: fetchCasesCreateCasefileCountriesResolver,
+              applications: fetchCasesCreateCasefileApplicationsResolver,
+            }
+          : { title: TitleResolver },
+      );
 
       const component = await (route?.loadComponent?.() as Promise<{ name: string }> | undefined);
 
       expect(component?.name).toBe(expectedComponents[pathKey].name);
     },
   );
+  it('protects confirmation with a receipt rather than the cleared draft', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.submissionConfirmation,
+    );
+    expect(route?.canActivate).toEqual([casesCreateCasefileReceiptGuard]);
+    expect((await (route?.loadComponent?.() as Promise<{ name: string }>)).name).toBe(
+      CasesCreateCasefileSubmissionConfirmationComponent.name,
+    );
+  });
 });

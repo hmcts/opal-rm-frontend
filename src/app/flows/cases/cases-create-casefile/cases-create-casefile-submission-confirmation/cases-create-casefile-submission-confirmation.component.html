@@ -1,0 +1,19 @@
+<div class="govuk-grid-column-two-thirds">
+  <h1 #heading id="mock-receipt-heading" class="govuk-heading-l" tabindex="-1">Mock submission complete</h1>
+  <p class="govuk-body">No case has been saved or submitted for review. This is a local simulation.</p>
+  <p class="govuk-body">
+    Mock reference: <strong id="mock-casefile-receipt">{{ receipt() }}</strong>
+  </p>
+  @if (navigationFailed()) {
+    <p class="govuk-error-message" role="alert">The next page could not be opened. Try again.</p>
+  }
+  <button
+    id="create_casefile_mock_start_new"
+    class="govuk-button"
+    type="button"
+    [disabled]="navigating()"
+    (click)="startNewCase()"
+  >
+    Create a new case
+  </button>
+</div>

@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  viewChild,
+} from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
@@ -30,6 +40,16 @@ export class CasesCreateCasefileCaseTypeFormComponent extends AbstractFormBaseCo
   @Output() public readonly cancel = new EventEmitter<void>();
 
   @Input({ required: true }) public initialFormData!: ICasesCreateCasefileCaseTypeFormData;
+  @Input() public focusHeading = false;
+  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
+
+  constructor() {
+    super();
+    afterNextRender(() => {
+      if (this.focusHeading) this.heading()?.nativeElement.focus();
+    });
+  }
+
   public readonly caseTypeOptions = CASES_CREATE_CASEFILE_CASE_TYPE_OPTIONS;
   public readonly applicantTypes = Object.values(CASES_CREATE_CASEFILE_APPLICANT_TYPES);
   public readonly caseTypes = CASES_CREATE_CASEFILE_CASE_TYPES;

@@ -177,3 +177,28 @@ describe('CasesCreateCasefileCaseTypeFormComponent', () => {
     });
   });
 });
+
+describe('Case Type arrival focus', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [CasesCreateCasefileCaseTypeFormComponent],
+      providers: [provideRouter([])],
+    }).compileComponents();
+  });
+
+  it.each([true, false])('only focuses the empty heading when the arrival hint is %s', async (focusHeading) => {
+    const fixture = TestBed.createComponent(CasesCreateCasefileCaseTypeFormComponent);
+    fixture.componentRef.setInput('initialFormData', {
+      [FIELD_NAMES.caseType]: null,
+      [FIELD_NAMES.applicantType]: null,
+    });
+    fixture.componentRef.setInput('focusHeading', focusHeading);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const heading = fixture.nativeElement.querySelector('#create_casefile_case_type_heading');
+    expect(heading).not.toBeNull();
+    expect(document.activeElement === heading).toBe(focusHeading);
+    expect(fixture.componentInstance.caseTypeControl.value).toBeNull();
+    expect(fixture.componentInstance.applicantTypeControl.value).toBeNull();
+  });
+});

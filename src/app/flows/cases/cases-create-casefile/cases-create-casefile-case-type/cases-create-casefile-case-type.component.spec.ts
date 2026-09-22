@@ -16,7 +16,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileCaseTypeComponent>;
   let component: CasesCreateCasefileCaseTypeComponent;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
-  const router = createSpyObj(Router, ['navigate']);
+  const router = createSpyObj(Router, ['navigate', 'currentNavigation']);
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({

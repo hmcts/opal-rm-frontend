@@ -63,8 +63,9 @@ export const CreateCasefileSelectors = {
     card: (termId: number) => `[data-order-term-id="${termId}"]`,
     change: (termId: number) => `#order-term-${termId}-change`,
     remove: (termId: number) => `#order-term-${termId}-remove`,
-    creditorToggle: (termId: number) => `#order-term-${termId}-creditor-toggle`,
-    creditorDetails: (termId: number) => `#order-term-${termId}-bank`,
+    creditorToggle: (termId: number) => `#order-term-${termId}-bank summary`,
+    creditorDetails: (termId: number) => `#order-term-${termId}-bank .govuk-details__text`,
+    creditorDisclosure: (termId: number) => `#order-term-${termId}-bank details`,
     removeReturn: '#create_casefile_order_terms_remove_return',
   },
   orderTermsInput: {

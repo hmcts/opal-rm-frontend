@@ -152,7 +152,7 @@ const destinationScenarios: DestinationScenario[] = [
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.cancel,
     taskLinkSelector: Page.caseDetails.cancelLink,
-    returnSelector: Page.caseDetails.backLink,
+    returnSelector: Page.cancellation.back,
     heading: 'Cancel case creation',
     prerequisiteTasks: [],
   },

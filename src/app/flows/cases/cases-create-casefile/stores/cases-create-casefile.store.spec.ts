@@ -24,6 +24,7 @@ import type { ICasesCreateCasefileOrderTermPage } from '../cases-create-casefile
 import { mapOrderTermParameters } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-metadata';
 import { MINOR_CREDITOR_DETAILS_MOCK } from '../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
 import type { ICasesCreateCasefileMinorCreditor } from '../interfaces/cases-create-casefile-minor-creditor.interface';
+import type { ICasesCreateCasefileAcceptedOrderTerm } from '../interfaces/cases-create-casefile-accepted-order-term.interface';
 import { CasesCreateCasefileStore } from './cases-create-casefile.store';
 
 describe('CasesCreateCasefileStore', () => {
@@ -38,6 +39,13 @@ describe('CasesCreateCasefileStore', () => {
   const presentation = {
     title: page.title,
     fields: page.fields.map(({ name, label, kind, options }) => ({ name, label, kind, options })),
+  };
+  const term: ICasesCreateCasefileAcceptedOrderTerm = {
+    termId: 7,
+    resultId: 'MAT',
+    parameters: { amount: '12.30' },
+    creditor: null,
+    presentation,
   };
 
   const respondentDetails: ICasesCreateCasefileRespondentDetails = {
@@ -170,6 +178,19 @@ describe('CasesCreateCasefileStore', () => {
       ...structuredClone(MINOR_CREDITOR_DETAILS_MOCK),
       identity: { type: 'organisation', organisationName: displayName },
     },
+  });
+
+  it('never removes a replacement at the selected index', () => {
+    const other = { ...term, termId: 12 };
+    patchState(stateSource, { orderTerms: [term, other] });
+    const selection = store.beginOrderTermRemoval(7);
+    expect(selection).not.toBeNull();
+    patchState(stateSource, { orderTerms: [other] });
+    const before = structuredClone(store.orderTerms());
+
+    expect(store.confirmOrderTermRemoval(selection!)).toBe(false);
+    expect(store.orderTerms()).toEqual(before);
+    expect(store.orderTermRemovalOutcome()).toBe('unavailable');
   });
 
   it('starts without default business values', () => {
@@ -1659,6 +1680,254 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.minorCreditors()).toEqual([]);
     expect(store.nextMinorCreditorSequence()).toBe(1);
     expect(store.creditorDraft()).toBeNull();
+  });
+
+  describe('order term removal transaction', () => {
+    const seedTerms = (...terms: ICasesCreateCasefileAcceptedOrderTerm[]): void => {
+      patchState(stateSource, {
+        orderTerms: terms,
+        nextOrderTermId: Math.max(1, ...terms.map((item) => item.termId + 1)),
+      });
+    };
+
+    it('leaves state unchanged when the requested term is missing', () => {
+      seedTerms(term);
+      const before = structuredClone(getState(store));
+
+      expect(store.beginOrderTermRemoval(99)).toBeNull();
+      expect(getState(store)).toEqual(before);
+    });
+
+    it('rejects a replacement object for the selected term ID', () => {
+      seedTerms(term);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      patchState(stateSource, { orderTerms: [{ ...term }] });
+      const before = structuredClone(store.orderTerms());
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(false);
+      expect(store.orderTerms()).toEqual(before);
+      expect(store.orderTermRemoval()).toBeNull();
+      expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+    });
+
+    it('rejects a selection when the displayed applicant creditor changes', () => {
+      const applicantTerm = { ...term, creditor: { type: 'applicant' as const } };
+      patchState(stateSource, { applicantDetails: applicant, orderTerms: [applicantTerm] });
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      patchState(stateSource, { applicantDetails: { ...applicant, firstNames: 'Changed' } });
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(false);
+      expect(store.orderTerms()).toEqual([applicantTerm]);
+      expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+    });
+
+    it('rejects a selection when the displayed applicant bank changes', () => {
+      const applicantTerm = { ...term, creditor: { type: 'applicant' as const } };
+      const bankApplicant = {
+        ...applicant,
+        bankDetails: {
+          type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK,
+          nameOnAccount: 'Test Applicant',
+          sortCode: '112233',
+          accountNumber: '12345678',
+          paymentReference: 'REFERENCE',
+        },
+      };
+      patchState(stateSource, { applicantDetails: bankApplicant, orderTerms: [applicantTerm] });
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      patchState(stateSource, {
+        applicantDetails: { ...bankApplicant, bankDetails: { ...bankApplicant.bankDetails, sortCode: '445566' } },
+      });
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(false);
+      expect(store.orderTerms()).toEqual([applicantTerm]);
+      expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+    });
+
+    it('rejects a selection when the displayed minor creditor changes', () => {
+      const minorTerm = { ...term, creditor: { type: 'minor' as const, sequenceNumber: 3 } };
+      const creditor = minorCreditor(3, 'Original creditor');
+      patchState(stateSource, { orderTerms: [minorTerm], minorCreditors: [creditor] });
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      patchState(stateSource, { minorCreditors: [{ ...creditor, displayName: 'Changed creditor' }] });
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(false);
+      expect(store.orderTerms()).toEqual([minorTerm]);
+      expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+    });
+
+    it('rejects a selection when the displayed payment frequency changes', () => {
+      patchState(stateSource, { orderDetails, orderTerms: [term] });
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      patchState(stateSource, { orderDetails: { ...orderDetails, paymentFrequency: 'Monthly' } });
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(false);
+      expect(store.orderTerms()).toEqual([term]);
+      expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+    });
+
+    it('preserves an active amendment and rejects its removal selection', () => {
+      seedTerms(term);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      expect(store.beginOrderTermAmendment(term.termId)).toBe(true);
+      const amendment = store.orderTermAmendment();
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(false);
+      expect(store.orderTerms()).toEqual([term]);
+      expect(store.orderTermAmendment()).toBe(amendment);
+      expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+    });
+
+    it('does not begin removal while preserving an existing amendment', () => {
+      seedTerms(term);
+      expect(store.beginOrderTermAmendment(term.termId)).toBe(true);
+      const amendment = store.orderTermAmendment();
+      const before = structuredClone(getState(store));
+
+      expect(store.beginOrderTermRemoval(term.termId)).toBeNull();
+      expect(store.orderTermAmendment()).toBe(amendment);
+      expect(getState(store)).toEqual(before);
+    });
+
+    it('removes the selected term and records only the documented state changes', () => {
+      const other = { ...term, termId: 12, parameters: { amount: '24.60' } };
+      seedTerms(term, other);
+      patchState(stateSource, {
+        currentOrderTermId: term.termId,
+        creditorDraft: { termId: term.termId, branch: 'add-new' },
+        unsavedChanges: true,
+      });
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      store.setOrderTermRemovalReturnFocusId(term.termId);
+      const before = structuredClone(getState(store));
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+      expect(getState(store)).toEqual({
+        ...before,
+        orderTerms: [other],
+        currentOrderTermId: null,
+        creditorDraft: null,
+        unsavedChanges: false,
+        stateChanges: true,
+        orderTermRemoval: null,
+        orderTermRemovalOutcome: 'removed',
+        orderTermRemovalReturnFocusId: null,
+      });
+    });
+
+    it('retains a minor creditor shared by a surviving term', () => {
+      const creditor = minorCreditor(4);
+      const assigned = { ...term, creditor: { type: 'minor' as const, sequenceNumber: 4 } };
+      const survivor = { ...assigned, termId: 12 };
+      patchState(stateSource, { orderTerms: [assigned, survivor], minorCreditors: [creditor] });
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+      expect(store.orderTerms()).toEqual([survivor]);
+      expect(store.minorCreditors()).toEqual([creditor]);
+    });
+
+    it('prunes a minor creditor after its final assigned term is removed', () => {
+      const creditor = minorCreditor(4);
+      const assigned = { ...term, creditor: { type: 'minor' as const, sequenceNumber: 4 } };
+      const survivor = { ...term, termId: 12 };
+      patchState(stateSource, { orderTerms: [assigned, survivor], minorCreditors: [creditor] });
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+      expect(store.orderTerms()).toEqual([survivor]);
+      expect(store.minorCreditors()).toEqual([]);
+    });
+
+    it('removes the final term without rewinding identity counters', () => {
+      patchState(stateSource, {
+        orderTerms: [term],
+        nextOrderTermId: 20,
+        nextMinorCreditorSequence: 9,
+      });
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+      expect(store.orderTerms()).toEqual([]);
+      expect(store.nextOrderTermId()).toBe(20);
+      expect(store.nextMinorCreditorSequence()).toBe(9);
+    });
+
+    it('allows an unrelated term to change after selection', () => {
+      const other = { ...term, termId: 12 };
+      seedTerms(term, other);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      const changedOther = { ...other, parameters: { amount: '99.00' } };
+      patchState(stateSource, { orderTerms: [term, changedOther] });
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+      expect(store.orderTerms()).toEqual([changedOther]);
+    });
+
+    it('removes the original ID after its array position shifts', () => {
+      const before = { ...term, termId: 2 };
+      const after = { ...term, termId: 12 };
+      seedTerms(before, term, after);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      patchState(stateSource, { orderTerms: [term, after] });
+
+      expect(selection.index).toBe(1);
+      expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+      expect(store.orderTerms()).toEqual([after]);
+    });
+
+    it('does not replay confirmation or replace a successful outcome', () => {
+      seedTerms(term);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+
+      expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+      expect(store.confirmOrderTermRemoval(selection)).toBe(false);
+      expect(store.orderTermRemovalOutcome()).toBe('removed');
+      expect(store.orderTerms()).toEqual([]);
+    });
+
+    it('does not let an old navigation cleanup clear a newer selection', () => {
+      const other = { ...term, termId: 12 };
+      seedTerms(term, other);
+      const oldSelection = store.beginOrderTermRemoval(term.termId)!;
+      const currentSelection = store.beginOrderTermRemoval(other.termId)!;
+
+      store.clearOrderTermRemoval(oldSelection);
+      expect(store.orderTermRemoval()).toBe(currentSelection);
+      store.clearOrderTermRemoval(currentSelection);
+      expect(store.orderTermRemoval()).toBeNull();
+    });
+
+    it('manages outcome and focus state without marking the case dirty', () => {
+      seedTerms(term);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      store.setOrderTermRemovalReturnFocusId(term.termId);
+
+      expect(store.orderTermRemovalReturnFocusId()).toBe(term.termId);
+      expect(store.unsavedChanges()).toBe(false);
+      expect(store.stateChanges()).toBe(false);
+      store.markOrderTermRemovalUnavailable();
+      expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+      store.clearOrderTermRemovalOutcome();
+      expect(store.orderTermRemovalOutcome()).toBeNull();
+      expect(store.orderTermRemoval()).toBeNull();
+      expect(selection.presentationSignature).not.toBe('');
+      expect(store.unsavedChanges()).toBe(false);
+      expect(store.stateChanges()).toBe(false);
+    });
+
+    it.each(['resetForCaseTypeEdit', 'resetStore'] as const)('clears removal transaction state on %s', (method) => {
+      seedTerms(term);
+      store.beginOrderTermRemoval(term.termId);
+      store.markOrderTermRemovalUnavailable();
+      store.setOrderTermRemovalReturnFocusId(term.termId);
+
+      store[method]();
+
+      expect(store.orderTermRemoval()).toBeNull();
+      expect(store.orderTermRemovalOutcome()).toBeNull();
+      expect(store.orderTermRemovalReturnFocusId()).toBeNull();
+    });
   });
 
   describe('order term amendment transaction', () => {

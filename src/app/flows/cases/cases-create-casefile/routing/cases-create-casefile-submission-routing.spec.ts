@@ -168,7 +168,7 @@ describe('Mock submission route lifecycle', () => {
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
   });
 
-  it.each(['case type only', 'Provided statuses without respondent data'])(
+  it.each(['case type only', 'REMO In case type only', 'Provided statuses without respondent data'])(
     'rejects direct confirmation with %s',
     async (scenario) => {
       TestBed.configureTestingModule({
@@ -186,14 +186,19 @@ describe('Mock submission route lifecycle', () => {
       });
       const store = TestBed.inject(CasesCreateCasefileStore);
       if (scenario === 'case type only') store.setCaseTypeSelection({ caseType: 'REMO Out' });
+      if (scenario === 'REMO In case type only') {
+        store.setCaseTypeSelection({ caseType: 'REMO In', applicantType: 'Individual' });
+      }
       if (scenario === 'Provided statuses without respondent data') {
         const state = createCasesCreateCasefileReviewState();
         state.respondentDetails = null;
         patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
       }
+      const before = structuredClone(getState(store));
       const harness = await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
       expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/task-list');
       expect(harness.routeNativeElement?.textContent).not.toContain('You’ve submitted this case for review');
+      expect(getState(store)).toEqual(before);
     },
   );
 

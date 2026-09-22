@@ -32,6 +32,8 @@ import { ICasesCreateCasefileCaseTypeForm } from '../interfaces/cases-create-cas
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileCaseTypeFormComponent extends AbstractFormBaseComponent implements OnInit {
+  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
+
   @Output() protected override formSubmit = new EventEmitter<ICasesCreateCasefileCaseTypeForm>();
   protected override fieldErrors: ICasesCreateCasefileCaseTypeFieldErrors =
     CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_ERRORS;
@@ -41,7 +43,12 @@ export class CasesCreateCasefileCaseTypeFormComponent extends AbstractFormBaseCo
 
   @Input({ required: true }) public initialFormData!: ICasesCreateCasefileCaseTypeFormData;
   @Input() public focusHeading = false;
-  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
+
+  public readonly caseTypeOptions = CASES_CREATE_CASEFILE_CASE_TYPE_OPTIONS;
+  public readonly applicantTypes = Object.values(CASES_CREATE_CASEFILE_APPLICANT_TYPES);
+  public readonly caseTypes = CASES_CREATE_CASEFILE_CASE_TYPES;
+  public readonly fieldNames = CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES;
+  public readonly applicantTypeConditionalId = 'applicantTypeConditional';
 
   constructor() {
     super();
@@ -49,12 +56,6 @@ export class CasesCreateCasefileCaseTypeFormComponent extends AbstractFormBaseCo
       if (this.focusHeading) this.heading()?.nativeElement.focus();
     });
   }
-
-  public readonly caseTypeOptions = CASES_CREATE_CASEFILE_CASE_TYPE_OPTIONS;
-  public readonly applicantTypes = Object.values(CASES_CREATE_CASEFILE_APPLICANT_TYPES);
-  public readonly caseTypes = CASES_CREATE_CASEFILE_CASE_TYPES;
-  public readonly fieldNames = CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES;
-  public readonly applicantTypeConditionalId = 'applicantTypeConditional';
 
   public get caseTypeControl(): FormControl<CasesCreateCasefileCaseType | null> {
     return this.form.controls[

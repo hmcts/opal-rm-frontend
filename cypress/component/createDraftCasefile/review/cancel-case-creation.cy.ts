@@ -65,7 +65,9 @@ describe('Cancel case creation', () => {
 
     cy.get(S.confirm).click();
     cy.get(S.error).should('be.focused').and('have.attr', 'role', 'alert');
-    cy.get(S.confirm).should('contain.text', 'Continue to case type').and('not.have.class', 'govuk-button--warning');
+    cy.get(S.confirm)
+      .should('contain.text', 'Continue and delete all details')
+      .and('not.have.class', 'govuk-button--warning');
     cy.get(S.back).should('not.exist');
     cy.get<CancelStore>('@cancelStore').should((store) =>
       expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),

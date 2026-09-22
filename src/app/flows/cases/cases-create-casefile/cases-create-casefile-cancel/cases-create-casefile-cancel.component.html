@@ -17,7 +17,7 @@
       [disabled]="blocked()"
       (click)="handleConfirm()"
     >
-      {{ deleted() ? 'Continue to case type' : 'Continue and delete all details' }}
+      Continue and delete all details
     </button>
     @if (!deleted()) {
       <span id="create_casefile_cancel_back">

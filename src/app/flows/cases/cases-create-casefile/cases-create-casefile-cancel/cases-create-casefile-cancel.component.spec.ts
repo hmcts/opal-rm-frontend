@@ -134,7 +134,7 @@ describe('CasesCreateCasefileCancelComponent', () => {
     expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
     expect(fixture.nativeElement.querySelector('#create_casefile_cancel_back')).toBeNull();
     expect(fixture.nativeElement.querySelector('#create_casefile_cancel_confirm').textContent.trim()).toBe(
-      'Continue to case type',
+      'Continue and delete all details',
     );
 
     click('#create_casefile_cancel_confirm');

@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
+import { GovukDetailsComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-details';
 import { GovukButtonComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-button';
 import { GovukSummaryCardListComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-summary-card-list';
 import {
@@ -17,12 +18,12 @@ import { creditorBankRows, orderTermRows } from './utils/cases-create-casefile-o
   imports: [
     GovukBackLinkComponent,
     GovukButtonComponent,
+    GovukDetailsComponent,
     GovukSummaryCardListComponent,
     GovukSummaryListComponent,
     GovukSummaryListRowComponent,
   ],
   templateUrl: './cases-create-casefile-order-terms-summary.component.html',
-  styleUrl: './cases-create-casefile-order-terms-summary.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileOrderTermsSummaryComponent {
@@ -34,7 +35,6 @@ export class CasesCreateCasefileOrderTermsSummaryComponent {
   private readonly selectionPath = this.root + this.paths.children.orderTermsSelect;
   private navigationInFlight = false;
 
-  public readonly expanded = signal<ReadonlySet<number>>(new Set());
   public readonly cards = computed(() => {
     const applicant = this.store.applicantDetails();
     return this.store.orderTerms().map((term, index) => {
@@ -104,15 +104,6 @@ export class CasesCreateCasefileOrderTermsSummaryComponent {
 
   public handleRemove(path: string): void {
     if (!this.navigationInFlight) void this.router.navigateByUrl(path);
-  }
-
-  public toggleCreditor(termId: number): void {
-    this.expanded.update((current) => {
-      const next = new Set(current);
-      if (next.has(termId)) next.delete(termId);
-      else next.add(termId);
-      return next;
-    });
   }
 
   public handleAddTerms(): void {

@@ -48,20 +48,26 @@ describe('Order terms summary', () => {
     });
   });
 
-  it('AC3. should toggle bank details by keyboard without changing accepted data', { tags: buildTags() }, () => {
+  it('AC3. should toggle bank details with Space without changing accepted data', { tags: buildTags() }, () => {
     setupSummary();
     cy.get(S.orderTermsSummary.creditorToggle(1))
       .invoke('text')
-      .then((text) => expect(text.trim()).to.eq('Show creditor details'));
-    cy.get(S.orderTermsSummary.creditorToggle(1)).should('have.attr', 'aria-expanded', 'false');
-    cy.get(S.orderTermsSummary.creditorDetails(1)).should('not.be.visible');
+      .then((text) => expect(text.trim()).to.eq('Creditor details'));
+    cy.get(S.orderTermsSummary.creditorDisclosure(1)).should('not.have.attr', 'open');
+    cy.get(S.orderTermsSummary.creditorDetails(1)).should(([details]) => {
+      expect(details.checkVisibility()).to.eq(false);
+    });
 
-    cy.get(S.orderTermsSummary.creditorToggle(1)).focus().type('{enter}');
+    cy.get(S.orderTermsSummary.remove(1)).focus();
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.orderTermsSummary.creditorToggle(1)).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.SPACE);
 
     cy.get(S.orderTermsSummary.creditorToggle(1))
       .invoke('text')
-      .then((text) => expect(text.trim()).to.eq('Hide creditor details'));
-    cy.get(S.orderTermsSummary.creditorToggle(1)).should('have.attr', 'aria-expanded', 'true').and('be.focused');
+      .then((text) => expect(text.trim()).to.eq('Creditor details'));
+    cy.get(S.orderTermsSummary.creditorDisclosure(1)).should('have.attr', 'open');
+    cy.get(S.orderTermsSummary.creditorToggle(1)).should('be.focused');
     cy.get(S.orderTermsSummary.creditorDetails(1)).should('be.visible').and('contain.text', '00112233');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
       expect(store.orderTerms()).to.deep.equal(SUMMARY_TERMS);
@@ -69,8 +75,11 @@ describe('Order terms summary', () => {
     });
 
     cy.press(Cypress.Keyboard.Keys.SPACE);
-    cy.get(S.orderTermsSummary.creditorToggle(1)).should('have.attr', 'aria-expanded', 'false').and('be.focused');
-    cy.get(S.orderTermsSummary.creditorDetails(1)).should('not.be.visible');
+    cy.get(S.orderTermsSummary.creditorDisclosure(1)).should('not.have.attr', 'open');
+    cy.get(S.orderTermsSummary.creditorToggle(1)).should('be.focused');
+    cy.get(S.orderTermsSummary.creditorDetails(1)).should(([details]) => {
+      expect(details.checkVisibility()).to.eq(false);
+    });
   });
 
   it('AC5. should follow the native keyboard order and omit collapsed details', { tags: buildTags() }, () => {
@@ -140,14 +149,16 @@ describe('Order terms summary', () => {
       minorCreditors: SUMMARY_CREDITORS,
     });
 
-    cy.get(S.orderTermsSummary.creditorToggle(2)).focus();
+    cy.get(S.orderTermsSummary.remove(2)).focus();
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.orderTermsSummary.creditorToggle(2)).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.SPACE);
     cy.get(S.orderTermsSummary.creditorDetails(2))
       .should('be.visible')
       .and('contain.text', 'Bank name')
       .and('contain.text', 'SYNTHETIC-LONG-PAYMENT-REFERENCE-00000001');
     cy.get(S.orderTermsSummary.card(3)).should('contain.text', 'Synthetic no-bank creditor');
-    cy.get(S.orderTermsSummary.card(3)).find('button').should('not.exist');
+    cy.get(S.orderTermsSummary.card(3)).find('opal-lib-govuk-details').should('not.exist');
     cy.document().then((document) => {
       const ids = [...document.querySelectorAll<HTMLElement>('[id]')].map(({ id }) => id);
       expect(new Set(ids).size).to.eq(ids.length);
@@ -209,16 +220,12 @@ describe('Order terms summary', () => {
     cy.get(S.orderTermsSummary.card(1)).should('contain.text', title).find('img').should('not.exist');
   });
 
-  it('AC3. should present the disclosure as a GOV.UK link-style text button', { tags: buildTags() }, () => {
+  it('AC3. should use the shared GOV.UK details component', { tags: buildTags() }, () => {
     setupSummary();
 
-    cy.get(S.orderTermsSummary.card(1))
-      .contains('a', 'Change')
-      .then(($link) => {
-        cy.get(S.orderTermsSummary.creditorToggle(1))
-          .should('have.css', 'color', $link.css('color'))
-          .and('have.css', 'font-size', $link.css('font-size'));
-      });
+    cy.get(S.orderTermsSummary.card(1)).find('opal-lib-govuk-details').should('have.length', 1);
+    cy.get(S.orderTermsSummary.creditorDisclosure(1)).should('have.class', 'govuk-details');
+    cy.get(S.orderTermsSummary.creditorToggle(1)).should('have.class', 'govuk-details__summary');
   });
 
   it(
@@ -314,7 +321,7 @@ describe('Order terms summary visual evidence', () => {
     cy.get(S.orderTermsSummary.creditorToggle(2)).click();
     cy.get(S.orderTermsSummary.creditorToggle(2))
       .invoke('text')
-      .should((text) => expect(text.trim()).to.eq('Hide creditor details'));
+      .should((text) => expect(text.trim()).to.eq('Creditor details'));
     cy.get(S.orderTermsSummary.creditorDetails(2))
       .should('be.visible')
       .and('contain.text', 'Synthetic international bank with a deliberately long descriptive name')

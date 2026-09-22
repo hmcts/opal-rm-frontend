@@ -1886,6 +1886,33 @@ describe('CasesCreateCasefileStore', () => {
       expect(store.orderTerms()).toEqual([]);
     });
 
+    it('preserves a newer removal transaction when an older confirmation arrives late', () => {
+      const other = { ...term, termId: 12 };
+      seedTerms(term, other);
+      const oldSelection = store.beginOrderTermRemoval(term.termId)!;
+      const currentSelection = store.beginOrderTermRemoval(other.termId)!;
+      store.setOrderTermRemovalReturnFocusId(other.termId);
+      const before = structuredClone(getState(store));
+
+      expect(store.confirmOrderTermRemoval(oldSelection)).toBe(false);
+      expect(store.orderTermRemoval()).toBe(currentSelection);
+      expect(store.orderTermRemovalOutcome()).toBeNull();
+      expect(store.orderTermRemovalReturnFocusId()).toBe(other.termId);
+      expect(getState(store)).toEqual(before);
+    });
+
+    it('does not replace a successful outcome when unavailability is marked directly', () => {
+      seedTerms(term);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+      const afterRemoval = structuredClone(getState(store));
+
+      store.markOrderTermRemovalUnavailable();
+
+      expect(store.orderTermRemovalOutcome()).toBe('removed');
+      expect(getState(store)).toEqual(afterRemoval);
+    });
+
     it('does not let an old navigation cleanup clear a newer selection', () => {
       const other = { ...term, termId: 12 };
       seedTerms(term, other);

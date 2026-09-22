@@ -559,6 +559,7 @@ export const CasesCreateCasefileStore = signalStore(
   withMethods((store) => ({
     confirmOrderTermRemoval: (expected: ICasesCreateCasefileOrderTermRemoval): boolean => {
       if (store.orderTermRemovalOutcome() === 'removed') return false;
+      if (store.orderTermRemoval() !== expected) return false;
       if (!store.isOrderTermRemovalCurrent(expected)) {
         store.markOrderTermRemovalUnavailable();
         return false;

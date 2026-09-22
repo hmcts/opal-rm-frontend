@@ -1,3 +1,19 @@
+@if (removalSucceeded()) {
+  <div class="govuk-grid-column-full">
+    <opal-lib-moj-alert
+      id="create_casefile_order_term_creditor_removal_success"
+      type="success"
+      ariaLabel="Minor creditor removed."
+      [showDismiss]="true"
+      (dismissed)="dismissRemovalSuccess()"
+    >
+      <opal-lib-moj-alert-icon icon type="success" />
+      <opal-lib-moj-alert-content content>
+        <opal-lib-moj-alert-content-text>Minor creditor removed.</opal-lib-moj-alert-content-text>
+      </opal-lib-moj-alert-content>
+    </opal-lib-moj-alert>
+  </div>
+}
 <div class="govuk-grid-column-two-thirds">
   @if (navigationFailed()) {
     <div

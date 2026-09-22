@@ -74,7 +74,9 @@ describe('Cancel case creation accessibility', () => {
       cy.get(S.error).should('be.focused').and('have.attr', 'role', 'alert');
       cy.get(S.error).should('contain.text', 'The next page could not be opened. Try again.');
       cy.get(S.back).should('not.exist');
-      cy.get(S.confirm).should('contain.text', 'Continue to case type').and('not.have.class', 'govuk-button--warning');
+      cy.get(S.confirm)
+        .should('contain.text', 'Continue and delete all details')
+        .and('not.have.class', 'govuk-button--warning');
       scan();
       cy.screenshot('po-9818-cancellation-recovery');
 

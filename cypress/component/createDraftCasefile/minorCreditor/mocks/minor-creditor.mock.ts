@@ -120,3 +120,26 @@ export const MINOR_CREDITOR_PENDING_REPLACEMENT_STATE_MOCK: Partial<ICasesCreate
   },
   commentsAndNotes: { comment: 'Example case comment', note: 'Example case note' },
 };
+
+export const MINOR_CREDITOR_ASSIGNED_REMOVAL_STATE_MOCK: Partial<ICasesCreateCasefileState> = {
+  ...MINOR_CREDITOR_SAVED_STATE_MOCK,
+  creditorDraft: { ...MINOR_CREDITOR_PENDING_STATE_MOCK.creditorDraft!, existingSequenceNumber: 1 },
+};
+
+export const MINOR_CREDITOR_SHARED_REMOVAL_STATE_MOCK: Partial<ICasesCreateCasefileState> = {
+  ...MINOR_CREDITOR_ASSIGNED_REMOVAL_STATE_MOCK,
+  orderTerms: [
+    MINOR_CREDITOR_SAVED_STATE_MOCK.orderTerms![0],
+    { ...MINOR_CREDITOR_SAVED_STATE_MOCK.orderTerms![0], termId: 2 },
+  ],
+};
+
+export const MINOR_CREDITOR_STAGED_REMOVAL_STATE_MOCK: Partial<ICasesCreateCasefileState> = {
+  ...MINOR_CREDITOR_PENDING_REPLACEMENT_STATE_MOCK,
+  orderTermAmendment: {
+    termId: 1,
+    term: { ...MINOR_CREDITOR_SAVED_STATE_MOCK.orderTerms![0], parameters: { amount: '45.00' } },
+    inputComplete: true,
+    ready: true,
+  },
+};

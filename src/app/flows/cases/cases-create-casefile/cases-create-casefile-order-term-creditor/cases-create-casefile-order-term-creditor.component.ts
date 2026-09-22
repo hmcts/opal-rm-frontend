@@ -1,4 +1,15 @@
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import {
+  MojAlertComponent,
+  MojAlertIconComponent,
+  MojAlertContentComponent,
+  MojAlertTextComponent,
+} from '@hmcts/opal-frontend-common/components/moj/moj-alert';
+import {
+  afterNextRender,
+  Injector,
+  viewChild,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -7,7 +18,7 @@ import {
   OnDestroy,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
 import { GENERIC_HTTP_ERROR_MESSAGE } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
@@ -33,7 +44,13 @@ function applicantLabel(details: CasesCreateCasefileApplicantDetails | null): st
 
 @Component({
   selector: 'app-cases-create-casefile-order-term-creditor',
-  imports: [CasesCreateCasefileOrderTermCreditorFormComponent],
+  imports: [
+    CasesCreateCasefileOrderTermCreditorFormComponent,
+    MojAlertComponent,
+    MojAlertIconComponent,
+    MojAlertContentComponent,
+    MojAlertTextComponent,
+  ],
   templateUrl: './cases-create-casefile-order-term-creditor.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -50,6 +67,9 @@ export class CasesCreateCasefileOrderTermCreditorComponent
   private readonly summaryPath = '/' + this.paths.root + '/' + this.paths.children.orderTermsSummary;
   private readonly minorCreditorDetailsPath = '/' + this.paths.root + '/' + this.paths.children.minorCreditorDetails;
   private navigationInFlight = false;
+  private readonly injector = inject(Injector);
+  private readonly creditorForm = viewChild(CasesCreateCasefileOrderTermCreditorFormComponent);
+  public readonly removalSucceeded = signal(false);
   public readonly majorCreditors = (
     this.route.snapshot.data['majorCreditors'] as IOpalMaintenanceMajorCreditorReferenceDataResponse
   ).refData;
@@ -65,6 +85,21 @@ export class CasesCreateCasefileOrderTermCreditorComponent
         : this.store.orderTerms().find((candidate) => candidate.termId === this.entryTermId);
     return creditorFormValue(term?.creditor ?? null, this.store.creditorDraft()?.termId === this.entryTermId);
   });
+
+  constructor() {
+    super();
+    this.navigationRouter.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        if (this.entryTermId === null || this.store.currentOrderTermId() !== this.entryTermId) return;
+        if (!this.store.consumeMinorCreditorRemovalOutcome(this.entryTermId)) return;
+        this.removalSucceeded.set(true);
+        afterNextRender(() => this.creditorForm()?.focusHeading(), { injector: this.injector });
+      });
+  }
 
   private async completeAmendment(): Promise<void> {
     const pending = this.store.orderTermAmendment();
@@ -97,6 +132,12 @@ export class CasesCreateCasefileOrderTermCreditorComponent
     } finally {
       this.navigationInFlight = false;
     }
+  }
+
+  /** Dismisses this arrival's success message and returns keyboard focus to the form heading. */
+  public dismissRemovalSuccess(): void {
+    this.removalSucceeded.set(false);
+    this.creditorForm()?.focusHeading();
   }
 
   public handleUnsavedChanges(unsavedChanges: boolean): void {

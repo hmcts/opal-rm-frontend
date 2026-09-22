@@ -48,7 +48,7 @@ export class MinorCreditorFlow {
    * Activates the selected minor creditor review action.
    * @param action The review action to perform.
    */
-  public reviewAction(action: 'Change' | 'Remove' | 'Continue' | 'Cancel' | 'Back'): void {
+  public reviewAction(action: 'Change' | 'Remove' | 'Continue' | 'Cancel'): void {
     this.actions.reviewAction(action);
   }
 
@@ -57,7 +57,7 @@ export class MinorCreditorFlow {
     this.actions.assertAcceptedReview();
   }
 
-  /** Checks the removal placeholder destination. */
+  /** Checks the removal confirmation destination. */
   public assertRemoval(): void {
     this.actions.assertRemoval();
   }
@@ -83,5 +83,24 @@ export class MinorCreditorFlow {
   /** Checks accepted Cancel returned without creating a Minor creditor. */
   public assertCreditorWithoutNewMinor(): void {
     this.actions.assertCreditorWithoutNewMinor();
+  }
+  /** Confirms removal of the displayed local creditor. */
+  public confirmRemoval(): void {
+    this.actions.confirmRemoval();
+  }
+
+  /** Returns to Summary without changing creditor data. */
+  public cancelRemoval(): void {
+    this.actions.cancelRemoval();
+  }
+
+  /** Checks successful arrival and the no-write boundary. */
+  public assertRemovalSuccess(): void {
+    this.actions.assertRemovalSuccess();
+  }
+
+  /** Dismisses success and checks heading focus. */
+  public dismissRemovalSuccess(): void {
+    this.actions.dismissRemovalSuccess();
   }
 }

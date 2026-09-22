@@ -15,13 +15,15 @@ const route = (child: string): string => '/' + PATHS.root + '/' + child;
 
 describe('Minor creditor summary journey', () => {
   it(
-    'AC2. preserves the pending creditor through Remove and Back without fetching countries',
+    'AC2. preserves the pending creditor through Remove and cancellation without fetching countries',
     { tags: buildTags() },
     () => {
       setupCreditor({ initialChild: PATHS.children.minorCreditorSummary, state: MINOR_CREDITOR_PENDING_STATE_MOCK });
       cy.get(S.minorCreditorSummary.remove).click();
-      cy.get(S.heading).should('have.text', 'Remove minor creditor');
-      cy.get(S.minorCreditorSummary.back).click();
+      cy.get(S.heading)
+        .invoke('text')
+        .then((text) => expect(text.trim()).to.eq('Are you sure you want to remove this minor creditor?'));
+      cy.get(S.minorCreditorRemoval.cancel).click();
       cy.get(S.heading).should('have.text', 'Minor creditor summary');
       cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
         expect(store.creditorDraft()).to.deep.equal(MINOR_CREDITOR_PENDING_STATE_MOCK.creditorDraft);

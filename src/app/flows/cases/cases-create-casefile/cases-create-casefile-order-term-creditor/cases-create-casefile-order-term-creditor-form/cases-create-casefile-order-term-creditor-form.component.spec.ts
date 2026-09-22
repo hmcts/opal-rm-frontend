@@ -59,6 +59,14 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     component.majorCreditors = majorCreditors;
   };
 
+  it('safely focuses the heading only when the view is available', () => {
+    create();
+    expect(() => component.focusHeading()).not.toThrow();
+    fixture.detectChanges();
+    component.focusHeading();
+    expect(document.activeElement?.id).toBe('create_casefile_order_term_creditor_heading');
+  });
+
   const submit = (): void => {
     fixture.nativeElement
       .querySelector('form')

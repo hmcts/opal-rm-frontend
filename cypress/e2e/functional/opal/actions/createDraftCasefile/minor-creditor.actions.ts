@@ -57,14 +57,13 @@ export class MinorCreditorActions {
    * Activates the selected minor creditor review action.
    * @param action The review action to perform.
    */
-  public reviewAction(action: 'Change' | 'Remove' | 'Continue' | 'Cancel' | 'Back'): void {
+  public reviewAction(action: 'Change' | 'Remove' | 'Continue' | 'Cancel'): void {
     const selectors = S.minorCreditorSummary;
     const targets = {
       Change: selectors.change,
       Remove: selectors.remove,
       Continue: selectors.continue,
       Cancel: selectors.cancel,
-      Back: selectors.back,
     };
     cy.get(targets[action]).click();
   }
@@ -75,12 +74,41 @@ export class MinorCreditorActions {
     cy.get('@draftCreation').should('not.have.been.called');
   }
 
-  /** Checks the guarded removal placeholder is ready for its accessibility scan. */
+  /** Checks the guarded removal confirmation is ready for its accessibility scan. */
   public assertRemoval(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.minorCreditorRemove);
-    cy.get(S.heading).should('have.text', 'Remove minor creditor');
-    cy.get(S.minorCreditorSummary.back).should('be.visible');
+    cy.get(S.minorCreditorRemoval.heading)
+      .invoke('text')
+      .then((text) => expect(text.trim()).to.eq('Are you sure you want to remove this minor creditor?'));
+    cy.get(S.minorCreditorRemoval.confirm).should('contain.text', 'Yes - remove minor creditor');
+    cy.get(S.minorCreditorRemoval.cancel).should('have.text', 'No - cancel');
     cy.get('@draftCreation').should('not.have.been.called');
+  }
+
+  /** Confirms removal of the displayed local creditor. */
+  public confirmRemoval(): void {
+    cy.get(S.minorCreditorRemoval.confirm).click();
+  }
+
+  /** Returns to Summary without changing creditor data. */
+  public cancelRemoval(): void {
+    cy.get(S.minorCreditorRemoval.cancel).click();
+  }
+
+  /** Proves removal arrived without persisting a draft casefile. */
+  public assertRemovalSuccess(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermCreditor);
+    cy.get(S.minorCreditorRemoval.success).should('contain.text', 'Minor creditor removed.');
+    cy.get(S.minorCreditorRemoval.dismiss).should('have.text', 'Dismiss');
+    cy.get(S.creditor.addNew).should('not.be.checked');
+    cy.get('@draftCreation').should('not.have.been.called');
+  }
+
+  /** Dismisses success and checks heading focus. */
+  public dismissRemovalSuccess(): void {
+    cy.get(S.minorCreditorRemoval.dismiss).click();
+    cy.get(S.minorCreditorRemoval.success).should('not.exist');
+    cy.get(S.minorCreditorRemoval.creditorHeading).should('be.focused');
   }
 
   /** Creates an unsaved Organisation identity edit. */

@@ -1,3 +1,4 @@
+import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { COUNTRIES_RESPONSE } from '../../mocks/countries.mock';
 import { provideHttpClient } from '@angular/common/http';
@@ -41,6 +42,7 @@ export interface CreditorRequestCounters {
 }
 
 interface CreditorSetupOptions {
+  failNextNavigation?: 'false' | 'reject';
   awaitNavigation?: boolean;
   shell?: boolean;
   initialChild?: string;
@@ -56,6 +58,7 @@ interface CreditorSetupOptions {
 
 export function setupCreditor({
   awaitNavigation = true,
+  failNextNavigation,
   shell = false,
   initialChild = PATHS.children.orderTermCreditor,
   majorSource,
@@ -114,6 +117,7 @@ export function setupCreditor({
           {
             path: PATHS.root,
             component: CasesCreateCasefileComponent,
+            canDeactivate: [canDeactivateGuard],
             data: { [HIDE_PRIMARY_NAV_ROUTE_DATA_KEY]: true },
             children: routing,
           },
@@ -160,6 +164,11 @@ export function setupCreditor({
         .catch((error: unknown) => ({ value: false, error }));
       cy.wrap({ navigation }, { log: false }).as('creditorNavigation');
       const finishSetup = () => {
+        if (failNextNavigation) {
+          const navigationStub = cy.stub(router, 'navigateByUrl').callThrough();
+          if (failNextNavigation === 'false') navigationStub.onFirstCall().resolves(false);
+          else navigationStub.onFirstCall().rejects(new Error('Synthetic navigation failure'));
+        }
         fixture.detectChanges();
         const outlet = TestBed.inject(ChildrenOutletContexts).getContext('primary')?.outlet;
         if (outlet?.isActivated) cy.wrap(outlet.component).as('journeyComponent');

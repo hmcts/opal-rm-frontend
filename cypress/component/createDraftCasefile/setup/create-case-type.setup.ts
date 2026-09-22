@@ -22,7 +22,7 @@ export const setupCreateCasefileCaseType = (initialSelection: CasesCreateCasefil
     return mount(CasesCreateCasefileCaseTypeComponent, {
       providers: [
         { provide: CasesCreateCasefileStore, useValue: store },
-        { provide: Router, useValue: { navigate } },
+        { provide: Router, useValue: { navigate, currentNavigation: () => null } },
         { provide: ActivatedRoute, useValue: { parent: null } },
       ],
     }).then(() => {

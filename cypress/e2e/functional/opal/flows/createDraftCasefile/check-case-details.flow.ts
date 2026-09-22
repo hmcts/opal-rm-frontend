@@ -36,6 +36,22 @@ export class CheckCaseDetailsFlow {
   public cancel(): void {
     this.review.cancel();
   }
+  /** Opens the cancellation page. */
+  public openCancellation(): void {
+    this.review.openCancellation();
+  }
+  /** Confirms that the local case should be discarded. */
+  public discard(): void {
+    this.review.discard();
+  }
+  /** Checks that cancellation starts a fresh case. */
+  public assertFreshCase(): void {
+    this.review.assertFreshCase();
+  }
+  /** Checks that browser history cannot recover the discarded case. */
+  public assertHistoryStaysEmpty(): void {
+    this.review.assertHistoryStaysEmpty();
+  }
   /** Checks the existing journey reset after refresh. */
   public assertRestartedJourney(): void {
     this.review.assertRestartedJourney();

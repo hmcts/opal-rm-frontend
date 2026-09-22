@@ -1,3 +1,4 @@
+import { CasesCreateCasefileReviewNavigationService } from '../../../services/cases-create-casefile-review-navigation.service';
 import { Directive, inject, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
@@ -11,6 +12,7 @@ export abstract class CasesCreateCasefileFormParentBaseComponent
   extends AbstractFormParentBaseComponent
   implements OnDestroy
 {
+  private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly route = inject(ActivatedRoute);
   private readonly countries = this.route.snapshot.data['countries'] as IOpalMaintenanceCountryReferenceDataResponse;
   protected readonly store = inject(CasesCreateCasefileStore);
@@ -26,7 +28,7 @@ export abstract class CasesCreateCasefileFormParentBaseComponent
   protected completeFormSubmission(save: () => void): void {
     save();
     this.stateUnsavedChanges = false;
-    this.routerNavigate('/cases/create-casefile/task-list', true);
+    this.routerNavigate(this.reviewNavigation.returnPath('/cases/create-casefile/task-list'), true);
   }
 
   public handleUnsavedChanges(unsavedChanges: boolean): void {
@@ -35,7 +37,7 @@ export abstract class CasesCreateCasefileFormParentBaseComponent
   }
 
   public handleCancel(): void {
-    this.routerNavigate('/cases/create-casefile/task-list', true);
+    this.routerNavigate(this.reviewNavigation.returnPath('/cases/create-casefile/task-list', true), true);
   }
 
   public ngOnDestroy(): void {

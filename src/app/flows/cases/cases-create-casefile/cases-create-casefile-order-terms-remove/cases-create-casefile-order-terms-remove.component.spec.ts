@@ -47,4 +47,26 @@ describe('CasesCreateCasefileOrderTermsRemoveComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/' + paths.root + '/' + paths.children.orderTermsSummary);
     expect(getState(store)).toEqual(before);
   });
+  it('removes only the captured term once, retaining a committed result if navigation fails', async () => {
+    store.beginOrderTermRemoval(7);
+    router.navigateByUrl.mockResolvedValueOnce(false);
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsRemoveComponent);
+    await fixture.componentInstance.handleRemove();
+    expect(store.orderTerms()).toEqual([]);
+    expect(fixture.componentInstance.navigationFailed()).toBe(true);
+    await fixture.componentInstance.handleRemove();
+    expect(store.orderTerms()).toEqual([]);
+    expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not remove a replacement of the captured term', async () => {
+    store.beginOrderTermRemoval(7);
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsRemoveComponent);
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: [{ ...store.orderTerms()[0], parameters: { amount: '20.00' } }],
+    });
+    await fixture.componentInstance.handleRemove();
+    expect(store.orderTerms()[0].parameters).toEqual({ amount: '20.00' });
+    expect(fixture.componentInstance.unavailable()).toBe(true);
+  });
 });

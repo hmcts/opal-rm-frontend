@@ -21,5 +21,6 @@ export interface ICasesCreateCasefileRoutingPaths {
     commentsAndNotes: string;
     checkCaseDetails: string;
     cancel: string;
+    submissionConfirmation: string;
   };
 }

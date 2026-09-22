@@ -1,3 +1,4 @@
+import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { ChangeDetectionStrategy, Component, inject, OnDestroy } from '@angular/core';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
@@ -14,6 +15,7 @@ import type { ICasesCreateCasefileManagingPaymentsForm } from './interfaces/case
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileManagingPaymentsComponent extends AbstractFormParentBaseComponent implements OnDestroy {
+  private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly taskListPath =
     '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
@@ -27,7 +29,7 @@ export class CasesCreateCasefileManagingPaymentsComponent extends AbstractFormPa
       form.formData[CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement]!,
     );
     this.stateUnsavedChanges = false;
-    this.routerNavigate(this.taskListPath, true);
+    this.routerNavigate(this.reviewNavigation.returnPath(this.taskListPath), true);
   }
 
   public handleUnsavedChanges(unsavedChanges: boolean): void {
@@ -36,7 +38,7 @@ export class CasesCreateCasefileManagingPaymentsComponent extends AbstractFormPa
   }
 
   public handleCancel(): void {
-    this.routerNavigate(this.taskListPath, true);
+    this.routerNavigate(this.reviewNavigation.returnPath(this.taskListPath, true), true);
   }
 
   public ngOnDestroy(): void {

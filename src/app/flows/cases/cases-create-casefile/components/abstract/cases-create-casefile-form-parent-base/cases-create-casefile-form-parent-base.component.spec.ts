@@ -1,3 +1,7 @@
+import { patchState, type WritableStateSource } from '@ngrx/signals';
+import type { ICasesCreateCasefileState } from '../../../interfaces/cases-create-casefile-state.interface';
+import { createCasesCreateCasefileReviewState } from '../../../mocks/cases-create-casefile-review-state.mock';
+import { CasesCreateCasefileReviewNavigationService } from '../../../services/cases-create-casefile-review-navigation.service';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -131,5 +135,20 @@ describe('CasesCreateCasefileFormParentBaseComponent', () => {
     component.ngOnDestroy();
 
     expect(store.unsavedChanges()).toBe(false);
+  });
+  it('returns a saved reviewed party to review without losing another accepted section', () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const navigation = TestBed.inject(CasesCreateCasefileReviewNavigationService);
+    navigation.setContext({ origin: 'review', section: 'respondent' });
+    const terms = structuredClone(store.orderTerms());
+    createComponent();
+    component.submit(() => store.setRespondentDetails({ ...store.respondentDetails()!, firstNames: 'Updated' }));
+    expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/check-case-details'], {});
+    expect(store.respondentDetails()?.firstNames).toBe('Updated');
+    expect(store.orderTerms()).toEqual(terms);
+    expect(navigation.context()?.section).toBe('respondent');
   });
 });

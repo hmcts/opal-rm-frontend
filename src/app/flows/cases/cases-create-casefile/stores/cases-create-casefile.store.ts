@@ -1,3 +1,5 @@
+import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
+import { acceptedOrderTermsComplete } from '../utils/cases-create-casefile-review-eligibility';
 import { computed } from '@angular/core';
 import { getState, patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 import {
@@ -64,6 +66,16 @@ const areCaseTypeSelectionsEqual = (
 
   return true;
 };
+
+/** Runs after accepted-data patches in the same atomic update; editor drafts do not change completion. */
+const synchroniseOrderTermsTaskStatus = (state: ICasesCreateCasefileState): Partial<ICasesCreateCasefileState> => ({
+  taskStatuses: {
+    ...state.taskStatuses,
+    orderTerms: acceptedOrderTermsComplete(state)
+      ? CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED
+      : CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED,
+  },
+});
 
 export const CasesCreateCasefileStore = signalStore(
   { providedIn: 'root' },
@@ -145,15 +157,19 @@ export const CasesCreateCasefileStore = signalStore(
       });
     },
     setApplicantDetails: (applicantDetails: CasesCreateCasefileApplicantDetails): void => {
-      patchState(store, {
-        applicantDetails,
-        taskStatuses: {
-          ...store.taskStatuses(),
-          applicant: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
+      patchState(
+        store,
+        {
+          applicantDetails,
+          taskStatuses: {
+            ...store.taskStatuses(),
+            applicant: CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED,
+          },
+          stateChanges: true,
+          unsavedChanges: false,
         },
-        stateChanges: true,
-        unsavedChanges: false,
-      });
+        synchroniseOrderTermsTaskStatus,
+      );
     },
     setOrderDetails: (orderDetails: ICasesCreateCasefileOrderDetails): void => {
       patchState(store, {
@@ -279,21 +295,25 @@ export const CasesCreateCasefileStore = signalStore(
         ),
       );
       const termId = store.nextOrderTermId();
-      patchState(store, {
-        orderTerms: [
-          ...store.orderTerms(),
-          { resultId: term.resultId, parameters, termId, creditor: null, presentation: draft.presentation },
-        ],
-        currentOrderTermId: termId,
-        nextOrderTermId: termId + 1,
-        creditorDraft: null,
-        minorCreditorRemoval: null,
-        minorCreditorRemovalOutcome: null,
-        orderTermDraft: null,
-        pendingOrderTermResultId: null,
-        unsavedChanges: false,
-        stateChanges: true,
-      });
+      patchState(
+        store,
+        {
+          orderTerms: [
+            ...store.orderTerms(),
+            { resultId: term.resultId, parameters, termId, creditor: null, presentation: draft.presentation },
+          ],
+          currentOrderTermId: termId,
+          nextOrderTermId: termId + 1,
+          creditorDraft: null,
+          minorCreditorRemoval: null,
+          minorCreditorRemovalOutcome: null,
+          orderTermDraft: null,
+          pendingOrderTermResultId: null,
+          unsavedChanges: false,
+          stateChanges: true,
+        },
+        synchroniseOrderTermsTaskStatus,
+      );
       return true;
     },
     replaceAcceptedOrderTerm: (
@@ -315,14 +335,18 @@ export const CasesCreateCasefileStore = signalStore(
             }
           : existing,
       );
-      patchState(store, {
-        orderTerms,
-        currentOrderTermId: termId,
-        minorCreditorRemoval: null,
-        minorCreditorRemovalOutcome: null,
-        unsavedChanges: false,
-        stateChanges: true,
-      });
+      patchState(
+        store,
+        {
+          orderTerms,
+          currentOrderTermId: termId,
+          minorCreditorRemoval: null,
+          minorCreditorRemovalOutcome: null,
+          unsavedChanges: false,
+          stateChanges: true,
+        },
+        synchroniseOrderTermsTaskStatus,
+      );
       return true;
     },
     assignCurrentOrderTermCreditor: (termId: number, creditor: CasesCreateCasefileCreditorAssignment): boolean => {
@@ -350,15 +374,19 @@ export const CasesCreateCasefileStore = signalStore(
       const orderTerms = store
         .orderTerms()
         .map((term) => (term.termId === termId ? { ...term, creditor: { ...creditor } } : term));
-      patchState(store, {
-        orderTerms,
-        minorCreditors: associatedMinorCreditors(orderTerms, store.minorCreditors()),
-        creditorDraft: null,
-        minorCreditorRemoval: null,
-        minorCreditorRemovalOutcome: null,
-        stateChanges: true,
-        unsavedChanges: false,
-      });
+      patchState(
+        store,
+        {
+          orderTerms,
+          minorCreditors: associatedMinorCreditors(orderTerms, store.minorCreditors()),
+          creditorDraft: null,
+          minorCreditorRemoval: null,
+          minorCreditorRemovalOutcome: null,
+          stateChanges: true,
+          unsavedChanges: false,
+        },
+        synchroniseOrderTermsTaskStatus,
+      );
       return true;
     },
     removeAcceptedOrderTerm: (termId: number): boolean => {
@@ -367,17 +395,21 @@ export const CasesCreateCasefileStore = signalStore(
 
       const orderTerms = store.orderTerms().filter((term) => term.termId !== termId);
       const removedCurrentTerm = store.currentOrderTermId() === termId;
-      patchState(store, {
-        orderTerms,
-        minorCreditors: associatedMinorCreditors(orderTerms, store.minorCreditors()),
-        currentOrderTermId: removedCurrentTerm ? null : store.currentOrderTermId(),
-        creditorDraft: store.creditorDraft()?.termId === termId ? null : store.creditorDraft(),
-        minorCreditorRemoval: store.minorCreditorRemoval()?.termId === termId ? null : store.minorCreditorRemoval(),
-        minorCreditorRemovalOutcome:
-          store.minorCreditorRemovalOutcome()?.termId === termId ? null : store.minorCreditorRemovalOutcome(),
-        stateChanges: true,
-        unsavedChanges: false,
-      });
+      patchState(
+        store,
+        {
+          orderTerms,
+          minorCreditors: associatedMinorCreditors(orderTerms, store.minorCreditors()),
+          currentOrderTermId: removedCurrentTerm ? null : store.currentOrderTermId(),
+          creditorDraft: store.creditorDraft()?.termId === termId ? null : store.creditorDraft(),
+          minorCreditorRemoval: store.minorCreditorRemoval()?.termId === termId ? null : store.minorCreditorRemoval(),
+          minorCreditorRemovalOutcome:
+            store.minorCreditorRemovalOutcome()?.termId === termId ? null : store.minorCreditorRemovalOutcome(),
+          stateChanges: true,
+          unsavedChanges: false,
+        },
+        synchroniseOrderTermsTaskStatus,
+      );
       return true;
     },
     setPendingNewMinorCreditor: (termId: number): boolean => {
@@ -479,16 +511,20 @@ export const CasesCreateCasefileStore = signalStore(
         .map((term) =>
           term.termId === termId ? { ...term, creditor: { type: 'minor' as const, sequenceNumber } } : term,
         );
-      patchState(store, {
-        orderTerms,
-        minorCreditors: associatedMinorCreditors(orderTerms, [...store.minorCreditors(), creditor]),
-        nextMinorCreditorSequence: sequenceNumber + 1,
-        creditorDraft: null,
-        minorCreditorRemoval: null,
-        minorCreditorRemovalOutcome: null,
-        stateChanges: true,
-        unsavedChanges: false,
-      });
+      patchState(
+        store,
+        {
+          orderTerms,
+          minorCreditors: associatedMinorCreditors(orderTerms, [...store.minorCreditors(), creditor]),
+          nextMinorCreditorSequence: sequenceNumber + 1,
+          creditorDraft: null,
+          minorCreditorRemoval: null,
+          minorCreditorRemovalOutcome: null,
+          stateChanges: true,
+          unsavedChanges: false,
+        },
+        synchroniseOrderTermsTaskStatus,
+      );
       return sequenceNumber;
     },
     updateAssignedMinorCreditor: (
@@ -508,21 +544,25 @@ export const CasesCreateCasefileStore = signalStore(
         return false;
       }
 
-      patchState(store, {
-        minorCreditors: store.minorCreditors().map((creditor) =>
-          creditor.sequenceNumber === sequenceNumber
-            ? {
-                ...creditor,
-                displayName: minorCreditorDisplayName(details.identity),
-                details: structuredClone(details),
-              }
-            : creditor,
-        ),
-        minorCreditorRemoval: null,
-        minorCreditorRemovalOutcome: null,
-        stateChanges: true,
-        unsavedChanges: false,
-      });
+      patchState(
+        store,
+        {
+          minorCreditors: store.minorCreditors().map((creditor) =>
+            creditor.sequenceNumber === sequenceNumber
+              ? {
+                  ...creditor,
+                  displayName: minorCreditorDisplayName(details.identity),
+                  details: structuredClone(details),
+                }
+              : creditor,
+          ),
+          minorCreditorRemoval: null,
+          minorCreditorRemovalOutcome: null,
+          stateChanges: true,
+          unsavedChanges: false,
+        },
+        synchroniseOrderTermsTaskStatus,
+      );
       return true;
     },
     clearCreditorDraft: (): void => {
@@ -569,7 +609,7 @@ export const CasesCreateCasefileStore = signalStore(
     confirmMinorCreditorRemoval: (expected: ICasesCreateCasefileMinorCreditorRemoval): boolean => {
       const update = minorCreditorRemovalPatch(getState(store), expected);
       if (!update) return false;
-      patchState(store, update);
+      patchState(store, update, synchroniseOrderTermsTaskStatus);
       return true;
     },
     /** Returns a matching current outcome once, consuming stale same-term outcomes as well. */
@@ -780,20 +820,24 @@ export const CasesCreateCasefileStore = signalStore(
         )
           return false;
       }
-      patchState(store, {
-        orderTerms: store.orderTerms().map((item) => (item.termId === expected.termId ? term : item)),
-        minorCreditors,
-        nextMinorCreditorSequence,
-        orderTermAmendment: null,
-        creditorDraft: null,
-        orderTermDraft: null,
-        currentOrderTermId: null,
-        pendingOrderTermResultId: null,
-        minorCreditorRemoval: null,
-        minorCreditorRemovalOutcome: null,
-        stateChanges: true,
-        unsavedChanges: false,
-      });
+      patchState(
+        store,
+        {
+          orderTerms: store.orderTerms().map((item) => (item.termId === expected.termId ? term : item)),
+          minorCreditors,
+          nextMinorCreditorSequence,
+          orderTermAmendment: null,
+          creditorDraft: null,
+          orderTermDraft: null,
+          currentOrderTermId: null,
+          pendingOrderTermResultId: null,
+          minorCreditorRemoval: null,
+          minorCreditorRemovalOutcome: null,
+          stateChanges: true,
+          unsavedChanges: false,
+        },
+        synchroniseOrderTermsTaskStatus,
+      );
       return true;
     },
     cancelOrderTermAmendment: (termId: number): boolean => {

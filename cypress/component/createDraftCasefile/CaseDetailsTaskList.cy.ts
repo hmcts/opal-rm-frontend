@@ -307,7 +307,11 @@ describe('Create Casefile Case Details Task List', () => {
           caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN,
           applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
         };
-        setupCaseDetailsTaskList({ selection, providedTasks: scenario.prerequisiteTasks });
+        setupCaseDetailsTaskList({
+          selection,
+          providedTasks: scenario.prerequisiteTasks,
+          completeReview: scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.checkCaseDetails,
+        });
 
         cy.get(scenario.taskLinkSelector).click();
         if (
@@ -518,7 +522,7 @@ describe('Create Casefile Case Details Task List', () => {
       postRequestSpy(request);
       request.continue();
     });
-    setupCaseDetailsTaskList({ providedTasks: mandatoryTasks });
+    setupCaseDetailsTaskList({ providedTasks: mandatoryTasks, completeReview: true });
 
     cy.get(Page.caseDetails.respondentLink).click();
     cy.wait('@getCountries');

@@ -18,6 +18,30 @@ class OutsideComponent {}
 
 /** Uses the production route guards and parent lifecycle, with reference data supplied locally. */
 describe('Mock submission route lifecycle', () => {
+  it('redirects an incomplete draft from a direct confirmation URL to the task list', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([
+          {
+            path: 'cases/create-casefile',
+            component: CasesCreateCasefileComponent,
+            children: routing.map((route) => ({ ...route, resolve: {} })),
+          },
+        ]),
+      ],
+    });
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    store.setCaseTypeSelection({ caseType: 'REMO In', applicantType: 'Individual' });
+    const before = structuredClone(getState(store));
+
+    const harness = await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
+    await harness.fixture.whenStable();
+
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/task-list');
+    expect(harness.routeNativeElement?.textContent).not.toContain('This is a simulated submission');
+    expect(getState(store)).toEqual(before);
+  });
+
   it('navigates to confirmation with the accepted draft unchanged and makes no HTTP request', async () => {
     const children = routing.map((route) => ({ ...route, resolve: {} }));
     TestBed.configureTestingModule({

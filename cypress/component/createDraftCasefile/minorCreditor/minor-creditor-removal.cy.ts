@@ -70,7 +70,7 @@ describe('Minor creditor removal', () => {
   );
 
   it(
-    'AC3. should cancel with the entire business state unchanged without focusing Remove',
+    'AC3. should cancel with the entire business state unchanged and focus the summary heading',
     { tags: buildTags() },
     () => {
       setupCreditor({ initialChild: PATHS.children.minorCreditorSummary, state: MINOR_CREDITOR_PENDING_STATE_MOCK });
@@ -78,7 +78,7 @@ describe('Minor creditor removal', () => {
         const before = structuredClone(getState(store));
         cy.get(S.minorCreditorSummary.remove).click();
         cy.get(R.cancel).click();
-        cy.get(S.minorCreditorSummary.remove).should('be.visible').and('not.be.focused');
+        cy.get(S.heading).should('be.focused');
         cy.then(() => expect(getState(store)).to.deep.equal(before));
       });
     },
@@ -167,7 +167,8 @@ describe('Minor creditor removal', () => {
     cy.get(R.cancel).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.ENTER);
     cy.get<Router>('@angularRouter').its('url').should('eq', route(PATHS.children.minorCreditorSummary));
-    cy.get(S.minorCreditorSummary.remove).should('be.visible').and('not.be.focused');
+    cy.get(S.heading).should('be.focused');
+    cy.get(S.minorCreditorSummary.remove).should('not.be.focused');
     cy.get(R.heading).should('not.exist');
   });
 
@@ -241,7 +242,7 @@ describe('Minor creditor removal', () => {
             );
           cy.get('@confirmRemoval').should('have.callCount', action === 'confirm' ? 1 : 0);
           if (action === 'confirm') cy.get(R.success).should('be.visible');
-          else cy.get(S.minorCreditorSummary.remove).should('be.visible').and('not.be.focused');
+          else cy.get(S.heading).should('be.focused');
         },
       );
     }

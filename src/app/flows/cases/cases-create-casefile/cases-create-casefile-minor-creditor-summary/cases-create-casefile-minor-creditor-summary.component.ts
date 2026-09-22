@@ -47,6 +47,9 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
   private readonly root = '/' + this.paths.root + '/';
   private navigationInFlight = false;
   private acceptedSequence: number | null = null;
+  private readonly restoreRemovalFocus =
+    this.router.currentNavigation()?.extras.state?.['minorCreditorRemovalReturnFocus'] === true;
+  private readonly summaryHeading = viewChild<ElementRef<HTMLHeadingElement>>('summaryHeading');
   private readonly errorHeading = viewChild<ElementRef<HTMLHeadingElement>>('navigationErrorHeading');
 
   private readonly pendingDraft = computed(() => {
@@ -76,6 +79,12 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
     const draft = this.pendingDraft() ?? (this.acceptedSequence !== null ? this.reviewedDraft : null);
     return draft?.details && draft.countryName ? minorCreditorSummaryRows(draft.details, draft.countryName) : [];
   });
+
+  constructor() {
+    afterNextRender(() => {
+      if (this.restoreRemovalFocus) this.summaryHeading()?.nativeElement.focus();
+    });
+  }
 
   private showNavigationError(): void {
     this.navigationFailed.set(true);

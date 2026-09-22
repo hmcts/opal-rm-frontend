@@ -111,12 +111,13 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     expect(store.minorCreditorRemoval()).toBe(newer);
   });
 
-  it('does not focus Remove when returning from cancellation', async () => {
+  it('focuses the summary heading instead of Remove when returning from cancellation', async () => {
     const { fixture } = await setup({}, true);
 
     fixture.detectChanges();
     await fixture.whenStable();
 
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
     expect(document.activeElement).not.toBe(fixture.nativeElement.querySelector('#Remove'));
   });
 

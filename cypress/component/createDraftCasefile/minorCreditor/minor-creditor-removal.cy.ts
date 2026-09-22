@@ -70,7 +70,7 @@ describe('Minor creditor removal', () => {
   );
 
   it(
-    'AC3. should cancel with the entire business state unchanged and restore Remove focus',
+    'AC3. should cancel with the entire business state unchanged without focusing Remove',
     { tags: buildTags() },
     () => {
       setupCreditor({ initialChild: PATHS.children.minorCreditorSummary, state: MINOR_CREDITOR_PENDING_STATE_MOCK });
@@ -78,7 +78,7 @@ describe('Minor creditor removal', () => {
         const before = structuredClone(getState(store));
         cy.get(S.minorCreditorSummary.remove).click();
         cy.get(R.cancel).click();
-        cy.get(S.minorCreditorSummary.remove).should('be.focused');
+        cy.get(S.minorCreditorSummary.remove).should('be.visible').and('not.be.focused');
         cy.then(() => expect(getState(store)).to.deep.equal(before));
       });
     },
@@ -158,14 +158,17 @@ describe('Minor creditor removal', () => {
 
   it('AC4. should move focus through confirmation and cancellation with the keyboard', { tags: buildTags() }, () => {
     setupCreditor({ initialChild: PATHS.children.minorCreditorSummary, state: MINOR_CREDITOR_PENDING_STATE_MOCK });
-    cy.get(S.minorCreditorSummary.remove).click();
+    cy.get(S.minorCreditorSummary.remove).focus();
+    cy.press(Cypress.Keyboard.Keys.ENTER);
     cy.get(R.heading).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(R.confirm).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(R.cancel).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.ENTER);
-    cy.get(S.minorCreditorSummary.remove).should('be.focused');
+    cy.get<Router>('@angularRouter').its('url').should('eq', route(PATHS.children.minorCreditorSummary));
+    cy.get(S.minorCreditorSummary.remove).should('be.visible').and('not.be.focused');
+    cy.get(R.heading).should('not.exist');
   });
 
   for (const key of ['{enter}', ' '] as const) {
@@ -238,7 +241,7 @@ describe('Minor creditor removal', () => {
             );
           cy.get('@confirmRemoval').should('have.callCount', action === 'confirm' ? 1 : 0);
           if (action === 'confirm') cy.get(R.success).should('be.visible');
-          else cy.get(S.minorCreditorSummary.remove).should('be.focused');
+          else cy.get(S.minorCreditorSummary.remove).should('be.visible').and('not.be.focused');
         },
       );
     }

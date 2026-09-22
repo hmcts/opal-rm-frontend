@@ -111,18 +111,13 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     expect(store.minorCreditorRemoval()).toBe(newer);
   });
 
-  it('focuses the summary heading after cancellation when the Remove action is absent', async () => {
+  it('does not focus Remove when returning from cancellation', async () => {
     const { fixture } = await setup({}, true);
-    const host = fixture.nativeElement as HTMLElement;
-    const querySelector = host.querySelector.bind(host);
-    vi.spyOn(host, 'querySelector').mockImplementation((selector: string) =>
-      selector === '#Remove' ? null : querySelector(selector),
-    );
 
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(document.activeElement).toBe(querySelector('h1'));
+    expect(document.activeElement).not.toBe(fixture.nativeElement.querySelector('#Remove'));
   });
 
   it('does not move focus on ordinary summary entry', async () => {

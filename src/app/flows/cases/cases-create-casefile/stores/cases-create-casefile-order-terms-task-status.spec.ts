@@ -1,11 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { getState, patchState, type WritableStateSource } from '@ngrx/signals';
+import { patchState, type WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import type { ICasesCreateCasefileOrderTermPage } from '../cases-create-casefile-order-terms-input/interfaces/cases-create-casefile-order-term-page.interface';
 import { createCasesCreateCasefileReviewState } from '../mocks/cases-create-casefile-review-state.mock';
 import { MINOR_CREDITOR_DETAILS_MOCK } from '../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
-import { reviewEligibility } from '../utils/cases-create-casefile-review-eligibility';
 import { CasesCreateCasefileStore } from './cases-create-casefile.store';
 
 describe('accepted order-term task status', () => {
@@ -52,7 +51,7 @@ describe('accepted order-term task status', () => {
     expect(store.assignCurrentOrderTermCreditor(first, { type: 'applicant' })).toBe(true);
     expect(store.taskStatuses().orderTerms).toBe('Provided');
     expect(store.checkCaseAvailable()).toBe(true);
-    expect(reviewEligibility(getState(store), true)).toEqual([]);
+    expect(store.checkCaseAvailable()).toBe(true);
     const second = acceptTerm();
     expect(store.taskStatuses().orderTerms).toBe('Required');
     expect(store.checkCaseAvailable()).toBe(false);
@@ -64,7 +63,7 @@ describe('accepted order-term task status', () => {
       }),
     ).toBe(true);
     expect(store.taskStatuses().orderTerms).toBe('Provided');
-    expect(reviewEligibility(getState(store), true)).toEqual([]);
+    expect(store.checkCaseAvailable()).toBe(true);
   });
 
   it('requires a valid accepted applicant when used as creditor and updates on applicant correction', () => {
@@ -103,7 +102,7 @@ describe('accepted order-term task status', () => {
     store.stageAmendmentCreditor({ type: 'major', majorCreditorId: 901, displayName: 'Synthetic authority' });
     expect(store.completeOrderTermAmendment(store.orderTermAmendment()!, null)).toBe(true);
     expect(store.taskStatuses().orderTerms).toBe('Provided');
-    expect(reviewEligibility(getState(store), true)).toEqual([]);
+    expect(store.checkCaseAvailable()).toBe(true);
   });
 
   it('retains Provided after deleting one complete term and requires a replacement after deleting the last', () => {
@@ -124,28 +123,6 @@ describe('accepted order-term task status', () => {
     store.stageAmendmentCreditor({ type: 'major', majorCreditorId: 901, displayName: 'Synthetic authority' });
     expect(store.taskStatuses().orderTerms).toBe('Required');
     expect(store.completeOrderTermAmendment(store.orderTermAmendment()!, null)).toBe(true);
-    expect(store.taskStatuses().orderTerms).toBe('Provided');
-  });
-
-  it('recalculates completion when accepted term values are replaced', () => {
-    const termId = acceptTerm();
-    store.assignCurrentOrderTermCreditor(termId, { type: 'applicant' });
-    store.replaceAcceptedOrderTerm(termId, { resultId: page.resultId, parameters: { amount: 'invalid' } });
-    expect(store.taskStatuses().orderTerms).toBe('Required');
-    store.replaceAcceptedOrderTerm(termId, { resultId: page.resultId, parameters: { amount: '200.00' } });
-    expect(store.taskStatuses().orderTerms).toBe('Provided');
-  });
-
-  it('recalculates completion for changed accepted minor-creditor details', () => {
-    const termId = acceptTerm();
-    store.setPendingNewMinorCreditor(termId);
-    const sequence = store.acceptNewMinorCreditor(termId, MINOR_CREDITOR_DETAILS_MOCK)!;
-    expect(store.taskStatuses().orderTerms).toBe('Provided');
-    const invalid = structuredClone(MINOR_CREDITOR_DETAILS_MOCK);
-    invalid.address.countryId = 0;
-    expect(store.updateAssignedMinorCreditor(termId, sequence, invalid)).toBe(true);
-    expect(store.taskStatuses().orderTerms).toBe('Required');
-    expect(store.updateAssignedMinorCreditor(termId, sequence, MINOR_CREDITOR_DETAILS_MOCK)).toBe(true);
     expect(store.taskStatuses().orderTerms).toBe('Provided');
   });
 });

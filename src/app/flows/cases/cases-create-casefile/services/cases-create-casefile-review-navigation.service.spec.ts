@@ -32,7 +32,9 @@ describe('CasesCreateCasefileReviewNavigationService', () => {
       '/cases/create-casefile/check-case-details',
     );
     expect(service.focusId()).toBe('review-order-term-1');
-    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, { orderTerms: [] });
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      taskStatuses: { ...store.taskStatuses(), orderTerms: 'Required' },
+    });
     expect(service.returnPath('/cases/create-casefile/order-terms/summary')).toBe('/cases/create-casefile/task-list');
   });
   it('returns a discarded edit to accepted review without clearing dirtiness before confirmation', () => {
@@ -43,9 +45,7 @@ describe('CasesCreateCasefileReviewNavigationService', () => {
       unsavedChanges: true,
     });
     service.setContext({ origin: 'review', section: 'respondent' });
-    expect(service.returnPath('/cases/create-casefile/task-list', true)).toBe(
-      '/cases/create-casefile/check-case-details',
-    );
+    expect(service.returnPath('/cases/create-casefile/task-list')).toBe('/cases/create-casefile/check-case-details');
     expect(store.unsavedChanges()).toBe(true);
   });
 

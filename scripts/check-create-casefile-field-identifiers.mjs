@@ -146,10 +146,8 @@ const taskListItems = [
 const structuralIdentifierAllowlist = new Set([
   // Read-only review structures and actions are not form-control identifiers.
   structuralIdentifierKey(templatePaths.review, 'h1', 'id', 'review-heading'),
-  structuralIdentifierKey(templatePaths.review, 'p', 'id', 'review-mock-notice'),
   structuralIdentifierKey(templatePaths.review, 'div', 'id', 'review-errors'),
   structuralIdentifierKey(templatePaths.review, 'h2', 'id', 'review-error-title'),
-  structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_review_confirmation_retry'),
   structuralIdentifierKey(templatePaths.review, 'section', 'id', 'review-orderTerms'),
   structuralIdentifierKey(templatePaths.review, 'h2', 'id', 'review-order-terms-title'),
   structuralIdentifierKey(templatePaths.review, 'div', '[id]', "'review-order-term-' + card.termId"),
@@ -158,9 +156,7 @@ const structuralIdentifierAllowlist = new Set([
   structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_review_submit'),
   structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_review_cancel'),
   structuralIdentifierKey(templatePaths.orderTermsRemove, 'button', 'id', 'create_casefile_order_terms_remove_confirm'),
-  structuralIdentifierKey(templatePaths.receipt, 'h1', 'id', 'mock-receipt-heading'),
-  structuralIdentifierKey(templatePaths.receipt, 'strong', 'id', 'mock-casefile-receipt'),
-  structuralIdentifierKey(templatePaths.receipt, 'button', 'id', 'create_casefile_mock_start_new'),
+  structuralIdentifierKey(templatePaths.receipt, 'h1', 'id', 'submission-confirmation-heading'),
   structuralIdentifierKey(templatePaths.reviewSection, 'div', '[id]', 'id()'),
   structuralIdentifierKey(templatePaths.reviewSection, 'button', '[id]', "id() + '-change'"),
   structuralIdentifierKey(templatePaths.reviewSection, 'opal-lib-govuk-summary-list', '[summaryListId]', 'listId()'),

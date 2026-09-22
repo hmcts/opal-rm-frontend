@@ -1,8 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { getState } from '@ngrx/signals';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import type { CasesCreateCasefileReviewReturnContext } from '../types/cases-create-casefile-review-return-context.type';
-import { reviewEligibility } from '../utils/cases-create-casefile-review-eligibility';
 
 /** Closed, in-memory return context; it never contains case data or arbitrary return URLs. */
 @Injectable({ providedIn: 'root' })
@@ -28,9 +26,7 @@ export class CasesCreateCasefileReviewNavigationService {
     return '/cases/create-casefile/' + (eligible ? 'check-case-details' : 'task-list');
   }
 
-  public returnPath(normalDestination: string, discardCurrentEdits = false): string {
-    const accepted = getState(this.store);
-    const state = discardCurrentEdits ? { ...accepted, unsavedChanges: false } : accepted;
-    return this.context() ? this.destination(reviewEligibility(state, true).length === 0) : normalDestination;
+  public returnPath(normalDestination: string): string {
+    return this.context() ? this.destination(this.store.checkCaseAvailable()) : normalDestination;
   }
 }

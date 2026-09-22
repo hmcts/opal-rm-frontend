@@ -3,7 +3,7 @@ import type { IOpalMaintenanceCountryReferenceDataItem } from '../../services/op
 import type { IOpalMaintenanceApplicationReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-application-reference-data-item.interface';
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_OPTIONS } from '../cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-options.constant';
 import { CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_OPTIONS } from '../cases-create-casefile-managing-payments/constants/cases-create-casefile-managing-payments-options.constant';
-import type { CasesCreateCasefileAcceptedSnapshot } from '../types/cases-create-casefile-accepted-snapshot.type';
+import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import type { ReviewSection } from '../interfaces/cases-create-casefile-review-section.interface';
 import type { ReviewRow } from '../interfaces/cases-create-casefile-review-row.interface';
 
@@ -23,7 +23,7 @@ const section = (id: string, title: string, rows: ReviewRow[]): ReviewSection =>
 });
 
 export function reviewCaseSections(
-  snapshot: CasesCreateCasefileAcceptedSnapshot,
+  snapshot: ICasesCreateCasefileState,
   _countries: readonly IOpalMaintenanceCountryReferenceDataItem[],
   applications: readonly IOpalMaintenanceApplicationReferenceDataItem[],
 ): readonly ReviewSection[] {

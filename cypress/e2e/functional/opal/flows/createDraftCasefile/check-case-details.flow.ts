@@ -1,7 +1,7 @@
 import { CheckCaseDetailsActions } from '../../actions/createDraftCasefile/check-case-details.actions';
 import { OrderTermsFlow } from './order-terms.flow';
 
-/** Completes prerequisites using maintained actions, then exercises mock review. */
+/** Completes prerequisites using maintained actions, then exercises casefile review. */
 export class CheckCaseDetailsFlow {
   private readonly terms = new OrderTermsFlow();
   private readonly review = new CheckCaseDetailsActions();
@@ -24,21 +24,21 @@ export class CheckCaseDetailsFlow {
   public submit(): void {
     this.review.submit();
   }
-  /** Checks the synthetic receipt and absence of backend creation. */
-  public assertReceipt(): void {
-    this.review.assertReceipt();
+  /** Checks the confirmation page and absence of backend creation. */
+  public assertConfirmation(): void {
+    this.review.assertConfirmation();
   }
-  /** Reloads the receipt page to exercise in-memory receipt expiry. */
-  public refreshReceipt(): void {
-    this.review.refreshReceipt();
+  /** Reloads the confirmation page to verify the existing in-memory journey reset. */
+  public refreshConfirmation(): void {
+    this.review.refreshConfirmation();
   }
   /** Opens the existing cancellation boundary and returns to review. */
   public cancel(): void {
     this.review.cancel();
   }
-  /** Checks receipt expiry after refresh. */
-  public assertExpiredReceipt(): void {
-    this.review.assertExpiredReceipt();
+  /** Checks the existing journey reset after refresh. */
+  public assertRestartedJourney(): void {
+    this.review.assertRestartedJourney();
   }
   /** Checks draft retention after visiting cancellation. */
   public assertRetainedDraft(): void {

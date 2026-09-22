@@ -5,17 +5,12 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { patchState, type WritableStateSource } from '@ngrx/signals';
-import { Subject } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { getState, patchState, type WritableStateSource } from '@ngrx/signals';
+import { describe, expect, it } from 'vitest';
 import { CasesCreateCasefileComponent } from '../cases-create-casefile.component';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { createCasesCreateCasefileReviewState } from '../mocks/cases-create-casefile-review-state.mock';
-import { CasesCreateCasefileSubmissionGateway } from '../services/cases-create-casefile-submission-gateway.service';
-import { CasesCreateCasefileSubmissionService } from '../services/cases-create-casefile-submission.service';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
-import { CASES_CREATE_CASEFILE_MOCK_ENABLED_TOKEN } from '../tokens/cases-create-casefile-mock-enabled.token';
-import type { CasesCreateCasefileSubmissionOutcome } from '../types/cases-create-casefile-submission-outcome.type';
 import { routing } from './cases-create-casefile.routes';
 
 @Component({ template: '<h1>Outside journey</h1>' })
@@ -23,29 +18,14 @@ class OutsideComponent {}
 
 /** Uses the production route guards and parent lifecycle, with reference data supplied locally. */
 describe('Mock submission route lifecycle', () => {
-  it('blocks departure pending submission, retains receipt after draft reset, and rejects stale review entry', async () => {
-    const response = new Subject<CasesCreateCasefileSubmissionOutcome>();
-    const submit = vi.fn(() => response);
-    const children = routing
-      .filter((route) => ['check-case-details', 'submission-confirmation'].includes(route.path ?? ''))
-      .map((route) => ({
-        ...route,
-        resolve: {},
-        data: {
-          countries: { refData: [{ country_id: 1, country_name: 'United Kingdom', active: true }] },
-          applications: {
-            refData: [{ application_id: 901, application_title: 'Synthetic application', active: true }],
-          },
-        },
-      }));
+  it('navigates to confirmation with the accepted draft unchanged and makes no HTTP request', async () => {
+    const children = routing.map((route) => ({ ...route, resolve: {} }));
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
           { path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children },
           { path: 'outside', component: OutsideComponent },
         ]),
-        { provide: CASES_CREATE_CASEFILE_MOCK_ENABLED_TOKEN, useValue: true },
-        { provide: CasesCreateCasefileSubmissionGateway, useValue: { available: true, submit } },
       ],
     });
     const store = TestBed.inject(CasesCreateCasefileStore);
@@ -53,25 +33,17 @@ describe('Mock submission route lifecycle', () => {
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
       createCasesCreateCasefileReviewState(),
     );
+    const before = structuredClone(getState(store));
     const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
-    const service = TestBed.inject(CasesCreateCasefileSubmissionService);
-    const router = TestBed.inject(Router);
-    service.submit();
-    expect(await router.navigateByUrl('/outside')).toBe(false);
-    expect(router.url).toBe('/cases/create-casefile/check-case-details');
-    expect(store.respondentDetails()).not.toBeNull();
-    response.next({ status: 'success', receipt: 'MOCK-9817-1' });
+    await harness.fixture.whenStable();
+    harness.routeNativeElement!.querySelector<HTMLButtonElement>('#create_casefile_review_submit')!.click();
     await harness.fixture.whenStable();
     harness.detectChanges();
-    expect(router.url).toBe('/cases/create-casefile/submission-confirmation');
-    expect(harness.routeNativeElement?.textContent).toContain('MOCK-9817-1');
-    expect(store.caseTypeSelection()).toBeNull();
-    expect(store.respondentDetails()).toBeNull();
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
+    expect(harness.routeNativeElement?.textContent).toContain('This is a simulated submission');
+    expect(getState(store)).toEqual(before);
     await harness.navigateByUrl('/cases/create-casefile/check-case-details');
-    expect(router.url).toBe('/cases/create-casefile/submission-confirmation');
-    expect(submit).toHaveBeenCalledOnce();
-    await harness.navigateByUrl('/outside');
-    expect(service.receipt()).toBeNull();
+    expect(getState(store)).toEqual(before);
   });
   it('returns saved corrections to review and permits rebuilding after removal of the last term', async () => {
     const children = routing.map((route) => ({
@@ -85,7 +57,6 @@ describe('Mock submission route lifecycle', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children }]),
-        { provide: CASES_CREATE_CASEFILE_MOCK_ENABLED_TOKEN, useValue: true },
       ],
     });
     const store = TestBed.inject(CasesCreateCasefileStore);

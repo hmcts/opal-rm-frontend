@@ -37,7 +37,7 @@ export abstract class CasesCreateCasefileFormParentBaseComponent
   }
 
   public handleCancel(): void {
-    this.routerNavigate(this.reviewNavigation.returnPath('/cases/create-casefile/task-list', true), true);
+    this.routerNavigate(this.reviewNavigation.returnPath('/cases/create-casefile/task-list'), true);
   }
 
   public ngOnDestroy(): void {

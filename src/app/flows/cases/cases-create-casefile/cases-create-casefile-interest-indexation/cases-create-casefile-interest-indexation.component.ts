@@ -51,7 +51,7 @@ export class CasesCreateCasefileInterestIndexationComponent
   }
 
   public handleCancel(): void {
-    this.routerNavigate(this.reviewNavigation.returnPath(this.taskListPath, true), true);
+    this.routerNavigate(this.reviewNavigation.returnPath(this.taskListPath), true);
   }
 
   public ngOnDestroy(): void {

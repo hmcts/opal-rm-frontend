@@ -72,20 +72,6 @@
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
-            },
-            "local-mock": {
-              "buildOptimizer": false,
-              "optimization": false,
-              "vendorChunk": true,
-              "extractLicenses": false,
-              "sourceMap": true,
-              "namedChunks": true,
-              "fileReplacements": [
-                {
-                  "replace": "src/app/flows/cases/cases-create-casefile/config/cases-create-casefile-mock.config.ts",
-                  "with": "src/app/flows/cases/cases-create-casefile/config/cases-create-casefile-mock.local.config.ts"
-                }
-              ]
             }
           },
           "defaultConfiguration": "production"
@@ -98,9 +84,6 @@
             },
             "development": {
               "buildTarget": "opal-rm-frontend:build:development"
-            },
-            "local-mock": {
-              "buildTarget": "opal-rm-frontend:build:local-mock"
             }
           },
           "defaultConfiguration": "development"
@@ -167,18 +150,6 @@
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
-            },
-            "local-mock": {
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true,
-              "namedChunks": true,
-              "fileReplacements": [
-                {
-                  "replace": "src/app/flows/cases/cases-create-casefile/config/cases-create-casefile-mock.config.ts",
-                  "with": "src/app/flows/cases/cases-create-casefile/config/cases-create-casefile-mock.local.config.ts"
-                }
-              ]
             }
           },
           "defaultConfiguration": "development"
@@ -214,19 +185,6 @@
               "sourceMap": true,
               "extractLicenses": false,
               "vendorChunk": true
-            },
-            "local-mock": {
-              "buildOptimizer": false,
-              "optimization": false,
-              "sourceMap": true,
-              "extractLicenses": false,
-              "vendorChunk": true,
-              "fileReplacements": [
-                {
-                  "replace": "src/app/flows/cases/cases-create-casefile/config/cases-create-casefile-mock.config.ts",
-                  "with": "src/app/flows/cases/cases-create-casefile/config/cases-create-casefile-mock.local.config.ts"
-                }
-              ]
             }
           },
           "defaultConfiguration": "production"
@@ -241,10 +199,6 @@
             "production": {
               "browserTarget": "opal-rm-frontend:build:production",
               "serverTarget": "opal-rm-frontend:server:production"
-            },
-            "local-mock": {
-              "browserTarget": "opal-rm-frontend:build:local-mock",
-              "serverTarget": "opal-rm-frontend:server:local-mock"
             }
           },
           "defaultConfiguration": "development"

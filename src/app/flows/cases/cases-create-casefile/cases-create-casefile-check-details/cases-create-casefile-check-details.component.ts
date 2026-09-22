@@ -19,16 +19,10 @@ import type { IOpalMaintenanceCountryReferenceDataItem } from '../../services/op
 import type { IOpalMaintenanceApplicationReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-application-reference-data-item.interface';
 import { CasesCreateCasefileReviewSectionComponent } from '../components/cases-create-casefile-review-section/cases-create-casefile-review-section.component';
 import { CasesCreateCasefileOrderTermCardComponent } from '../components/cases-create-casefile-order-term-card/cases-create-casefile-order-term-card.component';
-import { CASES_CREATE_CASEFILE_REVIEW_ERRORS } from '../constants/cases-create-casefile-review-errors.constant';
-import { CASES_CREATE_CASEFILE_SUBMISSION_COPY } from '../constants/cases-create-casefile-submission-copy.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
-import { CasesCreateCasefileSubmissionService } from '../services/cases-create-casefile-submission.service';
-import type { CasesCreateCasefileReviewIssue } from '../types/cases-create-casefile-review-issue.type';
 import type { CasesCreateCasefileReviewReturnContext } from '../types/cases-create-casefile-review-return-context.type';
-import { acceptedCasefileSnapshot } from '../utils/cases-create-casefile-accepted-snapshot';
-import { reviewEligibility } from '../utils/cases-create-casefile-review-eligibility';
 import { reviewRespondent, reviewApplicant, reviewMinorCreditor } from '../utils/cases-create-casefile-party-review';
 import { reviewCaseSections } from '../utils/cases-create-casefile-case-review';
 import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-card';
@@ -69,18 +63,13 @@ export class CasesCreateCasefileCheckDetailsComponent {
     this.route?.snapshot.data['countries']?.refData ?? [];
   private readonly applications: readonly IOpalMaintenanceApplicationReferenceDataItem[] =
     this.route?.snapshot.data['applications']?.refData ?? [];
-  private readonly referenceErrors = signal<readonly CasesCreateCasefileReviewIssue[]>([]);
   private readonly navigating = signal(false);
-  private readonly snapshot = computed(() => acceptedCasefileSnapshot(getState(this.store)));
+  private readonly snapshot = computed(() => getState(this.store));
   private readonly caseSections = computed(() =>
     reviewCaseSections(this.snapshot(), this.countries, this.applications),
   );
   public readonly navigationError = signal(false);
-  public readonly submission = inject(CasesCreateCasefileSubmissionService);
-  public readonly copy = CASES_CREATE_CASEFILE_SUBMISSION_COPY;
-  public readonly blocked = computed(
-    () => this.navigating() || !['idle', 'definiteFailure'].includes(this.submission.state()),
-  );
+  public readonly blocked = this.navigating.asReadonly();
   public readonly beforeTerms = computed(() => {
     const snapshot = this.snapshot();
     const applicant = snapshot.applicantDetails;
@@ -103,7 +92,6 @@ export class CasesCreateCasefileCheckDetailsComponent {
   );
   public readonly cards = computed(() => {
     const state = getState(this.store);
-    if (reviewEligibility(state, true).includes('orderTerms')) return [];
     return state.orderTerms.map((term, index) => {
       const creditor = term.creditor;
       const minor =
@@ -124,58 +112,16 @@ export class CasesCreateCasefileCheckDetailsComponent {
       };
     });
   });
-  public readonly errors = computed(() =>
-    [...new Set([...this.submission.issues(), ...this.referenceErrors()])].map(
-      (issue) => CASES_CREATE_CASEFILE_REVIEW_ERRORS[issue],
-    ),
-  );
-
   constructor() {
     afterNextRender(() => {
       this.focusTarget(this.reviewNavigation.focusId());
       this.reviewNavigation.clearContext();
     });
     effect(() => {
-      if (
-        this.errors().length ||
-        this.submission.feedback() ||
-        this.submission.navigationFailed() ||
-        this.navigationError()
-      ) {
+      if (this.navigationError()) {
         afterNextRender(() => this.errorRegion()?.nativeElement.focus(), { injector: this.injector });
       }
     });
-  }
-
-  private unresolvedReferences(): CasesCreateCasefileReviewIssue[] {
-    const state = this.snapshot();
-    const exists = (id: number) => this.countries.some((country) => country.country_id === id && country.active);
-    const issues: CasesCreateCasefileReviewIssue[] = [];
-    const respondent = state.respondentDetails;
-    if (
-      respondent &&
-      [respondent.contactDetails.address, respondent.thirdParty?.address, respondent.employer?.address].some(
-        (address) => address && !exists(address.countryId),
-      )
-    )
-      issues.push('respondent');
-    const applicant = state.applicantDetails;
-    if (
-      applicant &&
-      [applicant.contactDetails.address, 'thirdParty' in applicant ? applicant.thirdParty?.address : null].some(
-        (address) => address && !exists(address.countryId),
-      )
-    )
-      issues.push('applicant');
-    if (state.minorCreditors.some((creditor) => !exists(creditor.details.address.countryId))) issues.push('orderTerms');
-    if (
-      state.orderDetails &&
-      !this.applications.some(
-        (application) => application.application_id === state.orderDetails?.applicationId && application.active,
-      )
-    )
-      issues.push('orderDetails');
-    return issues;
   }
 
   private async navigate(path: string): Promise<boolean> {
@@ -202,9 +148,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
 
   public handleSubmit(): void {
     if (this.blocked()) return;
-    const issues = this.unresolvedReferences();
-    this.referenceErrors.set(issues);
-    if (!issues.length) this.submission.submit();
+    void this.navigate(this.root + this.paths.submissionConfirmation);
   }
 
   public async handleChange(section: string): Promise<void> {
@@ -257,7 +201,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   public handleBack(): void {
-    if (this.submission.pending() || this.navigating()) return;
+    if (this.navigating()) return;
     this.reviewNavigation.clearContext();
     void this.navigate(this.root + this.paths.taskList);
   }

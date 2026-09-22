@@ -1,7 +1,6 @@
 import { patchState, type WritableStateSource } from '@ngrx/signals';
 import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-state.interface';
 import { createCasesCreateCasefileReviewState } from 'src/app/flows/cases/cases-create-casefile/mocks/cases-create-casefile-review-state.mock';
-import { CASES_CREATE_CASEFILE_MOCK_ENABLED_TOKEN } from 'src/app/flows/cases/cases-create-casefile/tokens/cases-create-casefile-mock-enabled.token';
 import { ORDER_DETAILS_MOCK } from '../orderDetails/mocks/order-details.mock';
 import { provideHttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
@@ -85,7 +84,6 @@ export const setupCaseDetailsTaskList = ({
       providers: [
         provideRouter(testRoutes),
         provideHttpClient(),
-        { provide: CASES_CREATE_CASEFILE_MOCK_ENABLED_TOKEN, useValue: completeReview },
         { provide: CasesCreateCasefileStore, useValue: store },
       ],
     }).then(() => {

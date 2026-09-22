@@ -1,6 +1,5 @@
 import { CasesCreateCasefileSubmissionConfirmationComponent } from '../cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component';
 import { casesCreateCasefileCheckDetailsGuard } from './guards/cases-create-casefile-check-details.guard';
-import { casesCreateCasefileReceiptGuard } from './guards/cases-create-casefile-receipt.guard';
 import { CasesCreateCasefileMinorCreditorSummaryComponent } from '../cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component';
 import { CasesCreateCasefileMinorCreditorRemoveComponent } from '../cases-create-casefile-minor-creditor-remove/cases-create-casefile-minor-creditor-remove.component';
 import { Component } from '@angular/core';
@@ -530,11 +529,11 @@ describe('Create Casefile routes', () => {
       expect(component?.name).toBe(expectedComponents[pathKey].name);
     },
   );
-  it('protects confirmation with a receipt rather than the cleared draft', async () => {
+  it('keeps confirmation inside the existing draft journey', async () => {
     const route = routing.find(
       (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.submissionConfirmation,
     );
-    expect(route?.canActivate).toEqual([casesCreateCasefileReceiptGuard]);
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
     expect((await (route?.loadComponent?.() as Promise<{ name: string }>)).name).toBe(
       CasesCreateCasefileSubmissionConfirmationComponent.name,
     );

@@ -95,7 +95,10 @@ export class CasesCreateCasefileMinorCreditorRemoveComponent {
           ? this.orderTermsSelectPath
           : this.creditorPath;
     try {
-      const success = await this.router.navigateByUrl(target);
+      const success =
+        action === 'cancel'
+          ? await this.router.navigateByUrl(target, { state: { minorCreditorRemovalReturnFocus: true } })
+          : await this.router.navigateByUrl(target);
       this.navigationFailed.set(!success);
       if (success && action === 'cancel' && this.entrySelection) {
         this.store.clearMinorCreditorRemoval(this.entrySelection);

@@ -1,4 +1,3 @@
-import { CasesCreateCasefileSubmissionService } from '../services/cases-create-casefile-submission.service';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
@@ -22,7 +21,6 @@ import { ICasesCreateCasefileCaseTypeForm } from './interfaces/cases-create-case
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBaseComponent {
-  private readonly submission = inject(CasesCreateCasefileSubmissionService);
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
 
@@ -78,7 +76,6 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
       selection = { caseType };
     }
 
-    this.submission.reset();
     this.reviewNavigation.clearContext();
     this.store.setCaseTypeSelection(selection);
     this.stateUnsavedChanges = false;

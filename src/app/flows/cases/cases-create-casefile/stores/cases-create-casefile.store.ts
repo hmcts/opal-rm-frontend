@@ -1,5 +1,5 @@
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
-import { acceptedOrderTermsComplete } from '../utils/cases-create-casefile-review-eligibility';
+import { acceptedOrderTermsComplete } from '../utils/cases-create-casefile-order-terms-complete';
 import { computed } from '@angular/core';
 import { getState, patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 import {

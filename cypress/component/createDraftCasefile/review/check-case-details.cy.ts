@@ -1,11 +1,5 @@
 import { getState } from '@ngrx/signals';
-import type { Subject } from 'rxjs';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
-import { CASES_CREATE_CASEFILE_SUBMISSION_COPY as COPY } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-submission-copy.constant';
-import { CASES_CREATE_CASEFILE_REVIEW_ERRORS as ERRORS } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-review-errors.constant';
-import { CASES_CREATE_CASEFILE_STATE } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-state.constant';
-import type { CasesCreateCasefileSubmissionOutcome } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-submission-outcome.type';
-import type { CasesCreateCasefileSubmissionService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-submission.service';
 import type { CasesCreateCasefileReviewNavigationService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-review-navigation.service';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import {
@@ -13,15 +7,12 @@ import {
   createRemoOutReviewState,
   createOrganisationReviewState,
   createMixedCreditorReviewState,
-  REVIEW_RECEIPT,
 } from './mocks/review.mock';
 import { setupReview, type ReviewStore } from './setup/review.setup';
 
 const S = CreateCasefileSelectors.review;
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9817', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
-const emit = (outcome: CasesCreateCasefileSubmissionOutcome) =>
-  cy.get<Subject<CasesCreateCasefileSubmissionOutcome>>('@gatewayOutcomes').then((subject) => subject.next(outcome));
 const assertDraftRetained = () =>
   cy
     .get<ReviewStore>('@reviewStore')
@@ -34,7 +25,6 @@ describe('Check case details local mock review', () => {
     () => {
       setupReview();
       cy.get(S.heading).should('have.text', 'Check case details');
-      cy.get(S.notice).should('have.text', COPY.notice);
       cy.get(S.section('caseType')).should('contain.text', 'REMO In').and('contain.text', 'Individual');
       cy.get(S.section('respondent'))
         .should('contain.text', 'Alternative Respondent')
@@ -55,7 +45,6 @@ describe('Check case details local mock review', () => {
         .should('contain.text', 'Synthetic review comment')
         .and('contain.text', 'Synthetic review note');
       cy.contains('Originator').should('not.exist');
-      cy.get('@gatewaySubmit').should('not.have.been.called');
       cy.screenshot('po-9817-review-before-submission');
     },
   );
@@ -102,7 +91,6 @@ describe('Check case details local mock review', () => {
       cy.get<CasesCreateCasefileReviewNavigationService>('@reviewNavigation').should((navigation) =>
         expect(navigation.context()).to.deep.equal({ origin: 'review', section: 'orderTerm', termId: 1 }),
       );
-      cy.get('@gatewaySubmit').should('not.have.been.called');
     },
   );
 
@@ -114,7 +102,6 @@ describe('Check case details local mock review', () => {
       expect(store.orderTermRemoval()?.termId).to.equal(1);
       expect(store.orderTerms()).to.deep.equal(createCompleteReviewState().orderTerms);
     });
-    cy.get('@gatewaySubmit').should('not.have.been.called');
   });
 
   it(
@@ -127,7 +114,6 @@ describe('Check case details local mock review', () => {
         .should('contain.text', 'Alternative Applicant')
         .and('contain.text', '31 January 1990');
       cy.get(S.submit).click();
-      cy.get('@gatewaySubmit').should('have.been.calledOnce');
       cy.get(S.errors).should('not.exist');
     },
   );
@@ -194,112 +180,26 @@ describe('Check case details local mock review', () => {
       cy.get<ReviewStore>('@reviewStore').should((store) =>
         expect(getState(store)).to.deep.equal(createMixedCreditorReviewState()),
       );
-      cy.get('@gatewaySubmit').should('not.have.been.called');
       cy.screenshot('po-9817-review-mixed-creditors');
     },
   );
 
-  it('AC3. should lock repeated activation to one mock gateway call while pending', { tags: buildTags() }, () => {
-    setupReview();
-    cy.get(S.submit).then((button) => {
-      button[0].click();
-      button[0].click();
-    });
-    cy.get(S.submit).should('be.disabled');
-    cy.get(S.change('respondent')).should('be.disabled');
-    cy.get('@gatewaySubmit').should('have.been.calledOnce');
-    cy.get('@routerNavigate').should('not.have.been.called');
-    assertDraftRetained();
-  });
-
-  it(
-    'AC4. should retain the entire draft after definite failure and allow one explicit retry',
-    { tags: buildTags() },
-    () => {
-      setupReview();
-      cy.get(S.submit).click();
-      emit({ status: 'definiteFailure' });
-      cy.get(S.errors).should('contain.text', COPY.rejected).and('be.focused');
-      cy.get(S.submit).should('be.enabled');
-      assertDraftRetained();
-      cy.get('@routerNavigate').should('not.have.been.called');
-      cy.get(S.submit).click();
-      cy.get('@gatewaySubmit').should('have.been.calledTwice');
-      cy.get(S.submit).should('be.disabled');
-    },
-  );
-
-  it('AC4. should retain unknown outcomes and prevent unsafe replay', { tags: buildTags() }, () => {
+  it('AC3. should simulate submission by navigating with the draft unchanged', { tags: buildTags() }, () => {
     setupReview();
     cy.get(S.submit).click();
-    emit({ status: 'outcomeUnknown' });
-    cy.get(S.errors).should('contain.text', COPY.unknown);
-    cy.get(S.submit).should('be.disabled');
-    cy.get<CasesCreateCasefileSubmissionService>('@submission').then((service) => service.submit());
-    cy.get('@gatewaySubmit').should('have.been.calledOnce');
-    cy.get('@routerNavigate').should('not.have.been.called');
-    assertDraftRetained();
-  });
-
-  it('AC5. should reset the draft only after success and retain the mock receipt', { tags: buildTags() }, () => {
-    setupReview();
-    cy.get(S.submit).click();
-    assertDraftRetained();
-    emit({ status: 'success', receipt: REVIEW_RECEIPT });
-    cy.get<ReviewStore>('@reviewStore').should((store) =>
-      expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),
-    );
-    cy.get<CasesCreateCasefileSubmissionService>('@submission').should((service) =>
-      expect(service.receipt()).to.equal(REVIEW_RECEIPT),
-    );
     cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
-    cy.get('@gatewaySubmit').should('have.been.calledOnce');
-    cy.screenshot('po-9817-review-after-mock-success');
+    assertDraftRetained();
   });
-
-  it('AC5. should retry only confirmation navigation after a successful mock result', { tags: buildTags() }, () => {
+  it('should retain the draft when confirmation navigation fails', { tags: buildTags() }, () => {
     setupReview({ failNavigation: true });
     cy.get(S.submit).click();
-    emit({ status: 'success', receipt: REVIEW_RECEIPT });
-    cy.get(S.errors).should('contain.text', 'Your mock receipt is retained');
-    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) => navigate.resolves(true));
-    cy.get(S.retryConfirmation).click();
-    cy.get('@routerNavigate').should('have.been.calledTwice');
-    cy.get('@gatewaySubmit').should('have.been.calledOnce');
-    cy.get(S.errors).should('not.exist');
-  });
-
-  it('AC2. should reject incomplete state without invoking the gateway', { tags: buildTags() }, () => {
-    setupReview({ state: { respondentDetails: null } });
-    cy.get(S.submit).click();
-    cy.get(S.errors).should('contain.text', ERRORS.respondent.text).and('be.focused');
-    cy.get('@gatewaySubmit').should('not.have.been.called');
-    cy.get('@routerNavigate').should('not.have.been.called');
-  });
-
-  it('AC2. should reject stale managed references and focus their correction section', { tags: buildTags() }, () => {
-    setupReview({ staleReferences: true });
-    cy.get(S.submit).click();
-    cy.get(S.errors).should('contain.text', ERRORS.respondent.text);
-    cy.get(S.errorLink('respondent')).click();
-    cy.get(S.section('respondent')).should('be.focused');
-    cy.get('@gatewaySubmit').should('not.have.been.called');
+    cy.get(S.errors).should('contain.text', 'The page could not be opened').and('be.focused');
     assertDraftRetained();
   });
-
-  it('AC2. should recheck lost mock authority at submission and make no gateway call', { tags: buildTags() }, () => {
-    setupReview({ authorised: false });
-    cy.get(S.submit).click();
-    cy.get(S.errors).should('contain.text', ERRORS.authority.text);
-    cy.get('@gatewaySubmit').should('not.have.been.called');
-    assertDraftRetained();
-  });
-
-  it('AC1. should request cancellation without clearing the draft', { tags: buildTags() }, () => {
+  it('should retain the draft when opening cancellation', { tags: buildTags() }, () => {
     setupReview();
     cy.get(S.cancel).click();
-    cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.cancel));
+    cy.get('@routerNavigate').should('have.been.calledWith', route(PATHS.children.cancel));
     assertDraftRetained();
-    cy.get('@gatewaySubmit').should('not.have.been.called');
   });
 });

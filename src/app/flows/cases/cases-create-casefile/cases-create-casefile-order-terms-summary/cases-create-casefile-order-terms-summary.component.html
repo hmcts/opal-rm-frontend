@@ -6,12 +6,12 @@
   } @else {
     @for (card of cards(); track card.termId) {
       <section [attr.data-order-term-id]="card.termId" [attr.aria-label]="card.ariaLabel">
-        <opal-lib-govuk-summary-card-list [summaryCardListId]="card.id" [cardTitle]="card.title" [headingLevel]="2">
+        <app-cases-create-casefile-order-term-card [card]="card">
           <ng-container actions>
             <li class="govuk-summary-card__action">
               <a
                 class="govuk-link govuk-link--no-visited-state"
-                [id]="card.id + '-change'"
+                [id]="'order-term-' + card.termId + '-change'"
                 [href]="card.inputPath"
                 (click)="$event.preventDefault(); handleChange(card.termId)"
               >
@@ -22,7 +22,7 @@
             <li class="govuk-summary-card__action">
               <a
                 class="govuk-link govuk-link--no-visited-state"
-                [id]="card.id + '-remove'"
+                [id]="'order-term-' + card.termId + '-remove'"
                 [href]="card.removePath"
                 (click)="$event.preventDefault(); handleRemove(card.removePath)"
               >
@@ -31,33 +31,7 @@
               </a>
             </li>
           </ng-container>
-          <ng-container content>
-            <opal-lib-govuk-summary-list [summaryListId]="card.id">
-              @for (row of card.rows; track row.id) {
-                <div opal-lib-govuk-summary-list-row [summaryListId]="card.id" [summaryListRowId]="row.id">
-                  <ng-container name>{{ row.label }}</ng-container>
-                  <ng-container value>{{ row.value }}</ng-container>
-                </div>
-              }
-            </opal-lib-govuk-summary-list>
-            @if (card.bankRows.length) {
-              <opal-lib-govuk-details [id]="card.bankId" summaryText="Creditor details">
-                <opal-lib-govuk-summary-list [summaryListId]="card.bankListId">
-                  @for (bankRow of card.bankRows; track bankRow.id) {
-                    <div
-                      opal-lib-govuk-summary-list-row
-                      [summaryListId]="card.bankListId"
-                      [summaryListRowId]="bankRow.id"
-                    >
-                      <ng-container name>{{ bankRow.label }}</ng-container>
-                      <ng-container value>{{ bankRow.value }}</ng-container>
-                    </div>
-                  }
-                </opal-lib-govuk-summary-list>
-              </opal-lib-govuk-details>
-            }
-          </ng-container>
-        </opal-lib-govuk-summary-card-list>
+        </app-cases-create-casefile-order-term-card>
       </section>
     }
   }

@@ -1,0 +1,25 @@
+<opal-lib-govuk-summary-card-list [summaryCardListId]="id()" [cardTitle]="card().title" [headingLevel]="2">
+  <ng-container actions><ng-content select="[actions]" /></ng-container>
+  <ng-container content>
+    <opal-lib-govuk-summary-list [summaryListId]="id()">
+      @for (row of card().rows; track row.id) {
+        <div opal-lib-govuk-summary-list-row [summaryListId]="id()" [summaryListRowId]="row.id">
+          <ng-container name>{{ row.label }}</ng-container>
+          <ng-container value>{{ row.value }}</ng-container>
+        </div>
+      }
+    </opal-lib-govuk-summary-list>
+    @if (card().bankRows.length) {
+      <opal-lib-govuk-details [id]="bankId()" summaryText="Creditor details">
+        <opal-lib-govuk-summary-list [summaryListId]="bankListId()">
+          @for (bankRow of card().bankRows; track bankRow.id) {
+            <div opal-lib-govuk-summary-list-row [summaryListId]="bankListId()" [summaryListRowId]="bankRow.id">
+              <ng-container name>{{ bankRow.label }}</ng-container>
+              <ng-container value>{{ bankRow.value }}</ng-container>
+            </div>
+          }
+        </opal-lib-govuk-summary-list>
+      </opal-lib-govuk-details>
+    }
+  </ng-container>
+</opal-lib-govuk-summary-card-list>

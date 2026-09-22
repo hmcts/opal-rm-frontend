@@ -643,3 +643,32 @@ test('accepts removal read-only rows but rejects the same binding on a form cont
   );
   assertRejected(runScanner(repositoryRoot), /noncanonical id="create_casefile_minor_creditor_remove_confirm"/);
 });
+
+test('accepts cancellation structural identifiers only on their declared elements', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    `${createCasefilePath}/cases-create-casefile-cancel/cases-create-casefile-cancel.component.html`,
+    `<h1 id="create_casefile_cancel_heading">Cancel case creation</h1>
+<p id="create_casefile_cancel_warning">Warning</p>
+<p id="create_casefile_cancel_error">Error</p>
+<button id="create_casefile_cancel_confirm" type="button">Continue</button>
+<span id="create_casefile_cancel_back"></span>`,
+  );
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('rejects cancellation structural identifiers reused as fields or on another page', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    `${createCasefilePath}/cases-create-casefile-cancel/cases-create-casefile-cancel.component.html`,
+    '<input id="create_casefile_cancel_confirm" name="create_casefile_cancel_confirm" />',
+  );
+  await writeFixtureFile(repositoryRoot, caseTypeTemplatePath, '<h1 id="create_casefile_cancel_heading">Heading</h1>');
+  const result = runScanner(repositoryRoot);
+  assertRejected(result, /noncanonical id="create_casefile_cancel_confirm"/);
+  assert.match(result.stderr, /noncanonical name="create_casefile_cancel_confirm"/);
+  assert.match(result.stderr, /noncanonical id="create_casefile_cancel_heading"/);
+});

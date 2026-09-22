@@ -84,6 +84,7 @@ const pageDefinitions = [
 const templatePaths = {
   removalNotification:
     'components/cases-create-casefile-removal-notification/cases-create-casefile-removal-notification.component.html',
+  cancellation: 'cases-create-casefile-cancel/cases-create-casefile-cancel.component.html',
   review: 'cases-create-casefile-check-details/cases-create-casefile-check-details.component.html',
   receipt: 'cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component.html',
   reviewSection: 'components/cases-create-casefile-review-section/cases-create-casefile-review-section.component.html',
@@ -161,6 +162,12 @@ const structuralIdentifierAllowlist = new Set([
     'id',
     'create_casefile_order_terms_removal_dismiss',
   ),
+  // Cancellation content and actions are structural, not form-control identifiers.
+  structuralIdentifierKey(templatePaths.cancellation, 'h1', 'id', 'create_casefile_cancel_heading'),
+  structuralIdentifierKey(templatePaths.cancellation, 'p', 'id', 'create_casefile_cancel_warning'),
+  structuralIdentifierKey(templatePaths.cancellation, 'p', 'id', 'create_casefile_cancel_error'),
+  structuralIdentifierKey(templatePaths.cancellation, 'button', 'id', 'create_casefile_cancel_confirm'),
+  structuralIdentifierKey(templatePaths.cancellation, 'span', 'id', 'create_casefile_cancel_back'),
   // Read-only review structures and actions are not form-control identifiers.
   structuralIdentifierKey(templatePaths.review, 'h1', 'id', 'review-heading'),
   structuralIdentifierKey(templatePaths.review, 'div', 'id', 'review-errors'),

@@ -1943,6 +1943,71 @@ describe('CasesCreateCasefileStore', () => {
       expect(store.stateChanges()).toBe(false);
     });
 
+    it('clears the pending removal and focus when the case type changes', () => {
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+      seedTerms(term);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      store.setOrderTermRemovalReturnFocusId(term.termId);
+
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+      expect(store.orderTerms()).toEqual([]);
+      expect(store.orderTermRemoval()).toBeNull();
+      expect(store.orderTermRemovalOutcome()).toBeNull();
+      expect(store.orderTermRemovalReturnFocusId()).toBeNull();
+      const after = structuredClone(getState(store));
+      expect(store.confirmOrderTermRemoval(selection)).toBe(false);
+      expect(getState(store)).toEqual(after);
+    });
+
+    it('preserves the pending removal and focus when the case type is unchanged', () => {
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+      seedTerms(term);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      store.setOrderTermRemovalReturnFocusId(term.termId);
+      const before = structuredClone(getState(store));
+
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+
+      expect(getState(store)).toEqual(before);
+      expect(store.orderTermRemoval()).toBe(selection);
+      expect(store.isOrderTermRemovalCurrent(selection)).toBe(true);
+    });
+
+    it.each(['removed', 'unavailable'] as const)('clears the %s outcome when the case type changes', (outcome) => {
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+      seedTerms(term);
+      const selection = store.beginOrderTermRemoval(term.termId)!;
+      if (outcome === 'removed') expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+      else store.markOrderTermRemovalUnavailable();
+      store.setOrderTermRemovalReturnFocusId(term.termId);
+      expect(store.orderTermRemovalOutcome()).toBe(outcome);
+
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+
+      expect(store.orderTermRemoval()).toBeNull();
+      expect(store.orderTermRemovalOutcome()).toBeNull();
+      expect(store.orderTermRemovalReturnFocusId()).toBeNull();
+    });
+
+    it.each(['removed', 'unavailable'] as const)(
+      'preserves the %s outcome when the case type is unchanged',
+      (outcome) => {
+        store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+        seedTerms(term);
+        const selection = store.beginOrderTermRemoval(term.termId)!;
+        if (outcome === 'removed') expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+        else store.markOrderTermRemovalUnavailable();
+        store.setOrderTermRemovalReturnFocusId(term.termId);
+        expect(store.orderTermRemovalOutcome()).toBe(outcome);
+        const before = structuredClone(getState(store));
+
+        store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+
+        expect(getState(store)).toEqual(before);
+      },
+    );
+
     it.each(['resetForCaseTypeEdit', 'resetStore'] as const)('clears removal transaction state on %s', (method) => {
       seedTerms(term);
       store.beginOrderTermRemoval(term.termId);

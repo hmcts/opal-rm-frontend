@@ -1,7 +1,88 @@
 <div class="govuk-grid-column-two-thirds">
-  <span class="govuk-caption-l">Order terms</span>
-  <h1 class="govuk-heading-l">Remove minor creditor</h1>
-  <a id="minor-creditor-remove-back" class="govuk-back-link" [routerLink]="summaryPath"
-    >Back to minor creditor summary</a
-  >
+  <h1 #heading id="create_casefile_minor_creditor_remove_heading" class="govuk-heading-l" tabindex="-1">
+    Are you sure you want to remove this minor creditor?
+  </h1>
+  @if (available()) {
+    <opal-lib-govuk-summary-card-list
+      summaryCardListId="minorCreditorRemovalDetails"
+      cardTitle="Minor creditor details"
+      [headingLevel]="2"
+    >
+      <ng-container content>
+        <opal-lib-govuk-summary-list summaryListId="minorCreditorRemovalDetails">
+          @for (row of rows(); track row.id) {
+            <div
+              opal-lib-govuk-summary-list-row
+              summaryListId="minorCreditorRemovalDetails"
+              [summaryListRowId]="row.id"
+            >
+              <ng-container name>{{ row.label }}</ng-container>
+              <ng-container value>
+                @for (line of row.values; track $index) {
+                  <div>{{ line }}</div>
+                }
+              </ng-container>
+            </div>
+          }
+        </opal-lib-govuk-summary-list>
+      </ng-container>
+    </opal-lib-govuk-summary-card-list>
+  }
+  @if (available() && !committed()) {
+    <div class="govuk-button-group">
+      <button
+        id="create_casefile_minor_creditor_remove_confirm"
+        type="button"
+        class="govuk-button govuk-button--warning"
+        [disabled]="busy()"
+        (click)="handleConfirm()"
+      >
+        Yes - remove minor creditor
+      </button>
+      <a
+        id="create_casefile_minor_creditor_remove_cancel"
+        class="govuk-link"
+        [href]="summaryPath"
+        [attr.aria-disabled]="busy() ? 'true' : null"
+        (click)="handleCancel($event)"
+        >No - cancel</a
+      >
+    </div>
+  }
+  @if (navigationFailed()) {
+    <div class="govuk-error-summary" role="alert" aria-labelledby="create_casefile_minor_creditor_remove_error_title">
+      <h2
+        #errorHeading
+        id="create_casefile_minor_creditor_remove_error_title"
+        class="govuk-error-summary__title"
+        tabindex="-1"
+      >
+        There is a problem
+      </h2>
+      <div class="govuk-error-summary__body">{{ safeNavigationErrorMessage }}</div>
+    </div>
+    @if (retryAvailable()) {
+      <button
+        id="create_casefile_minor_creditor_remove_retry"
+        type="button"
+        class="govuk-button"
+        [disabled]="busy()"
+        (click)="retryNavigation()"
+      >
+        Try again
+      </button>
+    }
+  }
+  @if ((!available() && !committed()) || (committed() && navigationFailed() && !retryAvailable())) {
+    <p class="govuk-body">This minor creditor is no longer available to remove.</p>
+    <button
+      id="create_casefile_minor_creditor_remove_recover"
+      type="button"
+      class="govuk-button"
+      [disabled]="busy()"
+      (click)="recover()"
+    >
+      Continue
+    </button>
+  }
 </div>

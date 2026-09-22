@@ -43,3 +43,21 @@ Feature: Capture minor creditor details
     And I save the minor creditor details
     And I accept the reviewed minor creditor
     Then the reviewed minor creditor is accepted without creating a draft casefile
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9813
+  Scenario: Remove a reviewed pending minor creditor
+    When I provide valid organisation creditor details with a non-UK bank and no international identifiers
+    And I save the minor creditor details
+    And I open minor creditor removal
+    And I confirm minor creditor removal
+    Then I return to Creditor with minor creditor removal success
+    When I dismiss minor creditor removal success
+    Then I return to Creditor without a new minor creditor
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9813
+  Scenario: Keep a reviewed minor creditor after cancelling removal
+    When I provide valid organisation creditor details with a non-UK bank and no international identifiers
+    And I save the minor creditor details
+    And I open minor creditor removal
+    And I cancel minor creditor removal
+    Then I reach Minor Creditor Summary without creating a draft casefile

@@ -481,3 +481,71 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     expect(store.orderTerms()[1].parameters).toEqual({ amount: '20.00' });
   });
 });
+
+describe('Minor creditor removal destination', () => {
+  it.each(['pending', 'assigned', 'shared', 'replacement', 'staged'] as const)(
+    'consumes %s removal success only on routed arrival and preserves the correct choice',
+    async (context) => {
+      TestBed.configureTestingModule({ providers: [provideRouter(routedCreditor())] });
+      const store = TestBed.inject(CasesCreateCasefileStore);
+      seedCurrentTerm(store);
+      const accepted = {
+        ...acceptedTerm,
+        creditor: context === 'pending' ? null : { type: 'minor' as const, sequenceNumber: 4 },
+      };
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+        orderTerms: context === 'shared' ? [accepted, { ...accepted, termId: 2 }] : [accepted],
+        minorCreditors: context === 'pending' ? [] : [existingMinorCreditor],
+        creditorDraft: {
+          termId: 1,
+          branch: 'add-new',
+          details: structuredClone(MINOR_CREDITOR_DETAILS_MOCK),
+          countryName: 'United Kingdom',
+          ...(context === 'assigned' || context === 'shared' ? { existingSequenceNumber: 4 } : {}),
+        },
+        orderTermAmendment:
+          context === 'staged' ? { termId: 1, term: accepted, inputComplete: true, ready: true } : null,
+      });
+      expect(store.confirmMinorCreditorRemoval(store.beginMinorCreditorRemoval()!)).toBe(true);
+      const harness = await RouterTestingHarness.create();
+      const component = await harness.navigateByUrl(
+        '/cases/create-casefile/order-terms/creditor',
+        CasesCreateCasefileOrderTermCreditorComponent,
+      );
+      harness.detectChanges();
+      expect(store.minorCreditorRemovalOutcome()).toBeNull();
+      const element = harness.routeNativeElement!;
+      expect(element.querySelector('#create_casefile_order_term_creditor_removal_success')?.textContent).toContain(
+        'Minor creditor removed.',
+      );
+      const selected = element.querySelector<HTMLInputElement>('input[type="radio"]:checked');
+      if (context === 'replacement') expect(selected?.value).toBe('minor:4');
+      else expect(selected).toBeNull();
+      component.dismissRemovalSuccess();
+      harness.detectChanges();
+      expect(element.querySelector('#create_casefile_order_term_creditor_removal_success')).toBeNull();
+      expect(document.activeElement?.id).toBe('create_casefile_order_term_creditor_heading');
+      await harness.navigateByUrl('/cases/create-casefile/order-terms/summary');
+      await harness.navigateByUrl('/cases/create-casefile/order-terms/creditor');
+      harness.detectChanges();
+      expect(
+        harness.routeNativeElement?.querySelector('#create_casefile_order_term_creditor_removal_success'),
+      ).toBeNull();
+    },
+  );
+
+  it('retains the outcome when destination activation is cancelled', async () => {
+    const routes = routedCreditor();
+    routes[0].canActivate = [() => false];
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    seedCurrentTerm(store);
+    store.setPendingNewMinorCreditor(1);
+    store.savePendingMinorCreditorDetails(1, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom');
+    store.confirmMinorCreditorRemoval(store.beginMinorCreditorRemoval()!);
+    const outcome = store.minorCreditorRemovalOutcome();
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/cases/create-casefile/order-terms/creditor');
+    expect(store.minorCreditorRemovalOutcome()).toBe(outcome);
+  });
+});

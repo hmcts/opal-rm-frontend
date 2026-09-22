@@ -9,6 +9,6 @@ Feature: Review order terms accessibility
     Then I check the page for accessibility
     When I open removal for the second maintenance order
     Then I check the page for accessibility
-    When I return from the order term removal placeholder
+    When I return from the order term removal confirmation
     Then both original orders remain on the summary
     And I check the page for accessibility

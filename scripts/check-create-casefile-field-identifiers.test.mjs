@@ -607,3 +607,39 @@ test('rejects Minor creditor summary structure on a different template', async (
   assert.match(result.stderr, /noncanonical summaryListRowId="row\.id"/);
   assert.match(result.stderr, /noncanonical id="minor-creditor-summary-continue"/);
 });
+
+const orderTermCardTemplatePath = `${createCasefilePath}/components/cases-create-casefile-order-term-card/cases-create-casefile-order-term-card.component.html`;
+
+test('accepts read-only order term card bindings at their current component location', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  const template = await readFile(resolve(scriptsDirectory, '..', orderTermCardTemplatePath), 'utf8');
+  await writeFixtureFile(repositoryRoot, orderTermCardTemplatePath, template);
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('does not allow read-only card bindings on an input', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(repositoryRoot, orderTermCardTemplatePath, '<input [id]="id()" />');
+  assertRejected(runScanner(repositoryRoot), /noncanonical id="id\(\)"/);
+});
+
+test('accepts removal read-only rows but rejects the same binding on a form control', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    minorCreditorRemoveTemplatePath,
+    `<opal-lib-govuk-summary-list summaryListId="minorCreditorRemovalDetails">
+    <div opal-lib-govuk-summary-list-row summaryListId="minorCreditorRemovalDetails" [summaryListRowId]="row.id"></div>
+  </opal-lib-govuk-summary-list>
+  <h1 id="create_casefile_minor_creditor_remove_heading">Remove</h1>
+  <button id="create_casefile_minor_creditor_remove_confirm" type="button">Confirm</button>`,
+  );
+  assert.equal(runScanner(repositoryRoot).status, 0);
+  await writeFixtureFile(
+    repositoryRoot,
+    minorCreditorRemoveTemplatePath,
+    '<input id="create_casefile_minor_creditor_remove_confirm" />',
+  );
+  assertRejected(runScanner(repositoryRoot), /noncanonical id="create_casefile_minor_creditor_remove_confirm"/);
+});

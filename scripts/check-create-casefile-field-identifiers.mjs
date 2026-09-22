@@ -84,6 +84,8 @@ const pageDefinitions = [
 const templatePaths = {
   removalNotification:
     'components/cases-create-casefile-removal-notification/cases-create-casefile-removal-notification.component.html',
+  orderTermCard:
+    'components/cases-create-casefile-order-term-card/cases-create-casefile-order-term-card.component.html',
   applicantIndividual:
     'cases-create-casefile-applicant-individual/cases-create-casefile-applicant-individual-form/cases-create-casefile-applicant-individual-form.component.html',
   applicantOrganisation:
@@ -156,6 +158,96 @@ const structuralIdentifierAllowlist = new Set([
     'id',
     'create_casefile_order_terms_removal_dismiss',
   ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorRemove,
+    'h1',
+    'id',
+    'create_casefile_minor_creditor_remove_heading',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorRemove,
+    'button',
+    'id',
+    'create_casefile_minor_creditor_remove_confirm',
+  ),
+  structuralIdentifierKey(templatePaths.minorCreditorRemove, 'a', 'id', 'create_casefile_minor_creditor_remove_cancel'),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorRemove,
+    'h2',
+    'id',
+    'create_casefile_minor_creditor_remove_error_title',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorRemove,
+    'button',
+    'id',
+    'create_casefile_minor_creditor_remove_retry',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorRemove,
+    'button',
+    'id',
+    'create_casefile_minor_creditor_remove_recover',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorSummary,
+    'h2',
+    'id',
+    'create_casefile_minor_creditor_summary_navigation_error_title',
+  ),
+  structuralIdentifierKey(templatePaths.orderTermCard, 'opal-lib-govuk-summary-list', '[summaryListId]', 'id()'),
+  structuralIdentifierKey(
+    templatePaths.orderTermCard,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListId]',
+    'id()',
+  ),
+  structuralIdentifierKey(
+    templatePaths.orderTermCard,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListRowId]',
+    'row.id',
+  ),
+  structuralIdentifierKey(templatePaths.orderTermCard, 'opal-lib-govuk-details', '[id]', 'bankId()'),
+  structuralIdentifierKey(
+    templatePaths.orderTermCard,
+    'opal-lib-govuk-summary-list',
+    '[summaryListId]',
+    'bankListId()',
+  ),
+  structuralIdentifierKey(
+    templatePaths.orderTermCard,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListId]',
+    'bankListId()',
+  ),
+  structuralIdentifierKey(
+    templatePaths.orderTermCard,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListRowId]',
+    'bankRow.id',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorRemove,
+    'opal-lib-govuk-summary-list',
+    'summaryListId',
+    'minorCreditorRemovalDetails',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorRemove,
+    'div[opal-lib-govuk-summary-list-row]',
+    'summaryListId',
+    'minorCreditorRemovalDetails',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorRemove,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListRowId]',
+    'row.id',
+  ),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'a', '[id]', "'order-term-' + card.termId + '-change'"),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'a', '[id]', "'order-term-' + card.termId + '-remove'"),
+
   structuralIdentifierKey(templatePaths.caseType, 'div', '[id]', 'applicantTypeConditionalId'),
   structuralIdentifierKey(templatePaths.caseType, 'button', 'id', 'continue'),
   structuralIdentifierKey(templatePaths.caseType, 'span', 'id', 'cancelCaseType'),

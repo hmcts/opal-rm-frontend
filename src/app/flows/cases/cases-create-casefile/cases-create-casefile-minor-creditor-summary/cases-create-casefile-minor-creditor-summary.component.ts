@@ -1,5 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  Injector,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { Router } from '@angular/router';
+import { GENERIC_HTTP_ERROR_MESSAGE } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import {
   GovukSummaryCardActionComponent,
@@ -30,11 +41,17 @@ import { minorCreditorSummaryRows } from './utils/cases-create-casefile-minor-cr
 export class CasesCreateCasefileMinorCreditorSummaryComponent {
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
+  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly entryTermId = this.store.currentOrderTermId();
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
   private readonly root = '/' + this.paths.root + '/';
   private navigationInFlight = false;
   private acceptedSequence: number | null = null;
+  private readonly restoreRemovalFocus =
+    this.router.currentNavigation()?.extras.state?.['minorCreditorRemovalReturnFocus'] === true;
+  private readonly summaryHeading = viewChild<ElementRef<HTMLHeadingElement>>('summaryHeading');
+  private readonly errorHeading = viewChild<ElementRef<HTMLHeadingElement>>('navigationErrorHeading');
 
   private readonly pendingDraft = computed(() => {
     const draft = this.store.creditorDraft();
@@ -50,6 +67,8 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
   public readonly removePath = this.root + this.paths.children.minorCreditorRemove;
   public readonly creditorPath = this.root + this.paths.children.orderTermCreditor;
   public readonly orderTermsPath = this.root + this.paths.children.orderTermsSummary;
+  public readonly navigationFailed = signal(false);
+  public readonly safeNavigationErrorMessage = GENERIC_HTTP_ERROR_MESSAGE;
 
   public readonly rows = computed(() => {
     if (
@@ -61,6 +80,19 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
     const draft = this.pendingDraft() ?? (this.acceptedSequence !== null ? this.reviewedDraft : null);
     return draft?.details && draft.countryName ? minorCreditorSummaryRows(draft.details, draft.countryName) : [];
   });
+
+  constructor() {
+    afterNextRender(() => {
+      if (!this.restoreRemovalFocus) return;
+      const remove = this.host.nativeElement.querySelector<HTMLAnchorElement>('#Remove');
+      (remove ?? this.summaryHeading()?.nativeElement)?.focus();
+    });
+  }
+
+  private showNavigationError(): void {
+    this.navigationFailed.set(true);
+    afterNextRender(() => this.errorHeading()?.nativeElement.focus(), { injector: this.injector });
+  }
 
   public async handleContinue(): Promise<void> {
     const pending = this.store.orderTermAmendment();
@@ -145,6 +177,26 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
       }
     } catch {
       return;
+    } finally {
+      this.navigationInFlight = false;
+    }
+  }
+
+  /** Captures the reviewed draft and opens its removal confirmation. */
+  public async handleRemove(): Promise<void> {
+    if (this.navigationInFlight || this.pendingDraft() !== this.reviewedDraft) return;
+    const selection = this.store.beginMinorCreditorRemoval();
+    if (!selection) return;
+    this.navigationInFlight = true;
+    this.navigationFailed.set(false);
+    try {
+      if (!(await this.router.navigateByUrl(this.removePath))) {
+        this.store.clearMinorCreditorRemoval(selection);
+        this.showNavigationError();
+      }
+    } catch {
+      this.store.clearMinorCreditorRemoval(selection);
+      this.showNavigationError();
     } finally {
       this.navigationInFlight = false;
     }

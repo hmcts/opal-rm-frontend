@@ -19,7 +19,6 @@ export const REVIEW_APPLICATIONS: IOpalMaintenanceApplicationReferenceDataItem[]
     active: true,
   },
 ];
-export const REVIEW_RECEIPT = 'MOCK-9817-1';
 export function createCompleteReviewState() {
   const state = createCasesCreateCasefileReviewState();
   state.centralAuthorityDetails = {

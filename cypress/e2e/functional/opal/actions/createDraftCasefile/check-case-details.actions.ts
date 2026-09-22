@@ -3,7 +3,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/case
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-payment-arrangements.constant';
 
-/** Exercises the explicit local mock through the real rendered journey. */
+/** Exercises the simulated submission through the real rendered journey. */
 export class CheckCaseDetailsActions {
   /** Completes the remaining mandatory tasks before opening review. */
   public completeRemainingTasks(): void {
@@ -16,7 +16,6 @@ export class CheckCaseDetailsActions {
     cy.get(S.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT)).check();
     cy.get(S.managingPayments.returnToCaseDetails).click();
     cy.get(S.caseDetails.checkCaseButton).click();
-    cy.get(S.review.notice).should('contain.text', 'Local mock');
     cy.get(S.review.heading).should('have.text', 'Check case details');
   }
 
@@ -39,24 +38,22 @@ export class CheckCaseDetailsActions {
     cy.get(S.review.submit).click();
   }
 
-  /** Checks the synthetic receipt and absence of backend creation. */
-  public assertReceipt(): void {
+  /** Checks the simulated confirmation and absence of backend creation. */
+  public assertConfirmation(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
-    cy.get(S.review.receiptHeading).should('have.text', 'Mock submission complete').and('be.focused');
-    cy.get(S.review.receipt).should('have.text', 'MOCK-9817-1');
+    cy.get(S.review.confirmationHeading).should('have.text', 'Submission confirmation').and('be.focused');
     cy.get('@draftCreation').should('not.have.been.called');
     cy.get(S.primaryNavigation).should('not.exist');
   }
 
-  /** Reloads the receipt page to exercise in-memory receipt expiry. */
-  public refreshReceipt(): void {
+  /** Reloads the confirmation page to verify the existing in-memory journey reset. */
+  public refreshConfirmation(): void {
     cy.reload();
   }
 
-  /** Checks that refresh cannot replay or recover a transient receipt. */
-  public assertExpiredReceipt(): void {
+  /** Checks that refresh uses the existing journey reset without sending a submission. */
+  public assertRestartedJourney(): void {
     cy.get(S.caseTypeGroup).should('be.visible');
-    cy.get(S.review.receipt).should('not.exist');
     cy.get('@draftCreation').should('not.have.been.called');
     cy.get(S.primaryNavigation).should('not.exist');
   }

@@ -285,25 +285,21 @@ describe('Order term amendment routed transaction', () => {
     );
   }
 
-  it(
-    'preserves accepted state when amended metadata fails and reopens the selected term on retry',
-    { tags: buildTags() },
-    () => {
-      setupAmendment();
-      cy.get('@getResult').then((aliased) => (aliased as unknown as sinon.SinonStub).onFirstCall().returns(of(null)));
-      cy.get(S.orderTermsSummary.change(2)).click();
+  it('clears a new amendment when metadata fails so another card remains usable', { tags: buildTags() }, () => {
+    setupAmendment();
+    cy.get('@getResult').then((aliased) => (aliased as unknown as sinon.SinonStub).onFirstCall().returns(of(null)));
+    cy.get(S.orderTermsSummary.change(2)).click();
 
-      cy.get(S.heading).should('have.text', 'Order terms');
-      assertOriginalAcceptedState();
-      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-        expect(store.orderTermAmendment()).to.deep.include({ termId: 2, ready: false });
-      });
+    cy.get(S.heading).should('have.text', 'Order terms');
+    assertOriginalAcceptedState();
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      expect(store.orderTermAmendment()).to.eq(null);
+    });
 
-      cy.get(S.orderTermsSummary.change(2)).click();
-      cy.get(S.orderTermsInput.amount).should('have.value', '20.00');
-      assertOriginalAcceptedState();
-    },
-  );
+    cy.get(S.orderTermsSummary.change(1)).click();
+    cy.get(S.orderTermsInput.amount).should('have.value', '10.00');
+    assertOriginalAcceptedState();
+  });
 
   it('changes one shared reference without editing or pruning the shared creditor', { tags: buildTags() }, () => {
     setupAmendment();

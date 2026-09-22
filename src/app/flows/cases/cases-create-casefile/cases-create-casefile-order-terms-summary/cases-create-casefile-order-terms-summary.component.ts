@@ -76,14 +76,28 @@ export class CasesCreateCasefileOrderTermsSummaryComponent {
   public async handleChange(termId: number): Promise<void> {
     if (this.navigationInFlight) return;
     const card = this.cards().find((item) => item.termId === termId);
+    const existingAmendment = this.store.orderTermAmendment();
     if (!card || !this.store.beginOrderTermAmendment(termId)) return;
+    const amendment = this.store.orderTermAmendment();
+    let navigated = false;
 
     this.navigationInFlight = true;
     try {
-      await this.router.navigateByUrl(card.inputPath);
+      navigated = await this.router.navigateByUrl(card.inputPath);
     } catch {
       return;
     } finally {
+      if (
+        !navigated &&
+        !existingAmendment &&
+        amendment &&
+        this.store.orderTermAmendment() === amendment &&
+        !this.store.orderTermDraft()?.dirty &&
+        !this.store.unsavedChanges() &&
+        !this.store.creditorDraft()
+      ) {
+        this.store.cancelOrderTermAmendment(amendment.termId);
+      }
       this.navigationInFlight = false;
     }
   }

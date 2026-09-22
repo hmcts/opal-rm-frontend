@@ -37,7 +37,7 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
   ];
 
   beforeEach(async () => {
-    router.navigateByUrl.mockClear();
+    router.navigateByUrl.mockReset().mockResolvedValue(true);
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileOrderTermsSummaryComponent],
       providers: [{ provide: Router, useValue: router }, CasesCreateCasefileStore],
@@ -107,19 +107,72 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     ]);
   });
 
-  it('starts an amendment for the stable term ID and preserves accepted data while navigation fails', async () => {
+  for (const failure of ['false', 'rejection'] as const) {
+    it(`clears a new amendment after navigation ${failure} so another card remains usable`, async () => {
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+        orderTerms: structuredClone(acceptedTerms),
+      });
+      if (failure === 'false') router.navigateByUrl.mockResolvedValueOnce(false);
+      else router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
+
+      await fixture.componentInstance.handleChange(12);
+
+      expect(store.orderTermAmendment()).toBeNull();
+      expect(store.currentOrderTermId()).toBeNull();
+      expect(store.pendingOrderTermResultId()).toBeNull();
+      expect(store.orderTerms()).toEqual(acceptedTerms);
+      await fixture.componentInstance.handleChange(7);
+      expect(store.orderTermAmendment()?.termId).toBe(7);
+      expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+    });
+
+    it(`retains an existing amendment after navigation ${failure}`, async () => {
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+        orderTerms: structuredClone(acceptedTerms),
+      });
+      store.beginOrderTermAmendment(7);
+      const amendment = store.orderTermAmendment();
+      if (failure === 'false') router.navigateByUrl.mockResolvedValueOnce(false);
+      else router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
+
+      await fixture.componentInstance.handleChange(7);
+
+      expect(store.orderTermAmendment()).toBe(amendment);
+    });
+  }
+
+  it('preserves a replacement amendment with the same term ID after a late failure', async () => {
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
       orderTerms: structuredClone(acceptedTerms),
     });
-    const before = structuredClone(store.orderTerms());
-    router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
-    fixture.detectChanges();
+    let resolveNavigation!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(new Promise<boolean>((resolve) => (resolveNavigation = resolve)));
+    const change = fixture.componentInstance.handleChange(7);
+    store.cancelOrderTermAmendment(7);
+    store.beginOrderTermAmendment(7);
+    const replacement = store.orderTermAmendment();
 
-    await fixture.componentInstance.handleChange(12);
+    resolveNavigation(false);
+    await change;
 
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/order-terms/add/MAT');
-    expect(store.orderTermAmendment()?.termId).toBe(12);
-    expect(store.orderTerms()).toEqual(before);
+    expect(store.orderTermAmendment()).toBe(replacement);
+  });
+
+  it('preserves an amendment edited before navigation fails', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    let resolveNavigation!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(new Promise<boolean>((resolve) => (resolveNavigation = resolve)));
+    const change = fixture.componentInstance.handleChange(7);
+    const amendment = store.orderTermAmendment();
+    store.setUnsavedChanges(true);
+
+    resolveNavigation(false);
+    await change;
+
+    expect(store.orderTermAmendment()).toBe(amendment);
+    expect(store.unsavedChanges()).toBe(true);
   });
 
   it('prevents a second Change from superseding the active navigation transaction', async () => {
@@ -166,12 +219,11 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     expect(store.orderTerms()).toEqual(before);
   });
 
-  it('cancels a failed Change only after Return navigation succeeds', async () => {
+  it('cancels an existing amendment only after Return navigation succeeds', async () => {
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
       orderTerms: structuredClone(acceptedTerms),
     });
-    router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic change failure'));
-    await fixture.componentInstance.handleChange(7);
+    store.beginOrderTermAmendment(7);
     const amendment = store.orderTermAmendment();
     router.navigateByUrl.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
 
@@ -185,7 +237,7 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     expect(store.orderTermAmendment()?.termId).toBe(12);
   });
 
-  it('retains a failed Change when Return navigation rejects', async () => {
+  it('retains an existing amendment when Return navigation rejects', async () => {
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
       orderTerms: structuredClone(acceptedTerms),
     });
@@ -199,12 +251,11 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     expect(store.orderTerms()).toEqual(acceptedTerms);
   });
 
-  it('abandons a failed Change before starting Add while preserving accepted terms', async () => {
+  it('abandons an existing amendment before starting Add while preserving accepted terms', async () => {
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
       orderTerms: structuredClone(acceptedTerms),
     });
-    router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic change failure'));
-    await fixture.componentInstance.handleChange(7);
+    store.beginOrderTermAmendment(7);
 
     fixture.componentInstance.handleAddTerms();
 

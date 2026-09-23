@@ -40,6 +40,8 @@ Feature: Check case details with a simulated submission
     Then a submission confirmation is shown without a backend create request
     When I go back from casefile confirmation
     Then review retains the case after returning from confirmation
+    When I go forward to the previous casefile confirmation
+    Then review retains the case after returning from confirmation
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
   Scenario: Fresh confirmation entry starts an empty case

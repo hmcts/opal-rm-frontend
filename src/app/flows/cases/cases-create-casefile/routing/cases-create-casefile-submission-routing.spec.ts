@@ -50,11 +50,14 @@ describe('Mock submission route lifecycle', () => {
     harness.detectChanges();
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
     expect(harness.routeNativeElement?.textContent).toContain('You’ve submitted this case for review');
-    expect(getState(store)).toEqual(createCasesCreateCasefileReviewState());
+    expect(getState(store)).toEqual({ ...createCasesCreateCasefileReviewState(), submissionSucceeded: true });
     expect(review.context()).toBeNull();
     await harness.navigateByUrl('/cases/create-casefile/submission-confirmation');
     expect(submit).toHaveBeenCalledOnce();
     await harness.navigateByUrl('/cases/create-casefile/check-case-details');
+    harness.detectChanges();
+    expect(store.submissionSucceeded()).toBe(false);
+    await harness.navigateByUrl('/cases/create-casefile/submission-confirmation');
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/check-case-details');
     expect(getState(store)).toEqual(createCasesCreateCasefileReviewState());
     review.setContext({ origin: 'review', section: 'respondent' });
@@ -113,9 +116,38 @@ describe('Mock submission route lifecycle', () => {
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
       createCasesCreateCasefileReviewState(),
     );
+    store.setSubmissionSucceeded(true);
     const setTitle = vi.spyOn(TestBed.inject(Title), 'setTitle');
     await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
     expect(setTitle).toHaveBeenCalledWith('OPAL - Submission confirmation');
+  });
+
+  it('redirects a complete but unsubmitted case from confirmation to review', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([
+          {
+            path: 'cases/create-casefile',
+            component: CasesCreateCasefileComponent,
+            children: routing.map((route) => ({ ...route, resolve: {} })),
+          },
+        ]),
+      ],
+    });
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const before = structuredClone(getState(store));
+    const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile');
+    const harness = await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/check-case-details');
+    expect(harness.routeNativeElement?.textContent).not.toContain('You’ve submitted this case for review');
+    expect(getState(store)).toEqual(before);
+    expect(submit).not.toHaveBeenCalled();
   });
 
   it('redirects direct confirmation with an empty store to case type', async () => {

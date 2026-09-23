@@ -111,6 +111,9 @@ export const CasesCreateCasefileStore = signalStore(
     };
   }),
   withMethods((store) => ({
+    setSubmissionSucceeded: (submissionSucceeded: boolean): void => {
+      patchState(store, { submissionSucceeded });
+    },
     setCaseTypeSelection: (caseTypeSelection: CasesCreateCasefileCaseTypeSelection): void => {
       const selectionUnchanged = areCaseTypeSelectionsEqual(store.caseTypeSelection(), caseTypeSelection);
       const taskStatuses = selectionUnchanged

@@ -82,6 +82,12 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   });
   afterEach(() => TestBed.inject(HttpTestingController).verify());
 
+  it('invalidates earlier submission success when review is entered', () => {
+    store.setSubmissionSucceeded(true);
+    fixture.detectChanges();
+    expect(store.submissionSucceeded()).toBe(false);
+  });
+
   it('retains the draft and review context until confirmation activates', async () => {
     patchState(
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
@@ -93,7 +99,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     review.setContext({ origin: 'review', section: 'respondent' });
     const before = structuredClone(getState(store));
     router.navigateByUrl.mockImplementationOnce(async () => {
-      expect(getState(store)).toEqual(before);
+      expect(getState(store)).toEqual({ ...before, submissionSucceeded: true });
       expect(review.context()?.section).toBe('respondent');
       return true;
     });
@@ -102,7 +108,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(fixture.componentInstance.navigationError()).toBe(false);
     expect(router.navigateByUrl).toHaveBeenCalledOnce();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/submission-confirmation');
-    expect(getState(store)).toEqual(before);
+    expect(getState(store)).toEqual({ ...before, submissionSucceeded: true });
   });
 
   it('preserves an incomplete draft and redirects without submitting', async () => {
@@ -139,7 +145,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     pending.next({ draft_casefile_id: 'synthetic-completion' });
     pending.complete();
     await fixture.whenStable();
-    expect(getState(store)).toEqual(before);
+    expect(getState(store)).toEqual({ ...before, submissionSucceeded: true });
   });
 
   it('retains the draft and permits resubmission after a failed request', async () => {
@@ -153,8 +159,10 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       .mockReturnValueOnce(pending)
       .mockReturnValueOnce(of({ draft_casefile_id: 'synthetic-retry' }));
     const before = structuredClone(getState(store));
+    store.setSubmissionSucceeded(true);
     const scrollToTop = vi.spyOn(TestBed.inject(UtilsService), 'scrollToTop').mockImplementation(() => undefined);
     fixture.componentInstance.handleSubmit();
+    expect(store.submissionSucceeded()).toBe(false);
     pending.error(new Error('Synthetic timeout'));
     await fixture.whenStable();
     expect(scrollToTop).toHaveBeenCalledOnce();
@@ -173,8 +181,10 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     );
     const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile').mockReturnValue(EMPTY);
     const before = structuredClone(getState(store));
+    store.setSubmissionSucceeded(true);
     fixture.componentInstance.handleSubmit();
     await fixture.whenStable();
+    expect(store.submissionSucceeded()).toBe(false);
     expect(router.navigateByUrl).not.toHaveBeenCalled();
     expect(getState(store)).toEqual(before);
     fixture.componentInstance.handleSubmit();

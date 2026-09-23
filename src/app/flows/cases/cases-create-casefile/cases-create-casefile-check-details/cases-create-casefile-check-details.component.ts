@@ -14,6 +14,7 @@ import {
   ElementRef,
   inject,
   Injector,
+  OnInit,
   signal,
   viewChild,
 } from '@angular/core';
@@ -54,7 +55,7 @@ import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-ca
     }
   `,
 })
-export class CasesCreateCasefileCheckDetailsComponent {
+export class CasesCreateCasefileCheckDetailsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly injector = inject(Injector);
@@ -149,6 +150,10 @@ export class CasesCreateCasefileCheckDetailsComponent {
     }
   }
 
+  public ngOnInit(): void {
+    this.store.setSubmissionSucceeded(false);
+  }
+
   public focusTarget(id: string): void {
     const target =
       this.host.nativeElement.querySelector<HTMLElement>(`[id="${id}"]`) ??
@@ -162,12 +167,16 @@ export class CasesCreateCasefileCheckDetailsComponent {
       void this.navigate(this.root + this.paths.taskList);
       return;
     }
+    this.store.setSubmissionSucceeded(false);
     this.submitting.set(true);
     this.maintenance
       .submitCasefile()
       .pipe(
         take(1),
-        tap(() => void this.navigate(this.root + this.paths.submissionConfirmation)),
+        tap(() => {
+          this.store.setSubmissionSucceeded(true);
+          void this.navigate(this.root + this.paths.submissionConfirmation);
+        }),
         catchError(() => {
           this.utils.scrollToTop();
           return EMPTY;

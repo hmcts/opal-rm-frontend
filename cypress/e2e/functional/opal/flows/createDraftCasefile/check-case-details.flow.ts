@@ -40,6 +40,10 @@ export class CheckCaseDetailsFlow {
   public backFromConfirmation(): void {
     this.review.backFromConfirmation();
   }
+  /** Attempts to reopen the previous confirmation through browser history. */
+  public forwardToConfirmation(): void {
+    this.review.forwardToConfirmation();
+  }
   /** Checks the retained case when Back returns within the current journey. */
   public assertReviewAfterConfirmation(): void {
     this.review.assertReviewAfterConfirmation();

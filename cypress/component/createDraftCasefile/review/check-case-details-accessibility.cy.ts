@@ -1,6 +1,9 @@
+import { getState } from '@ngrx/signals';
+import { CASES_CREATE_CASEFILE_STATE } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-state.constant';
+import { createCompleteReviewState } from './mocks/review.mock';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
-import { setupReview } from './setup/review.setup';
+import { setupReview, type ReviewStore } from './setup/review.setup';
 
 const S = CreateCasefileSelectors.review;
 const buildTags = (story = 'PO-9817'): string[] => [
@@ -31,7 +34,7 @@ describe('Check case details accessibility', () => {
     { tags: buildTags() },
     () => {
       setupReview({ failNavigation: true });
-      cy.get(S.submit).click();
+      cy.get(S.change('respondent')).click();
       cy.get(S.errors).should('be.focused').and('have.attr', 'role', 'alert');
       cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
       cy.checkA11y();
@@ -59,6 +62,9 @@ describe('Check case details accessibility', () => {
     it(`AC1. should expose confirmation links in keyboard order at ${width}px`, { tags: buildTags('PO-9819') }, () => {
       cy.viewport(width, 800);
       setupReview({ confirmation: true });
+      cy.get<ReviewStore>('@reviewStore').should((store) =>
+        expect(getState(store)).to.deep.equal(createCompleteReviewState()),
+      );
       cy.get(S.confirmationHeading)
         .should('be.focused')
         .and(($heading) => expect($heading.text().trim()).to.equal('You’ve submitted this case for review'));
@@ -80,6 +86,12 @@ describe('Check case details accessibility', () => {
         expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
       );
       cy.screenshot(`po-9819-confirmation-${width}x800`);
+      cy.get(width === 1280 ? S.createNew : S.inReview).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get<ReviewStore>('@reviewStore').should((store) =>
+        expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),
+      );
+      cy.get('@routerNavigate').should('have.been.calledOnceWith', '/' + PATHS.root + '/' + PATHS.children.caseType);
     });
   });
 });

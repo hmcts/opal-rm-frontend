@@ -1,7 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { OpalMaintenanceService } from 'src/app/flows/cases/services/opal-maintenance-service/opal-maintenance.service';
-import { CasesCreateCasefileCompletionService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-completion.service';
+import type { Observable } from 'rxjs';
+import type { IOpalMaintenanceCasefileSubmissionResult } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-casefile-submission-result.interface';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
@@ -18,6 +19,7 @@ interface ReviewSetupOptions {
   state?: Partial<ICasesCreateCasefileState>;
   failNavigation?: boolean;
   confirmation?: boolean;
+  submission?: Observable<IOpalMaintenanceCasefileSubmissionResult>;
 }
 
 export function setupReview(options: ReviewSetupOptions = {}) {
@@ -59,8 +61,11 @@ export function setupReview(options: ReviewSetupOptions = {}) {
       },
     ).then(({ fixture }) => {
       cy.stub(TestBed.inject(Router), 'navigateByUrl').as('routerNavigate').resolves(!options.failNavigation);
-      cy.spy(TestBed.inject(OpalMaintenanceService), 'submitCasefile').as('submitMock');
-      cy.wrap(TestBed.inject(CasesCreateCasefileCompletionService), { log: false }).as('completion');
+      if (options.submission) {
+        cy.stub(TestBed.inject(OpalMaintenanceService), 'submitCasefile').as('submitMock').returns(options.submission);
+      } else {
+        cy.spy(TestBed.inject(OpalMaintenanceService), 'submitCasefile').as('submitMock');
+      }
       cy.wrap(store, { log: false }).as('reviewStore');
       cy.wrap(TestBed.inject(CasesCreateCasefileReviewNavigationService), { log: false }).as('reviewNavigation');
       fixture.detectChanges();

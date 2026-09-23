@@ -38,12 +38,12 @@ Feature: Check case details with a simulated submission
       | See your cases in review |
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
-  Scenario: Back cannot revive an accepted draft
+  Scenario: Back from confirmation retains the case in the current journey
     Given I am reviewing a complete casefile for simulated submission
     When I submit the casefile for simulated submission
     Then a submission confirmation is shown without a backend create request
     When I go back from casefile confirmation
-    Then an empty new case journey is shown without submitting data
+    Then review retains the case after returning from confirmation
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
   Scenario: Fresh confirmation entry starts an empty case

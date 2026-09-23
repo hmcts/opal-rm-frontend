@@ -160,7 +160,6 @@ const structuralIdentifierAllowlist = new Set([
   structuralIdentifierKey(templatePaths.review, 'div', '[id]', "'review-order-term-' + card.termId"),
   structuralIdentifierKey(templatePaths.review, 'button', '[id]', "'review-term-change-' + card.termId"),
   structuralIdentifierKey(templatePaths.review, 'button', '[id]', "'review-term-remove-' + card.termId"),
-  structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_confirmation_retry'),
   structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_review_submit'),
   structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_review_cancel'),
   structuralIdentifierKey(templatePaths.orderTermsRemove, 'button', 'id', 'create_casefile_order_terms_remove_confirm'),

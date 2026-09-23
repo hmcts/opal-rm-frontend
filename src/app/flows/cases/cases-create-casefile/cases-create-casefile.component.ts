@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, inject } f
 import { RouterOutlet } from '@angular/router';
 import { CanDeactivateTypes } from '@hmcts/opal-frontend-common/guards/can-deactivate/types';
 import { CasesCreateCasefileStore } from './stores/cases-create-casefile.store';
-import { CasesCreateCasefileCompletionService } from './services/cases-create-casefile-completion.service';
 
 @Component({
   selector: 'app-cases-create-casefile',
@@ -14,7 +13,6 @@ import { CasesCreateCasefileCompletionService } from './services/cases-create-ca
 export class CasesCreateCasefileComponent implements OnDestroy {
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
-  private readonly completion = inject(CasesCreateCasefileCompletionService);
 
   @HostListener('window:beforeunload')
   public handleBeforeUnload(): boolean {
@@ -38,6 +36,5 @@ export class CasesCreateCasefileComponent implements OnDestroy {
   public ngOnDestroy(): void {
     this.store.resetStore();
     this.reviewNavigation.clearContext();
-    this.completion.clear();
   }
 }

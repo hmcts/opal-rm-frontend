@@ -1,6 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { CasesCreateCasefileCompletionService } from '../services/cases-create-casefile-completion.service';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import { By, Title } from '@angular/platform-browser';
@@ -25,7 +24,7 @@ class OutsideComponent {}
 describe('Mock submission route lifecycle', () => {
   afterEach(() => TestBed.inject(HttpTestingController).verify());
 
-  it('accepts once, clears the draft and preserves the receipt until starting again', async () => {
+  it('retains the submitted draft until leaving the flow', async () => {
     const children = routing.map((route) => ({ ...route, resolve: {} }));
     TestBed.configureTestingModule({
       providers: [
@@ -42,7 +41,6 @@ describe('Mock submission route lifecycle', () => {
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
       createCasesCreateCasefileReviewState(),
     );
-    const completion = TestBed.inject(CasesCreateCasefileCompletionService);
     const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
     const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile');
     const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
@@ -52,24 +50,15 @@ describe('Mock submission route lifecycle', () => {
     harness.detectChanges();
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
     expect(harness.routeNativeElement?.textContent).toContain('You’ve submitted this case for review');
-    expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+    expect(getState(store)).toEqual(createCasesCreateCasefileReviewState());
     expect(review.context()).toBeNull();
-    const receipt = completion.result();
-    expect(receipt?.draft_casefile_id).toMatch(/\S+/);
     await harness.navigateByUrl('/cases/create-casefile/submission-confirmation');
-    expect(completion.result()).toBe(receipt);
     expect(submit).toHaveBeenCalledOnce();
     await harness.navigateByUrl('/cases/create-casefile/check-case-details');
-    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
-    expect(harness.routeNativeElement!.querySelectorAll('input:checked')).toHaveLength(0);
-    expect(completion.result()).toBeNull();
-    expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
-    await harness.navigateByUrl('/cases/create-casefile/submission-confirmation');
-    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
-    completion.record({ draft_casefile_id: 'synthetic-cleanup' });
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/check-case-details');
+    expect(getState(store)).toEqual(createCasesCreateCasefileReviewState());
     review.setContext({ origin: 'review', section: 'respondent' });
     await harness.navigateByUrl('/outside');
-    expect(completion.result()).toBeNull();
     expect(review.context()).toBeNull();
     expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
   });
@@ -94,14 +83,12 @@ describe('Mock submission route lifecycle', () => {
         store as unknown as WritableStateSource<ICasesCreateCasefileState>,
         createCasesCreateCasefileReviewState(),
       );
-      const completion = TestBed.inject(CasesCreateCasefileCompletionService);
       const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
       await harness.fixture.whenStable();
       harness.routeNativeElement!.querySelector<HTMLButtonElement>('#create_casefile_review_submit')!.click();
       await harness.fixture.whenStable();
       harness.detectChanges();
       expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
-      expect(completion.result()).not.toBeNull();
       const link = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('#' + linkId);
       expect(link).not.toBeNull();
       link!.click();
@@ -110,7 +97,6 @@ describe('Mock submission route lifecycle', () => {
       expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
       expect(harness.routeNativeElement!.querySelectorAll('input:checked')).toHaveLength(0);
       expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
-      expect(completion.result()).toBeNull();
     },
   );
 
@@ -122,13 +108,14 @@ describe('Mock submission route lifecycle', () => {
         provideRouter([{ path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children: routing }]),
       ],
     });
-    TestBed.inject(CasesCreateCasefileCompletionService).record({ draft_casefile_id: 'synthetic-title' });
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    store.setCaseTypeSelection({ caseType: 'REMO Out' });
     const setTitle = vi.spyOn(TestBed.inject(Title), 'setTitle');
     await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
     expect(setTitle).toHaveBeenCalledWith('OPAL - Submission confirmation');
   });
 
-  it('redirects direct confirmation with an incomplete draft and no receipt to case type', async () => {
+  it('redirects direct confirmation with an empty store to case type', async () => {
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -142,11 +129,8 @@ describe('Mock submission route lifecycle', () => {
         ]),
       ],
     });
-    const store = TestBed.inject(CasesCreateCasefileStore);
-    store.setCaseTypeSelection({ caseType: 'REMO Out' });
     await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
-    expect(TestBed.inject(CasesCreateCasefileCompletionService).result()).toBeNull();
   });
 
   it('returns saved corrections to review and permits rebuilding after removal of the last term', async () => {

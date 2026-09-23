@@ -1,8 +1,13 @@
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { setupReview } from './setup/review.setup';
 
 const S = CreateCasefileSelectors.review;
-const buildTags = (): string[] => ['@JIRA-STORY:PO-9817', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
+const buildTags = (story = 'PO-9817'): string[] => [
+  '@JIRA-STORY:' + story,
+  '@JIRA-EPIC:PO-6506',
+  '@JIRA-LABEL:create-draft-casefile',
+];
 
 describe('Check case details accessibility', () => {
   it(
@@ -50,12 +55,31 @@ describe('Check case details accessibility', () => {
     cy.screenshot('po-9817-review-expanded-320px');
   });
 
-  it('AC6. should identify simulated submission accessibly', { tags: buildTags() }, () => {
-    setupReview({ confirmation: true });
-    cy.get(S.confirmationHeading).should('have.text', 'Submission confirmation').and('be.focused');
-    cy.contains('This is a simulated submission. No case has been saved or submitted for review.').should('be.visible');
-    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-    cy.checkA11y();
-    cy.screenshot('po-9817-submission-confirmation');
+  [1280, 320].forEach((width) => {
+    it(`AC1. should expose confirmation links in keyboard order at ${width}px`, { tags: buildTags('PO-9819') }, () => {
+      cy.viewport(width, 800);
+      setupReview({ confirmation: true });
+      cy.get(S.confirmationHeading)
+        .should('be.focused')
+        .and(($heading) => expect($heading.text().trim()).to.equal('You’ve submitted this case for review'));
+      cy.get('h1').should('have.length', 1);
+      cy.get(S.confirmationNextSteps).should('have.text', 'Next steps');
+      cy.get(S.createNew)
+        .should('contain.text', 'Create a new case')
+        .and('have.attr', 'href', '/' + PATHS.root + '/' + PATHS.children.caseType);
+      cy.get(S.inReview)
+        .should('contain.text', 'See your cases in review')
+        .and('have.attr', 'href', '/' + PATHS.root + '/' + PATHS.children.caseType);
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.createNew).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.inReview).should('be.focused');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.document().should((document) =>
+        expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
+      );
+      cy.screenshot(`po-9819-confirmation-${width}x800`);
+    });
   });
 });

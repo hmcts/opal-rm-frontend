@@ -1,3 +1,4 @@
+import { CASES_CREATE_CASEFILE_STATE } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-state.constant';
 import { getState } from '@ngrx/signals';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { CasesCreateCasefileReviewNavigationService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-review-navigation.service';
@@ -11,7 +12,11 @@ import {
 import { setupReview, type ReviewStore } from './setup/review.setup';
 
 const S = CreateCasefileSelectors.review;
-const buildTags = (): string[] => ['@JIRA-STORY:PO-9817', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
+const buildTags = (story = 'PO-9817'): string[] => [
+  '@JIRA-STORY:' + story,
+  '@JIRA-EPIC:PO-6506',
+  '@JIRA-LABEL:create-draft-casefile',
+];
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
 const assertDraftRetained = () =>
   cy
@@ -184,17 +189,31 @@ describe('Check case details local mock review', () => {
     },
   );
 
-  it('AC3. should simulate submission by navigating with the draft unchanged', { tags: buildTags() }, () => {
+  it('AC1. should clear the accepted draft after one mock submission', { tags: buildTags('PO-9819') }, () => {
     setupReview();
     cy.get(S.submit).click();
     cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
-    assertDraftRetained();
+    cy.get('@submitMock').should('have.been.calledOnce');
+    cy.get<ReviewStore>('@reviewStore').should((store) =>
+      expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),
+    );
   });
-  it('should retain the draft when confirmation navigation fails', { tags: buildTags() }, () => {
+  it('AC1. should retry only navigation after clearing the accepted draft', { tags: buildTags('PO-9819') }, () => {
     setupReview({ failNavigation: true });
     cy.get(S.submit).click();
-    cy.get(S.errors).should('contain.text', 'The page could not be opened').and('be.focused');
-    assertDraftRetained();
+    cy.get(S.errors).should('be.focused');
+    cy.get<ReviewStore>('@reviewStore').should((store) =>
+      expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),
+    );
+    cy.get(S.submit).should('not.exist');
+    cy.get(S.change('respondent')).should('not.exist');
+    cy.get(S.retry).click();
+    cy.get(S.errors).should('be.focused');
+    cy.get('@submitMock').should('have.been.calledOnce');
+    cy.get('@routerNavigate').should('have.been.calledTwice');
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+    cy.screenshot('po-9819-confirmation-navigation-retry');
   });
   it('should retain the draft when opening cancellation', { tags: buildTags() }, () => {
     setupReview();

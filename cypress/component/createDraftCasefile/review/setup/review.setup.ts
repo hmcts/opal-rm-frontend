@@ -1,3 +1,7 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { OpalMaintenanceService } from 'src/app/flows/cases/services/opal-maintenance-service/opal-maintenance.service';
+import { CasesCreateCasefileCompletionService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-completion.service';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
@@ -33,22 +37,30 @@ export function setupReview(options: ReviewSetupOptions = {}) {
       {
         providers: [
           provideRouter([]),
+          provideHttpClient(),
+          provideHttpClientTesting(),
           { provide: CasesCreateCasefileStore, useValue: store },
-          {
-            provide: ActivatedRoute,
-            useValue: {
-              snapshot: {
-                data: {
-                  countries: { refData: structuredClone(REVIEW_COUNTRIES) },
-                  applications: { refData: structuredClone(REVIEW_APPLICATIONS) },
+          ...(options.confirmation
+            ? []
+            : [
+                {
+                  provide: ActivatedRoute,
+                  useValue: {
+                    snapshot: {
+                      data: {
+                        countries: { refData: structuredClone(REVIEW_COUNTRIES) },
+                        applications: { refData: structuredClone(REVIEW_APPLICATIONS) },
+                      },
+                    },
+                  },
                 },
-              },
-            },
-          },
+              ]),
         ],
       },
     ).then(({ fixture }) => {
       cy.stub(TestBed.inject(Router), 'navigateByUrl').as('routerNavigate').resolves(!options.failNavigation);
+      cy.spy(TestBed.inject(OpalMaintenanceService), 'submitCasefile').as('submitMock');
+      cy.wrap(TestBed.inject(CasesCreateCasefileCompletionService), { log: false }).as('completion');
       cy.wrap(store, { log: false }).as('reviewStore');
       cy.wrap(TestBed.inject(CasesCreateCasefileReviewNavigationService), { log: false }).as('reviewNavigation');
       fixture.detectChanges();

@@ -59,6 +59,19 @@ describe('Submission confirmation', () => {
     await fixture.whenStable();
     expect(submit).not.toHaveBeenCalled();
   });
+  it('invalidates confirmation access on departure without clearing submitted data', () => {
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    store.setSubmissionSucceeded(true);
+    const before = structuredClone(getState(store));
+    const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
+    fixture.destroy();
+    expect(getState(store)).toEqual({ ...before, submissionSucceeded: false });
+  });
+
   it.each(['success', 'false', 'rejected'])(
     'preserves submitted data during %s new-case navigation',
     async (outcome) => {
@@ -67,6 +80,7 @@ describe('Submission confirmation', () => {
         store as unknown as WritableStateSource<ICasesCreateCasefileState>,
         createCasesCreateCasefileReviewState(),
       );
+      store.setSubmissionSucceeded(true);
       const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
       review.setContext({ origin: 'review', section: 'respondent' });
       const before = structuredClone(getState(store));

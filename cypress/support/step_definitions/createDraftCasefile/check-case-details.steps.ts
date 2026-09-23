@@ -18,6 +18,7 @@ Then('browser history cannot recover the discarded case', () => flow.assertHisto
 
 When('I create a new case from casefile confirmation', () => flow.startNextCase());
 When('I go back from casefile confirmation', () => flow.backFromConfirmation());
+When('I go forward to the previous casefile confirmation', () => flow.forwardToConfirmation());
 Then('review retains the case after returning from confirmation', () => flow.assertReviewAfterConfirmation());
 
 When('I open casefile confirmation without submitting a case', () => flow.openFreshConfirmation());

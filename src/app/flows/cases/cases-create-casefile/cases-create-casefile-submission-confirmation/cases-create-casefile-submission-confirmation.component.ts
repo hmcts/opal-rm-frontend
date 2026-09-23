@@ -1,3 +1,4 @@
+import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -5,6 +6,7 @@ import {
   ElementRef,
   inject,
   Injector,
+  OnDestroy,
   signal,
   viewChild,
 } from '@angular/core';
@@ -19,7 +21,8 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-
   templateUrl: './cases-create-casefile-submission-confirmation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CasesCreateCasefileSubmissionConfirmationComponent {
+export class CasesCreateCasefileSubmissionConfirmationComponent implements OnDestroy {
+  private readonly store = inject(CasesCreateCasefileStore);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   private readonly errorRegion = viewChild<ElementRef<HTMLElement>>('errorRegion');
@@ -32,6 +35,10 @@ export class CasesCreateCasefileSubmissionConfirmationComponent {
 
   constructor() {
     afterNextRender(() => this.heading()?.nativeElement.focus());
+  }
+
+  public ngOnDestroy(): void {
+    this.store.setSubmissionSucceeded(false);
   }
 
   public async startNewCase(event: Event): Promise<void> {

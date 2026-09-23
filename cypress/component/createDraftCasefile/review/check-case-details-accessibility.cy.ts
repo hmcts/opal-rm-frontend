@@ -1,5 +1,5 @@
 import { getState } from '@ngrx/signals';
-import { createCompleteReviewState } from './mocks/review.mock';
+import { createSubmittedReviewState } from './mocks/review.mock';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { setupReview, type ReviewStore } from './setup/review.setup';
@@ -65,7 +65,7 @@ describe('Check case details accessibility', () => {
         cy.viewport(width, 800);
         setupReview({ confirmation: true });
         cy.get<ReviewStore>('@reviewStore').should((store) =>
-          expect(getState(store)).to.deep.equal(createCompleteReviewState()),
+          expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
         cy.get(S.confirmationHeading)
           .should('be.focused')
@@ -94,7 +94,7 @@ describe('Check case details accessibility', () => {
         cy.get(S.createNew).focus();
         cy.press(Cypress.Keyboard.Keys.ENTER);
         cy.get<ReviewStore>('@reviewStore').should((store) =>
-          expect(getState(store)).to.deep.equal(createCompleteReviewState()),
+          expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
         cy.get('@routerNavigate').should('have.been.calledOnceWith', '/' + PATHS.root + '/' + PATHS.children.caseType, {
           state: { startNewCase: true },
@@ -120,7 +120,7 @@ describe('Check case details accessibility', () => {
           .should('be.focused')
           .and('contain.text', 'The page could not be opened. Try again.');
         cy.get<ReviewStore>('@reviewStore').should((store) =>
-          expect(getState(store)).to.deep.equal(createCompleteReviewState()),
+          expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
         cy.get(S.createNew).should('not.have.attr', 'aria-disabled', 'true');
         cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
@@ -132,7 +132,7 @@ describe('Check case details accessibility', () => {
         cy.get(S.confirmationError).should('not.exist');
         cy.get('@routerNavigate').should('have.been.calledTwice');
         cy.get<ReviewStore>('@reviewStore').should((store) =>
-          expect(getState(store)).to.deep.equal(createCompleteReviewState()),
+          expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
       },
     );
@@ -152,7 +152,7 @@ describe('Check case details accessibility', () => {
       cy.get(S.createNew).should('have.attr', 'aria-disabled', 'true').click();
       cy.get('@routerNavigate').should('have.been.calledOnce');
       cy.get<ReviewStore>('@reviewStore').should((store) =>
-        expect(getState(store)).to.deep.equal(createCompleteReviewState()),
+        expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
       );
       cy.then(() => finishNavigation(false));
       cy.get(S.confirmationError).should('be.focused');

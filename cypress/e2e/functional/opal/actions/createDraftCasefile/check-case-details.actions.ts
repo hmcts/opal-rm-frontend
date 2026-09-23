@@ -79,6 +79,11 @@ export class CheckCaseDetailsActions {
     cy.go('back');
   }
 
+  /** Attempts to reopen the previous confirmation through browser history. */
+  public forwardToConfirmation(): void {
+    cy.go('forward');
+  }
+
   /** Checks the retained case when Back returns within the current journey. */
   public assertReviewAfterConfirmation(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.checkCaseDetails);

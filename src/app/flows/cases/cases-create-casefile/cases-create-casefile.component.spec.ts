@@ -119,10 +119,12 @@ describe('CasesCreateCasefileComponent', () => {
   });
 
   it('resets journey state on shell destruction', () => {
+    store.setSubmissionSucceeded(true);
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     component.ngOnDestroy();
     expect(store.caseTypeSelection()).toBeNull();
     expect(store.stateChanges()).toBe(false);
+    expect(store.submissionSucceeded()).toBe(false);
   });
 
   it('clears draft and review context on shell destruction', () => {
@@ -134,6 +136,7 @@ describe('CasesCreateCasefileComponent', () => {
 
     expect(store.caseTypeSelection()).toBeNull();
     expect(store.stateChanges()).toBe(false);
+    expect(store.submissionSucceeded()).toBe(false);
     expect(reviewNavigation.context()).toBeNull();
   });
 });

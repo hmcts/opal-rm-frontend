@@ -20,10 +20,10 @@ const buildTags = (story = 'PO-9817'): string[] => [
   '@JIRA-LABEL:create-draft-casefile',
 ];
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
-const assertDraftRetained = () =>
+const assertDraftRetained = (submissionSucceeded = false) =>
   cy
     .get<ReviewStore>('@reviewStore')
-    .should((store) => expect(getState(store)).to.deep.equal(createCompleteReviewState()));
+    .should((store) => expect(getState(store)).to.deep.equal({ ...createCompleteReviewState(), submissionSucceeded }));
 
 describe('Check case details local mock review', () => {
   it(
@@ -199,7 +199,7 @@ describe('Check case details local mock review', () => {
       cy.get(S.submit).click();
       cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
       cy.get('@submitMock').should('have.been.calledOnce');
-      assertDraftRetained();
+      assertDraftRetained(true);
     },
   );
 
@@ -222,6 +222,7 @@ describe('Check case details local mock review', () => {
       });
       cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
       cy.get('@submitMock').should('have.been.calledOnce');
+      assertDraftRetained(true);
     },
   );
 
@@ -246,8 +247,16 @@ describe('Check case details local mock review', () => {
         retried.complete();
       });
       cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
+      assertDraftRetained(true);
     },
   );
+  it('AC1. should invalidate prior submission success when returning to review', { tags: buildTags('PO-9819') }, () => {
+    setupReview({ state: { submissionSucceeded: true } });
+    cy.get(S.heading).should('be.visible');
+    assertDraftRetained();
+    cy.get('@submitMock').should('not.have.been.called');
+  });
+
   it('should retain the draft when opening cancellation', { tags: buildTags() }, () => {
     setupReview();
     cy.get(S.cancel).click();

@@ -1,29 +1,19 @@
-import { GovukSummaryListRowActionItemComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-summary-list';
-import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
-import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
-import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
-import {
-  GENERIC_HTTP_ERROR_MESSAGE,
-  GENERIC_HTTP_ERROR_TITLE,
-} from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
-import { UtilsService } from '@hmcts/opal-frontend-common/services/utils-service';
-import { HttpErrorResponse } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
-import { OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID } from '../../services/opal-maintenance-service/constants/opal-maintenance-business-unit-ids.constant';
-import { CasesCreateCasefilePayloadService } from '../services/cases-create-casefile-payload/cases-create-casefile-payload.service';
+import { CasesCreateCasefileCompletionService } from '../services/cases-create-casefile-completion.service';
 import { isCasesCreateCasefileIndividualApplicantSelection } from '../utils/cases-create-casefile-individual-applicant-selection';
 import { isCasesCreateCasefileOrganisationApplicantSelection } from '../utils/cases-create-casefile-organisation-applicant-selection';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   computed,
+  effect,
   ElementRef,
   inject,
+  Injector,
   signal,
+  viewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { getState } from '@ngrx/signals';
@@ -43,24 +33,31 @@ import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-ca
 @Component({
   selector: 'app-cases-create-casefile-check-details',
   imports: [
-    GovukSummaryListRowActionItemComponent,
-    GovukCancelLinkComponent,
     GovukBackLinkComponent,
     CasesCreateCasefileReviewSectionComponent,
     CasesCreateCasefileOrderTermCardComponent,
   ],
   templateUrl: './cases-create-casefile-check-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    button.govuk-link {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.govuk-link:disabled {
+      cursor: default;
+    }
+  `,
 })
 export class CasesCreateCasefileCheckDetailsComponent {
-  private readonly globalStore = inject(GlobalStore);
-  private readonly utils = inject(UtilsService);
-  private readonly payloadService = inject(CasesCreateCasefilePayloadService);
-  private readonly maintenance = inject(OpalMaintenanceService);
-  private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute, { optional: true });
+  private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly errorRegion = viewChild<ElementRef<HTMLElement>>('errorRegion');
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS.children;
@@ -70,14 +67,17 @@ export class CasesCreateCasefileCheckDetailsComponent {
   private readonly applications: readonly IOpalMaintenanceApplicationReferenceDataItem[] =
     this.route?.snapshot.data['applications']?.refData ?? [];
   private readonly navigating = signal(false);
+  private readonly submitting = signal(false);
+  private readonly maintenance = inject(OpalMaintenanceService);
+  private readonly completion = inject(CasesCreateCasefileCompletionService);
   private readonly snapshot = computed(() => getState(this.store));
   private readonly caseSections = computed(() =>
     reviewCaseSections(this.snapshot(), this.countries, this.applications),
   );
-  private readonly submitting = signal(false);
-  public readonly submissionPending = this.submitting.asReadonly();
-  public readonly busy = computed(() => this.navigating() || this.submitting());
-  public readonly blocked = computed(() => this.busy() || this.store.submissionSucceeded());
+  public readonly navigationError = signal(false);
+  public readonly accepted = computed(() => this.completion.result() !== null);
+  public readonly blocked = computed(() => this.navigating() || this.submitting() || this.accepted());
+  public readonly retryBlocked = computed(() => this.navigating() || this.submitting());
   public readonly beforeTerms = computed(() => {
     const snapshot = this.snapshot();
     const applicant = snapshot.applicantDetails;
@@ -125,31 +125,27 @@ export class CasesCreateCasefileCheckDetailsComponent {
       this.focusTarget(this.reviewNavigation.focusId());
       this.reviewNavigation.clearContext();
     });
+    effect(() => {
+      if (this.navigationError()) {
+        afterNextRender(() => this.errorRegion()?.nativeElement.focus(), { injector: this.injector });
+      }
+    });
   }
 
   private async navigate(path: string): Promise<boolean> {
     if (this.navigating()) return false;
     this.navigating.set(true);
+    this.navigationError.set(false);
     try {
       const navigated = await this.router.navigateByUrl(path);
-      if (!navigated) this.showError();
+      this.navigationError.set(!navigated);
       return navigated;
     } catch {
-      this.showError();
+      this.navigationError.set(true);
       return false;
     } finally {
       this.navigating.set(false);
     }
-  }
-
-  private showError(): void {
-    this.globalStore.setBannerError({
-      ...GLOBAL_ERROR_STATE,
-      error: true,
-      title: GENERIC_HTTP_ERROR_TITLE,
-      message: GENERIC_HTTP_ERROR_MESSAGE,
-    });
-    this.utils.scrollToTop();
   }
 
   public focusTarget(id: string): void {
@@ -159,66 +155,31 @@ export class CasesCreateCasefileCheckDetailsComponent {
     target?.focus();
   }
 
-  public async handleSubmit(): Promise<void> {
-    if (this.busy()) return;
-    this.globalStore.resetBannerError();
-    if (this.store.submissionSucceeded()) {
-      await this.navigate(this.root + this.paths.submissionConfirmation);
+  public handleSubmit(): void {
+    if (this.blocked()) return;
+    if (!this.store.checkCaseAvailable()) {
+      void this.navigate(this.root + this.paths.taskList);
       return;
     }
     this.submitting.set(true);
+    void this.acceptSubmission();
+  }
+
+  private async acceptSubmission(): Promise<void> {
     try {
-      const state = getState(this.store);
-      const centralAuthority = state.centralAuthorityDetails?.majorCreditor;
-      const majorCreditors = state.orderTerms.some((term) => term.creditor?.type === 'major')
-        ? (
-            await firstValueFrom(
-              this.maintenance
-                .getMajorCreditors({
-                  business_unit_id: OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID,
-                  central_authority: false,
-                  active: true,
-                })
-                .pipe(takeUntilDestroyed(this.destroyRef)),
-            )
-          ).refData
-        : [];
-      if (this.destroyRef.destroyed) return;
-      const request = this.payloadService.buildAddCasefilePayload(
-        state,
-        {
-          countries: this.countries,
-          applications: this.applications,
-          majorCreditors: [...majorCreditors, ...(centralAuthority ? [centralAuthority] : [])],
-        },
-        OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID,
-      );
-      const response = await firstValueFrom(
-        this.maintenance.createDraftCasefile(request).pipe(takeUntilDestroyed(this.destroyRef)),
-      );
-      const receipt = response.body;
-      if (
-        response.status !== 201 ||
-        !receipt ||
-        !Number.isSafeInteger(receipt.draft_casefile_id) ||
-        receipt.draft_casefile_id <= 0 ||
-        receipt.casefile_status !== 'SUBMITTED'
-      ) {
-        throw new Error('Invalid submission receipt');
-      }
-      if (this.destroyRef.destroyed) return;
-      this.store.completeSubmission();
+      const result = await firstValueFrom(this.maintenance.submitCasefile());
+      this.completion.record(result);
+      this.store.resetStore();
       this.reviewNavigation.clearContext();
-      this.submitting.set(false);
       await this.navigate(this.root + this.paths.submissionConfirmation);
-    } catch (error) {
-      if (this.destroyRef.destroyed) return;
-      // HTTP failures already use the shared interceptor's banner or error-page handling.
-      if (!(error instanceof HttpErrorResponse) && !this.globalStore.bannerError().error) this.showError();
-      else this.utils.scrollToTop();
     } finally {
       this.submitting.set(false);
     }
+  }
+
+  public retryConfirmation(): void {
+    if (!this.accepted() || this.retryBlocked()) return;
+    void this.navigate(this.root + this.paths.submissionConfirmation);
   }
 
   public async handleChange(section: string): Promise<void> {

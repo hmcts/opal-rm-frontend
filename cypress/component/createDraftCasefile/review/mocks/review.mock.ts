@@ -32,6 +32,10 @@ export function createCompleteReviewState() {
   return state;
 }
 
+export function createSubmittedReviewState() {
+  return { ...createCompleteReviewState(), submissionSucceeded: true };
+}
+
 export function createRemoOutReviewState() {
   const state = createCompleteReviewState();
   state.caseTypeSelection = { caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT };

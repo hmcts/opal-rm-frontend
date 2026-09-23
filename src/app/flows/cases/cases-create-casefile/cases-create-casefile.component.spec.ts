@@ -6,6 +6,8 @@ import { CASES_CREATE_CASEFILE_CASE_TYPES } from './constants/cases-create-casef
 import type { ICasesCreateCasefileState } from './interfaces/cases-create-casefile-state.interface';
 import { CasesCreateCasefileStore } from './stores/cases-create-casefile.store';
 import { CasesCreateCasefileComponent } from './cases-create-casefile.component';
+import { CasesCreateCasefileCompletionService } from './services/cases-create-casefile-completion.service';
+import { CasesCreateCasefileReviewNavigationService } from './services/cases-create-casefile-review-navigation.service';
 
 describe('CasesCreateCasefileComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileComponent>;
@@ -122,5 +124,20 @@ describe('CasesCreateCasefileComponent', () => {
     component.ngOnDestroy();
     expect(store.caseTypeSelection()).toBeNull();
     expect(store.stateChanges()).toBe(false);
+  });
+
+  it('clears completion, draft and review context on shell destruction', () => {
+    const completion = TestBed.inject(CasesCreateCasefileCompletionService);
+    const reviewNavigation = TestBed.inject(CasesCreateCasefileReviewNavigationService);
+    completion.record({ draft_casefile_id: 'synthetic-completion' });
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    reviewNavigation.setContext({ origin: 'review', section: 'respondent' });
+
+    component.ngOnDestroy();
+
+    expect(completion.result()).toBeNull();
+    expect(store.caseTypeSelection()).toBeNull();
+    expect(store.stateChanges()).toBe(false);
+    expect(reviewNavigation.context()).toBeNull();
   });
 });

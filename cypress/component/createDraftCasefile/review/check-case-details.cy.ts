@@ -1,9 +1,11 @@
-import { CASES_CREATE_CASEFILE_STATE } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-state.constant';
+import { Subject } from 'rxjs';
+import type { IOpalMaintenanceCasefileSubmissionResult } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-casefile-submission-result.interface';
 import { getState } from '@ngrx/signals';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { CasesCreateCasefileReviewNavigationService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-review-navigation.service';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import {
+  REVIEW_SUBMISSION_RESULT,
   createCompleteReviewState,
   createRemoOutReviewState,
   createOrganisationReviewState,
@@ -189,32 +191,63 @@ describe('Check case details local mock review', () => {
     },
   );
 
-  it('AC1. should clear the accepted draft after one mock submission', { tags: buildTags('PO-9819') }, () => {
-    setupReview();
-    cy.get(S.submit).click();
-    cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
-    cy.get('@submitMock').should('have.been.calledOnce');
-    cy.get<ReviewStore>('@reviewStore').should((store) =>
-      expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),
-    );
-  });
-  it('AC1. should retry only navigation after clearing the accepted draft', { tags: buildTags('PO-9819') }, () => {
-    setupReview({ failNavigation: true });
-    cy.get(S.submit).click();
-    cy.get(S.errors).should('be.focused');
-    cy.get<ReviewStore>('@reviewStore').should((store) =>
-      expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),
-    );
-    cy.get(S.submit).should('not.exist');
-    cy.get(S.change('respondent')).should('not.exist');
-    cy.get(S.retry).click();
-    cy.get(S.errors).should('be.focused');
-    cy.get('@submitMock').should('have.been.calledOnce');
-    cy.get('@routerNavigate').should('have.been.calledTwice');
-    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-    cy.checkA11y();
-    cy.screenshot('po-9819-confirmation-navigation-retry');
-  });
+  it(
+    'AC1. should navigate on successful submission and retain the draft for the confirmation next step',
+    { tags: buildTags('PO-9819') },
+    () => {
+      setupReview();
+      cy.get(S.submit).click();
+      cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
+      cy.get('@submitMock').should('have.been.calledOnce');
+      assertDraftRetained();
+    },
+  );
+
+  it(
+    'AC1. should prevent repeated submission and edits while the request is pending',
+    { tags: buildTags('PO-9819') },
+    () => {
+      const response = new Subject<IOpalMaintenanceCasefileSubmissionResult>();
+      setupReview({ submission: response });
+      cy.get(S.submit).click();
+      cy.get(S.submit).should('be.disabled');
+      cy.get(S.change('respondent')).should('be.disabled');
+      cy.get(S.cancel).should('be.disabled');
+      cy.get('@submitMock').should('have.been.calledOnce');
+      cy.get('@routerNavigate').should('not.have.been.called');
+      assertDraftRetained();
+      cy.then(() => {
+        response.next(REVIEW_SUBMISSION_RESULT);
+        response.complete();
+      });
+      cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
+      cy.get('@submitMock').should('have.been.calledOnce');
+    },
+  );
+
+  it(
+    'AC1. should retain the draft after a failed submission and allow resubmission',
+    { tags: buildTags('PO-9819') },
+    () => {
+      const failed = new Subject<IOpalMaintenanceCasefileSubmissionResult>();
+      const retried = new Subject<IOpalMaintenanceCasefileSubmissionResult>();
+      setupReview({ submission: failed });
+      cy.get<Cypress.Agent<sinon.SinonStub>>('@submitMock').then((submit) => submit.onSecondCall().returns(retried));
+      cy.get(S.submit).click();
+      cy.then(() => failed.error(new Error('Synthetic timeout')));
+      cy.get(S.submit).should('not.be.disabled');
+      cy.get(S.change('respondent')).should('not.be.disabled');
+      cy.get('@routerNavigate').should('not.have.been.called');
+      assertDraftRetained();
+      cy.get(S.submit).click();
+      cy.get('@submitMock').should('have.been.calledTwice');
+      cy.then(() => {
+        retried.next(REVIEW_SUBMISSION_RESULT);
+        retried.complete();
+      });
+      cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
+    },
+  );
   it('should retain the draft when opening cancellation', { tags: buildTags() }, () => {
     setupReview();
     cy.get(S.cancel).click();

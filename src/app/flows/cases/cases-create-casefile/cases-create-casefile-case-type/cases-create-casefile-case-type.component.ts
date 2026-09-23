@@ -7,6 +7,7 @@ import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
+import { CasesCreateCasefileCompletionService } from '../services/cases-create-casefile-completion.service';
 import { CasesCreateCasefileApplicantType } from '../types/cases-create-casefile-applicant-type.type';
 import { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import { CasesCreateCasefileCaseType } from '../types/cases-create-casefile-case-type.type';
@@ -24,8 +25,14 @@ import { ICasesCreateCasefileCaseTypeForm } from './interfaces/cases-create-case
 export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBaseComponent {
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
+  private readonly completion = inject(CasesCreateCasefileCompletionService);
   public readonly focusHeadingOnArrival =
     inject(Router).currentNavigation()?.extras.state?.['focusCaseTypeHeading'] === true;
+
+  constructor() {
+    super();
+    this.completion.clear();
+  }
 
   private isCaseType(value: unknown): value is CasesCreateCasefileCaseType {
     return Object.values(CASES_CREATE_CASEFILE_CASE_TYPES).includes(value as CasesCreateCasefileCaseType);

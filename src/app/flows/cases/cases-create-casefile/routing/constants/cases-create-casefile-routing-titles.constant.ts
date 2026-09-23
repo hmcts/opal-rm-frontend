@@ -17,6 +17,7 @@ export const CASES_CREATE_CASEFILE_ROUTING_TITLES = {
   interestAndIndexation: 'Interest and indexation',
   managingPayments: 'Managing payments',
   commentsAndNotes: 'Comments and notes',
+  submissionConfirmation: 'Submission confirmation',
   checkCaseDetails: 'Check case details',
   cancel: 'Cancel case creation',
 } as const;

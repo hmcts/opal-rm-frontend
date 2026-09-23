@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, PLATFORM_ID, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -57,6 +57,32 @@ describe('dashboard release routing', () => {
       ],
     });
   });
+
+  it.each([true, false])('uses a resolved SSR override of %s without starting LaunchDarkly', async (enabled) => {
+    TestBed.overrideProvider(PLATFORM_ID, { useValue: 'server' });
+    flags.set({ [key]: enabled });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/dashboard');
+    expect(TestBed.inject(Router).url).toBe(enabled ? '/dashboard/cases' : '/access-denied');
+    expect(initializeFlags).not.toHaveBeenCalled();
+    expect(TestBed.inject(LaunchDarklyService).initializeLaunchDarklyClient).not.toHaveBeenCalled();
+  });
+
+  it.each(['/dashboard', '/dashboard/cases'])(
+    'defers unresolved SSR navigation to %s without redirecting or rendering content',
+    async (url) => {
+      TestBed.overrideProvider(PLATFORM_ID, { useValue: 'server' });
+      initializeFlags.mockRejectedValue(new Error('Browser SDK must not run on the server'));
+      const harness = await RouterTestingHarness.create();
+      const router = TestBed.inject(Router);
+      const result = await router.navigateByUrl(url);
+      expect(result).toBe(false);
+      expect(router.url).not.toBe('/access-denied');
+      expect(harness.routeNativeElement).toBeNull();
+      expect(initializeFlags).not.toHaveBeenCalled();
+      expect(TestBed.inject(LaunchDarklyService).initializeLaunchDarklyClient).not.toHaveBeenCalled();
+    },
+  );
 
   it.each(['/', '/dashboard', '/dashboard/cases', '/dashboard/unknown'])(
     'denies %s when no release is enabled',

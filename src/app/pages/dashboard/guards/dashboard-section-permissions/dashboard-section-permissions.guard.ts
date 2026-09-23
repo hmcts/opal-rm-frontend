@@ -6,7 +6,7 @@ import { DashboardPageType } from '@app/pages/dashboard/types/dashboard.type';
 import { PAGES_ROUTING_PATHS as COMMON_PAGES_ROUTING_PATHS } from '@hmcts/opal-frontend-common/pages/routing/constants';
 import { OpalUserService } from '@hmcts/opal-frontend-common/services/opal-user-service';
 import { firstValueFrom } from 'rxjs';
-import { resolveFeatureFlagGuard } from '@hmcts/opal-frontend-common/guards/feature-flag';
+import { resolveCreateCaseFilesRelease } from '@app/flows/cases/utils/resolve-create-case-files-release.utils';
 import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '@app/flows/cases/constants/release-1c-rm-create-case-files-feature-flag.constant';
 import { DASHBOARD_SECTION_FEATURE_FLAGS } from '@app/pages/dashboard/constants/dashboard-section-feature-flags.constant';
 
@@ -35,7 +35,10 @@ export const dashboardSectionPermissionsGuard: CanActivateFn = async (route, sta
   if (!sectionKey || !DASHBOARD_SECTION_FEATURE_FLAGS[sectionKey]?.length) {
     return denied;
   }
-  const enabled = await resolveFeatureFlagGuard(RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG, route, state);
+  const enabled = await resolveCreateCaseFilesRelease(route, state);
+  if (enabled === null) {
+    return false;
+  }
   if (!enabled) {
     return denied;
   }

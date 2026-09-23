@@ -1,3 +1,4 @@
+import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from 'src/app/flows/cases/constants/release-1c-rm-create-case-files-feature-flag.constant';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
@@ -15,7 +16,15 @@ import {
   STARTER_USER_STATE_ALL_DASHBOARDS,
 } from '../CommonIntercepts/CommonUserState.mocks';
 
-const mountAppShell = ({ authenticated, userState }: { authenticated: boolean; userState: IOpalUserState }) =>
+const mountAppShell = ({
+  authenticated,
+  userState,
+  createCaseFilesEnabled = false,
+}: {
+  authenticated: boolean;
+  userState: IOpalUserState;
+  createCaseFilesEnabled?: boolean;
+}) =>
   mount(AppComponent, {
     providers: [
       provideHttpClient(),
@@ -26,6 +35,7 @@ const mountAppShell = ({ authenticated, userState }: { authenticated: boolean; u
           const store = new GlobalStore();
           store.setAuthenticated(authenticated);
           store.setUserState(userState);
+          store.setFeatureFlags({ [RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG]: createCaseFilesEnabled });
           return store;
         },
       },
@@ -67,6 +77,7 @@ describe('App shell', () => {
     mountAppShell({
       authenticated: true,
       userState: STARTER_USER_STATE_CASES_ONLY,
+      createCaseFilesEnabled: true,
     });
 
     cy.get(Login.accountNavigationLink).should('contain.text', 'Sign out');
@@ -74,23 +85,26 @@ describe('App shell', () => {
     cy.get(Nav.items).first().should('contain.text', Nav.labels.cases);
   });
 
-  it('shows the full dashboard navigation when the user has all starter permissions', () => {
+  it('shows only Cases even when the user has all starter permissions', () => {
     mountAppShell({
       authenticated: true,
       userState: STARTER_USER_STATE_ALL_DASHBOARDS,
+      createCaseFilesEnabled: true,
     });
 
-    cy.get(Nav.items)
-      .should('have.length', 4)
-      .then(($items) => {
-        const labels = [...$items].map((item) => item.textContent?.trim() ?? '');
+    cy.get(Nav.items).should('have.length', 1).and('contain.text', Nav.labels.cases);
+  });
 
-        expect(labels).to.deep.equal([
-          Nav.labels.search,
-          Nav.labels.cases,
-          Nav.labels.reports,
-          Nav.labels.administration,
-        ]);
-      });
+  it('hides released navigation when the create-casefile flag changes to false', () => {
+    mountAppShell({
+      authenticated: true,
+      userState: STARTER_USER_STATE_ALL_DASHBOARDS,
+      createCaseFilesEnabled: true,
+    }).then(({ component }) => {
+      cy.get(Nav.items).should('have.length', 1).and('contain.text', Nav.labels.cases);
+      cy.then(() => component.globalStore.setFeatureFlags({ [RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG]: false }));
+      cy.get(Nav.container).should('not.exist');
+      cy.get(Login.accountNavigationLink).should('contain.text', 'Sign out');
+    });
   });
 });

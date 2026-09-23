@@ -1,6 +1,7 @@
-import { firstValueFrom } from 'rxjs';
+import { catchError, EMPTY, finalize, take, tap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { UtilsService } from '@hmcts/opal-frontend-common/services/utils-service';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
-import { CasesCreateCasefileCompletionService } from '../services/cases-create-casefile-completion.service';
 import { isCasesCreateCasefileIndividualApplicantSelection } from '../utils/cases-create-casefile-individual-applicant-selection';
 import { isCasesCreateCasefileOrganisationApplicantSelection } from '../utils/cases-create-casefile-organisation-applicant-selection';
 import {
@@ -8,6 +9,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -69,15 +71,14 @@ export class CasesCreateCasefileCheckDetailsComponent {
   private readonly navigating = signal(false);
   private readonly submitting = signal(false);
   private readonly maintenance = inject(OpalMaintenanceService);
-  private readonly completion = inject(CasesCreateCasefileCompletionService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly utils = inject(UtilsService);
   private readonly snapshot = computed(() => getState(this.store));
   private readonly caseSections = computed(() =>
     reviewCaseSections(this.snapshot(), this.countries, this.applications),
   );
   public readonly navigationError = signal(false);
-  public readonly accepted = computed(() => this.completion.result() !== null);
-  public readonly blocked = computed(() => this.navigating() || this.submitting() || this.accepted());
-  public readonly retryBlocked = computed(() => this.navigating() || this.submitting());
+  public readonly blocked = computed(() => this.navigating() || this.submitting());
   public readonly beforeTerms = computed(() => {
     const snapshot = this.snapshot();
     const applicant = snapshot.applicantDetails;
@@ -148,18 +149,6 @@ export class CasesCreateCasefileCheckDetailsComponent {
     }
   }
 
-  private async acceptSubmission(): Promise<void> {
-    try {
-      const result = await firstValueFrom(this.maintenance.submitCasefile());
-      this.completion.record(result);
-      this.store.resetStore();
-      this.reviewNavigation.clearContext();
-      await this.navigate(this.root + this.paths.submissionConfirmation);
-    } finally {
-      this.submitting.set(false);
-    }
-  }
-
   public focusTarget(id: string): void {
     const target =
       this.host.nativeElement.querySelector<HTMLElement>(`[id="${id}"]`) ??
@@ -174,12 +163,19 @@ export class CasesCreateCasefileCheckDetailsComponent {
       return;
     }
     this.submitting.set(true);
-    void this.acceptSubmission();
-  }
-
-  public retryConfirmation(): void {
-    if (!this.accepted() || this.retryBlocked()) return;
-    void this.navigate(this.root + this.paths.submissionConfirmation);
+    this.maintenance
+      .submitCasefile()
+      .pipe(
+        take(1),
+        tap(() => void this.navigate(this.root + this.paths.submissionConfirmation)),
+        catchError(() => {
+          this.utils.scrollToTop();
+          return EMPTY;
+        }),
+        finalize(() => this.submitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
   }
 
   public async handleChange(section: string): Promise<void> {

@@ -674,7 +674,6 @@ test('rejects cancellation structural identifiers reused as fields or on another
 });
 
 for (const { page, tag, id } of [
-  { page: 'check-details', tag: 'button', id: 'create_casefile_confirmation_retry' },
   { page: 'submission-confirmation', tag: 'h2', id: 'submission-confirmation-next-steps' },
   { page: 'submission-confirmation', tag: 'a', id: 'create_casefile_confirmation_create_new' },
   { page: 'submission-confirmation', tag: 'a', id: 'create_casefile_confirmation_in_review' },

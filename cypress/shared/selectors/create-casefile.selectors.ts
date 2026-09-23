@@ -21,7 +21,6 @@ export const CreateCasefileSelectors = {
     confirmationNextSteps: '#submission-confirmation-next-steps',
     createNew: '#create_casefile_confirmation_create_new',
     inReview: '#create_casefile_confirmation_in_review',
-    retry: '#create_casefile_confirmation_retry',
     confirmationHeading: '#submission-confirmation-heading',
     section: (id: string) => `#review-${id}`,
     change: (id: string) => `#review-${id}-change`,

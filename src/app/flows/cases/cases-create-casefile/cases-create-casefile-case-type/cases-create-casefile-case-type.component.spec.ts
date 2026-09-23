@@ -9,7 +9,6 @@ import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
-import { CasesCreateCasefileCompletionService } from '../services/cases-create-casefile-completion.service';
 import { CasesCreateCasefileCaseTypeComponent } from './cases-create-casefile-case-type.component';
 import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES as FIELD_NAMES } from './constants/cases-create-casefile-case-type-field-names.constant';
 
@@ -37,16 +36,6 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
   });
 
   it('exposes null initial form data', () => {
-    expect(component.initialFormData).toEqual({ [FIELD_NAMES.caseType]: null, [FIELD_NAMES.applicantType]: null });
-  });
-
-  it('clears an earlier completion when entering Case Type', () => {
-    const completion = TestBed.inject(CasesCreateCasefileCompletionService);
-    completion.record({ draft_casefile_id: 'synthetic-completion' });
-
-    TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
-
-    expect(completion.result()).toBeNull();
     expect(component.initialFormData).toEqual({ [FIELD_NAMES.caseType]: null, [FIELD_NAMES.applicantType]: null });
   });
 

@@ -1,3 +1,4 @@
+import { casesCreateCasefileSubmissionGuard } from './guards/cases-create-casefile-submission.guard';
 import { CasesCreateCasefileSubmissionConfirmationComponent } from '../cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component';
 import { casesCreateCasefileCheckDetailsGuard } from './guards/cases-create-casefile-check-details.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
@@ -533,7 +534,7 @@ describe('Create Casefile routes', () => {
     const route = routing.find(
       (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.submissionConfirmation,
     );
-    expect(route?.canActivate).toEqual([casesCreateCasefileCheckDetailsGuard]);
+    expect(route?.canActivate).toEqual([casesCreateCasefileCheckDetailsGuard, casesCreateCasefileSubmissionGuard]);
     expect((await (route?.loadComponent?.() as Promise<{ name: string }>)).name).toBe(
       CasesCreateCasefileSubmissionConfirmationComponent.name,
     );

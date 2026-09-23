@@ -41,9 +41,44 @@ export class CheckCaseDetailsActions {
   /** Checks the simulated confirmation and absence of backend creation. */
   public assertConfirmation(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
-    cy.get(S.review.confirmationHeading).should('have.text', 'Submission confirmation').and('be.focused');
+    cy.get(S.review.confirmationHeading)
+      .should('be.focused')
+      .and(($heading) => expect($heading.text().trim()).to.equal('You’ve submitted this case for review'));
+    cy.get('h1').should('have.length', 1);
+    cy.get(S.review.confirmationNextSteps).should('have.text', 'Next steps');
+    cy.screenshot('po-9819-full-app-confirmation');
+    cy.get(S.review.createNew)
+      .should('contain.text', 'Create a new case')
+      .and('have.attr', 'href', '/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.get(S.review.inReview)
+      .should('contain.text', 'See your cases in review')
+      .and('have.attr', 'href', '/' + PATHS.root + '/' + PATHS.children.caseType);
     cy.get('@draftCreation').should('not.have.been.called');
     cy.get(S.primaryNavigation).should('not.exist');
+  }
+
+  /**
+   * Activates the selected next step using native keyboard navigation.
+   * @param link confirmation link to activate
+   */
+  public startNextCase(link: 'Create a new case' | 'See your cases in review'): void {
+    const selector = link === 'Create a new case' ? S.review.createNew : S.review.inReview;
+    cy.get(S.review.confirmationHeading).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    if (link === 'See your cases in review') cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(selector).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.ENTER);
+  }
+
+  /** Opens confirmation in a fresh document without recorded completion. */
+  public openFreshConfirmation(): void {
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', cy.spy().as('draftCreation'));
+    cy.visit('/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
+  }
+
+  /** Returns through browser history after acceptance. */
+  public backFromConfirmation(): void {
+    cy.go('back');
   }
 
   /** Reloads the confirmation page to verify the existing in-memory journey reset. */
@@ -53,7 +88,9 @@ export class CheckCaseDetailsActions {
 
   /** Checks that refresh uses the existing journey reset without sending a submission. */
   public assertRestartedJourney(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
     cy.get(S.caseTypeGroup).should('be.visible');
+    cy.get(S.caseTypeRadios).should('not.be.checked');
     cy.get('@draftCreation').should('not.have.been.called');
     cy.get(S.primaryNavigation).should('not.exist');
   }

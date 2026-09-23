@@ -7,12 +7,22 @@
   <h2 id="submission-confirmation-next-steps" class="govuk-heading-l">Next steps</h2>
   <ul class="govuk-list">
     <li>
-      <a id="create_casefile_confirmation_create_new" class="govuk-link" [routerLink]="caseTypeUrl">
+      <a
+        id="create_casefile_confirmation_create_new"
+        class="govuk-link"
+        [href]="caseTypeUrl"
+        (click)="startNewCase($event)"
+      >
         Create a new case
       </a>
     </li>
     <li>
-      <a id="create_casefile_confirmation_in_review" class="govuk-link" [routerLink]="caseTypeUrl">
+      <a
+        id="create_casefile_confirmation_in_review"
+        class="govuk-link"
+        [href]="caseTypeUrl"
+        (click)="startNewCase($event)"
+      >
         See your cases in review
       </a>
     </li>

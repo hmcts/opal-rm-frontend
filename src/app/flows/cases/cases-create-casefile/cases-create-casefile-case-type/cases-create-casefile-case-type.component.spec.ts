@@ -1,10 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { patchState, WritableStateSource } from '@ngrx/signals';
+import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
+import { createCasesCreateCasefileReviewState } from '../mocks/cases-create-casefile-review-state.mock';
+import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
+import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
@@ -28,11 +31,33 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     }).compileComponents();
 
     router['navigate'].mockReset();
+    router['currentNavigation'].mockReset();
     fixture = TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
     component = fixture.componentInstance;
     store = TestBed.inject(CasesCreateCasefileStore);
     store.resetStore();
     fixture.detectChanges();
+  });
+
+  it.each(['imperative', 'popstate', 'ordinary'])('resets only for an intentional new-case arrival: %s', (trigger) => {
+    const startNewCase = trigger === 'imperative';
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
+    review.setContext({ origin: 'review', section: 'respondent' });
+    const before = structuredClone(getState(store));
+    router['currentNavigation'].mockReturnValue(
+      trigger === 'ordinary' ? null : { trigger, extras: { state: { startNewCase: true } } },
+    );
+    const arrival = TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
+    router['currentNavigation'].mockReturnValue(null);
+    expect(getState(store)).toEqual(before);
+    arrival.detectChanges();
+    expect(getState(store)).toEqual(startNewCase ? CASES_CREATE_CASEFILE_STATE : before);
+    expect(review.context()).toEqual(startNewCase ? null : { origin: 'review', section: 'respondent' });
+    if (startNewCase) expect(arrival.nativeElement.querySelectorAll('input:checked')).toHaveLength(0);
   });
 
   it('exposes null initial form data', () => {

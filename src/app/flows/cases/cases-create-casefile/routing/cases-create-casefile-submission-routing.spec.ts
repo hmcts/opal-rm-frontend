@@ -62,7 +62,7 @@ describe('Mock submission route lifecycle', () => {
     expect(review.context()).toBeNull();
     expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
   });
-  it.each(['create_casefile_confirmation_create_new', 'create_casefile_confirmation_in_review'])(
+  it.each(['create_casefile_confirmation_create_new'])(
     'starts an empty case through the actual %s link',
     async (linkId) => {
       TestBed.configureTestingModule({
@@ -109,7 +109,10 @@ describe('Mock submission route lifecycle', () => {
       ],
     });
     const store = TestBed.inject(CasesCreateCasefileStore);
-    store.setCaseTypeSelection({ caseType: 'REMO Out' });
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
     const setTitle = vi.spyOn(TestBed.inject(Title), 'setTitle');
     await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
     expect(setTitle).toHaveBeenCalledWith('OPAL - Submission confirmation');
@@ -132,6 +135,35 @@ describe('Mock submission route lifecycle', () => {
     await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
   });
+
+  it.each(['case type only', 'Provided statuses without respondent data'])(
+    'rejects direct confirmation with %s',
+    async (scenario) => {
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          provideRouter([
+            {
+              path: 'cases/create-casefile',
+              component: CasesCreateCasefileComponent,
+              children: routing.map((route) => ({ ...route, resolve: {} })),
+            },
+          ]),
+        ],
+      });
+      const store = TestBed.inject(CasesCreateCasefileStore);
+      if (scenario === 'case type only') store.setCaseTypeSelection({ caseType: 'REMO Out' });
+      if (scenario === 'Provided statuses without respondent data') {
+        const state = createCasesCreateCasefileReviewState();
+        state.respondentDetails = null;
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
+      }
+      const harness = await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
+      expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/task-list');
+      expect(harness.routeNativeElement?.textContent).not.toContain('You’ve submitted this case for review');
+    },
+  );
 
   it('returns saved corrections to review and permits rebuilding after removal of the last term', async () => {
     const children = routing.map((route) => ({

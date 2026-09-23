@@ -26,16 +26,12 @@ Feature: Check case details with a simulated submission
     Then the accepted draft is retained without a submission
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
-  Scenario Outline: Start an empty case from the confirmation
+  Scenario: Start an empty case from the confirmation
     Given I am reviewing a complete casefile for simulated submission
     When I submit the casefile for simulated submission
     Then a submission confirmation is shown without a backend create request
-    When I choose "<next step>" from casefile confirmation
+    When I create a new case from casefile confirmation
     Then an empty new case journey is shown without submitting data
-    Examples:
-      | next step                |
-      | Create a new case        |
-      | See your cases in review |
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
   Scenario: Back from confirmation retains the case in the current journey

@@ -1,3 +1,5 @@
+import { featureFlagRedirectGuard } from '@hmcts/opal-frontend-common/guards/feature-flag';
+import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '@app/flows/cases/constants/release-1c-rm-create-case-files-feature-flag.constant';
 import { Routes } from '@angular/router';
 import { PAGES_ROUTING_PATHS } from './constants/routing-paths.constant';
 import { DASHBOARD_ROUTING_PATHS } from '../dashboard/constants/dashboard-routing-paths.constant';
@@ -10,6 +12,10 @@ import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deact
 import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from '@app/constants/route-data.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '@app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { routing as casesCreateCasefileRouting } from '@app/flows/cases/cases-create-casefile/routing/cases-create-casefile.routes';
+
+export const release1cRmCreateCaseFilesFeatureFlagGuard = featureFlagRedirectGuard(
+  RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG,
+);
 
 export const routing: Routes = [
   { path: '', redirectTo: PAGES_ROUTING_PATHS.children.dashboard, pathMatch: 'full' },
@@ -31,7 +37,8 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileComponent,
       ),
     children: casesCreateCasefileRouting,
-    canActivate: [authGuard, accountGuard],
+    canActivate: [authGuard, accountGuard, release1cRmCreateCaseFilesFeatureFlagGuard],
+    canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard],
     canDeactivate: [canDeactivateGuard],
     data: {
       ...PRIMARY_NAV_HIDDEN_ROUTE_DATA,

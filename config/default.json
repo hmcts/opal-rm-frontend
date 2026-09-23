@@ -26,6 +26,7 @@
     "feature-flags": {
       "override": false,
       "releases": {
+        "release-1c-rm-create-case-files": true,
         "release-1a": true,
         "release-1b": true,
         "release-1c-write-off": true,

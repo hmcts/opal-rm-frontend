@@ -1,3 +1,8 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { CasesCreateCasefileCompletionService } from '../services/cases-create-casefile-completion.service';
+import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
+import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import { By } from '@angular/platform-browser';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { CasesCreateCasefileOrderTermsRemoveComponent } from '../cases-create-casefile-order-terms-remove/cases-create-casefile-order-terms-remove.component';
@@ -6,7 +11,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { getState, patchState, type WritableStateSource } from '@ngrx/signals';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileComponent } from '../cases-create-casefile.component';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { createCasesCreateCasefileReviewState } from '../mocks/cases-create-casefile-review-state.mock';
@@ -18,34 +23,14 @@ class OutsideComponent {}
 
 /** Uses the production route guards and parent lifecycle, with reference data supplied locally. */
 describe('Mock submission route lifecycle', () => {
-  it('redirects an incomplete draft from a direct confirmation URL to the task list', async () => {
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([
-          {
-            path: 'cases/create-casefile',
-            component: CasesCreateCasefileComponent,
-            children: routing.map((route) => ({ ...route, resolve: {} })),
-          },
-        ]),
-      ],
-    });
-    const store = TestBed.inject(CasesCreateCasefileStore);
-    store.setCaseTypeSelection({ caseType: 'REMO In', applicantType: 'Individual' });
-    const before = structuredClone(getState(store));
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
 
-    const harness = await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
-    await harness.fixture.whenStable();
-
-    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/task-list');
-    expect(harness.routeNativeElement?.textContent).not.toContain('This is a simulated submission');
-    expect(getState(store)).toEqual(before);
-  });
-
-  it('navigates to confirmation with the accepted draft unchanged and makes no HTTP request', async () => {
+  it('accepts once, clears the draft and preserves the receipt until starting again', async () => {
     const children = routing.map((route) => ({ ...route, resolve: {} }));
     TestBed.configureTestingModule({
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter([
           { path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children },
           { path: 'outside', component: OutsideComponent },
@@ -57,7 +42,9 @@ describe('Mock submission route lifecycle', () => {
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
       createCasesCreateCasefileReviewState(),
     );
-    const before = structuredClone(getState(store));
+    const completion = TestBed.inject(CasesCreateCasefileCompletionService);
+    const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
+    const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile');
     const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
     await harness.fixture.whenStable();
     harness.routeNativeElement!.querySelector<HTMLButtonElement>('#create_casefile_review_submit')!.click();
@@ -65,10 +52,48 @@ describe('Mock submission route lifecycle', () => {
     harness.detectChanges();
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
     expect(harness.routeNativeElement?.textContent).toContain('This is a simulated submission');
-    expect(getState(store)).toEqual(before);
+    expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+    expect(review.context()).toBeNull();
+    const receipt = completion.result();
+    expect(receipt?.draft_casefile_id).toMatch(/\S+/);
+    await harness.navigateByUrl('/cases/create-casefile/submission-confirmation');
+    expect(completion.result()).toBe(receipt);
+    expect(submit).toHaveBeenCalledOnce();
     await harness.navigateByUrl('/cases/create-casefile/check-case-details');
-    expect(getState(store)).toEqual(before);
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
+    expect(harness.routeNativeElement!.querySelectorAll('input:checked')).toHaveLength(0);
+    expect(completion.result()).toBeNull();
+    expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+    await harness.navigateByUrl('/cases/create-casefile/submission-confirmation');
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
+    completion.record({ draft_casefile_id: 'synthetic-cleanup' });
+    review.setContext({ origin: 'review', section: 'respondent' });
+    await harness.navigateByUrl('/outside');
+    expect(completion.result()).toBeNull();
+    expect(review.context()).toBeNull();
+    expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
   });
+  it('redirects direct confirmation with an incomplete draft and no receipt to case type', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([
+          {
+            path: 'cases/create-casefile',
+            component: CasesCreateCasefileComponent,
+            children: routing.map((route) => ({ ...route, resolve: {} })),
+          },
+        ]),
+      ],
+    });
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    store.setCaseTypeSelection({ caseType: 'REMO Out' });
+    await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
+    expect(TestBed.inject(CasesCreateCasefileCompletionService).result()).toBeNull();
+  });
+
   it('returns saved corrections to review and permits rebuilding after removal of the last term', async () => {
     const children = routing.map((route) => ({
       ...route,
@@ -80,6 +105,8 @@ describe('Mock submission route lifecycle', () => {
     }));
     TestBed.configureTestingModule({
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter([{ path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children }]),
       ],
     });

@@ -1,4 +1,20 @@
 <div class="govuk-grid-column-two-thirds">
-  <h1 #heading id="submission-confirmation-heading" class="govuk-heading-l" tabindex="-1">Submission confirmation</h1>
-  <p class="govuk-body">This is a simulated submission. No case has been saved or submitted for review.</p>
+  <opal-lib-govuk-panel>
+    <h1 #heading id="submission-confirmation-heading" class="govuk-panel__title" tabindex="-1">
+      You’ve submitted this case for review
+    </h1>
+  </opal-lib-govuk-panel>
+  <h2 id="submission-confirmation-next-steps" class="govuk-heading-l">Next steps</h2>
+  <ul class="govuk-list">
+    <li>
+      <a id="create_casefile_confirmation_create_new" class="govuk-link" [routerLink]="caseTypeUrl">
+        Create a new case
+      </a>
+    </li>
+    <li>
+      <a id="create_casefile_confirmation_in_review" class="govuk-link" [routerLink]="caseTypeUrl">
+        See your cases in review
+      </a>
+    </li>
+  </ul>
 </div>

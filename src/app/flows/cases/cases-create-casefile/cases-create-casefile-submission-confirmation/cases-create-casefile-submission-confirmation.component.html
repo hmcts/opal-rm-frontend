@@ -1,4 +1,17 @@
 <div class="govuk-grid-column-two-thirds">
+  @if (navigationError()) {
+    <div
+      #errorRegion
+      id="submission-confirmation-error"
+      class="govuk-error-summary"
+      tabindex="-1"
+      aria-labelledby="submission-confirmation-error-title"
+      role="alert"
+    >
+      <h2 id="submission-confirmation-error-title" class="govuk-error-summary__title">There is a problem</h2>
+      <p class="govuk-body">The page could not be opened. Try again.</p>
+    </div>
+  }
   <opal-lib-govuk-panel>
     <h1 #heading id="submission-confirmation-heading" class="govuk-panel__title" tabindex="-1">
       You’ve submitted this case for review
@@ -11,20 +24,15 @@
         id="create_casefile_confirmation_create_new"
         class="govuk-link"
         [href]="caseTypeUrl"
+        [attr.aria-disabled]="navigating() ? true : null"
         (click)="startNewCase($event)"
       >
         Create a new case
       </a>
     </li>
     <li>
-      <a
-        id="create_casefile_confirmation_in_review"
-        class="govuk-link"
-        [href]="caseTypeUrl"
-        (click)="startNewCase($event)"
-      >
-        See your cases in review
-      </a>
+      <!-- TODO: Link to cases in review when that journey is available. -->
+      <span id="create_casefile_confirmation_in_review">See your cases in review</span>
     </li>
   </ul>
 </div>

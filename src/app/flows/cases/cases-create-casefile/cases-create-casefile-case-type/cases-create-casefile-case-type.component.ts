@@ -1,6 +1,6 @@
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { Router } from '@angular/router';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
 import { DASHBOARD_ROUTING_PATHS } from '@app/pages/dashboard/constants/dashboard-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
@@ -21,11 +21,11 @@ import { ICasesCreateCasefileCaseTypeForm } from './interfaces/cases-create-case
   templateUrl: './cases-create-casefile-case-type.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBaseComponent {
+export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBaseComponent implements OnInit {
+  private readonly arrivalNavigation = inject(Router).currentNavigation();
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
-  public readonly focusHeadingOnArrival =
-    inject(Router).currentNavigation()?.extras.state?.['focusCaseTypeHeading'] === true;
+  public readonly focusHeadingOnArrival = this.arrivalNavigation?.extras.state?.['focusCaseTypeHeading'] === true;
 
   private isCaseType(value: unknown): value is CasesCreateCasefileCaseType {
     return Object.values(CASES_CREATE_CASEFILE_CASE_TYPES).includes(value as CasesCreateCasefileCaseType);
@@ -56,6 +56,14 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
     }
 
     return { [caseType]: selection.caseType, [applicantType]: null };
+  }
+
+  public ngOnInit(): void {
+    const navigation = this.arrivalNavigation;
+    if (navigation?.trigger === 'imperative' && navigation.extras.state?.['startNewCase'] === true) {
+      this.store.resetStore();
+      this.reviewNavigation.clearContext();
+    }
   }
 
   public handleFormSubmit(form: ICasesCreateCasefileCaseTypeForm): void {

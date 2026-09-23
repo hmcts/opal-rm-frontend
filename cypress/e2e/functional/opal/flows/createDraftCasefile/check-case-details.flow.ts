@@ -28,12 +28,9 @@ export class CheckCaseDetailsFlow {
   public assertConfirmation(): void {
     this.review.assertConfirmation();
   }
-  /**
-   * Starts an empty case through the selected confirmation link.
-   * @param link confirmation link to activate
-   */
-  public startNextCase(link: 'Create a new case' | 'See your cases in review'): void {
-    this.review.startNextCase(link);
+  /** Starts an empty case through Create a new case. */
+  public startNextCase(): void {
+    this.review.startNextCase();
   }
   /** Opens confirmation after login without an accepted submission. */
   public openFreshConfirmation(): void {

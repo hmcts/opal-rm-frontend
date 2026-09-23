@@ -50,23 +50,21 @@ export class CheckCaseDetailsActions {
     cy.get(S.review.createNew)
       .should('contain.text', 'Create a new case')
       .and('have.attr', 'href', '/' + PATHS.root + '/' + PATHS.children.caseType);
-    cy.get(S.review.inReview)
-      .should('contain.text', 'See your cases in review')
-      .and('have.attr', 'href', '/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.get(S.review.inReview).should(($text) => {
+      expect($text).to.contain.text('See your cases in review');
+      expect($text).not.to.have.attr('href');
+      expect($text).not.to.have.attr('tabindex');
+      expect($text).not.to.match('a, button, [role="link"], [role="button"]');
+    });
     cy.get('@draftCreation').should('not.have.been.called');
     cy.get(S.primaryNavigation).should('not.exist');
   }
 
-  /**
-   * Activates the selected next step using native keyboard navigation.
-   * @param link confirmation link to activate
-   */
-  public startNextCase(link: 'Create a new case' | 'See your cases in review'): void {
-    const selector = link === 'Create a new case' ? S.review.createNew : S.review.inReview;
+  /** Activates Create a new case using native keyboard navigation. */
+  public startNextCase(): void {
     cy.get(S.review.confirmationHeading).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
-    if (link === 'See your cases in review') cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(selector).should('be.focused');
+    cy.get(S.review.createNew).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.ENTER);
   }
 

@@ -675,8 +675,10 @@ test('rejects cancellation structural identifiers reused as fields or on another
 
 for (const { page, tag, id } of [
   { page: 'submission-confirmation', tag: 'h2', id: 'submission-confirmation-next-steps' },
+  { page: 'submission-confirmation', tag: 'div', id: 'submission-confirmation-error' },
+  { page: 'submission-confirmation', tag: 'h2', id: 'submission-confirmation-error-title' },
   { page: 'submission-confirmation', tag: 'a', id: 'create_casefile_confirmation_create_new' },
-  { page: 'submission-confirmation', tag: 'a', id: 'create_casefile_confirmation_in_review' },
+  { page: 'submission-confirmation', tag: 'span', id: 'create_casefile_confirmation_in_review' },
 ]) {
   test(`accepts ${id} only at its declared structural location`, async () => {
     const repositoryRoot = await createFixtureRepository();

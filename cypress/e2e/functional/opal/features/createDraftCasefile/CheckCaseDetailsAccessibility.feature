@@ -13,6 +13,6 @@ Feature: Check case details accessibility with simulated submission
     When I submit the casefile for simulated submission
     Then a submission confirmation is shown without a backend create request
     And I check the page for accessibility
-    When I choose "Create a new case" from casefile confirmation
+    When I create a new case from casefile confirmation
     Then an empty new case journey is shown without submitting data
     And I check the page for accessibility

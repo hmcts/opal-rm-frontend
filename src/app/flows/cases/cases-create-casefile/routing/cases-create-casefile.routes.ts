@@ -33,7 +33,7 @@ export const routing: Routes = [
       import('../cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component').then(
         (m) => m.CasesCreateCasefileSubmissionConfirmationComponent,
       ),
-    canActivate: [casesCreateCasefileFlowStateGuard],
+    canActivate: [casesCreateCasefileCheckDetailsGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.submissionConfirmation },
     resolve: { title: TitleResolver },
   },

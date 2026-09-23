@@ -1,3 +1,4 @@
+import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from 'src/app/flows/cases/constants/release-1c-rm-create-case-files-feature-flag.constant';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
@@ -10,9 +11,17 @@ import { NEVER } from 'rxjs';
 import { AppComponent } from 'src/app/app.component';
 import { LoginLocators as Login } from '../../shared/selectors/login.locators';
 import { PrimaryNavigationLocators as Nav } from '../../shared/selectors/primary-navigation.locators';
-import { createStarterUserState, STARTER_USER_STATE_CASES_ONLY } from '../CommonIntercepts/CommonUserState.mocks';
+import { STARTER_USER_STATE_CASES_ONLY } from '../CommonIntercepts/CommonUserState.mocks';
 
-const mountAppShell = ({ authenticated, userState }: { authenticated: boolean; userState: IOpalUserState }) =>
+const mountAppShell = ({
+  authenticated,
+  userState,
+  createCaseFilesEnabled = false,
+}: {
+  authenticated: boolean;
+  userState: IOpalUserState;
+  createCaseFilesEnabled?: boolean;
+}) =>
   mount(AppComponent, {
     providers: [
       provideHttpClient(),
@@ -23,6 +32,7 @@ const mountAppShell = ({ authenticated, userState }: { authenticated: boolean; u
           const store = new GlobalStore();
           store.setAuthenticated(authenticated);
           store.setUserState(userState);
+          store.setFeatureFlags({ [RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG]: createCaseFilesEnabled });
           return store;
         },
       },
@@ -60,24 +70,41 @@ describe('App shell', () => {
     cy.get(Nav.container).should('not.exist');
   });
 
-  it('shows only Cases when the user has the RM casefile permission', () => {
+  it('hides Cases without the RM permission even when the release is enabled', () => {
+    const userState = structuredClone(STARTER_USER_STATE_CASES_ONLY);
+    userState.business_unit_users.forEach((unit) => {
+      unit.permissions = [];
+    });
     mountAppShell({
       authenticated: true,
-      userState: STARTER_USER_STATE_CASES_ONLY,
+      userState,
+      createCaseFilesEnabled: true,
     });
 
     cy.get(Login.accountNavigationLink).should('contain.text', 'Sign out');
-    cy.get(Nav.items).should('have.length', 1);
-    cy.get(Nav.items).first().should('contain.text', Nav.labels.cases);
+    cy.get(Nav.container).should('not.exist');
   });
 
-  it('keeps sections without RM permissions hidden even when legacy Fines permissions are present', () => {
+  it('shows only Cases even when the user has all starter permissions', () => {
     mountAppShell({
       authenticated: true,
-      userState: createStarterUserState([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 21]),
+      userState: STARTER_USER_STATE_CASES_ONLY,
+      createCaseFilesEnabled: true,
     });
 
-    cy.get(Nav.items).should('have.length', 1);
-    cy.get(Nav.items).first().should('contain.text', Nav.labels.cases);
+    cy.get(Nav.items).should('have.length', 1).and('contain.text', Nav.labels.cases);
+  });
+
+  it('hides released navigation when the create-casefile flag changes to false', () => {
+    mountAppShell({
+      authenticated: true,
+      userState: STARTER_USER_STATE_CASES_ONLY,
+      createCaseFilesEnabled: true,
+    }).then(({ component }) => {
+      cy.get(Nav.items).should('have.length', 1).and('contain.text', Nav.labels.cases);
+      cy.then(() => component.globalStore.setFeatureFlags({ [RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG]: false }));
+      cy.get(Nav.container).should('not.exist');
+      cy.get(Login.accountNavigationLink).should('contain.text', 'Sign out');
+    });
   });
 });

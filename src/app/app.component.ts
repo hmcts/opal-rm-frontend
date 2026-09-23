@@ -106,7 +106,11 @@ export class AppComponent implements OnInit, OnDestroy {
     return `${title}. ${message}${operationReference}`;
   });
   public readonly navigationItems = computed(() =>
-    getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, this.globalStore.userState()),
+    getAccessiblePrimaryNavigationItems(
+      NAVIGATION_BAR_CONFIGURATION,
+      this.globalStore.userState(),
+      this.globalStore.featureFlags(),
+    ),
   );
   public readonly primaryNavigationHidden = toSignal(
     this.primaryNavigationRouteEvents$.pipe(map((event) => this.getPrimaryNavigationHiddenFromRouterEvent(event))),
@@ -118,7 +122,8 @@ export class AppComponent implements OnInit, OnDestroy {
     () =>
       this.globalStore.authenticated() &&
       this.globalStore.userState().status === 'active' &&
-      !this.primaryNavigationHidden(),
+      !this.primaryNavigationHidden() &&
+      this.navigationItems().length > 0,
   );
 
   public readonly activeNavigationItem = toSignal(

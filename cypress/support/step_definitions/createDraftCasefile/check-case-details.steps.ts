@@ -16,9 +16,7 @@ Then('the accepted draft is retained without a submission', () => flow.assertRet
 Then('case creation starts with no selected case or applicant type', () => flow.assertFreshCase());
 Then('browser history cannot recover the discarded case', () => flow.assertHistoryStaysEmpty());
 
-When('I choose {string} from casefile confirmation', (link: 'Create a new case' | 'See your cases in review') =>
-  flow.startNextCase(link),
-);
+When('I create a new case from casefile confirmation', () => flow.startNextCase());
 When('I go back from casefile confirmation', () => flow.backFromConfirmation());
 Then('review retains the case after returning from confirmation', () => flow.assertReviewAfterConfirmation());
 

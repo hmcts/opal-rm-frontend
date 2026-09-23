@@ -230,23 +230,6 @@ yarn dev:ssr
 
 Leave `FEATURE_FLAGS_OVERRIDE` unset or set to `false` in deployed environments so Launch Darkly remains the source of truth.
 
-##### RM create-casefile release
-
-`release-1c-rm-create-case-files` gates the whole create-casefile journey, its dashboard entry and the Cases navigation tab. Cases still requires the existing user permissions. Search, Reports and Administration remain unavailable until their own RM release flags are explicitly assigned; unrelated fines flags do not enable them.
-
-With this flag enabled, eligible users land on Cases and see only Cases in primary navigation. With no accessible released section, the dashboard redirects to the existing Access Denied page and primary navigation is hidden. Direct URLs to unreleased dashboard sections and disabled create-casefile pages also redirect to Access Denied. Existing authentication, account and unsaved-change guards remain effective.
-
-The configured release value defaults to `true` for local override mode. Start or restart the SSR server with either:
-
-```bash
-FEATURE_FLAGS_OVERRIDE=true RELEASE_1C_RM_CREATE_CASE_FILES_ENABLED=true corepack yarn dev:ssr
-FEATURE_FLAGS_OVERRIDE=true RELEASE_1C_RM_CREATE_CASE_FILES_ENABLED=false corepack yarn dev:ssr
-```
-
-When `FEATURE_FLAGS_OVERRIDE=false`, LaunchDarkly remains authoritative; the local `true` value is not a fallback. Create the exact boolean key in the appropriate LaunchDarkly project/environments with client-side availability and agreed targeting before rollout. A missing, false or failed evaluation denies access. Keep the remote flag disabled until rollout is authorised.
-
-Changes to environment variables require restarting the SSR process. Store updates change navigation visibility; subsequent journey navigation rechecks the flag while preserving leave-page protection. Remote streaming updates depend on `FEATURES_LAUNCH_DARKLY_STREAM` (currently disabled in deployment defaults), so refresh/reinitialization may be required to observe remote changes.
-
 ## Build
 
 Run `yarn build:ssr` to build the project. The build artifacts will be stored in the `dist/opal-rm-frontend` directory. This compiles both the node.js server-side code and angular code.

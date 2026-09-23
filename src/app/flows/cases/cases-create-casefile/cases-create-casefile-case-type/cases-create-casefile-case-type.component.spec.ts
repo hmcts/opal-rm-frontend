@@ -45,6 +45,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
       createCasesCreateCasefileReviewState(),
     );
+    store.setSubmissionSucceeded(true);
     const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
     review.setContext({ origin: 'review', section: 'respondent' });
     const before = structuredClone(getState(store));

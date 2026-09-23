@@ -70,7 +70,7 @@ export class CheckCaseDetailsActions {
     cy.press(Cypress.Keyboard.Keys.ENTER);
   }
 
-  /** Opens confirmation in a fresh document without recorded completion. */
+  /** Opens confirmation in a fresh document without a draft in the store. */
   public openFreshConfirmation(): void {
     cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', cy.spy().as('draftCreation'));
     cy.visit('/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
@@ -79,6 +79,16 @@ export class CheckCaseDetailsActions {
   /** Returns through browser history after acceptance. */
   public backFromConfirmation(): void {
     cy.go('back');
+  }
+
+  /** Checks the retained case when Back returns within the current journey. */
+  public assertReviewAfterConfirmation(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.checkCaseDetails);
+    cy.get(S.review.heading).should('have.text', 'Check case details').and('be.focused');
+    cy.get(S.review.section('respondent')).should('contain.text', 'Synthetic');
+    cy.get(S.review.section('orderTerms')).should('contain.text', '£10.00').and('contain.text', '£20.00');
+    cy.get(S.review.submit).should('be.enabled');
+    cy.get('@draftCreation').should('not.have.been.called');
   }
 
   /** Reloads the confirmation page to verify the existing in-memory journey reset. */

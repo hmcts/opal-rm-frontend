@@ -1,3 +1,4 @@
+import type { IOpalMaintenanceCasefileSubmissionResult } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-casefile-submission-result.interface';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-applicant-organisation/mocks/cases-create-casefile-applicant-organisation.mock';
@@ -70,3 +71,7 @@ export function createMixedCreditorReviewState() {
   state.nextMinorCreditorSequence = 4;
   return state;
 }
+
+export const REVIEW_SUBMISSION_RESULT: IOpalMaintenanceCasefileSubmissionResult = {
+  draft_casefile_id: 'synthetic-submitted-casefile',
+};

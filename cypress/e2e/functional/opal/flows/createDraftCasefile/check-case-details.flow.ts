@@ -43,6 +43,10 @@ export class CheckCaseDetailsFlow {
   public backFromConfirmation(): void {
     this.review.backFromConfirmation();
   }
+  /** Checks the retained case when Back returns within the current journey. */
+  public assertReviewAfterConfirmation(): void {
+    this.review.assertReviewAfterConfirmation();
+  }
   /** Reloads the confirmation page to verify the existing in-memory journey reset. */
   public refreshConfirmation(): void {
     this.review.refreshConfirmation();

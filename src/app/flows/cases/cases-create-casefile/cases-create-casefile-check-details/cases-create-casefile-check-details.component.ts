@@ -147,6 +147,18 @@ export class CasesCreateCasefileCheckDetailsComponent {
     }
   }
 
+  private async acceptSubmission(): Promise<void> {
+    try {
+      const result = await firstValueFrom(this.maintenance.submitCasefile());
+      this.completion.record(result);
+      this.store.resetStore();
+      this.reviewNavigation.clearContext();
+      await this.navigate(this.root + this.paths.submissionConfirmation);
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
   public focusTarget(id: string): void {
     const target =
       this.host.nativeElement.querySelector<HTMLElement>(`[id="${id}"]`) ??
@@ -162,18 +174,6 @@ export class CasesCreateCasefileCheckDetailsComponent {
     }
     this.submitting.set(true);
     void this.acceptSubmission();
-  }
-
-  private async acceptSubmission(): Promise<void> {
-    try {
-      const result = await firstValueFrom(this.maintenance.submitCasefile());
-      this.completion.record(result);
-      this.store.resetStore();
-      this.reviewNavigation.clearContext();
-      await this.navigate(this.root + this.paths.submissionConfirmation);
-    } finally {
-      this.submitting.set(false);
-    }
   }
 
   public retryConfirmation(): void {

@@ -529,11 +529,11 @@ describe('Create Casefile routes', () => {
       expect(component?.name).toBe(expectedComponents[pathKey].name);
     },
   );
-  it('protects confirmation with journey state', async () => {
+  it('protects confirmation with complete casefile data', async () => {
     const route = routing.find(
       (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.submissionConfirmation,
     );
-    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
+    expect(route?.canActivate).toEqual([casesCreateCasefileCheckDetailsGuard]);
     expect((await (route?.loadComponent?.() as Promise<{ name: string }>)).name).toBe(
       CasesCreateCasefileSubmissionConfirmationComponent.name,
     );

@@ -20,5 +20,6 @@ When('I choose {string} from casefile confirmation', (link: 'Create a new case' 
   flow.startNextCase(link),
 );
 When('I go back from casefile confirmation', () => flow.backFromConfirmation());
+Then('review retains the case after returning from confirmation', () => flow.assertReviewAfterConfirmation());
 
 When('I open casefile confirmation without submitting a case', () => flow.openFreshConfirmation());

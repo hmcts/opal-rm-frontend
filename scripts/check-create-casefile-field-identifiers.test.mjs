@@ -672,3 +672,30 @@ test('rejects cancellation structural identifiers reused as fields or on another
   assert.match(result.stderr, /noncanonical name="create_casefile_cancel_confirm"/);
   assert.match(result.stderr, /noncanonical id="create_casefile_cancel_heading"/);
 });
+
+for (const { page, tag, id } of [
+  { page: 'check-details', tag: 'button', id: 'create_casefile_confirmation_retry' },
+  { page: 'submission-confirmation', tag: 'h2', id: 'submission-confirmation-next-steps' },
+  { page: 'submission-confirmation', tag: 'a', id: 'create_casefile_confirmation_create_new' },
+  { page: 'submission-confirmation', tag: 'a', id: 'create_casefile_confirmation_in_review' },
+]) {
+  test(`accepts ${id} only at its declared structural location`, async () => {
+    const repositoryRoot = await createFixtureRepository();
+    const templatePath = `${createCasefilePath}/cases-create-casefile-${page}/cases-create-casefile-${page}.component.html`;
+    await writeFixtureFile(repositoryRoot, templatePath, `<${tag} id="${id}">Action</${tag}>`);
+    const accepted = runScanner(repositoryRoot);
+    assert.equal(accepted.status, 0, accepted.stderr);
+
+    await writeFixtureFile(repositoryRoot, templatePath, `<input id="${id}" name="${id}" />`);
+    const fieldResult = runScanner(repositoryRoot);
+    assertRejected(fieldResult, new RegExp(`noncanonical id="${id}"`));
+    assert.match(fieldResult.stderr, new RegExp(`noncanonical name="${id}"`));
+
+    await writeFixtureFile(repositoryRoot, templatePath, `<${tag} name="${id}">Action</${tag}>`);
+    assertRejected(runScanner(repositoryRoot), new RegExp(`noncanonical name="${id}"`));
+
+    await writeFixtureFile(repositoryRoot, templatePath, '');
+    await writeFixtureFile(repositoryRoot, caseTypeTemplatePath, `<${tag} id="${id}">Action</${tag}>`);
+    assertRejected(runScanner(repositoryRoot), new RegExp(`noncanonical id="${id}"`));
+  });
+}

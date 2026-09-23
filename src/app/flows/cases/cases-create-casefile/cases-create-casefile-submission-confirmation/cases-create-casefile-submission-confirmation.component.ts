@@ -11,10 +11,10 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileSubmissionConfirmationComponent {
+  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
+
   public readonly caseTypeUrl =
     '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType;
-
-  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
 
   constructor() {
     afterNextRender(() => this.heading()?.nativeElement.focus());

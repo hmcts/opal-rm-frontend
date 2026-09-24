@@ -10,6 +10,8 @@ export class OrderTermsActions {
       { method: 'GET', pathname: '/opal-maintenance-service/results', query: { order_term: 'true', active: 'true' } },
       { statusCode: 200, body: OPAL_MAINTENANCE_RESULTS_MOCK },
     ).as('results');
+    const unexpectedDetails = cy.spy().as('unexpectedResultsHttp');
+    cy.intercept('GET', '**/opal-maintenance-service/results/*', unexpectedDetails);
     cy.get(S.caseDetails.orderTermsLink).click();
     this.assertSummary();
     cy.get('@results.all').should('have.length', 0);

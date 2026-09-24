@@ -97,15 +97,15 @@ Map<String, List<Map<String, Object>>> nightlySecrets() {
 // Configure shared tag-filter environment variables for nightly test runs.
 void configureNightlyTags() {
   String tagExpression = (params.TAGS ?: env.TAGS ?: '').trim()
-  env.TAGS = tagExpression
-  env.CYPRESS_TAGS = tagExpression
+  env.TAGS = tagExpression ?: 'not @skip and not @R1CRmCreateCaseFilesOff'
+  env.CYPRESS_TAGS = env.TAGS
   env.SKIP_SMOKE = tagExpression ? 'true' : stringFalse
 
   if (tagExpression) {
     echo "Running nightly with TAGS=${tagExpression}"
     echo 'Skipping smoke tests for tagged nightly run.'
   } else {
-    echo 'Running nightly without tag filtering.'
+    echo "Running default release-enabled selection (TAGS=${env.TAGS})"
   }
 }
 

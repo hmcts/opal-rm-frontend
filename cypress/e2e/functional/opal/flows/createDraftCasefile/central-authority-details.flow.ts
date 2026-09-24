@@ -1,4 +1,7 @@
-import { CentralAuthorityDetailsActions } from '../../actions/createDraftCasefile/central-authority-details.actions';
+import {
+  CentralAuthorityDetailsActions,
+  type CentralAuthorityChoice,
+} from '../../actions/createDraftCasefile/central-authority-details.actions';
 
 /** Exposes Central Authority business journey verbs to Cucumber steps. */
 export class CentralAuthorityDetailsFlow {
@@ -14,10 +17,10 @@ export class CentralAuthorityDetailsFlow {
    *
    * @param remo The REMO reference to save.
    * @param reference The Central Authority reference to save.
-   * @param authority The displayed Central Authority option to select.
+   * @param authorityChoice Which returned Central Authority option to select.
    */
-  public saveDetails(remo: string, reference: string, authority: string): void {
-    this.actions.saveDetails(remo, reference, authority);
+  public saveDetails(remo: string, reference: string, authorityChoice: CentralAuthorityChoice): void {
+    this.actions.saveDetails(remo, reference, authorityChoice);
   }
 
   /** Confirms the Central Authority task is marked as provided. */
@@ -35,10 +38,10 @@ export class CentralAuthorityDetailsFlow {
    *
    * @param remo The expected REMO reference.
    * @param reference The expected Central Authority reference.
-   * @param authority The expected displayed Central Authority option.
+   * @param authorityChoice Which returned Central Authority option is expected.
    */
-  public assertEditableDetails(remo: string, reference: string, authority: string): void {
-    this.actions.assertEditableDetails(remo, reference, authority);
+  public assertEditableDetails(remo: string, reference: string, authorityChoice: CentralAuthorityChoice): void {
+    this.actions.assertEditableDetails(remo, reference, authorityChoice);
   }
 
   /** Submits over-limit Central Authority references. */

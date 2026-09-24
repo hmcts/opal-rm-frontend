@@ -1,3 +1,4 @@
+import { OPAL_MAINTENANCE_RESULTS_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-results.mock';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 
@@ -5,9 +6,13 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/case
 export class OrderTermsActions {
   /** Opens the Order Terms Summary from Case Details without calling a Results HTTP endpoint. */
   public openSummary(): void {
-    cy.intercept('GET', '**/opal-maintenance-service/results*', cy.spy().as('unexpectedResultsHttp'));
+    cy.intercept(
+      { method: 'GET', pathname: '/opal-maintenance-service/results', query: { order_term: 'true', active: 'true' } },
+      { statusCode: 200, body: OPAL_MAINTENANCE_RESULTS_MOCK },
+    ).as('results');
     cy.get(S.caseDetails.orderTermsLink).click();
     this.assertSummary();
+    cy.get('@results.all').should('have.length', 0);
   }
 
   /** Checks the summary route and its Add terms action. */
@@ -20,6 +25,7 @@ export class OrderTermsActions {
   /** Starts a fresh pending order-term selection. */
   public startAdd(): void {
     cy.get(S.orderTerms.add).click();
+    cy.wait('@results').its('response.statusCode').should('eq', 200);
   }
 
   /**
@@ -49,14 +55,13 @@ export class OrderTermsActions {
   }
 
   /**
-   * Checks the Result-specific input route without persistence or Results HTTP traffic.
+   * Checks the Result-specific input route without persisting a draft.
    * @param id The Result ID expected in the route and heading.
    */
   public assertInput(id: string): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermsInput + '/' + id);
     cy.get(S.orderTerms.heading).should('have.text', 'Order term ' + id);
     cy.get('@draftCreation').should('not.have.been.called');
-    cy.get('@unexpectedResultsHttp').should('not.have.been.called');
     cy.get(S.primaryNavigation).should('not.exist');
   }
 

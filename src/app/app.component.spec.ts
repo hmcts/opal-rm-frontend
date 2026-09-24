@@ -446,10 +446,18 @@ describe('AppComponent - browser', () => {
     expect(hasPrimaryNavigation(fixture)).toBe(true);
   });
 
+  it('shows only Cases for an active user with no permissions when its release is enabled', () => {
+    globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([]));
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    expect(getPrimaryNavigationTexts(fixture)).toEqual(['Cases']);
+  });
+
   it.each([
     { navigationItem: 'Reports', permissionType: 'report' },
     { navigationItem: 'Search', permissionType: 'search' },
-    { navigationItem: 'Cases', permissionType: 'accounts' },
   ])(
     'should hide $navigationItem in primary navigation when the user lacks all $permissionType permissions',
     ({ navigationItem }) => {

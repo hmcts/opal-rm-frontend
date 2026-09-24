@@ -7,10 +7,10 @@ Feature: Create Draft Casefile Central Authority details
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9804
   Scenario: Enter, replay and edit Central Authority details
     When I open Central Authority details in a new REMO Out casefile
-    And I save Central Authority details with references "REMO-1" and "CA-1" and authority "0123 - Central Authority One"
+    And I save Central Authority details with references "REMO-1" and "CA-1" using the first available authority
     Then Central Authority is marked Provided on Case details
     When I reopen Central Authority details
-    Then the references "REMO-1" and "CA-1" and authority "0123 - Central Authority One" are editable
-    When I save Central Authority details with references "REMO-2" and "CA-2" and authority "0456 - Central Authority Two"
+    Then the references "REMO-1" and "CA-1" and the first available authority are editable
+    When I save Central Authority details with references "REMO-2" and "CA-2" using the second available authority
     And I reopen Central Authority details
-    Then the references "REMO-2" and "CA-2" and authority "0456 - Central Authority Two" are editable
+    Then the references "REMO-2" and "CA-2" and the second available authority are editable

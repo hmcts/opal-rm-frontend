@@ -10,7 +10,8 @@ const waitForDashboardLanding = () => {
   cy.get(L.accountNavigationLink, { timeout: 20_000 }).should('contain.text', 'Sign out');
 };
 
-export function performLogin(email: string): void {
+/** Authenticates without requiring an enabled dashboard section. */
+export function performAuthentication(email: string): void {
   const password = Cypress.env('CYPRESS_TEST_PASSWORD') || '';
 
   log('action', 'Logging in', { email });
@@ -25,7 +26,7 @@ export function performLogin(email: string): void {
           log('navigate', 'Using the local sign-in stub', { href });
           cy.get(L.usernameInput, { timeout: 20_000 }).should('be.visible').clear().type(email, { delay: 0 });
           cy.get(L.submitBtn, { timeout: 20_000 }).click();
-          waitForDashboardLanding();
+          assertSignOutLinkVisible();
           return;
         }
 
@@ -38,7 +39,7 @@ export function performLogin(email: string): void {
           cy.get('#idBtn_Back', { timeout: 12_000 }).click();
         });
 
-        waitForDashboardLanding();
+        assertSignOutLinkVisible();
       });
     },
     {
@@ -57,6 +58,12 @@ export function performLogin(email: string): void {
   );
 
   cy.visit('/');
+  assertSignOutLinkVisible();
+}
+
+/** Authenticates and requires a released dashboard for journey setup. */
+export function performLogin(email: string): void {
+  performAuthentication(email);
   waitForDashboardLanding();
 }
 

@@ -1,3 +1,4 @@
+import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-result-details.mock';
 import { OPAL_MAINTENANCE_RESULTS_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-results.mock';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
@@ -10,8 +11,13 @@ export class OrderTermsActions {
       { method: 'GET', pathname: '/opal-maintenance-service/results', query: { order_term: 'true', active: 'true' } },
       { statusCode: 200, body: OPAL_MAINTENANCE_RESULTS_MOCK },
     ).as('results');
-    const unexpectedDetails = cy.spy().as('unexpectedResultsHttp');
-    cy.intercept('GET', '**/opal-maintenance-service/results/*', unexpectedDetails);
+    cy.intercept('GET', '**/opal-maintenance-service/results/*', (request) => {
+      const resultId = decodeURIComponent(new URL(request.url).pathname.split('/').at(-1)!);
+      const detail = Object.hasOwn(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK, resultId)
+        ? OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[resultId]
+        : null;
+      request.reply(detail ? { statusCode: 200, body: detail } : { statusCode: 404, body: {} });
+    }).as('resultDetail');
     cy.get(S.caseDetails.orderTermsLink).click();
     this.assertSummary();
     cy.get('@results.all').should('have.length', 0);
@@ -98,7 +104,7 @@ export class OrderTermsActions {
     cy.location('pathname').should('eq', '/cases/create-casefile/order-terms/creditor');
     cy.get(S.orderTerms.heading).should('have.text', 'Creditor');
     cy.get('@draftCreation').should('not.have.been.called');
-    cy.get('@unexpectedResultsHttp').should('not.have.been.called');
+    cy.get('@resultDetail.all').should('have.length.at.least', 1);
   }
   /** Checks required amount validation and summary focus. */
   public assertAmountRequired(): void {

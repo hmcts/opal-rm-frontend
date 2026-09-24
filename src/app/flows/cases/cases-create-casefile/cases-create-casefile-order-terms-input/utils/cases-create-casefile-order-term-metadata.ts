@@ -150,7 +150,8 @@ const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
   };
 };
 
-export function mapOrderTermParameters(json: string): ICasesCreateCasefileOrderTermField[] {
+export function mapOrderTermParameters(json: string | null): ICasesCreateCasefileOrderTermField[] {
+  if (typeof json !== 'string') return fail();
   let parameters: unknown;
   try {
     parameters = JSON.parse(json);

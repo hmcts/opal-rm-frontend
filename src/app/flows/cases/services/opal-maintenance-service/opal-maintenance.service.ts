@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
-import { defer, of, Observable, shareReplay, tap } from 'rxjs';
+import { Observable, shareReplay, tap } from 'rxjs';
 import type { IOpalMaintenanceApplicationReferenceDataResponse } from './interfaces/opal-maintenance-application-reference-data-response.interface';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorParams } from './interfaces/opal-maintenance-major-creditor-params.interface';
@@ -9,7 +9,6 @@ import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './inter
 import type { IOpalMaintenanceResultDetail } from './interfaces/opal-maintenance-result-detail.interface';
 import type { IOpalMaintenanceResultParams } from './interfaces/opal-maintenance-result-params.interface';
 import type { IOpalMaintenanceResultReferenceDataResponse } from './interfaces/opal-maintenance-result-reference-data-response.interface';
-import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from './mocks/opal-maintenance-result-details.mock';
 
 @Injectable({ providedIn: 'root' })
 export class OpalMaintenanceService {
@@ -67,12 +66,10 @@ export class OpalMaintenanceService {
   }
 
   public getResult(resultId: string): Observable<IOpalMaintenanceResultDetail | null> {
-    return defer(() => {
-      const detail = Object.hasOwn(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK, resultId)
-        ? OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[resultId]
-        : null;
-      return of(detail ? { ...detail } : null);
-    });
+    return this.http.get<IOpalMaintenanceResultDetail>(
+      `/opal-maintenance-service/results/${encodeURIComponent(resultId)}`,
+      { context: withoutHttpRetry() },
+    );
   }
 
   public getCountries(active: boolean): Observable<IOpalMaintenanceCountryReferenceDataResponse> {

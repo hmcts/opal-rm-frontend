@@ -14,8 +14,6 @@ export const ORDER_TERMS_INPUT_MOCK = {
   literal: {
     result_id: 'MAT',
     result_title: '<strong>synthetic</strong>',
-    active: true,
-    order_term: true,
     result_parameters: JSON.stringify([
       {
         name: 'short_text',
@@ -47,8 +45,6 @@ export const ORDER_TERMS_INPUT_MOCK = {
   allControls: {
     result_id: 'MAT',
     result_title: 'Synthetic controls',
-    active: true,
-    order_term: true,
     result_parameters: JSON.stringify([
       {
         name: 'short_text',

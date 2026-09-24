@@ -1,5 +1,3 @@
-import { firstValueFrom } from 'rxjs';
-import { OPAL_MAINTENANCE_RESULTS_MOCK } from './mocks/opal-maintenance-results.mock';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -110,33 +108,36 @@ describe('OpalMaintenanceService', () => {
     http.expectOne('/opal-maintenance-service/results?order_term=true&active=true').flush({ count: 0, refData: [] });
   });
 
-  it('resolves every selectable mock Result without HTTP', async () => {
-    const list = OPAL_MAINTENANCE_RESULTS_MOCK;
-    for (const item of list.refData) {
-      expect(await firstValueFrom(service.getResult(item.result_id))).toMatchObject({
-        ...item,
-        active: true,
-        order_term: true,
-      });
+  it('requests Result detail afresh with an encoded identifier and no automatic retry', () => {
+    const detail = { result_id: 'A/B', result_title: 'Maintenance', result_parameters: '[]' };
+    const source = service.getResult('A/B');
+    for (let attempt = 0; attempt < 2; attempt++) {
+      source.subscribe((response) => expect(response).toEqual(detail));
+      const request = http.expectOne('/opal-maintenance-service/results/A%2FB');
+      expect(request.request.method).toBe('GET');
+      for (const token of withoutHttpRetry().keys()) {
+        expect(request.request.context.get(token)).toEqual(withoutHttpRetry().get(token));
+      }
+      request.flush(detail);
     }
-    expect(await firstValueFrom(service.getResult('unknown'))).toBeNull();
-    expect(await firstValueFrom(service.getResult('__proto__'))).toBeNull();
-    http.expectNone((request) => request.url.includes('/results'));
   });
 
-  it('returns a distinct Result detail that cannot mutate the fixture', async () => {
-    const request = service.getResult('MAT');
-    const first = await firstValueFrom(request);
-    const second = await firstValueFrom(request);
+  it('preserves null metadata without substituting a fixture', () => {
+    const detail = { result_id: 'MAT', result_title: 'Maintenance', result_parameters: null };
+    service.getResult('MAT').subscribe((response) => expect(response).toEqual(detail));
+    http.expectOne('/opal-maintenance-service/results/MAT').flush(detail);
+  });
 
-    expect(first).not.toBe(second);
-    expect(first).not.toBeNull();
-    if (first) first.result_title = 'Changed by test';
-    expect(await firstValueFrom(service.getResult('MAT'))).toMatchObject({
-      result_id: 'MAT',
-      result_title: 'Maintenance',
-    });
-    http.expectNone((request) => request.url.includes('/results'));
+  it.each([404, 503])('propagates detail HTTP %s and allows a fresh request', (status) => {
+    let failure: number | undefined;
+    service.getResult('MAT').subscribe({ error: (error) => (failure = error.status) });
+    http
+      .expectOne('/opal-maintenance-service/results/MAT')
+      .flush({ detail: 'Unavailable' }, { status, statusText: 'Unavailable' });
+    expect(failure).toBe(status);
+    const detail = { result_id: 'MAT', result_title: 'Maintenance', result_parameters: '[]' };
+    service.getResult('MAT').subscribe((response) => expect(response).toEqual(detail));
+    http.expectOne('/opal-maintenance-service/results/MAT').flush(detail);
   });
 
   it('requests active Create Casefile applications afresh on each entry', () => {

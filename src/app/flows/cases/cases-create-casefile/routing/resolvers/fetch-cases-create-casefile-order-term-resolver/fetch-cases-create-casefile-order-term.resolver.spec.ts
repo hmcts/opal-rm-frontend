@@ -35,8 +35,6 @@ const matDetail = (): IOpalMaintenanceResultDetail => structuredClone(OPAL_MAINT
 const choiceDetail = (mandatory: boolean): IOpalMaintenanceResultDetail => ({
   result_id: 'MAT',
   result_title: 'Lookup term',
-  active: true,
-  order_term: true,
   result_parameters: JSON.stringify([
     {
       name: 'choice',
@@ -162,7 +160,7 @@ describe('fetchCasesCreateCasefileOrderTermResolver', () => {
       { value: 'c', label: "A O'Brien" },
     ];
     const detail = choiceDetail(true);
-    const parameters = JSON.parse(detail.result_parameters);
+    const parameters = JSON.parse(detail.result_parameters!);
     parameters[0].type = 'autocomplete';
     if (source === 'lookup') {
       delete parameters[0].options;
@@ -196,8 +194,7 @@ describe('fetchCasesCreateCasefileOrderTermResolver', () => {
 
   it.each([
     ['a mismatched result ID', { result_id: 'MCHILD' }],
-    ['an inactive result', { active: false }],
-    ['a non-order-term result', { order_term: false }],
+    ['missing metadata', { result_parameters: null }],
     ['a blank title', { result_title: '   ' }],
     ['nonstring parameters', { result_parameters: [] }],
   ])('cancels activation for %s', async (_name, overrides) => {

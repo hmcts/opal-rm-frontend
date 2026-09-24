@@ -118,7 +118,7 @@ describe('dashboard release routing', () => {
     expect(TestBed.inject(Router).url).toBe('/dashboard/cases');
   });
 
-  it('denies an active user without Cases permissions', async () => {
+  it.each(['/dashboard', '/dashboard/cases'])('allows an active user with no permissions at %s', async (url) => {
     flags.set({ [key]: true });
     const user = structuredClone(OPAL_USER_STATE_MOCK);
     user.status = 'active';
@@ -127,9 +127,30 @@ describe('dashboard release routing', () => {
     });
     getUserState.mockReturnValue(of(user));
     const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl('/dashboard');
-    expect(TestBed.inject(Router).url).toBe('/access-denied');
+    await harness.navigateByUrl(url);
+    expect(TestBed.inject(Router).url).toBe('/dashboard/cases');
   });
+
+  it('still blocks an unauthenticated user when the release is enabled', async () => {
+    flags.set({ [key]: true });
+    TestBed.overrideProvider(AuthService, { useValue: { checkAuthenticated: () => of(false) } });
+    const harness = await RouterTestingHarness.create();
+    expect(await TestBed.inject(Router).navigateByUrl('/dashboard')).toBe(false);
+    expect(harness.routeNativeElement).toBeNull();
+  });
+
+  it.each(['created', 'suspended', 'deactivated'] as const)(
+    'still blocks an account with status %s',
+    async (status) => {
+      flags.set({ [key]: true });
+      const user = structuredClone(OPAL_USER_STATE_MOCK);
+      user.status = status;
+      getUserState.mockReturnValue(of(user));
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl('/dashboard');
+      expect(TestBed.inject(Router).url).toBe('/account-created');
+    },
+  );
 
   it('settles when Back to dashboard is used with all releases disabled', async () => {
     const harness = await RouterTestingHarness.create('/access-denied');

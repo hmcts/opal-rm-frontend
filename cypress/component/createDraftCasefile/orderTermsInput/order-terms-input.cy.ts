@@ -222,6 +222,33 @@ describe('Order term input regressions', () => {
     cy.get(S.orderTermsInput.amount).should('be.visible');
   });
 
+  it('AC1. should load metadata from the Result detail endpoint', { tags: buildTags() }, () => {
+    cy.intercept('GET', '**/opal-maintenance-service/results/MAT', { statusCode: 200, body: M.mat }).as('resultDetail');
+    setupOrderTerms({ savedId: 'MAT', detailHttp: true });
+    cy.get(S.orderTerms.continueButton).click();
+    cy.wait('@resultDetail').its('request.method').should('eq', 'GET');
+    cy.get(S.orderTerms.heading).should('have.text', M.mat.result_title);
+    cy.get(S.orderTermsInput.amount).should('be.visible');
+  });
+
+  it('AC2. should retain selection when the backend has no Result and allow retry', { tags: buildTags() }, () => {
+    cy.intercept('GET', '**/opal-maintenance-service/results/MAT', { statusCode: 404, body: M.problem }).as(
+      'missingResult',
+    );
+    setupOrderTerms({ shell: true, savedId: 'MAT', detailHttp: true });
+    cy.get(S.orderTerms.continueButton).click();
+    cy.wait('@missingResult');
+    cy.get(S.globalErrorBanner).should('be.visible');
+    cy.get(S.orderTerms.select).should('have.value', 'MAT');
+    cy.get('@missingResult.all').should('have.length', 1);
+    cy.intercept('GET', '**/opal-maintenance-service/results/MAT', { statusCode: 200, body: M.mat }).as(
+      'availableResult',
+    );
+    cy.get(S.orderTerms.continueButton).click();
+    cy.wait('@availableResult');
+    cy.get(S.orderTermsInput.amount).should('be.visible');
+  });
+
   it('AC2. should render the shared HTTP problem literally with correlation and retry', { tags: buildTags() }, () => {
     let attempts = 0;
     cy.intercept('GET', '**/opal-maintenance-service/results/MAT', (request) =>
@@ -302,7 +329,7 @@ describe('Order term input regressions', () => {
 
   it('AC5. should link checkbox errors and hints to existing IDs and toggle with Space', { tags: buildTags() }, () => {
     const detail = structuredClone(M.allControls);
-    const parameters = JSON.parse(detail.result_parameters);
+    const parameters = JSON.parse(detail.result_parameters!);
     parameters.at(-1).hint = 'Confirm the synthetic entry';
     detail.result_parameters = JSON.stringify(parameters);
     setupOrderTerms({ shell: true, savedId: 'MAT', initialChild: inputPath(), detailSource: of(detail) });

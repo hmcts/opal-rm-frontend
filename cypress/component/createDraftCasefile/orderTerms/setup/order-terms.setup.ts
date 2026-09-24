@@ -1,4 +1,4 @@
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { AppComponent } from 'src/app/app.component';
 import { HIDE_PRIMARY_NAV_ROUTE_DATA_KEY } from 'src/app/constants/route-data.constant';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
@@ -84,7 +84,7 @@ export function setupOrderTerms({
         detailSource ??
         defer(() =>
           detailHttp
-            ? TestBed.inject(HttpClient).get<IOpalMaintenanceResultDetail>('/opal-maintenance-service/results/' + id)
+            ? TestBed.runInInjectionContext(() => new OpalMaintenanceService().getResult(id))
             : of(
                 Object.hasOwn(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK, id)
                   ? structuredClone(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[id])

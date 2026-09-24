@@ -35,15 +35,11 @@ export const OPAL_MAINTENANCE_RESULT_DETAILS_MOCK: Readonly<Record<string, IOpal
   MAT: {
     result_id: 'MAT',
     result_title: 'Maintenance',
-    active: true,
-    order_term: true,
     result_parameters: JSON.stringify(common),
   },
   MCHILD: {
     result_id: 'MCHILD',
     result_title: 'Child maintenance',
-    active: true,
-    order_term: true,
     result_parameters: JSON.stringify([
       { name: 'child_name', prompt: 'Child’s name', type: 'text', mandatory: true, language_dependent: false },
       {

@@ -32,8 +32,6 @@ export const fetchCasesCreateCasefileOrderTermResolver: ResolveFn<ICasesCreateCa
       if (
         !detail ||
         detail.result_id !== resultId ||
-        detail.active !== true ||
-        detail.order_term !== true ||
         typeof detail.result_title !== 'string' ||
         !detail.result_title.trim() ||
         typeof detail.result_parameters !== 'string'

@@ -4,9 +4,14 @@ import {
   assertSignInPageVisible,
   assertSignOutLinkVisible,
   performLogin,
+  performAuthentication,
   signOut,
 } from '../../e2e/actions/login.actions';
 import { log } from '../utils/log.helper';
+
+Given('I am authenticated with email {string}', (email: string) => {
+  performAuthentication(email);
+});
 
 Given('I am logged in with email {string}', (email: string) => {
   log('step', 'Logging in via Cypress auth flow', { email });

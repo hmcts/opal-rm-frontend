@@ -37,7 +37,7 @@ describe('Order term creditor', () => {
       cy.get(S.creditor.continueButton).should('not.be.disabled');
       cy.get(S.primaryNavigation).should('not.exist');
       cy.get('@majorCreditorsRequest').should('have.been.calledOnceWithExactly', {
-        business_unit_id: 77,
+        business_unit_id: 44,
         active: true,
         central_authority: false,
       });
@@ -131,7 +131,7 @@ describe('Order term creditor', () => {
     const source = new Subject<IOpalMaintenanceMajorCreditorReferenceDataResponse>();
     setupCreditor({ awaitNavigation: false, majorSource: source });
     cy.get('@majorCreditorsRequest').should('have.been.calledOnceWithExactly', {
-      business_unit_id: 77,
+      business_unit_id: 44,
       active: true,
       central_authority: false,
     });

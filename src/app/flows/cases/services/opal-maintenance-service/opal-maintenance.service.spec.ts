@@ -25,7 +25,7 @@ describe('OpalMaintenanceService', () => {
     refData: [
       {
         major_creditor_id: 901,
-        business_unit_id: 77,
+        business_unit_id: 44,
         major_creditor_code: '0123',
         name: 'Central Authority One',
         address_line_1: '1 Test Street',
@@ -229,27 +229,27 @@ describe('OpalMaintenanceService', () => {
   });
 
   it('serializes all Major Creditor filters and shares the identical observable', () => {
-    const params = { business_unit_id: 77, central_authority: true, active: true };
+    const params = { business_unit_id: 44, central_authority: true, active: true };
     const first = service.getMajorCreditors(params);
     const second = service.getMajorCreditors({ ...params });
     expect(first).toBe(second);
     first.subscribe();
     second.subscribe();
     http
-      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true&active=true')
+      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=true&active=true')
       .flush(majorCreditors);
   });
 
   it('serializes false Major Creditor filters explicitly', () => {
-    service.getMajorCreditors({ business_unit_id: 77, central_authority: false, active: false }).subscribe();
+    service.getMajorCreditors({ business_unit_id: 44, central_authority: false, active: false }).subscribe();
     http
-      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=false&active=false')
+      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=false&active=false')
       .flush(majorCreditors);
   });
 
   it('omits undefined optional Major Creditor filters', () => {
-    service.getMajorCreditors({ business_unit_id: 77, central_authority: undefined, active: undefined }).subscribe();
-    const request = http.expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77');
+    service.getMajorCreditors({ business_unit_id: 44, central_authority: undefined, active: undefined }).subscribe();
+    const request = http.expectOne('/opal-maintenance-service/major-creditors?business_unit_id=44');
     expect(request.request.params.has('central_authority')).toBe(false);
     expect(request.request.params.has('active')).toBe(false);
     request.flush(majorCreditors);
@@ -257,14 +257,14 @@ describe('OpalMaintenanceService', () => {
 
   it('separates false, true, omitted, and Business Unit Major Creditor cache keys', () => {
     const calls = [
-      { params: { business_unit_id: 77 }, url: '/opal-maintenance-service/major-creditors?business_unit_id=77' },
+      { params: { business_unit_id: 44 }, url: '/opal-maintenance-service/major-creditors?business_unit_id=44' },
       {
-        params: { business_unit_id: 77, central_authority: false },
-        url: '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=false',
+        params: { business_unit_id: 44, central_authority: false },
+        url: '/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=false',
       },
       {
-        params: { business_unit_id: 77, central_authority: true },
-        url: '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true',
+        params: { business_unit_id: 44, central_authority: true },
+        url: '/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=true',
       },
       { params: { business_unit_id: 78 }, url: '/opal-maintenance-service/major-creditors?business_unit_id=78' },
     ] as const;
@@ -275,26 +275,26 @@ describe('OpalMaintenanceService', () => {
   });
 
   it('retries the cached cold source after an earlier Major Creditor error', () => {
-    const result = service.getMajorCreditors({ business_unit_id: 77, active: true });
+    const result = service.getMajorCreditors({ business_unit_id: 44, active: true });
     result.subscribe({ error: () => undefined });
     http
-      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&active=true')
+      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=44&active=true')
       .flush({ detail: 'Unavailable' }, { status: 503, statusText: 'Service Unavailable' });
-    const retry = service.getMajorCreditors({ business_unit_id: 77, active: true });
+    const retry = service.getMajorCreditors({ business_unit_id: 44, active: true });
     expect(retry).not.toBe(result);
     retry.subscribe((response) => expect(response).toEqual(majorCreditors));
-    http.expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&active=true').flush(majorCreditors);
+    http.expectOne('/opal-maintenance-service/major-creditors?business_unit_id=44&active=true').flush(majorCreditors);
   });
 
   it('preserves a successful Major Creditor response after a take-one consumer unsubscribes', async () => {
-    const params = { business_unit_id: 77, central_authority: false, active: true };
+    const params = { business_unit_id: 44, central_authority: false, active: true };
     const nonCentralMajorCreditors = {
       count: 1,
       refData: [{ ...majorCreditors.refData[0], central_authority: false }],
     };
     const responsePromise = firstValueFrom(service.getMajorCreditors(params).pipe(take(1)));
     http
-      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=false&active=true')
+      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=false&active=true')
       .flush(nonCentralMajorCreditors);
     expect(await responsePromise).toEqual(nonCentralMajorCreditors);
 
@@ -303,11 +303,11 @@ describe('OpalMaintenanceService', () => {
   });
 
   it('cancels a pending Major Creditor request when its final subscriber unsubscribes', () => {
-    const result = service.getMajorCreditors({ business_unit_id: 77, central_authority: false, active: true });
+    const result = service.getMajorCreditors({ business_unit_id: 44, central_authority: false, active: true });
     const first = result.subscribe();
     const second = result.subscribe();
     const request = http.expectOne(
-      '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=false&active=true',
+      '/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=false&active=true',
     );
     first.unsubscribe();
     expect(request.cancelled).toBe(false);
@@ -317,15 +317,15 @@ describe('OpalMaintenanceService', () => {
 
   it('evicts a Major Creditor source that completes without a response', () => {
     vi.spyOn(TestBed.inject(HttpClient), 'get').mockReturnValue(EMPTY);
-    const params = { business_unit_id: 77, central_authority: false, active: true };
+    const params = { business_unit_id: 44, central_authority: false, active: true };
     const first = service.getMajorCreditors(params);
     first.subscribe();
     expect(service.getMajorCreditors(params)).not.toBe(first);
   });
 
   it('does not retain an empty Major Creditor response in the cache', () => {
-    const params = { business_unit_id: 77, central_authority: true, active: true };
-    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true&active=true';
+    const params = { business_unit_id: 44, central_authority: true, active: true };
+    const url = '/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=true&active=true';
     const first = service.getMajorCreditors(params);
     first.subscribe();
     http.expectOne(url).flush({ count: 0, refData: [] });
@@ -337,8 +337,8 @@ describe('OpalMaintenanceService', () => {
   });
 
   it('issues a fresh Major Creditor request after the error interceptor consumes a retriable conflict', () => {
-    const params = { business_unit_id: 77, central_authority: true, active: true };
-    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true&active=true';
+    const params = { business_unit_id: 44, central_authority: true, active: true };
+    const url = '/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=true&active=true';
     const first = service.getMajorCreditors(params);
     first.subscribe();
     http
@@ -355,8 +355,8 @@ describe('OpalMaintenanceService', () => {
   });
 
   it('does not let an original Major Creditor response overwrite its replacement after cache clear', async () => {
-    const params = { business_unit_id: 77, central_authority: true, active: true };
-    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true&active=true';
+    const params = { business_unit_id: 44, central_authority: true, active: true };
+    const url = '/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=true&active=true';
     const originalResponse = structuredClone(majorCreditors);
     originalResponse.refData[0].name = 'Stale original';
     const replacementResponse = structuredClone(majorCreditors);
@@ -374,8 +374,8 @@ describe('OpalMaintenanceService', () => {
   });
 
   it('does not let an original Major Creditor error evict its replacement after cache clear', () => {
-    const params = { business_unit_id: 77, central_authority: true, active: true };
-    const url = '/opal-maintenance-service/major-creditors?business_unit_id=77&central_authority=true&active=true';
+    const params = { business_unit_id: 44, central_authority: true, active: true };
+    const url = '/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=true&active=true';
     service.getMajorCreditors(params).subscribe({ error: () => undefined });
     clearMajorCreditorCache();
     const replacement = service.getMajorCreditors(params);

@@ -19,7 +19,7 @@ class TestDestinationComponent {}
 const acceptedTerm = { termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null };
 const majorCreditor = {
   major_creditor_id: 47,
-  business_unit_id: 77,
+  business_unit_id: 44,
   major_creditor_code: 'MC47',
   name: 'Synthetic Major Creditor',
   address_line_1: '1 Example Street',

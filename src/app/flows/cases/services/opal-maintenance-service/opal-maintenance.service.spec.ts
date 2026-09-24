@@ -139,7 +139,6 @@ describe('OpalMaintenanceService', () => {
     http.expectNone((request) => request.url.includes('/results'));
   });
 
-
   it('requests active Create Casefile applications afresh on each entry', () => {
     for (let attempt = 0; attempt < 3; attempt++) {
       service.getMaintenanceApplications().subscribe((response) => expect(response.refData).toEqual([]));

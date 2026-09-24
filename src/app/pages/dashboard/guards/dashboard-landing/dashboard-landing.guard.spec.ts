@@ -72,9 +72,9 @@ describe('dashboardLandingGuard', () => {
     expect(serialize(await runGuard())).toBe('/access-denied');
     expect(getUserState).not.toHaveBeenCalled();
   });
-  it('denies users with no Cases permission', async () => {
-    getUserState.mockReturnValue(of(createUserStateWithPermissions([6])));
-    expect(serialize(await runGuard())).toBe('/access-denied');
+  it('allows enabled Cases for users with no permissions', async () => {
+    getUserState.mockReturnValue(of(createUserStateWithPermissions([])));
+    expect(serialize(await runGuard())).toBe('/dashboard/cases');
   });
   it('denies when user state fails', async () => {
     getUserState.mockReturnValue(throwError(() => new Error('User state unavailable')));

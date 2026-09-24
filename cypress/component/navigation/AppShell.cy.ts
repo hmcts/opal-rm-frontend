@@ -73,10 +73,14 @@ describe('App shell', () => {
     cy.get(Nav.container).should('not.exist');
   });
 
-  it('shows only Cases when the user only has accounts permissions', () => {
+  it('shows only Cases for an active user with no permissions when the release is enabled', () => {
+    const userState = structuredClone(STARTER_USER_STATE_CASES_ONLY);
+    userState.business_unit_users.forEach((unit) => {
+      unit.permissions = [];
+    });
     mountAppShell({
       authenticated: true,
-      userState: STARTER_USER_STATE_CASES_ONLY,
+      userState,
       createCaseFilesEnabled: true,
     });
 

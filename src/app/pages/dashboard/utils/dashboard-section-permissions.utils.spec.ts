@@ -77,9 +77,21 @@ describe('dashboard-section-permissions.utils', () => {
     },
   );
 
-  it('does not grant Cases permissions through the release flag', () => {
+  it('shows Cases without permissions while RM permissions are not implemented', () => {
     const user = createUserStateWithPermissions([]);
-    expect(getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, user, { [createFlag]: true })).toEqual([]);
+    expect(getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, user, { [createFlag]: true })).toEqual([
+      { key: 'cases', value: 'Cases' },
+    ]);
+  });
+
+  it('enforces a section permission when one is configured', () => {
+    DASHBOARD_SECTION_PERMISSIONS.cases = [1];
+    expect(
+      canAccessFinesPrimaryNavigationSection('cases', createUserStateWithPermissions([]), { [createFlag]: true }),
+    ).toBe(false);
+    expect(
+      canAccessFinesPrimaryNavigationSection('cases', createUserStateWithPermissions([1]), { [createFlag]: true }),
+    ).toBe(true);
   });
 
   it('returns no permissions when user state is missing', () => {

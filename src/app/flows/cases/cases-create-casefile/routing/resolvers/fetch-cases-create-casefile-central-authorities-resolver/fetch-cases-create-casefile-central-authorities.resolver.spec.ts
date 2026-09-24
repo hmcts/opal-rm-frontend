@@ -21,7 +21,7 @@ describe('fetchCasesCreateCasefileCentralAuthoritiesResolver', () => {
     refData: [
       {
         major_creditor_id: 1,
-        business_unit_id: 77,
+        business_unit_id: 44,
         major_creditor_code: '0001',
         name: 'Central authority',
         address_line_1: '1 Central Street',
@@ -59,7 +59,7 @@ describe('fetchCasesCreateCasefileCentralAuthoritiesResolver', () => {
   it('returns the unmodified active Central Authorities response', async () => {
     await expect(firstValueFrom(executeResolver() as Observable<typeof response>)).resolves.toBe(response);
     expect(maintenanceService.getMajorCreditors).toHaveBeenCalledWith({
-      business_unit_id: 77,
+      business_unit_id: 44,
       central_authority: true,
       active: true,
     });

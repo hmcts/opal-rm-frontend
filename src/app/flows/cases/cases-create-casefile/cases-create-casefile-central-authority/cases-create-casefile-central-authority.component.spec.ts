@@ -19,7 +19,7 @@ describe('CasesCreateCasefileCentralAuthorityComponent', () => {
   const router = { navigate: vi.fn() };
   const first: IOpalMaintenanceMajorCreditorReferenceDataItem = {
     major_creditor_id: 101,
-    business_unit_id: 1,
+    business_unit_id: 44,
     major_creditor_code: '0123',
     name: 'Central Authority One',
     address_line_1: 'First address',

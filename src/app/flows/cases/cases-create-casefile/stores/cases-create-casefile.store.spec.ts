@@ -98,7 +98,7 @@ describe('CasesCreateCasefileStore', () => {
 
   const majorCreditor: IOpalMaintenanceMajorCreditorReferenceDataItem = {
     major_creditor_id: 901,
-    business_unit_id: 77,
+    business_unit_id: 44,
     major_creditor_code: '0123',
     name: 'Central Authority One',
     address_line_1: '1 Test Street',

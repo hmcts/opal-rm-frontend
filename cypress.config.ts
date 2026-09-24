@@ -98,6 +98,9 @@ async function setupE2eNodeEvents(
   on: Cypress.PluginEvents,
   config: Cypress.PluginConfigOptions,
 ): Promise<Cypress.PluginConfigOptions> {
+  // Cucumber v26 reads lowercase tags; retain the runner and Jenkins TAGS contract.
+  config.env.tags = config.env.tags ?? config.env.TAGS;
+
   await addCucumberPreprocessorPlugin(on, config, {
     omitAfterScreenshotHandler: true,
     omitAfterSpecHandler: true,
@@ -214,7 +217,7 @@ export default defineConfig({
     CYPRESS_TEST_EMAIL: process.env.OPAL_TEST_USER_EMAIL,
     CYPRESS_TEST_PASSWORD: process.env.OPAL_TEST_USER_PASSWORD,
     TEST_MODE: process.env.TEST_MODE || 'OPAL',
-    TAGS: process.env.TAGS || '',
+    TAGS: process.env.TAGS || 'not @skip and not @R1CRmCreateCaseFilesOff',
     omitFiltered: true,
     filterSpecs: true,
   },

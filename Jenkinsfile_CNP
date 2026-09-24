@@ -459,10 +459,10 @@ if (tagLabel) {
     echo "Running scenarios matching TAGS=${env.TAGS}"
     echo "Skipping smoke tests for tagged run: ${tagLabel}"
 } else {
-    env.TAGS = skipTagExpression
+    env.TAGS = "${skipTagExpression} and not @R1CRmCreateCaseFilesOff"
     env.CYPRESS_TAGS = env.TAGS
     env.SKIP_SMOKE = stringFalse
-    echo "Running all scenarios except @skip (TAGS=${env.TAGS})"
+    echo "Running default release-enabled selection (TAGS=${env.TAGS})"
 }
 
 // Primary pipeline definition and lifecycle hooks

@@ -30,7 +30,7 @@ describe('Create Casefile Central authority details', () => {
     setupCentralAuthorityDetails();
 
     cy.wait('@getMajorCreditors').its('request.query').should('deep.equal', {
-      business_unit_id: '77',
+      business_unit_id: '44',
       central_authority: 'true',
       active: 'true',
     });

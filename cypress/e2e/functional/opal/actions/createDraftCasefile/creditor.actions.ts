@@ -15,7 +15,7 @@ export class CreditorActions {
   public assertReady(): void {
     cy.wait('@majorCreditors')
       .its('request.query')
-      .should('deep.equal', { business_unit_id: '77', central_authority: 'false', active: 'true' });
+      .should('deep.equal', { business_unit_id: '44', central_authority: 'false', active: 'true' });
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermCreditor);
     cy.get(S.heading).should('have.text', 'Creditor');
     cy.get(S.primaryNavigation).should('not.exist');

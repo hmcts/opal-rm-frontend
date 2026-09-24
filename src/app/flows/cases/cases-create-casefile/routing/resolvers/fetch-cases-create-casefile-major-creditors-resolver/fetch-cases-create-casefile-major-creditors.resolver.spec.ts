@@ -10,7 +10,7 @@ import { fetchCasesCreateCasefileMajorCreditorsResolver } from './fetch-cases-cr
 
 const usable = {
   major_creditor_id: 901,
-  business_unit_id: 77,
+  business_unit_id: 44,
   major_creditor_code: '0123',
   name: 'Synthetic creditor',
   address_line_1: '1 Test Street',
@@ -69,7 +69,7 @@ describe('fetchCasesCreateCasefileMajorCreditorsResolver', () => {
     expect(settled).toBe(false);
     expect(TestBed.inject(Router).url).toBe('/start');
     expect(getMajorCreditors).toHaveBeenCalledExactlyOnceWith({
-      business_unit_id: 77,
+      business_unit_id: 44,
       active: true,
       central_authority: false,
     });

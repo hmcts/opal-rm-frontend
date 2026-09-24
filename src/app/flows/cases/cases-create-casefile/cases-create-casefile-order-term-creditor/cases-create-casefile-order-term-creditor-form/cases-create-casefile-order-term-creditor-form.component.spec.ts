@@ -13,7 +13,7 @@ const FIELD = {
 } as const;
 const major = {
   major_creditor_id: 901,
-  business_unit_id: 77,
+  business_unit_id: 44,
   major_creditor_code: 'MC901',
   name: 'Synthetic major creditor',
   address_line_1: '1 Test Street',

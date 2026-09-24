@@ -1,3 +1,4 @@
+@R1CRmCreateCaseFiles
 Feature: Login And Sign Out
   Scenario: The user lands on a dashboard page and can sign out again
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"

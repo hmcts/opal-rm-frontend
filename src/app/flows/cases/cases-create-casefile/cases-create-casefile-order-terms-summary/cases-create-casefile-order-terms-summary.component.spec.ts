@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CasesCreateCasefileOrderTermCardComponent } from '../components/cases-create-casefile-order-term-card/cases-create-casefile-order-term-card.component';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileAcceptedOrderTerm } from '../interfaces/cases-create-casefile-accepted-order-term.interface';
@@ -107,6 +109,7 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
       'Maintenance',
       'Maintenance',
     ]);
+    expect(fixture.debugElement.queryAll(By.directive(CasesCreateCasefileOrderTermCardComponent))).toHaveLength(2);
   });
 
   for (const failure of ['false', 'rejection'] as const) {

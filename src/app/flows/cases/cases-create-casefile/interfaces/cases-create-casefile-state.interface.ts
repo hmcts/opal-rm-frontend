@@ -12,6 +12,8 @@ import type { ICasesCreateCasefileCreditorDraft } from './cases-create-casefile-
 import type { ICasesCreateCasefileMinorCreditor } from './cases-create-casefile-minor-creditor.interface';
 import type { ICasesCreateCasefileTaskStatuses } from './cases-create-casefile-task-statuses.interface';
 import type { ICasesCreateCasefileOrderTermAmendment } from './cases-create-casefile-order-term-amendment.interface';
+import type { ICasesCreateCasefileOrderTermRemoval } from './cases-create-casefile-order-term-removal.interface';
+import type { CasesCreateCasefileOrderTermRemovalOutcome } from '../types/cases-create-casefile-order-term-removal-outcome.type';
 
 export interface ICasesCreateCasefileState {
   caseTypeSelection: CasesCreateCasefileCaseTypeSelection | null;
@@ -29,6 +31,9 @@ export interface ICasesCreateCasefileState {
   creditorDraft: ICasesCreateCasefileCreditorDraft | null;
   orderTermDraft: ICasesCreateCasefileOrderTermDraft | null;
   orderTermAmendment: ICasesCreateCasefileOrderTermAmendment | null;
+  orderTermRemoval: ICasesCreateCasefileOrderTermRemoval | null;
+  orderTermRemovalOutcome: CasesCreateCasefileOrderTermRemovalOutcome;
+  orderTermRemovalReturnFocusId: number | null;
   commentsAndNotes: ICasesCreateCasefileCommentsNotes | null;
   pendingOrderTermResultId: string | null;
   taskStatuses: ICasesCreateCasefileTaskStatuses;

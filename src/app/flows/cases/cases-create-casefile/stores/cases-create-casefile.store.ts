@@ -1,5 +1,5 @@
 import { computed } from '@angular/core';
-import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
+import { getState, patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 import {
   CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES,
   CASES_CREATE_CASEFILE_STATE,
@@ -16,6 +16,7 @@ import type { ICasesCreateCasefileMinorCreditor } from '../interfaces/cases-crea
 import type { ICasesCreateCasefileMinorCreditorDetails } from '../interfaces/cases-create-casefile-minor-creditor-details.interface';
 import type { ICasesCreateCasefileCreditorDraft } from '../interfaces/cases-create-casefile-creditor-draft.interface';
 import type { ICasesCreateCasefileOrderTermAmendment } from '../interfaces/cases-create-casefile-order-term-amendment.interface';
+import type { ICasesCreateCasefileOrderTermRemoval } from '../interfaces/cases-create-casefile-order-term-removal.interface';
 import type { ICasesCreateCasefileOrderTermPresentation } from '../interfaces/cases-create-casefile-order-term-presentation.interface';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
@@ -30,6 +31,7 @@ import type { ICasesCreateCasefileOrderTermPage } from '../cases-create-casefile
 import type { CasesCreateCasefileOrderTermRawValue } from '../cases-create-casefile-order-terms-input/types/cases-create-casefile-order-term-raw-value.type';
 import { restoreOrderTermDraft } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-draft';
 import { orderTermPresentation } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-presentation';
+import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-card';
 
 const normalizeOptionalText = (value: string | null): string | null => (value?.trim() ? value : null);
 
@@ -112,6 +114,9 @@ export const CasesCreateCasefileStore = signalStore(
         creditorDraft: selectionUnchanged ? store.creditorDraft() : null,
         orderTermDraft: selectionUnchanged ? store.orderTermDraft() : null,
         orderTermAmendment: selectionUnchanged ? store.orderTermAmendment() : null,
+        orderTermRemoval: selectionUnchanged ? store.orderTermRemoval() : null,
+        orderTermRemovalOutcome: selectionUnchanged ? store.orderTermRemovalOutcome() : null,
+        orderTermRemovalReturnFocusId: selectionUnchanged ? store.orderTermRemovalReturnFocusId() : null,
         commentsAndNotes: selectionUnchanged ? store.commentsAndNotes() : null,
         pendingOrderTermResultId: selectionUnchanged ? store.pendingOrderTermResultId() : null,
         taskStatuses,
@@ -504,6 +509,74 @@ export const CasesCreateCasefileStore = signalStore(
         ...CASES_CREATE_CASEFILE_STATE,
         taskStatuses: { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES },
       });
+    },
+  })),
+  withMethods((store) => ({
+    beginOrderTermRemoval: (termId: number): ICasesCreateCasefileOrderTermRemoval | null => {
+      if (store.orderTermAmendment()) return null;
+      const index = store.orderTerms().findIndex((term) => term.termId === termId);
+      if (index < 0) return null;
+      const expectedTerm = store.orderTerms()[index];
+      const selection = {
+        index,
+        termId,
+        expectedTerm,
+        presentationSignature: JSON.stringify(buildOrderTermCard(expectedTerm, getState(store))),
+      };
+      patchState(store, {
+        orderTermRemoval: selection,
+        orderTermRemovalOutcome: null,
+        orderTermRemovalReturnFocusId: null,
+      });
+      return selection;
+    },
+    clearOrderTermRemoval: (expected: ICasesCreateCasefileOrderTermRemoval): void => {
+      if (store.orderTermRemoval() === expected) patchState(store, { orderTermRemoval: null });
+    },
+    clearOrderTermRemovalOutcome: (): void => {
+      patchState(store, { orderTermRemovalOutcome: null });
+    },
+    setOrderTermRemovalReturnFocusId: (termId: number | null): void => {
+      patchState(store, { orderTermRemovalReturnFocusId: termId });
+    },
+  })),
+  withMethods((store) => ({
+    isOrderTermRemovalCurrent: (expected: ICasesCreateCasefileOrderTermRemoval): boolean => {
+      const current = store.orderTerms().find((term) => term.termId === expected.termId);
+      return (
+        store.orderTermRemoval() === expected &&
+        !store.orderTermAmendment() &&
+        current === expected.expectedTerm &&
+        JSON.stringify(buildOrderTermCard(current, getState(store))) === expected.presentationSignature
+      );
+    },
+    markOrderTermRemovalUnavailable: (): void => {
+      if (store.orderTermRemovalOutcome() === 'removed') return;
+      patchState(store, {
+        orderTermRemoval: null,
+        orderTermRemovalOutcome: 'unavailable',
+        orderTermRemovalReturnFocusId: null,
+      });
+    },
+  })),
+  withMethods((store) => ({
+    confirmOrderTermRemoval: (expected: ICasesCreateCasefileOrderTermRemoval): boolean => {
+      if (store.orderTermRemovalOutcome() === 'removed') return false;
+      if (store.orderTermRemoval() !== expected) return false;
+      if (!store.isOrderTermRemovalCurrent(expected)) {
+        store.markOrderTermRemovalUnavailable();
+        return false;
+      }
+      if (!store.removeAcceptedOrderTerm(expected.termId)) {
+        store.markOrderTermRemovalUnavailable();
+        return false;
+      }
+      patchState(store, {
+        orderTermRemoval: null,
+        orderTermRemovalOutcome: 'removed',
+        orderTermRemovalReturnFocusId: null,
+      });
+      return true;
     },
   })),
   withMethods((store) => ({

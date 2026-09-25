@@ -1,4 +1,15 @@
 <div class="govuk-grid-column-two-thirds">
-  <opal-lib-govuk-back-link (clickEvent)="handleBack()" />
-  <h1 class="govuk-heading-l">Order term {{ selectedId() }}</h1>
+  <opal-lib-govuk-back-link (clickEvent)="handleCancel()" />
+  @for (entry of pages(); track entry) {
+    <app-cases-create-casefile-order-terms-input-form
+      [page]="entry.page"
+      [initialValues]="entry.values"
+      [initialDirty]="entry.dirty"
+      [frequency]="frequency()"
+      (draftChange)="handleDraftChange($event)"
+      (unsavedChanges)="handleUnsavedChanges($event)"
+      (formSubmit)="handleFormSubmit($event)"
+      (cancel)="handleCancel()"
+    />
+  }
 </div>

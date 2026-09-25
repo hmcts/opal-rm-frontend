@@ -11,6 +11,7 @@ export interface ICasesCreateCasefileRoutingPaths {
     orderTermsSummary: string;
     orderTermsSelect: string;
     orderTermsInput: string;
+    orderTermCreditor: string;
     interestAndIndexation: string;
     managingPayments: string;
     commentsAndNotes: string;

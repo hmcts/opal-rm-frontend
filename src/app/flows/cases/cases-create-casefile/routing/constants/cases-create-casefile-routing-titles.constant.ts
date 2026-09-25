@@ -9,6 +9,7 @@ export const CASES_CREATE_CASEFILE_ROUTING_TITLES = {
   orderTermsSummary: 'Order terms',
   orderTermsSelect: 'What type of order are you adding?',
   orderTermsInput: 'Order term',
+  orderTermCreditor: 'Creditor',
   interestAndIndexation: 'Interest and indexation',
   managingPayments: 'Managing payments',
   commentsAndNotes: 'Comments and notes',

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
+import { CasesCreateCasefileOrderTermLookupsService } from '../cases-create-casefile-order-terms-input/services/cases-create-casefile-order-term-lookups.service';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from './constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_TITLES } from './constants/cases-create-casefile-routing-titles.constant';
 import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
@@ -7,10 +8,12 @@ import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-cr
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
+import { casesCreateCasefileOrderTermCreditorGuard } from './guards/cases-create-casefile-order-term-creditor.guard';
 import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
 import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 import { fetchCasesCreateCasefileOrderTermsResolver } from './resolvers/fetch-cases-create-casefile-order-terms-resolver/fetch-cases-create-casefile-order-terms.resolver';
+import { fetchCasesCreateCasefileOrderTermResolver } from './resolvers/fetch-cases-create-casefile-order-term-resolver/fetch-cases-create-casefile-order-term.resolver';
 
 export const routing: Routes = [
   {
@@ -138,7 +141,18 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileOrderTermsInputComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermSelectionGuard],
-    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsInput },
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
+    providers: [CasesCreateCasefileOrderTermLookupsService],
+    resolve: { orderTerm: fetchCasesCreateCasefileOrderTermResolver },
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermCreditor,
+    loadComponent: () =>
+      import('../cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor.component').then(
+        (component) => component.CasesCreateCasefileOrderTermCreditorComponent,
+      ),
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard],
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermCreditor },
     resolve: { title: TitleResolver },
   },
   {

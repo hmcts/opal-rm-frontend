@@ -39,8 +39,8 @@ describe('Order term selection', () => {
       .then((options) => {
         expect(Array.from(options).map((option) => [option.value, option.text])).to.deep.equal([
           ['', 'Select an order'],
-          ['MOCK01', 'MOCK01 - Example maintenance term'],
-          ['MOCK02', 'MOCK02 - Example additional term'],
+          ['MAT', 'MAT - Maintenance'],
+          ['MCHILD', 'MCHILD - Child maintenance'],
         ]);
       });
     cy.get('@getResults').should('have.been.calledOnce');
@@ -61,20 +61,20 @@ describe('Order term selection', () => {
 
   it('AC4. should save only the ID and restore it on input Back', { tags: buildTags() }, () => {
     setupOrderTerms();
-    cy.get(S.orderTerms.select).select('MOCK01');
+    cy.get(S.orderTerms.select).select('MAT');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
       expect(store.pendingOrderTermResultId()).to.eq(null),
     );
     cy.get(S.orderTerms.continueButton).click();
-    assertRoute(PATHS.children.orderTermsInput + '/MOCK01');
-    cy.get(S.orderTerms.heading).should('have.text', 'Order term MOCK01');
+    assertRoute(PATHS.children.orderTermsInput + '/MAT');
+    cy.get(S.orderTerms.heading).should('have.text', 'Maintenance');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.pendingOrderTermResultId()).to.eq('MOCK01');
+      expect(store.pendingOrderTermResultId()).to.eq('MAT');
       expect(store.taskStatuses().orderTerms).to.eq(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
       expect(store.unsavedChanges()).to.eq(false);
     });
     cy.get(S.orderTerms.back).click();
-    cy.get(S.orderTerms.select).should('have.value', 'MOCK01');
+    cy.get(S.orderTerms.select).should('have.value', 'MAT');
     cy.get('@getResults').should('have.been.calledTwice');
   });
 
@@ -92,8 +92,8 @@ describe('Order term selection', () => {
       `AC4, RGAC1. should ${confirmed ? 'discard' : 'retain'} a changed selection after Cancel`,
       { tags: buildTags() },
       () => {
-        setupOrderTerms({ savedId: 'MOCK01' });
-        cy.get(S.orderTerms.select).select('MOCK02');
+        setupOrderTerms({ savedId: 'MAT' });
+        cy.get(S.orderTerms.select).select('MCHILD');
         cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
           expect(store.unsavedChanges()).to.eq(true),
         );
@@ -104,12 +104,12 @@ describe('Order term selection', () => {
         cy.get(S.orderTerms.cancel).click();
         assertRoute(confirmed ? PATHS.children.orderTermsSummary : PATHS.children.orderTermsSelect);
         cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-          expect(store.pendingOrderTermResultId()).to.eq('MOCK01');
+          expect(store.pendingOrderTermResultId()).to.eq('MAT');
           expect(store.taskStatuses().respondent).to.eq(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
           expect(store.taskStatuses().orderDetails).to.eq(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
         });
         if (!confirmed) {
-          cy.get(S.orderTerms.select).should('have.value', 'MOCK02');
+          cy.get(S.orderTerms.select).should('have.value', 'MCHILD');
         } else {
           cy.get(S.orderTerms.add).click();
           cy.get(S.orderTerms.select).should('have.value', '');
@@ -119,8 +119,8 @@ describe('Order term selection', () => {
   }
 
   it('AC4. should remove the warning when the entry selection is restored', { tags: buildTags() }, () => {
-    setupOrderTerms({ savedId: 'MOCK01' });
-    cy.get(S.orderTerms.select).select('MOCK02').select('MOCK01');
+    setupOrderTerms({ savedId: 'MAT' });
+    cy.get(S.orderTerms.select).select('MCHILD').select('MAT');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => expect(store.unsavedChanges()).to.eq(false));
     cy.on('window:confirm', () => {
       throw new Error('Unchanged selection must not warn');
@@ -131,7 +131,7 @@ describe('Order term selection', () => {
 
   it('AC4. should normalize a fresh selection returned to blank as unchanged', { tags: buildTags() }, () => {
     setupOrderTerms();
-    cy.get(S.orderTerms.select).select('MOCK01').select('');
+    cy.get(S.orderTerms.select).select('MAT').select('');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => expect(store.unsavedChanges()).to.eq(false));
     cy.on('window:confirm', () => {
       throw new Error('Restoring a fresh selection to blank must not warn');
@@ -144,7 +144,7 @@ describe('Order term selection', () => {
     'AC4. should treat clearing a saved selection as a change and retain blank when declined',
     { tags: buildTags() },
     () => {
-      setupOrderTerms({ savedId: 'MOCK01' });
+      setupOrderTerms({ savedId: 'MAT' });
       cy.get(S.orderTerms.select).select('');
       cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => expect(store.unsavedChanges()).to.eq(true));
       cy.on('window:confirm', (message) => {
@@ -155,7 +155,7 @@ describe('Order term selection', () => {
       assertRoute(PATHS.children.orderTermsSelect);
       cy.get(S.orderTerms.select).should('have.value', '');
       cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
-        expect(store.pendingOrderTermResultId()).to.eq('MOCK01'),
+        expect(store.pendingOrderTermResultId()).to.eq('MAT'),
       );
     },
   );
@@ -164,7 +164,7 @@ describe('Order term selection', () => {
     const first = new Subject<IOpalMaintenanceResultReferenceDataResponse>();
     const failed = new Subject<IOpalMaintenanceResultReferenceDataResponse>();
     const retried = new Subject<IOpalMaintenanceResultReferenceDataResponse>();
-    setupOrderTerms({ source: first, savedId: 'MOCK01' });
+    setupOrderTerms({ source: first, savedId: 'MAT' });
     emit(first);
     cy.get('@getResults').then((aliased) => {
       const stub = aliased as unknown as sinon.SinonStub;
@@ -173,7 +173,7 @@ describe('Order term selection', () => {
     });
     cy.get<CasesCreateCasefileOrderTermsLoadService>('@orderTermsOwner').then((owner) => owner.load());
     cy.then(() => failed.error(problemError()));
-    cy.get(S.orderTerms.select).should('have.value', 'MOCK01').and('be.disabled');
+    cy.get(S.orderTerms.select).should('have.value', 'MAT').and('be.disabled');
     cy.get(S.orderTerms.status)
       .should('contain.text', GENERIC_HTTP_ERROR_MESSAGE)
       .should('contain.text', 'synthetic-reference')
@@ -187,13 +187,13 @@ describe('Order term selection', () => {
     cy.get(S.orderTerms.retry).should('be.focused').and('have.attr', 'aria-disabled', 'true');
     emit(retried);
     cy.get(S.orderTerms.retry).should('be.focused');
-    cy.get(S.orderTerms.select).should('not.be.disabled').and('have.value', 'MOCK01');
+    cy.get(S.orderTerms.select).should('not.be.disabled').and('have.value', 'MAT');
     cy.get(S.orderTerms.continueButton).should('not.be.disabled');
   });
 
   it('AC2. should clear an ID removed by a successful response', { tags: buildTags() }, () => {
     const response = new Subject<IOpalMaintenanceResultReferenceDataResponse>();
-    setupOrderTerms({ source: response, savedId: 'MOCK02' });
+    setupOrderTerms({ source: response, savedId: 'MCHILD' });
     emit(response, { count: 1, refData: [M.response.refData[0]] });
     cy.get(S.orderTerms.select).should('have.value', '');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
@@ -211,13 +211,13 @@ describe('Order term selection', () => {
   });
 
   it('AC4. should reject a mismatched input URL', { tags: buildTags() }, () => {
-    setupOrderTerms({ savedId: 'MOCK01', initialChild: PATHS.children.orderTermsInput + '/MOCK02' });
+    setupOrderTerms({ savedId: 'MAT', initialChild: PATHS.children.orderTermsInput + '/MCHILD' });
     assertRoute(PATHS.children.orderTermsSelect);
-    cy.get(S.orderTerms.select).should('have.value', 'MOCK01');
+    cy.get(S.orderTerms.select).should('have.value', 'MAT');
   });
 
   it('AC4. should always open Summary from the task list and start Add terms fresh', { tags: buildTags() }, () => {
-    setupOrderTerms({ savedId: 'MOCK01', initialChild: PATHS.children.taskList });
+    setupOrderTerms({ savedId: 'MAT', initialChild: PATHS.children.taskList });
     cy.get(S.caseDetails.orderTermsLink).click();
     assertRoute(PATHS.children.orderTermsSummary);
     cy.get(S.orderTerms.add).click();
@@ -229,10 +229,10 @@ describe('Order term selection', () => {
 
   it('AC5. should use the native select and keyboard Tab and Enter', { tags: buildTags() }, () => {
     setupOrderTerms();
-    cy.get(S.orderTerms.select).select('MOCK01').should('be.focused');
+    cy.get(S.orderTerms.select).select('MAT').should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.orderTerms.continueButton).should('be.focused').type('{enter}');
-    assertRoute(PATHS.children.orderTermsInput + '/MOCK01');
+    assertRoute(PATHS.children.orderTermsInput + '/MAT');
     cy.get(S.orderTerms.back).should('be.visible');
   });
 
@@ -265,15 +265,15 @@ describe('Order term selection', () => {
       `RGAC1–3. should ${confirmed ? 'discard' : 'retain'} journey state on external departure`,
       { tags: buildTags() },
       () => {
-        setupOrderTerms({ savedId: 'MOCK01' });
-        cy.get(S.orderTerms.select).select('MOCK02');
+        setupOrderTerms({ savedId: 'MAT' });
+        cy.get(S.orderTerms.select).select('MCHILD');
         cy.on('window:confirm', () => confirmed);
         cy.get<Router>('@angularRouter').then((router) => router.navigateByUrl('/order-terms-test-external'));
         cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-          expect(store.pendingOrderTermResultId()).to.eq(confirmed ? null : 'MOCK01');
+          expect(store.pendingOrderTermResultId()).to.eq(confirmed ? null : 'MAT');
           expect(store.caseTypeSelection() === null).to.eq(confirmed);
         });
-        if (!confirmed) cy.get(S.orderTerms.select).should('have.value', 'MOCK02');
+        if (!confirmed) cy.get(S.orderTerms.select).should('have.value', 'MCHILD');
       },
     );
   }
@@ -306,8 +306,8 @@ describe('Order term visual evidence', () => {
   });
 
   it('AC1. should capture populated selection', { tags: buildTags() }, () => {
-    setupOrderTerms({ savedId: 'MOCK01' });
-    cy.get(S.orderTerms.select).should('have.value', 'MOCK01');
+    setupOrderTerms({ savedId: 'MAT' });
+    cy.get(S.orderTerms.select).should('have.value', 'MAT');
     cy.screenshot('po-9806-order-terms-populated');
   });
 
@@ -339,8 +339,8 @@ describe('Order term visual evidence', () => {
   });
 
   it('AC4. should capture input destination', { tags: buildTags() }, () => {
-    setupOrderTerms({ savedId: 'MOCK01', initialChild: PATHS.children.orderTermsInput + '/MOCK01' });
-    cy.get(S.orderTerms.heading).should('have.text', 'Order term MOCK01');
+    setupOrderTerms({ savedId: 'MAT', initialChild: PATHS.children.orderTermsInput + '/MAT' });
+    cy.get(S.orderTerms.heading).should('have.text', 'Maintenance');
     cy.screenshot('po-9806-order-terms-input');
   });
 });

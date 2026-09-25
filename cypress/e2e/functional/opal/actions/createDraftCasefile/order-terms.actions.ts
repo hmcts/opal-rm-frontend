@@ -1,3 +1,4 @@
+import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-result-details.mock';
 import { OPAL_MAINTENANCE_RESULTS_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-results.mock';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
@@ -10,6 +11,13 @@ export class OrderTermsActions {
       { method: 'GET', pathname: '/opal-maintenance-service/results', query: { order_term: 'true', active: 'true' } },
       { statusCode: 200, body: OPAL_MAINTENANCE_RESULTS_MOCK },
     ).as('results');
+    cy.intercept('GET', '**/opal-maintenance-service/results/*', (request) => {
+      const resultId = decodeURIComponent(new URL(request.url).pathname.split('/').at(-1)!);
+      const detail = Object.hasOwn(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK, resultId)
+        ? OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[resultId]
+        : null;
+      request.reply(detail ? { statusCode: 200, body: detail } : { statusCode: 404, body: {} });
+    }).as('resultDetail');
     cy.get(S.caseDetails.orderTermsLink).click();
     this.assertSummary();
     cy.get('@results.all').should('have.length', 0);
@@ -60,7 +68,8 @@ export class OrderTermsActions {
    */
   public assertInput(id: string): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermsInput + '/' + id);
-    cy.get(S.orderTerms.heading).should('have.text', 'Order term ' + id);
+    const titles: Record<string, string> = { MAT: 'Maintenance', MCHILD: 'Child maintenance' };
+    cy.get(S.orderTerms.heading).should('have.text', titles[id]);
     cy.get('@draftCreation').should('not.have.been.called');
     cy.get(S.primaryNavigation).should('not.exist');
   }
@@ -79,5 +88,28 @@ export class OrderTermsActions {
     cy.get(S.caseTypeGroup).should('be.visible');
     cy.get(S.orderTerms.select).should('not.exist');
     cy.get(S.primaryNavigation).should('not.exist');
+  }
+  /** Enters the amount for the pending term.
+   * @param amount Raw amount to enter.
+   */
+  public enterAmount(amount: string): void {
+    cy.get(S.orderTermsInput.amount).clear().type(amount);
+  }
+  /** Submits the pending term. */
+  public continueInput(): void {
+    cy.get(S.orderTermsInput.continueButton).click();
+  }
+  /** Checks Creditor is reached without backend draft creation. */
+  public assertCreditor(): void {
+    cy.location('pathname').should('eq', '/cases/create-casefile/order-terms/creditor');
+    cy.get(S.orderTerms.heading).should('have.text', 'Creditor');
+    cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@resultDetail.all').should('have.length.at.least', 1);
+  }
+  /** Checks required amount validation and summary focus. */
+  public assertAmountRequired(): void {
+    cy.get(S.errorSummary).should('be.focused').and('contain.text', 'Enter an amount');
+    cy.get(S.errorSummaryLinks).contains('Enter an amount').click();
+    cy.get(S.orderTermsInput.amount).should('be.focused');
   }
 }

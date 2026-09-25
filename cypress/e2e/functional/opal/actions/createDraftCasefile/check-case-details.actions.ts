@@ -58,17 +58,59 @@ export class CheckCaseDetailsActions {
     cy.get(S.primaryNavigation).should('not.exist');
   }
 
-  /** Opens the existing cancellation boundary and returns to review. */
-  public cancel(): void {
+  /** Opens the cancellation page without persisting the local case. */
+  public openCancellation(): void {
+    const mutation = cy.spy().as('cancelPersistence');
+    cy.intercept(
+      { method: '+(POST|PUT|PATCH|DELETE)', url: /\/opal-maintenance-service\/draft-casefiles(?:[/?]|$)/ },
+      mutation,
+    );
     cy.get(S.review.cancel).click();
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.cancel);
-    cy.get(S.caseDetails.backLink).click();
-    cy.get(S.caseDetails.checkCaseButton).click();
+    cy.get(S.cancellation.heading).should('have.text', 'Cancel case creation').and('be.focused');
+  }
+
+  /** Opens cancellation and returns directly to the reviewed draft. */
+  public cancel(): void {
+    this.openCancellation();
+    cy.get(S.cancellation.back).click();
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.checkCaseDetails);
+    cy.get(S.review.heading).should('be.focused');
+    cy.get('@cancelPersistence').should('not.have.been.called');
+  }
+
+  /** Confirms that the local case should be discarded. */
+  public discard(): void {
+    cy.get(S.cancellation.confirm).click();
+  }
+
+  /** Checks that cancellation starts a fresh case without persistence. */
+  public assertFreshCase(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.get(S.caseTypeHeading).should('have.text', 'Create a case').and('be.focused');
+    cy.get(S.caseTypeGroup).find('input[type="radio"]:checked').should('not.exist');
+    cy.get(S.applicantTypeSelectedOption).should('have.text', 'Select');
+    cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@cancelPersistence').should('not.have.been.called');
+  }
+
+  /** Checks that Back and Forward cannot recover the discarded case. */
+  public assertHistoryStaysEmpty(): void {
+    cy.go('back');
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.get(S.caseTypeGroup).find('input[type="radio"]:checked').should('not.exist');
+    cy.go('forward');
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.get(S.caseTypeGroup).find('input[type="radio"]:checked').should('not.exist');
+    cy.get('@cancelPersistence').should('not.have.been.called');
   }
 
   /** Checks that cancellation navigation has retained the accepted draft. */
   public assertRetainedDraft(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.checkCaseDetails);
     cy.get(S.review.section('respondent')).should('contain.text', 'Synthetic');
+    cy.get(S.review.section('orderTerms')).should('contain.text', '£10.00').and('contain.text', '£20.00');
     cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@cancelPersistence').should('not.have.been.called');
   }
 }

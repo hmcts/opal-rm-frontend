@@ -1,4 +1,5 @@
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
+import { Router } from '@angular/router';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
 import { DASHBOARD_ROUTING_PATHS } from '@app/pages/dashboard/constants/dashboard-routing-paths.constant';
@@ -23,6 +24,8 @@ import { ICasesCreateCasefileCaseTypeForm } from './interfaces/cases-create-case
 export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBaseComponent {
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
+  public readonly focusHeadingOnArrival =
+    inject(Router).currentNavigation()?.extras.state?.['focusCaseTypeHeading'] === true;
 
   private isCaseType(value: unknown): value is CasesCreateCasefileCaseType {
     return Object.values(CASES_CREATE_CASEFILE_CASE_TYPES).includes(value as CasesCreateCasefileCaseType);

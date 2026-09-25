@@ -1,3 +1,6 @@
+import { patchState, type WritableStateSource } from '@ngrx/signals';
+import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-state.interface';
+import { createCasesCreateCasefileReviewState } from 'src/app/flows/cases/cases-create-casefile/mocks/cases-create-casefile-review-state.mock';
 import { ORDER_DETAILS_MOCK } from '../orderDetails/mocks/order-details.mock';
 import { provideHttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
@@ -35,6 +38,7 @@ interface ICaseDetailsTaskListSetup {
   selection?: CasesCreateCasefileCaseTypeSelection | null;
   providedTasks?: CasesCreateCasefileTask[];
   initialChildPath?: string;
+  completeReview?: boolean;
 }
 
 export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCasefileStore>;
@@ -45,6 +49,7 @@ export const setupCaseDetailsTaskList = ({
     applicantType: CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL,
   },
   providedTasks = [],
+  completeReview = false,
   initialChildPath = CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
 }: ICaseDetailsTaskListSetup = {}) => {
   cy.intercept('GET', '**/opal-maintenance-service/maintenance-applications*', {
@@ -59,6 +64,12 @@ export const setupCaseDetailsTaskList = ({
     body: MAJOR_CREDITORS_RESPONSE,
   }).as('getMajorCreditors');
   const store = new CasesCreateCasefileStore();
+  if (completeReview) {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      ...createCasesCreateCasefileReviewState(),
+      stateChanges: true,
+    });
+  }
   if (selection) {
     store.setCaseTypeSelection(selection);
   }

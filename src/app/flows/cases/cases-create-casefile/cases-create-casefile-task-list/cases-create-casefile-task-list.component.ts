@@ -1,3 +1,4 @@
+import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
@@ -72,6 +73,12 @@ export class CasesCreateCasefileTaskListComponent {
     [CASES_CREATE_CASEFILE_TASK_STATUSES.OPTIONAL]: 'govuk-tag--grey',
     [CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED]: '',
   };
+
+  constructor() {
+    // Arrival at the task list ends a correction return; incomplete drafts must
+    // remain free to open their editors rather than bouncing back from summaries.
+    inject(CasesCreateCasefileReviewNavigationService).clearContext();
+  }
 
   protected navigateTo(path: string, event?: Event): void {
     event?.preventDefault();

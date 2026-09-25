@@ -8,6 +8,19 @@ import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES } from 'src/app/flows/
 import { CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-term-creditor/constants/cases-create-casefile-order-term-creditor-field-names.constant';
 
 export const CreateCasefileSelectors = {
+  review: {
+    heading: '#review-heading',
+    confirmationHeading: '#submission-confirmation-heading',
+    section: (id: string) => `#review-${id}`,
+    change: (id: string) => `#review-${id}-change`,
+    bankDetails: '#review-applicant-bank details',
+    bankToggle: '#review-applicant-bank summary',
+    submit: '#create_casefile_review_submit',
+    cancel: '#create_casefile_review_cancel',
+    errors: '#review-errors',
+    termChange: (termId: number) => `#review-term-change-${termId}`,
+    termRemove: (termId: number) => `#review-term-remove-${termId}`,
+  },
   heading: 'h1',
   globalErrorBanner: '.moj-alert--error',
   globalErrorBannerHeading: '.moj-alert--error .moj-alert__heading',

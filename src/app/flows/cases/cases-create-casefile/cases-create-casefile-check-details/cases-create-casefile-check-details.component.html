@@ -1,4 +1,93 @@
 <div class="govuk-grid-column-two-thirds">
-  <opal-lib-govuk-back-link (clickEvent)="handleBack()"></opal-lib-govuk-back-link>
-  <h1 class="govuk-heading-l">Check case details</h1>
+  <opal-lib-govuk-back-link (clickEvent)="handleBack()" />
+  <h1 id="review-heading" class="govuk-heading-l" tabindex="-1">Check case details</h1>
+  @if (navigationError()) {
+    <div
+      #errorRegion
+      id="review-errors"
+      class="govuk-error-summary"
+      tabindex="-1"
+      aria-labelledby="review-error-title"
+      role="alert"
+    >
+      <h2 id="review-error-title" class="govuk-error-summary__title">There is a problem</h2>
+      <p class="govuk-body">The page could not be opened. Try again.</p>
+    </div>
+  }
+  @for (section of beforeTerms(); track section.id) {
+    <app-cases-create-casefile-review-section
+      [section]="section"
+      [disabled]="blocked()"
+      [actionable]="section.id !== 'caseType'"
+      (changeEvent)="handleChange($event)"
+    />
+  }
+  <section id="review-orderTerms" tabindex="-1" aria-labelledby="review-order-terms-title">
+    <h2 id="review-order-terms-title" class="govuk-heading-m">Order terms</h2>
+
+    @for (card of cards(); track card.termId) {
+      <div [id]="'review-order-term-' + card.termId" tabindex="-1">
+        <app-cases-create-casefile-order-term-card [card]="card">
+          <ng-container actions>
+            <li class="govuk-summary-card__action">
+              <button
+                class="govuk-link"
+                type="button"
+                [id]="'review-term-change-' + card.termId"
+                [disabled]="blocked()"
+                (click)="handleTermChange(card.termId)"
+              >
+                Change<span class="govuk-visually-hidden"> {{ card.ariaLabel }}</span>
+              </button>
+            </li>
+            <li class="govuk-summary-card__action">
+              <button
+                class="govuk-link"
+                type="button"
+                [id]="'review-term-remove-' + card.termId"
+                [disabled]="blocked()"
+                (click)="handleTermRemove(card.termId)"
+              >
+                Remove<span class="govuk-visually-hidden"> {{ card.ariaLabel }}</span>
+              </button>
+            </li>
+          </ng-container>
+        </app-cases-create-casefile-order-term-card>
+        @if (card.minor) {
+          <app-cases-create-casefile-review-section
+            [section]="card.minor"
+            [disabled]="blocked()"
+            (changeEvent)="handleTermChange(card.termId)"
+          />
+        }
+      </div>
+    }
+  </section>
+  @for (section of afterTerms(); track section.id) {
+    <app-cases-create-casefile-review-section
+      [section]="section"
+      [disabled]="blocked()"
+      (changeEvent)="handleChange($event)"
+    />
+  }
+  <div class="govuk-button-group">
+    <button
+      id="create_casefile_review_submit"
+      class="govuk-button"
+      type="button"
+      [disabled]="blocked()"
+      (click)="handleSubmit()"
+    >
+      Submit for review
+    </button>
+    <button
+      id="create_casefile_review_cancel"
+      class="govuk-link"
+      type="button"
+      [disabled]="blocked()"
+      (click)="handleCancel()"
+    >
+      Cancel case creation
+    </button>
+  </div>
 </div>

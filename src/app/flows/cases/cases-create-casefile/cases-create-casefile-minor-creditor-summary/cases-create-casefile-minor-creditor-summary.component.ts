@@ -42,7 +42,6 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
-  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly entryTermId = this.store.currentOrderTermId();
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
   private readonly root = '/' + this.paths.root + '/';
@@ -83,9 +82,7 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
 
   constructor() {
     afterNextRender(() => {
-      if (!this.restoreRemovalFocus) return;
-      const remove = this.host.nativeElement.querySelector<HTMLAnchorElement>('#Remove');
-      (remove ?? this.summaryHeading()?.nativeElement)?.focus();
+      if (this.restoreRemovalFocus) this.summaryHeading()?.nativeElement.focus();
     });
   }
 

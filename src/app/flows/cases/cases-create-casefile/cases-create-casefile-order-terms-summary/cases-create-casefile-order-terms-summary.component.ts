@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, DOCUMENT, computed, inject } from '@angular/core';
+import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
+import { ChangeDetectionStrategy, Component, DOCUMENT, computed, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
 import { GovukButtonComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-button';
@@ -15,6 +16,7 @@ import { cancelOrderTermAmendmentAfterNavigation } from '../utils/cases-create-c
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileOrderTermsSummaryComponent {
+  private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
   private readonly store = inject(CasesCreateCasefileStore);
@@ -39,6 +41,24 @@ export class CasesCreateCasefileOrderTermsSummaryComponent {
       };
     });
   });
+
+  constructor() {
+    effect(() => {
+      // Amendment/cancellation commits happen after navigation to this summary.
+      // Wait for those accepted-state transitions before returning to review.
+      if (
+        this.reviewNavigation.context() &&
+        !this.store.orderTermAmendment() &&
+        !this.store.creditorDraft() &&
+        !this.store.orderTermRemoval() &&
+        !this.store.orderTermDraft() &&
+        !this.store.unsavedChanges()
+      ) {
+        const target = this.reviewNavigation.returnPath(this.taskListPath);
+        void this.router.navigateByUrl(target).catch(() => undefined);
+      }
+    });
+  }
 
   public async handleChange(termId: number): Promise<void> {
     if (this.navigationInFlight) return;
@@ -75,8 +95,21 @@ export class CasesCreateCasefileOrderTermsSummaryComponent {
     }
   }
 
-  public handleRemove(path: string): void {
-    if (!this.navigationInFlight) void this.router.navigateByUrl(path);
+  public async handleRemove(path: string): Promise<void> {
+    if (this.navigationInFlight) return;
+    const card = this.cards().find((item) => item.removePath === path);
+    const selection = card ? this.store.beginOrderTermRemoval(card.termId) : null;
+    if (!selection) return;
+    this.navigationInFlight = true;
+    let navigated = false;
+    try {
+      navigated = await this.router.navigateByUrl(path);
+    } catch {
+      return;
+    } finally {
+      if (!navigated) this.store.clearOrderTermRemoval(selection);
+      this.navigationInFlight = false;
+    }
   }
 
   public handleAddTerms(): void {

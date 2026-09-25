@@ -1,3 +1,8 @@
+import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
+import { ActivatedRoute } from '@angular/router';
+import { getState, patchState, type WritableStateSource } from '@ngrx/signals';
+import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
+import { createCasesCreateCasefileReviewState } from '../mocks/cases-create-casefile-review-state.mock';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,16 +20,39 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     router.navigateByUrl.mockClear();
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileCheckDetailsComponent],
-      providers: [{ provide: Router, useValue: router }, CasesCreateCasefileStore],
+      providers: [
+        { provide: Router, useValue: router },
+        CasesCreateCasefileStore,
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              data: {
+                countries: { refData: [{ country_id: 1, country_name: 'United Kingdom', active: true }] },
+                applications: {
+                  refData: [
+                    {
+                      application_id: 901,
+                      application_code: 'TEST',
+                      application_title: 'Synthetic application',
+                      active: true,
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ],
     }).compileComponents();
     store = TestBed.inject(CasesCreateCasefileStore);
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
     fixture = TestBed.createComponent(CasesCreateCasefileCheckDetailsComponent);
-    fixture.detectChanges();
   });
 
-  it('renders the Check case details placeholder and returns to Case details without changing state', () => {
+  it('renders Check case details and returns to Case details without changing state', () => {
+    fixture.detectChanges();
     const before = {
       caseTypeSelection: store.caseTypeSelection(),
       taskStatuses: store.taskStatuses(),
@@ -43,5 +71,97 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       unsavedChanges: store.unsavedChanges(),
       stateChanges: store.stateChanges(),
     }).toEqual(before);
+  });
+  it('simulates submission by navigating without changing the accepted draft', async () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const before = structuredClone(getState(store));
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('#create_casefile_review_submit').click();
+    await Promise.resolve();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/submission-confirmation');
+    expect(getState(store)).toEqual(before);
+  });
+
+  it('keeps the correction context if Back is activated during a pending Change navigation', async () => {
+    let finish!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const change = fixture.componentInstance.handleChange('respondent');
+    fixture.componentInstance.handleBack();
+    expect(TestBed.inject(CasesCreateCasefileReviewNavigationService).context()?.section).toBe('respondent');
+    finish(true);
+    await change;
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+  });
+  it('reports a failed correction navigation and clears only its return context', async () => {
+    router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
+    await fixture.componentInstance.handleChange('commentsAndNotes');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.navigationError()).toBe(true);
+    expect(TestBed.inject(CasesCreateCasefileReviewNavigationService).context()).toBeNull();
+    expect(fixture.nativeElement.querySelector('#review-errors').textContent).toContain('The page could not be opened');
+    await fixture.componentInstance.handleChange('untrusted-section');
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+  });
+
+  it('rolls back failed term navigation without changing accepted values', async () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const before = structuredClone(store.orderTerms());
+    const id = before[0].termId;
+    router.navigateByUrl.mockResolvedValueOnce(false);
+    await fixture.componentInstance.handleTermChange(id);
+    expect(store.orderTermAmendment()).toBeNull();
+    expect(store.orderTerms()).toEqual(before);
+    router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
+    await fixture.componentInstance.handleTermRemove(id);
+    expect(store.orderTermRemoval()).toBeNull();
+    expect(store.orderTerms()).toEqual(before);
+    expect(TestBed.inject(CasesCreateCasefileReviewNavigationService).context()).toBeNull();
+    await fixture.componentInstance.handleTermChange(-1);
+    await fixture.componentInstance.handleTermRemove(-1);
+    expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not roll back an amendment changed while navigation is pending', async () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    let finish!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const pending = fixture.componentInstance.handleTermChange(store.orderTerms()[0].termId);
+    store.setUnsavedChanges(true);
+    finish(false);
+    await pending;
+    expect(store.orderTermAmendment()).not.toBeNull();
+    expect(store.unsavedChanges()).toBe(true);
+  });
+
+  it('retains accepted data when opening cancellation and selects organisation corrections by active case type', async () => {
+    const state = createCasesCreateCasefileReviewState();
+    state.caseTypeSelection = { caseType: 'REMO In', applicantType: 'Organisation' };
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#review-applicant')).toBeNull();
+    await fixture.componentInstance.handleChange('applicant');
+    expect(router.navigateByUrl).toHaveBeenLastCalledWith('/cases/create-casefile/applicant-details/organisation');
+    const before = structuredClone(getState(store));
+    fixture.componentInstance.handleCancel();
+    await Promise.resolve();
+    expect(router.navigateByUrl).toHaveBeenLastCalledWith('/cases/create-casefile/cancel');
+    expect(getState(store)).toEqual(before);
   });
 });

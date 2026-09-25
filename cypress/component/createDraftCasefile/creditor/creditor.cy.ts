@@ -127,7 +127,12 @@ describe('Order term creditor', () => {
       assertRoute(PATHS.children.orderTermsSummary);
       cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
         expect(store.orderTerms()[0].creditor).to.deep.equal(selection.expected);
-        expect(store.taskStatuses().orderTerms).to.eq(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
+        // The fixture applicant branch mismatches REMO Out; only the major-creditor term is complete.
+        expect(store.taskStatuses().orderTerms).to.eq(
+          selection.label === 'Major'
+            ? CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED
+            : CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED,
+        );
       });
       cy.get('@prohibitedMaintenanceWrite').should('not.have.been.called');
     });

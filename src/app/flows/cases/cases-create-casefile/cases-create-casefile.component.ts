@@ -1,3 +1,4 @@
+import { CasesCreateCasefileReviewNavigationService } from './services/cases-create-casefile-review-navigation.service';
 import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CanDeactivateTypes } from '@hmcts/opal-frontend-common/guards/can-deactivate/types';
@@ -10,6 +11,7 @@ import { CasesCreateCasefileStore } from './stores/cases-create-casefile.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileComponent implements OnDestroy {
+  private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
 
   @HostListener('window:beforeunload')
@@ -33,5 +35,6 @@ export class CasesCreateCasefileComponent implements OnDestroy {
 
   public ngOnDestroy(): void {
     this.store.resetStore();
+    this.reviewNavigation.clearContext();
   }
 }

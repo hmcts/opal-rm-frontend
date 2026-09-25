@@ -82,6 +82,9 @@ const pageDefinitions = [
 ];
 
 const templatePaths = {
+  review: 'cases-create-casefile-check-details/cases-create-casefile-check-details.component.html',
+  receipt: 'cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component.html',
+  reviewSection: 'components/cases-create-casefile-review-section/cases-create-casefile-review-section.component.html',
   orderTermCard:
     'components/cases-create-casefile-order-term-card/cases-create-casefile-order-term-card.component.html',
   applicantIndividual:
@@ -141,6 +144,54 @@ const taskListItems = [
 
 // Structural exceptions are exact path/tag/attribute/value tuples. They are never valid as field names elsewhere.
 const structuralIdentifierAllowlist = new Set([
+  // Read-only review structures and actions are not form-control identifiers.
+  structuralIdentifierKey(templatePaths.review, 'h1', 'id', 'review-heading'),
+  structuralIdentifierKey(templatePaths.review, 'div', 'id', 'review-errors'),
+  structuralIdentifierKey(templatePaths.review, 'h2', 'id', 'review-error-title'),
+  structuralIdentifierKey(templatePaths.review, 'section', 'id', 'review-orderTerms'),
+  structuralIdentifierKey(templatePaths.review, 'h2', 'id', 'review-order-terms-title'),
+  structuralIdentifierKey(templatePaths.review, 'div', '[id]', "'review-order-term-' + card.termId"),
+  structuralIdentifierKey(templatePaths.review, 'button', '[id]', "'review-term-change-' + card.termId"),
+  structuralIdentifierKey(templatePaths.review, 'button', '[id]', "'review-term-remove-' + card.termId"),
+  structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_review_submit'),
+  structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_review_cancel'),
+  structuralIdentifierKey(templatePaths.orderTermsRemove, 'button', 'id', 'create_casefile_order_terms_remove_confirm'),
+  structuralIdentifierKey(templatePaths.receipt, 'h1', 'id', 'submission-confirmation-heading'),
+  structuralIdentifierKey(templatePaths.reviewSection, 'div', '[id]', 'id()'),
+  structuralIdentifierKey(templatePaths.reviewSection, 'button', '[id]', "id() + '-change'"),
+  structuralIdentifierKey(templatePaths.reviewSection, 'opal-lib-govuk-summary-list', '[summaryListId]', 'listId()'),
+  structuralIdentifierKey(
+    templatePaths.reviewSection,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListId]',
+    'listId()',
+  ),
+  structuralIdentifierKey(
+    templatePaths.reviewSection,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListRowId]',
+    'row.id',
+  ),
+  structuralIdentifierKey(templatePaths.reviewSection, 'opal-lib-govuk-details', '[id]', 'bankId()'),
+  structuralIdentifierKey(
+    templatePaths.reviewSection,
+    'opal-lib-govuk-summary-list',
+    '[summaryListId]',
+    'bankListId()',
+  ),
+  structuralIdentifierKey(
+    templatePaths.reviewSection,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListId]',
+    'bankListId()',
+  ),
+  structuralIdentifierKey(
+    templatePaths.reviewSection,
+    'div[opal-lib-govuk-summary-list-row]',
+    '[summaryListRowId]',
+    'bankRow.id',
+  ),
+
   structuralIdentifierKey(
     templatePaths.minorCreditorRemove,
     'h1',

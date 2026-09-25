@@ -14,6 +14,7 @@ import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 import { fetchCasesCreateCasefileOrderTermsResolver } from './resolvers/fetch-cases-create-casefile-order-terms-resolver/fetch-cases-create-casefile-order-terms.resolver';
 import { fetchCasesCreateCasefileOrderTermResolver } from './resolvers/fetch-cases-create-casefile-order-term-resolver/fetch-cases-create-casefile-order-term.resolver';
+import { fetchCasesCreateCasefileMajorCreditorsResolver } from './resolvers/fetch-cases-create-casefile-major-creditors-resolver/fetch-cases-create-casefile-major-creditors.resolver';
 
 export const routing: Routes = [
   {
@@ -146,14 +147,25 @@ export const routing: Routes = [
     resolve: { orderTerm: fetchCasesCreateCasefileOrderTermResolver },
   },
   {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorDetails,
+    loadComponent: () =>
+      import('../cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details.component').then(
+        (component) => component.CasesCreateCasefileMinorCreditorDetailsComponent,
+      ),
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard],
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorDetails },
+    resolve: { title: TitleResolver },
+  },
+  {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermCreditor,
     loadComponent: () =>
       import('../cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor.component').then(
         (component) => component.CasesCreateCasefileOrderTermCreditorComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermCreditor },
-    resolve: { title: TitleResolver },
+    resolve: { title: TitleResolver, majorCreditors: fetchCasesCreateCasefileMajorCreditorsResolver },
   },
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.interestAndIndexation,

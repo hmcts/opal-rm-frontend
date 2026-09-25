@@ -17,7 +17,9 @@ import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create
 import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
 import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefile-task-status.type';
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
+import type { CasesCreateCasefileCreditorAssignment } from '../types/cases-create-casefile-creditor-assignment.type';
 import { isCasesCreateCasefileCaseTypeSelectionValid } from '../utils/cases-create-casefile-case-type-selection';
+import { associatedMinorCreditors } from '../utils/cases-create-casefile-associated-minor-creditors';
 import type { ICasesCreateCasefileOrderTermPage } from '../cases-create-casefile-order-terms-input/interfaces/cases-create-casefile-order-term-page.interface';
 import type { CasesCreateCasefileOrderTermRawValue } from '../cases-create-casefile-order-terms-input/types/cases-create-casefile-order-term-raw-value.type';
 import { restoreOrderTermDraft } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-draft';
@@ -91,6 +93,11 @@ export const CasesCreateCasefileStore = signalStore(
         centralAuthorityDetails: selectionUnchanged ? store.centralAuthorityDetails() : null,
         paymentArrangement: selectionUnchanged ? store.paymentArrangement() : null,
         orderTerms: selectionUnchanged ? store.orderTerms() : [],
+        currentOrderTermId: selectionUnchanged ? store.currentOrderTermId() : null,
+        nextOrderTermId: selectionUnchanged ? store.nextOrderTermId() : 1,
+        minorCreditors: selectionUnchanged ? store.minorCreditors() : [],
+        nextMinorCreditorSequence: selectionUnchanged ? store.nextMinorCreditorSequence() : 1,
+        creditorDraft: selectionUnchanged ? store.creditorDraft() : null,
         orderTermDraft: selectionUnchanged ? store.orderTermDraft() : null,
         commentsAndNotes: selectionUnchanged ? store.commentsAndNotes() : null,
         pendingOrderTermResultId: selectionUnchanged ? store.pendingOrderTermResultId() : null,
@@ -210,6 +217,8 @@ export const CasesCreateCasefileStore = signalStore(
       patchState(store, {
         pendingOrderTermResultId,
         orderTermDraft: pendingOrderTermResultId === store.orderTermDraft()?.resultId ? store.orderTermDraft() : null,
+        currentOrderTermId: null,
+        creditorDraft: null,
       });
     },
     prepareOrderTermDraft: (page: ICasesCreateCasefileOrderTermPage): void => {
@@ -239,8 +248,12 @@ export const CasesCreateCasefileStore = signalStore(
           ([name]) => name !== 'frequency' && Object.hasOwn(draft.fieldTypes, name),
         ),
       );
+      const termId = store.nextOrderTermId();
       patchState(store, {
-        orderTerms: [...store.orderTerms(), { resultId: term.resultId, parameters }],
+        orderTerms: [...store.orderTerms(), { resultId: term.resultId, parameters, termId, creditor: null }],
+        currentOrderTermId: termId,
+        nextOrderTermId: termId + 1,
+        creditorDraft: null,
         orderTermDraft: null,
         pendingOrderTermResultId: null,
         unsavedChanges: false,
@@ -248,14 +261,76 @@ export const CasesCreateCasefileStore = signalStore(
       });
       return true;
     },
-    replaceAcceptedOrderTerm: (index: number, term: ICasesCreateCasefileOrderTerm): boolean => {
-      const accepted = store.orderTerms()[index];
+    replaceAcceptedOrderTerm: (termId: number, term: ICasesCreateCasefileOrderTerm): boolean => {
+      if (store.currentOrderTermId() !== termId) return false;
+      const accepted = store.orderTerms().find((existing) => existing.termId === termId);
       if (!accepted || accepted.resultId !== term.resultId) return false;
 
-      const orderTerms = [...store.orderTerms()];
-      orderTerms[index] = term;
-      patchState(store, { orderTerms, unsavedChanges: false, stateChanges: true });
+      const orderTerms = store
+        .orderTerms()
+        .map((existing) =>
+          existing.termId === termId
+            ? { ...existing, resultId: term.resultId, parameters: { ...term.parameters } }
+            : existing,
+        );
+      patchState(store, { orderTerms, currentOrderTermId: termId, unsavedChanges: false, stateChanges: true });
       return true;
+    },
+    assignCurrentOrderTermCreditor: (termId: number, creditor: CasesCreateCasefileCreditorAssignment): boolean => {
+      if (store.currentOrderTermId() !== termId || !store.orderTerms().some((term) => term.termId === termId)) {
+        return false;
+      }
+      if (creditor.type === 'major' && (!Number.isInteger(creditor.majorCreditorId) || creditor.majorCreditorId <= 0)) {
+        return false;
+      }
+      if (creditor.type === 'minor') {
+        if (!Number.isInteger(creditor.sequenceNumber) || creditor.sequenceNumber <= 0) return false;
+        const creditorExists = store
+          .minorCreditors()
+          .some((existing) => existing.sequenceNumber === creditor.sequenceNumber);
+        const creditorIsAssociated = store
+          .orderTerms()
+          .some((term) => term.creditor?.type === 'minor' && term.creditor.sequenceNumber === creditor.sequenceNumber);
+        if (!creditorExists || !creditorIsAssociated) return false;
+      }
+
+      const orderTerms = store
+        .orderTerms()
+        .map((term) => (term.termId === termId ? { ...term, creditor: { ...creditor } } : term));
+      patchState(store, {
+        orderTerms,
+        minorCreditors: associatedMinorCreditors(orderTerms, store.minorCreditors()),
+        creditorDraft: null,
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+      return true;
+    },
+    removeAcceptedOrderTerm: (termId: number): boolean => {
+      if (!store.orderTerms().some((term) => term.termId === termId)) return false;
+
+      const orderTerms = store.orderTerms().filter((term) => term.termId !== termId);
+      const removedCurrentTerm = store.currentOrderTermId() === termId;
+      patchState(store, {
+        orderTerms,
+        minorCreditors: associatedMinorCreditors(orderTerms, store.minorCreditors()),
+        currentOrderTermId: removedCurrentTerm ? null : store.currentOrderTermId(),
+        creditorDraft: store.creditorDraft()?.termId === termId ? null : store.creditorDraft(),
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+      return true;
+    },
+    setPendingNewMinorCreditor: (termId: number): boolean => {
+      if (store.currentOrderTermId() !== termId || !store.orderTerms().some((term) => term.termId === termId)) {
+        return false;
+      }
+      // PO-9809 owns allocating the next sequence, creating details and assigning the term atomically.
+      patchState(store, { creditorDraft: { termId, branch: 'add-new' } });
+      return true;
+    },
+    clearCreditorDraft: (): void => {
+      patchState(store, { creditorDraft: null });
     },
     discardOrderTermDraft: (): void => {
       patchState(store, { orderTermDraft: null, unsavedChanges: false });

@@ -21,6 +21,8 @@ const orderDetailsTemplatePath = `${createCasefilePath}/${orderDetailsDirectory}
 const orderTermsSelectDirectory = 'cases-create-casefile-order-terms-select';
 const orderTermsSelectTemplatePath = `${createCasefilePath}/${orderTermsSelectDirectory}/cases-create-casefile-order-terms-select-form/cases-create-casefile-order-terms-select-form.component.html`;
 const orderTermsSummaryTemplatePath = `${createCasefilePath}/cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component.html`;
+const orderTermCreditorDirectory = 'cases-create-casefile-order-term-creditor';
+const orderTermCreditorTemplatePath = `${createCasefilePath}/${orderTermCreditorDirectory}/cases-create-casefile-order-term-creditor-form/cases-create-casefile-order-term-creditor-form.component.html`;
 const temporaryRepositories = [];
 
 const supportingFieldNameConstants = [
@@ -65,6 +67,12 @@ const supportingFieldNameConstants = [
     exportName: 'CASES_CREATE_CASEFILE_ORDER_TERMS_SELECT_FIELD_NAMES',
     key: 'resultId',
     value: 'create_casefile_order_terms_select_result_id',
+  },
+  {
+    path: `${orderTermCreditorDirectory}/constants/cases-create-casefile-order-term-creditor-field-names.constant.ts`,
+    exportName: 'CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES',
+    key: 'choice',
+    value: 'create_casefile_order_term_creditor_choice',
   },
 ];
 
@@ -299,6 +307,58 @@ test('does not allow metadata field expressions on unrelated forms', async () =>
   assertRejected(runScanner(repositoryRoot), /noncanonical inputId="field.id"/);
 });
 
+test('accepts creditor sequence IDs and the native radio conditional target', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    `${createCasefilePath}/${orderTermCreditorDirectory}/constants/cases-create-casefile-order-term-creditor-field-names.constant.ts`,
+    `export const CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES = {
+  choice: 'create_casefile_order_term_creditor_choice',
+  majorCreditorId: 'create_casefile_order_term_creditor_major_creditor_id',
+} as const;
+`,
+  );
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermCreditorTemplatePath,
+    `<fieldset [id]="fieldNames.choice">
+  @for (creditor of minorCreditors; track creditor.sequenceNumber) {
+    <div opal-lib-govuk-radios-item
+      [inputId]="fieldNames.choice + '-minor-' + creditor.sequenceNumber"
+      [inputName]="fieldNames.choice"></div>
+  }
+  <div [id]="conditionalId">
+    <opal-lib-govuk-select [selectId]="fieldNames.majorCreditorId" [selectName]="fieldNames.majorCreditorId" />
+  </div>
+</fieldset>
+<button id="create_casefile_order_term_creditor_continue">Continue</button>
+`,
+  );
+
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('rejects malformed creditor sequence IDs and duplicate Major targets in the same branch', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    orderTermCreditorTemplatePath,
+    `<div opal-lib-govuk-radios-item
+  [inputId]="fieldNames.choice + '-minor-' + creditor.displayName"
+  [inputName]="fieldNames.choice"></div>
+<opal-lib-govuk-select [selectId]="fieldNames.choice" [selectName]="fieldNames.choice" />
+<div [id]="fieldNames.choice"></div>
+<div opal-lib-govuk-radios-conditional [conditionalId]="wrongConditionalId"></div>
+`,
+  );
+
+  const result = runScanner(repositoryRoot);
+  assertRejected(result, /noncanonical inputId="fieldNames.choice \+ '-minor-' \+ creditor.displayName"/);
+  assert.match(result.stderr, /duplicate ID declaration "fieldNames.choice"/);
+  assert.match(result.stderr, /noncanonical conditionalId="wrongConditionalId"/);
+});
+
 test('rejects dynamic IDs that can render together in the same branch', async () => {
   const repositoryRoot = await createFixtureRepository();
   await writeFixtureFile(
@@ -333,6 +393,17 @@ test('accepts the creditor return identifier with its own prefix', async () => {
     repositoryRoot,
     `${createCasefilePath}/cases-create-casefile-order-term-creditor/cases-create-casefile-order-term-creditor.component.html`,
     '<a id="create_casefile_order_term_creditor_return">Return to order terms</a>',
+  );
+  const result = runScanner(repositoryRoot);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('accepts the exact Minor creditor details return identifier', async () => {
+  const repositoryRoot = await createFixtureRepository();
+  await writeFixtureFile(
+    repositoryRoot,
+    `${createCasefilePath}/cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details.component.html`,
+    '<a id="returnToCreditor">Return to creditor selection</a>',
   );
   const result = runScanner(repositoryRoot);
   assert.equal(result.status, 0, result.stderr);

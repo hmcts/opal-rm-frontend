@@ -505,6 +505,27 @@ describe('Order Details routed lifecycle', () => {
     });
   }
 
+  for (const calendar of [S.orderDetails.orderCalendar, S.orderDetails.arrearsCalendar]) {
+    it(`AC4. should warn on Cancel after only selecting a date with ${calendar}`, { tags: buildTags() }, () => {
+      openSaved();
+      cy.get(calendar).focus();
+      cy.press(Cypress.Keyboard.Keys.SPACE);
+      cy.press(Cypress.Keyboard.Keys.LEFT);
+      cy.press(Cypress.Keyboard.Keys.SPACE);
+      const confirm = cy.stub().returns(false);
+      cy.on('window:confirm', confirm);
+      cy.get(S.orderDetails.cancel).click();
+      cy.then(() => expect(confirm).to.have.been.calledOnce);
+      cy.get(S.orderDetails.application).should('be.visible');
+      assertSaved();
+      cy.then(() => confirm.returns(true));
+      cy.get(S.orderDetails.cancel).click();
+      cy.then(() => expect(confirm).to.have.been.calledTwice);
+      cy.get(S.caseDetails.heading).should('have.text', 'Case details');
+      assertSaved();
+    });
+  }
+
   it(
     'AC5. should open the calendar with Space and select a date with native arrow and Space',
     { tags: buildTags() },

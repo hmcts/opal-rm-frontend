@@ -50,6 +50,25 @@ describe('CasesCreateCasefileOrderDetailsFormComponent', () => {
     Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
   });
 
+  it.each([FIELD_NAMES.dateOrderMade, FIELD_NAMES.dateArrearsLastUpdated])(
+    'reports a calendar-only edit to %s and clears it when restored',
+    (field) => {
+      createComponent({ ...emptyFormData, [field]: '01/09/2026' });
+      fixture.detectChanges();
+      const changes = vi.spyOn(component['unsavedChanges'], 'emit');
+      const picker = fixture.debugElement
+        .queryAll(By.directive(MojDatePickerComponent))
+        .find((element) => element.componentInstance.inputId === field)!;
+
+      picker.triggerEventHandler('dateChange', '02/09/2026');
+      expect(changes).toHaveBeenLastCalledWith(true);
+      picker.triggerEventHandler('dateChange', '01/09/2026');
+      expect(changes).toHaveBeenLastCalledWith(false);
+      picker.triggerEventHandler('dateChange', '');
+      expect(changes).toHaveBeenLastCalledWith(true);
+    },
+  );
+
   it('keeps an invalid return on the form and focuses linked errors', () => {
     createComponent();
     fixture.detectChanges();

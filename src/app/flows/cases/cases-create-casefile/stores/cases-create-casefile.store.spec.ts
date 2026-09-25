@@ -1032,14 +1032,31 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.minorCreditors().map((creditor) => creditor.displayName)).toEqual(Array(5).fill('Synthetic creditor'));
   });
 
-  it('rejects an existing minor creditor that is not associated with an accepted term', () => {
-    const termId = acceptMat();
+  it('assigns a retained minor creditor to a new term after its sole term is amended to the applicant', () => {
+    const first = acceptMat();
+    const retained = minorCreditor(1);
     patchState(stateSource, {
-      minorCreditors: [minorCreditor(1)],
+      orderTerms: store
+        .orderTerms()
+        .map((term) => ({ ...term, creditor: { type: 'minor' as const, sequenceNumber: 1 } })),
+      minorCreditors: [retained],
       nextMinorCreditorSequence: 2,
     });
+    expect(store.beginOrderTermAmendment(first)).toBe(true);
+    expect(store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '12.30' } }, page)).toBe(true);
+    expect(store.stageAmendmentCreditor({ type: 'applicant' })).toBe(true);
+    expect(store.completeOrderTermAmendment(store.orderTermAmendment()!, null)).toBe(true);
+    expect(store.minorCreditors()).toEqual([retained]);
 
-    expect(store.assignCurrentOrderTermCreditor(termId, { type: 'minor', sequenceNumber: 1 })).toBe(false);
+    const second = acceptMat('20.00');
+
+    expect(store.assignCurrentOrderTermCreditor(second, { type: 'minor', sequenceNumber: 1 })).toBe(true);
+    expect(store.orderTerms().map((term) => term.creditor)).toEqual([
+      { type: 'applicant' },
+      { type: 'minor', sequenceNumber: 1 },
+    ]);
+    expect(store.minorCreditors()).toEqual([retained]);
+    expect(store.nextMinorCreditorSequence()).toBe(2);
   });
 
   it('sets and clears add-new creditor intent only for the current accepted term', () => {

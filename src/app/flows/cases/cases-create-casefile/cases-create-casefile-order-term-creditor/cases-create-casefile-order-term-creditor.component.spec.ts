@@ -7,6 +7,7 @@ import { patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../cases-create-casefile-applicant-individual/mocks/cases-create-casefile-applicant-individual.mock';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from '../cases-create-casefile-applicant-organisation/mocks/cases-create-casefile-applicant-organisation.mock';
+import { MINOR_CREDITOR_DETAILS_MOCK } from '../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { casesCreateCasefileChildCanDeactivateGuard } from '../routing/guards/cases-create-casefile-child-can-deactivate.guard';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
@@ -17,6 +18,14 @@ import { CasesCreateCasefileOrderTermCreditorComponent } from './cases-create-ca
 class TestDestinationComponent {}
 
 const acceptedTerm = { termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null };
+const existingMinorCreditor = {
+  sequenceNumber: 4,
+  displayName: 'Existing Synthetic Creditor',
+  details: {
+    ...MINOR_CREDITOR_DETAILS_MOCK,
+    identity: { type: 'organisation' as const, organisationName: 'Existing Synthetic Creditor' },
+  },
+};
 const majorCreditor = {
   major_creditor_id: 47,
   business_unit_id: 44,
@@ -171,7 +180,7 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
       orderTerms: [{ ...acceptedTerm, creditor: { type: 'applicant' } }],
-      minorCreditors: [{ sequenceNumber: 4, displayName: 'Existing Synthetic Creditor' }],
+      minorCreditors: [existingMinorCreditor],
       nextMinorCreditorSequence: 5,
     });
     component.handleFormSubmit({
@@ -183,7 +192,7 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     });
     await vi.waitFor(() => expect(navigate).toHaveBeenCalledOnce());
     expect(store.orderTerms()[0].creditor).toEqual({ type: 'applicant' });
-    expect(store.minorCreditors()).toEqual([{ sequenceNumber: 4, displayName: 'Existing Synthetic Creditor' }]);
+    expect(store.minorCreditors()).toEqual([existingMinorCreditor]);
     expect(store.nextMinorCreditorSequence()).toBe(5);
     expect(store.creditorDraft()).toEqual({ termId: 1, branch: 'add-new' });
     expect(navigate).toHaveBeenCalledWith('/cases/create-casefile/order-terms/creditor/minor-creditor-details');
@@ -257,7 +266,7 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     const { component, store, router } = await setup();
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
       orderTerms: [{ ...acceptedTerm, creditor: { type: 'minor', sequenceNumber: 3 } }],
-      minorCreditors: [{ sequenceNumber: 3, displayName: 'Existing Synthetic Creditor' }],
+      minorCreditors: [{ ...existingMinorCreditor, sequenceNumber: 3 }],
       nextMinorCreditorSequence: 4,
       creditorDraft: { termId: 1, branch: 'add-new' },
     });
@@ -268,7 +277,7 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     await component.handleCancel();
     await component.handleCancel();
     expect(store.orderTerms()[0].creditor).toEqual({ type: 'minor', sequenceNumber: 3 });
-    expect(store.minorCreditors()).toEqual([{ sequenceNumber: 3, displayName: 'Existing Synthetic Creditor' }]);
+    expect(store.minorCreditors()).toEqual([{ ...existingMinorCreditor, sequenceNumber: 3 }]);
     expect(store.creditorDraft()).toEqual({ termId: 1, branch: 'add-new' });
     expect(store.unsavedChanges()).toBe(true);
     expect(component.navigationFailed()).toBe(true);

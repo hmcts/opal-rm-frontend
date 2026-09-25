@@ -11,6 +11,13 @@ const createCasefileRoot = resolve(repositoryRoot, 'src/app/flows/cases/cases-cr
 const canonicalSuffix = /^[a-z0-9_]+(?:-[a-z0-9_-]+)?$/;
 const pageDefinitions = [
   {
+    directory: 'cases-create-casefile-minor-creditor-details',
+    prefix: 'create_casefile_minor_creditor_',
+    constantName: 'CASES_CREATE_CASEFILE_MINOR_CREDITOR_FIELD_NAMES',
+    fieldNamesFile:
+      'cases-create-casefile-minor-creditor-details/constants/cases-create-casefile-minor-creditor-field-names.constant.ts',
+  },
+  {
     directory: 'cases-create-casefile-case-type',
     prefix: 'create_casefile_case_type_',
     constantName: 'CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES',
@@ -90,8 +97,8 @@ const templatePaths = {
     'cases-create-casefile-interest-indexation/cases-create-casefile-interest-indexation-form/cases-create-casefile-interest-indexation-form.component.html',
   managingPayments:
     'cases-create-casefile-managing-payments/cases-create-casefile-managing-payments-form/cases-create-casefile-managing-payments-form.component.html',
-  minorCreditorDetails:
-    'cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details.component.html',
+  minorCreditorForm:
+    'cases-create-casefile-minor-creditor-details/cases-create-casefile-minor-creditor-details-form/cases-create-casefile-minor-creditor-details-form.component.html',
   orderDetails:
     'cases-create-casefile-order-details/cases-create-casefile-order-details-form/cases-create-casefile-order-details-form.component.html',
   orderTermsSelect:
@@ -238,7 +245,19 @@ const structuralIdentifierAllowlist = new Set([
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'span', 'id', 'create_casefile_order_terms_cancel'),
 
   structuralIdentifierKey(templatePaths.orderTermCreditor, 'div', '[id]', 'conditionalId'),
-  structuralIdentifierKey(templatePaths.minorCreditorDetails, 'a', 'id', 'returnToCreditor'),
+  structuralIdentifierKey(templatePaths.minorCreditorForm, 'div', '[id]', 'option.conditionalId'),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorForm,
+    'app-cases-create-casefile-bank-details',
+    '[ukBankConditionalId]',
+    'ukBankConditionalId',
+  ),
+  structuralIdentifierKey(
+    templatePaths.minorCreditorForm,
+    'app-cases-create-casefile-bank-details',
+    '[nonUkBankConditionalId]',
+    'nonUkBankConditionalId',
+  ),
 
   structuralIdentifierKey(
     templatePaths.orderTermsSummary,
@@ -620,6 +639,7 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
   const templatePathWithinCreateCasefile = relative(createCasefileRoot, templatePath);
   const dynamicOrderTerms = templatePathWithinCreateCasefile === templatePaths.orderTermsInput;
   const creditorForm = templatePathWithinCreateCasefile === templatePaths.orderTermCreditor;
+  const minorCreditorForm = templatePathWithinCreateCasefile === templatePaths.minorCreditorForm;
   const branchScopes = dynamicOrderTerms ? orderTermBranchScopes(source, displayPath, failures) : new Map();
   const pageDefinition = pageDefinitionFor(templatePath);
   const acceptedPrefixes = acceptedPrefixesFor(templatePath);
@@ -663,6 +683,16 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
 
       if (dynamicOrderTerms && isBound && isOrderTermIdentifier(attributeName, value)) valid = true;
       if (creditorForm && isBound && isCreditorIdentifier(attributeName, value)) valid = true;
+      // The fixed identity metadata uses canonical field-name constants; the child
+      // rendering tests verify every identity control's matching ID and name.
+      if (
+        minorCreditorForm &&
+        tagName === 'opal-lib-govuk-text-input' &&
+        isBound &&
+        ['inputId', 'inputName'].includes(attributeName) &&
+        value === 'field.name'
+      )
+        valid = true;
 
       if (!valid) {
         failures.push(`${displayPath}:${line}: noncanonical ${attributeMatch[2]}="${value}"`);

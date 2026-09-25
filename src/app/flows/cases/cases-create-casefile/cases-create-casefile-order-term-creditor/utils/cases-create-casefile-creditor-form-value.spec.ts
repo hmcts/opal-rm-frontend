@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { ICasesCreateCasefileMinorCreditor } from '../../interfaces/cases-create-casefile-minor-creditor.interface';
+import { MINOR_CREDITOR_DETAILS_MOCK } from '../../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
 import { creditorAssignment, creditorFormValue } from './cases-create-casefile-creditor-form-value';
 
-const minorCreditors: ICasesCreateCasefileMinorCreditor[] = [
-  { sequenceNumber: 1, displayName: 'Duplicate name' },
-  { sequenceNumber: 2, displayName: 'Duplicate name' },
-];
+const minor = (sequenceNumber: number, displayName: string): ICasesCreateCasefileMinorCreditor => ({
+  sequenceNumber,
+  displayName,
+  details: {
+    ...MINOR_CREDITOR_DETAILS_MOCK,
+    identity: { type: 'organisation', organisationName: displayName },
+  },
+});
+const minorCreditors = [minor(1, 'Duplicate name'), minor(2, 'Duplicate name')];
 const majorCreditors = [
   {
     major_creditor_id: 901,

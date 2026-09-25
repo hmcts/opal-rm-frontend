@@ -1,8 +1,12 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <span class="govuk-caption-l">Order terms</span>
-    <h1 class="govuk-heading-l">Minor creditor details</h1>
-    <p class="govuk-body">Minor creditor details cannot be added yet.</p>
-    <a class="govuk-link" id="returnToCreditor" [routerLink]="creditorPath">Return to creditor selection</a>
+    <app-cases-create-casefile-minor-creditor-details-form
+      [initialFormData]="initialFormData"
+      [countryAutocompleteItems]="countryAutocompleteItems"
+      [countrySelectOptions]="countrySelectOptions"
+      (formSubmit)="handleFormSubmit($event)"
+      (unsavedChanges)="handleUnsavedChanges($event)"
+      (cancel)="handleCancel()"
+    />
   </div>
 </div>

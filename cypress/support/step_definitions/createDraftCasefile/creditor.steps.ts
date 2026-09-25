@@ -4,6 +4,7 @@ import { CreditorFlow } from '../../../e2e/functional/opal/flows/createDraftCase
 const flow = new CreditorFlow();
 
 Given('active non-Central-Authority Major creditors are available', () => flow.prepareMajorCreditors());
+Given('Countries are available for minor creditor details', () => flow.prepareCountries());
 Then('the creditor page is ready with the scoped Major creditor query', () => flow.assertReady());
 When('I choose the applicant as creditor', () => flow.chooseApplicant());
 When('I choose a Major creditor', () => flow.chooseMajor());
@@ -12,8 +13,8 @@ When('I continue from creditor selection', () => flow.continue());
 Then('I reach Order Terms Summary without creating a draft casefile', () => flow.assertSummaryWithoutPersistence());
 Then('the creditor validation summary links to the required choice', () => flow.assertValidation());
 Then('the selected Major creditor remains identified by ID', () => flow.assertMajorSelected());
-When('I return from minor creditor details', () => flow.returnFromDetails());
-Then('Add a new minor creditor remains selected', () => flow.assertAddNewRestored());
+When('I cancel minor creditor details without edits', () => flow.cancelMinorDetailsWithoutEdits());
+Then('I return to Creditor without a selected creditor', () => flow.assertNoNewMinorCreditor());
 When('I cancel creditor selection and decline the warning', () => flow.cancel(false));
 When('I cancel creditor selection and accept the warning', () => flow.cancel(true));
 Then('my Applicant creditor edit remains selected', () => flow.assertCreditorRetained());

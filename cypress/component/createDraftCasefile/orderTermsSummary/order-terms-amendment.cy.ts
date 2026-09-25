@@ -351,6 +351,42 @@ describe('Order term amendment routed transaction', () => {
     },
   );
 
+  it(
+    'AC3. should reuse a retained creditor on a new term after amending its sole reference',
+    { tags: buildTags() },
+    () => {
+      setupOrderTerms({
+        initialChild: PATHS.children.orderTermsSummary,
+        acceptedTerms: [SUMMARY_TERMS[0]],
+        minorCreditors: [originalCreditor],
+      });
+      cy.get(S.orderTermsSummary.change(1)).click();
+      cy.get(S.orderTermsInput.continueButton).click();
+      cy.get(S.creditor.applicant).check();
+      cy.get(S.creditor.continueButton).click();
+      cy.get(S.orderTermsSummary.cards).should('have.length', 1);
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'applicant' });
+        expect(store.minorCreditors()).to.deep.equal([originalCreditor]);
+      });
+
+      cy.get(S.orderTerms.add).click();
+      cy.get(S.orderTerms.select).select('MAT');
+      cy.get(S.orderTerms.continueButton).click();
+      continueToCreditor('30');
+      cy.get(S.creditor.minor(1)).check();
+      cy.get(S.creditor.continueButton).click();
+
+      cy.get(S.orderTermsSummary.cards).should('have.length', 2);
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTerms()[0]).to.deep.equal({ ...SUMMARY_TERMS[0], creditor: { type: 'applicant' } });
+        expect(store.orderTerms()[1].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
+        expect(store.minorCreditors()).to.deep.equal([originalCreditor]);
+        expect(store.nextMinorCreditorSequence()).to.eq(2);
+      });
+    },
+  );
+
   it('preserves raw input values through a routed revisit, including date conversion', { tags: buildTags() }, () => {
     setupAmendment();
     openSecondInput();

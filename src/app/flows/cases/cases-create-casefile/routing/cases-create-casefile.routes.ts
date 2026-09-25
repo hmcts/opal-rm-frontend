@@ -8,6 +8,7 @@ import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-cr
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { casesCreateCasefileMinorCreditorSummaryGuard } from './guards/cases-create-casefile-minor-creditor-summary.guard';
+import { casesCreateCasefileMinorCreditorRemoveGuard } from './guards/cases-create-casefile-minor-creditor-remove.guard';
 import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
 import { casesCreateCasefileOrderTermCreditorGuard } from './guards/cases-create-casefile-order-term-creditor.guard';
 import { casesCreateCasefileOrderTermsSelectGuard } from './guards/cases-create-casefile-order-terms-select.guard';
@@ -186,7 +187,7 @@ export const routing: Routes = [
       import('../cases-create-casefile-minor-creditor-remove/cases-create-casefile-minor-creditor-remove.component').then(
         (component) => component.CasesCreateCasefileMinorCreditorRemoveComponent,
       ),
-    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileMinorCreditorSummaryGuard],
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileMinorCreditorRemoveGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorRemove },
     resolve: { title: TitleResolver },
   },

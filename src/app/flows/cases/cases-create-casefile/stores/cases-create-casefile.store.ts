@@ -18,6 +18,8 @@ import type { ICasesCreateCasefileCreditorDraft } from '../interfaces/cases-crea
 import type { ICasesCreateCasefileOrderTermAmendment } from '../interfaces/cases-create-casefile-order-term-amendment.interface';
 import type { ICasesCreateCasefileOrderTermRemoval } from '../interfaces/cases-create-casefile-order-term-removal.interface';
 import type { ICasesCreateCasefileOrderTermPresentation } from '../interfaces/cases-create-casefile-order-term-presentation.interface';
+import type { ICasesCreateCasefileMinorCreditorRemoval } from '../interfaces/cases-create-casefile-minor-creditor-removal.interface';
+import type { ICasesCreateCasefileMinorCreditorRemovalOutcome } from '../interfaces/cases-create-casefile-minor-creditor-removal-outcome.interface';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
@@ -32,6 +34,11 @@ import type { CasesCreateCasefileOrderTermRawValue } from '../cases-create-casef
 import { restoreOrderTermDraft } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-draft';
 import { orderTermPresentation } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-presentation';
 import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-card';
+import {
+  captureMinorCreditorRemoval,
+  isMinorCreditorRemovalCurrent as isCurrentMinorCreditorRemoval,
+  minorCreditorRemovalPatch,
+} from '../utils/cases-create-casefile-minor-creditor-removal';
 
 const normalizeOptionalText = (value: string | null): string | null => (value?.trim() ? value : null);
 
@@ -112,6 +119,8 @@ export const CasesCreateCasefileStore = signalStore(
         minorCreditors: selectionUnchanged ? store.minorCreditors() : [],
         nextMinorCreditorSequence: selectionUnchanged ? store.nextMinorCreditorSequence() : 1,
         creditorDraft: selectionUnchanged ? store.creditorDraft() : null,
+        minorCreditorRemoval: selectionUnchanged ? store.minorCreditorRemoval() : null,
+        minorCreditorRemovalOutcome: selectionUnchanged ? store.minorCreditorRemovalOutcome() : null,
         orderTermDraft: selectionUnchanged ? store.orderTermDraft() : null,
         orderTermAmendment: selectionUnchanged ? store.orderTermAmendment() : null,
         orderTermRemoval: selectionUnchanged ? store.orderTermRemoval() : null,
@@ -237,6 +246,8 @@ export const CasesCreateCasefileStore = signalStore(
         orderTermDraft: pendingOrderTermResultId === store.orderTermDraft()?.resultId ? store.orderTermDraft() : null,
         currentOrderTermId: null,
         creditorDraft: null,
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
       });
     },
     prepareOrderTermDraft: (page: ICasesCreateCasefileOrderTermPage): void => {
@@ -276,6 +287,8 @@ export const CasesCreateCasefileStore = signalStore(
         currentOrderTermId: termId,
         nextOrderTermId: termId + 1,
         creditorDraft: null,
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
         orderTermDraft: null,
         pendingOrderTermResultId: null,
         unsavedChanges: false,
@@ -302,7 +315,14 @@ export const CasesCreateCasefileStore = signalStore(
             }
           : existing,
       );
-      patchState(store, { orderTerms, currentOrderTermId: termId, unsavedChanges: false, stateChanges: true });
+      patchState(store, {
+        orderTerms,
+        currentOrderTermId: termId,
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
+        unsavedChanges: false,
+        stateChanges: true,
+      });
       return true;
     },
     assignCurrentOrderTermCreditor: (termId: number, creditor: CasesCreateCasefileCreditorAssignment): boolean => {
@@ -334,6 +354,8 @@ export const CasesCreateCasefileStore = signalStore(
         orderTerms,
         minorCreditors: associatedMinorCreditors(orderTerms, store.minorCreditors()),
         creditorDraft: null,
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
         stateChanges: true,
         unsavedChanges: false,
       });
@@ -350,6 +372,9 @@ export const CasesCreateCasefileStore = signalStore(
         minorCreditors: associatedMinorCreditors(orderTerms, store.minorCreditors()),
         currentOrderTermId: removedCurrentTerm ? null : store.currentOrderTermId(),
         creditorDraft: store.creditorDraft()?.termId === termId ? null : store.creditorDraft(),
+        minorCreditorRemoval: store.minorCreditorRemoval()?.termId === termId ? null : store.minorCreditorRemoval(),
+        minorCreditorRemovalOutcome:
+          store.minorCreditorRemovalOutcome()?.termId === termId ? null : store.minorCreditorRemovalOutcome(),
         stateChanges: true,
         unsavedChanges: false,
       });
@@ -369,10 +394,16 @@ export const CasesCreateCasefileStore = signalStore(
             draft?.termId === termId && draft.branch === 'add-new' && draft.existingSequenceNumber === undefined
               ? draft
               : { termId, branch: 'add-new' },
+          minorCreditorRemoval: null,
+          minorCreditorRemovalOutcome: null,
         });
         return true;
       }
-      patchState(store, { creditorDraft: { termId, branch: 'add-new' } });
+      patchState(store, {
+        creditorDraft: { termId, branch: 'add-new' },
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
+      });
       return true;
     },
     savePendingMinorCreditorDetails: (
@@ -397,6 +428,8 @@ export const CasesCreateCasefileStore = signalStore(
         patchState(store, {
           orderTermAmendment: { ...amendment, ready: false },
           creditorDraft: { ...draft, details: structuredClone(details), countryName },
+          minorCreditorRemoval: null,
+          minorCreditorRemovalOutcome: null,
           unsavedChanges: false,
         });
         return true;
@@ -418,6 +451,8 @@ export const CasesCreateCasefileStore = signalStore(
           details: structuredClone(details),
           countryName,
         },
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
         unsavedChanges: false,
       });
       return true;
@@ -449,6 +484,8 @@ export const CasesCreateCasefileStore = signalStore(
         minorCreditors: associatedMinorCreditors(orderTerms, [...store.minorCreditors(), creditor]),
         nextMinorCreditorSequence: sequenceNumber + 1,
         creditorDraft: null,
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
         stateChanges: true,
         unsavedChanges: false,
       });
@@ -481,13 +518,15 @@ export const CasesCreateCasefileStore = signalStore(
               }
             : creditor,
         ),
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
         stateChanges: true,
         unsavedChanges: false,
       });
       return true;
     },
     clearCreditorDraft: (): void => {
-      patchState(store, { creditorDraft: null });
+      patchState(store, { creditorDraft: null, minorCreditorRemoval: null, minorCreditorRemovalOutcome: null });
     },
     discardOrderTermDraft: (): void => {
       patchState(store, { orderTermDraft: null, unsavedChanges: false });
@@ -509,6 +548,41 @@ export const CasesCreateCasefileStore = signalStore(
         ...CASES_CREATE_CASEFILE_STATE,
         taskStatuses: { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES },
       });
+    },
+  })),
+  withMethods((store) => ({
+    /** Captures the exact removal target and invalidates any earlier outcome. */
+    beginMinorCreditorRemoval: (): ICasesCreateCasefileMinorCreditorRemoval | null => {
+      const selection = captureMinorCreditorRemoval(getState(store));
+      if (!selection) return null;
+      patchState(store, { minorCreditorRemoval: selection, minorCreditorRemovalOutcome: null });
+      return selection;
+    },
+    /** Clears only the captured selection, leaving a newer removal screen intact. */
+    clearMinorCreditorRemoval: (expected: ICasesCreateCasefileMinorCreditorRemoval): void => {
+      if (store.minorCreditorRemoval() === expected) patchState(store, { minorCreditorRemoval: null });
+    },
+    /** Uses reference identity to reject a screen whose source state has since changed. */
+    isMinorCreditorRemovalCurrent: (expected: ICasesCreateCasefileMinorCreditorRemoval): boolean =>
+      isCurrentMinorCreditorRemoval(getState(store), expected),
+    /** Applies the removal in one patch only while the captured target remains current. */
+    confirmMinorCreditorRemoval: (expected: ICasesCreateCasefileMinorCreditorRemoval): boolean => {
+      const update = minorCreditorRemovalPatch(getState(store), expected);
+      if (!update) return false;
+      patchState(store, update);
+      return true;
+    },
+    /** Returns a matching current outcome once, consuming stale same-term outcomes as well. */
+    consumeMinorCreditorRemovalOutcome: (termId: number): ICasesCreateCasefileMinorCreditorRemovalOutcome | null => {
+      const outcome = store.minorCreditorRemovalOutcome();
+      if (!outcome || outcome.termId !== termId) return null;
+      const matches =
+        store.currentOrderTermId() === termId &&
+        store.creditorDraft() === null &&
+        store.orderTerms().find((term) => term.termId === termId) === outcome.expectedTerm &&
+        store.orderTermAmendment() === outcome.expectedAmendment;
+      patchState(store, { minorCreditorRemovalOutcome: null });
+      return matches ? outcome : null;
     },
   })),
   withMethods((store) => ({
@@ -591,6 +665,8 @@ export const CasesCreateCasefileStore = signalStore(
         pendingOrderTermResultId: term.resultId,
         orderTermDraft: null,
         creditorDraft: null,
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
       });
       return true;
     },
@@ -615,6 +691,8 @@ export const CasesCreateCasefileStore = signalStore(
           inputComplete: true,
           ready: false,
         },
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
         unsavedChanges: false,
       });
       return true;
@@ -635,6 +713,8 @@ export const CasesCreateCasefileStore = signalStore(
       patchState(store, {
         orderTermAmendment: { ...pending, term: { ...pending.term, creditor: { ...creditor } }, ready: true },
         creditorDraft: null,
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
         unsavedChanges: false,
       });
       return true;
@@ -652,7 +732,12 @@ export const CasesCreateCasefileStore = signalStore(
         draft.existingSequenceNumber !== undefined
       )
         return false;
-      patchState(store, { orderTermAmendment: { ...pending, ready: true }, unsavedChanges: false });
+      patchState(store, {
+        orderTermAmendment: { ...pending, ready: true },
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
+        unsavedChanges: false,
+      });
       return true;
     },
     completeOrderTermAmendment: (
@@ -704,6 +789,8 @@ export const CasesCreateCasefileStore = signalStore(
         orderTermDraft: null,
         currentOrderTermId: null,
         pendingOrderTermResultId: null,
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
         stateChanges: true,
         unsavedChanges: false,
       });
@@ -717,6 +804,8 @@ export const CasesCreateCasefileStore = signalStore(
         orderTermDraft: null,
         currentOrderTermId: null,
         pendingOrderTermResultId: null,
+        minorCreditorRemoval: null,
+        minorCreditorRemovalOutcome: null,
         unsavedChanges: false,
       });
       return true;

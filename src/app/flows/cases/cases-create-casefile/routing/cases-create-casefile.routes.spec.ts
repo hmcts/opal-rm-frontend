@@ -37,6 +37,7 @@ import { casesCreateCasefileOrderTermsSelectGuard } from './guards/cases-create-
 import { casesCreateCasefileOrderTermsRemoveGuard } from './guards/cases-create-casefile-order-terms-remove.guard';
 import { casesCreateCasefileOrderTermCreditorGuard } from './guards/cases-create-casefile-order-term-creditor.guard';
 import { casesCreateCasefileMinorCreditorSummaryGuard } from './guards/cases-create-casefile-minor-creditor-summary.guard';
+import { casesCreateCasefileMinorCreditorRemoveGuard } from './guards/cases-create-casefile-minor-creditor-remove.guard';
 import { fetchCasesCreateCasefileOrderTermResolver } from './resolvers/fetch-cases-create-casefile-order-term-resolver/fetch-cases-create-casefile-order-term.resolver';
 import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
 import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
@@ -297,14 +298,14 @@ describe('Create Casefile routes', () => {
     expect(component.name).toBe(CasesCreateCasefileMinorCreditorSummaryComponent.name);
   });
 
-  it('registers Minor creditor removal with the shared pending-draft guards and no country resolver', async () => {
+  it('registers Minor creditor removal with its captured-selection guard and exact title', async () => {
     const route = routing.find(
       (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorRemove,
     );
 
     expect(route?.canActivate).toEqual([
       casesCreateCasefileFlowStateGuard,
-      casesCreateCasefileMinorCreditorSummaryGuard,
+      casesCreateCasefileMinorCreditorRemoveGuard,
     ]);
     expect(route?.canDeactivate).toBeUndefined();
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorRemove });

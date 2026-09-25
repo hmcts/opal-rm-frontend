@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output } from '@angular/core';
+import {
+  ElementRef,
+  viewChild,
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnInit,
+  Output,
+} from '@angular/core';
 import type { SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
@@ -40,6 +50,7 @@ export class CasesCreateCasefileOrderTermCreditorFormComponent
   extends AbstractFormBaseComponent
   implements OnInit, OnChanges
 {
+  private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('heading');
   private initialized = false;
   private entrySnapshot!: ICasesCreateCasefileOrderTermCreditorFormData;
 
@@ -116,6 +127,11 @@ export class CasesCreateCasefileOrderTermCreditorFormComponent
       current[this.fieldNames.choice] !== entry[this.fieldNames.choice] ||
       current[this.fieldNames.majorCreditorId] !== entry[this.fieldNames.majorCreditorId]
     );
+  }
+
+  /** Moves focus to the form heading after removal success or alert dismissal. */
+  public focusHeading(): void {
+    this.heading()?.nativeElement.focus();
   }
 
   public ngOnChanges(changes: SimpleChanges): void {

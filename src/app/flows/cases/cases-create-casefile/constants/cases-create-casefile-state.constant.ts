@@ -27,6 +27,8 @@ export const CASES_CREATE_CASEFILE_STATE: ICasesCreateCasefileState = {
   minorCreditors: [],
   nextMinorCreditorSequence: 1,
   creditorDraft: null,
+  minorCreditorRemoval: null,
+  minorCreditorRemovalOutcome: null,
   orderTermDraft: null,
   orderTermAmendment: null,
   orderTermRemoval: null,

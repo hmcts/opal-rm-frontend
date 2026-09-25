@@ -13,7 +13,7 @@ export const CASES_CREATE_CASEFILE_ROUTING_TITLES = {
   orderTermCreditor: 'Creditor',
   minorCreditorDetails: 'Minor creditor details',
   minorCreditorSummary: 'Minor creditor summary',
-  minorCreditorRemove: 'Remove minor creditor',
+  minorCreditorRemove: 'Are you sure you want to remove this minor creditor?',
   interestAndIndexation: 'Interest and indexation',
   managingPayments: 'Managing payments',
   commentsAndNotes: 'Comments and notes',

@@ -6,6 +6,30 @@ const bankRows = (details: ICasesCreateCasefileMinorCreditorDetails) =>
   minorCreditorSummaryRows(details, 'United Kingdom').filter((row) => row.id !== 'name' && row.id !== 'address');
 
 describe('minorCreditorSummaryRows', () => {
+  it('changes only removal bank labels', () => {
+    const details: ICasesCreateCasefileMinorCreditorDetails = {
+      ...structuredClone(MINOR_CREDITOR_DETAILS_MOCK),
+      bank: {
+        type: 'non-uk',
+        nameOnAccount: 'Example',
+        paymentReference: 'REF',
+        bicSwiftCode: null,
+        iban: null,
+        bankName: 'Example bank',
+        branchSortCode: '0011',
+        accountNumber: '000123',
+      },
+    };
+    const summary = minorCreditorSummaryRows(details, 'United Kingdom');
+    const removal = minorCreditorSummaryRows(details, 'United Kingdom', 'removal');
+
+    expect(summary.find((row) => row.id === 'bankType')?.label).toBe('Bank account type');
+    expect(removal.find((row) => row.id === 'bankType')?.label).toBe('Type of bank account');
+    expect(removal.find((row) => row.id === 'bicSwiftCode')?.label).toBe('BIC or SWIFT code');
+    expect(removal.find((row) => row.id === 'branchSortCode')?.label).toBe('Branch code or sort code');
+    expect(removal.find((row) => row.id === 'address')?.values.at(-1)).toBe('United Kingdom');
+  });
+
   it.each([
     ['BIC', 'IBAN', false],
     ['BIC', null, false],

@@ -53,3 +53,17 @@ Feature: Capture a creditor for an order term
   Scenario: Reject missing term context after reload
     When I reload the creditor page without journey state
     Then the creditor route rejects the missing term context
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9813
+  Scenario: Remove pending minor creditor and continue with the applicant
+    When I choose to add a new minor creditor
+    And I continue from creditor selection
+    And I provide valid organisation creditor details with a non-UK bank and no international identifiers
+    And I save the minor creditor details
+    And I open minor creditor removal
+    And I confirm minor creditor removal
+    Then I return to Creditor with minor creditor removal success
+    When I dismiss minor creditor removal success
+    And I choose the applicant as creditor
+    And I continue from creditor selection
+    Then I reach Order Terms Summary without creating a draft casefile

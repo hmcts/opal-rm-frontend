@@ -23,3 +23,16 @@ Feature: Creditor accessibility
     When I choose to add a new minor creditor
     And I continue from creditor selection
     Then I check the page for accessibility
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9813
+  Scenario: Creditor announces removable minor creditor success accessibly
+    When I choose to add a new minor creditor
+    And I continue from creditor selection
+    And I provide valid organisation creditor details with a non-UK bank and no international identifiers
+    And I save the minor creditor details
+    And I open minor creditor removal
+    And I confirm minor creditor removal
+    Then I return to Creditor with minor creditor removal success
+    And I check the page for accessibility
+    When I dismiss minor creditor removal success
+    Then I check the page for accessibility

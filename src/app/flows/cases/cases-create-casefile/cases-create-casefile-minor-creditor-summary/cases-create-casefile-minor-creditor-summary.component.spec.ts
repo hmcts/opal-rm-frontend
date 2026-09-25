@@ -25,7 +25,7 @@ const draft = {
 const patch = (store: InstanceType<typeof CasesCreateCasefileStore>, state: Partial<ICasesCreateCasefileState>) =>
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
 
-async function setup(state: Partial<ICasesCreateCasefileState> = {}) {
+async function setup(state: Partial<ICasesCreateCasefileState> = {}, restoreRemovalFocus = false) {
   await TestBed.configureTestingModule({
     imports: [CasesCreateCasefileMinorCreditorSummaryComponent],
     providers: [CasesCreateCasefileStore, provideRouter([])],
@@ -38,8 +38,14 @@ async function setup(state: Partial<ICasesCreateCasefileState> = {}) {
     creditorDraft: draft,
     ...state,
   });
+  const router = TestBed.inject(Router);
+  if (restoreRemovalFocus) {
+    vi.spyOn(router, 'currentNavigation').mockReturnValue({
+      extras: { state: { minorCreditorRemovalReturnFocus: true } },
+    } as never);
+  }
   const fixture = TestBed.createComponent(CasesCreateCasefileMinorCreditorSummaryComponent);
-  return { fixture, component: fixture.componentInstance, store, router: TestBed.inject(Router) };
+  return { fixture, component: fixture.componentInstance, store, router };
 }
 
 const amendmentState = (): Partial<ICasesCreateCasefileState> => {
@@ -60,6 +66,77 @@ const amendmentState = (): Partial<ICasesCreateCasefileState> => {
 
 describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
   beforeEach(() => vi.restoreAllMocks());
+
+  it('captures the reviewed creditor before navigating to removal', async () => {
+    const { component, store, router } = await setup();
+    const reviewed = store.creditorDraft();
+    vi.spyOn(router, 'navigateByUrl').mockImplementation(async () => {
+      expect(store.minorCreditorRemoval()?.expectedDraft).toBe(reviewed);
+      return true;
+    });
+
+    await component.handleRemove();
+
+    expect(store.creditorDraft()).toBe(reviewed);
+  });
+
+  it.each([false, new Error('Synthetic navigation failure')])(
+    'clears only its captured selection after failed removal entry: %s',
+    async (result) => {
+      const { component, store, router } = await setup();
+      const navigate = vi.spyOn(router, 'navigateByUrl');
+      if (result instanceof Error) navigate.mockRejectedValue(result);
+      else navigate.mockResolvedValue(result);
+
+      await component.handleRemove();
+
+      expect(store.creditorDraft()).toBe(draft);
+      expect(store.minorCreditorRemoval()).toBeNull();
+      expect(component.navigationFailed()).toBe(true);
+    },
+  );
+
+  it('does not clear a newer selection when earlier removal navigation fails late', async () => {
+    const { component, store, router } = await setup();
+    let finish!: (result: boolean) => void;
+    vi.spyOn(router, 'navigateByUrl').mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    const first = component.handleRemove();
+    const original = store.minorCreditorRemoval();
+    const newer = store.beginMinorCreditorRemoval();
+
+    finish(false);
+    await first;
+
+    expect(newer).not.toBe(original);
+    expect(store.minorCreditorRemoval()).toBe(newer);
+  });
+
+  it('focuses the summary heading after cancellation when the Remove action is absent', async () => {
+    const { fixture } = await setup({}, true);
+    const host = fixture.nativeElement as HTMLElement;
+    const querySelector = host.querySelector.bind(host);
+    vi.spyOn(host, 'querySelector').mockImplementation((selector: string) =>
+      selector === '#Remove' ? null : querySelector(selector),
+    );
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(querySelector('h1'));
+  });
+
+  it('does not move focus on ordinary summary entry', async () => {
+    const sentinel = document.createElement('button');
+    document.body.appendChild(sentinel);
+    sentinel.focus();
+    const { fixture } = await setup();
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(sentinel);
+    sentinel.remove();
+  });
 
   it('renders the review card, semantic actions and escaped stored text', async () => {
     const details = structuredClone(MINOR_CREDITOR_DETAILS_MOCK);

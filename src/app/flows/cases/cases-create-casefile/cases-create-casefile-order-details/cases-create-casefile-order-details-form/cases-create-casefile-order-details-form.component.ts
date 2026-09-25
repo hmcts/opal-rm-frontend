@@ -99,6 +99,14 @@ export class CasesCreateCasefileOrderDetailsFormComponent extends AbstractFormBa
     }
   }
 
+  protected override hasUnsavedChanges(): boolean {
+    // Calendar selections update values without marking the shared controls dirty.
+    const dateChanged = [this.fieldNames.dateOrderMade, this.fieldNames.dateArrearsLastUpdated].some(
+      (field) => (this.form.controls[field].value || null) !== (this.initialFormData[field] || null),
+    );
+    return super.hasUnsavedChanges() || (!this.formSubmitted && dateChanged);
+  }
+
   public handleApplicationInput(event: Event): void {
     const input = event.target;
 

@@ -67,3 +67,40 @@ E2E refresh scenarios prove the resulting navigation and state reset with the na
 They do not prove browser Leave/Cancel behaviour. Retain unit/component coverage of the actual guard
 and verify native dialog behaviour separately in a browser without this E2E helper. Do not claim a
 Cucumber dry run, or one passing parallel worker, as evidence of a completed functional suite.
+
+## RM create-casefiles release selection
+
+The `release-1c-rm-create-case-files` flag gates the Cases dashboard and the complete create-casefile journey.
+Smoke tests follow the sibling frontend pattern: sign-in must reach an available dashboard before checking sign-out.
+They therefore require this release to be enabled. Dedicated flag-off functional scenarios use authentication without
+a dashboard assertion and verify Access Denied. Tagged CNP and nightly runs skip smoke tests.
+
+- `@R1CRmCreateCaseFiles` identifies scenarios requiring the flag to be enabled, including existing create-casefile
+  functional and accessibility features.
+- `@R1CRmCreateCaseFilesOff` identifies scenarios requiring the flag to be disabled.
+- Default Cypress, CNP and nightly selections exclude `@skip` and `@R1CRmCreateCaseFilesOff`. The default functional
+  suite therefore requires the release to be enabled. Explicit tag selections override this default; tagged pipeline
+  runs retain the existing behaviour of skipping smoke tests.
+
+Run the matching suite against an environment already configured for that flag state:
+
+```bash
+corepack yarn test:functional:rm-create-case-files
+corepack yarn test:functional:rm-create-case-files-off
+corepack yarn test:smoke
+```
+
+Cypress maps the existing uppercase `TAGS` contract to the lowercase `tags` setting required by Cucumber v26 before
+registering the preprocessor. An explicit lowercase `tags` value takes precedence.
+
+The release scripts set both `TAGS` and `CYPRESS_TAGS` to avoid inheriting an incompatible pipeline tag expression.
+They do not change LaunchDarkly or application configuration. For local override testing, start the app with
+`FEATURE_FLAGS_OVERRIDE=true` and `RELEASE_1C_RM_CREATE_CASE_FILES_ENABLED=true` or `false`. For deployed runs, configure
+LaunchDarkly separately. Do not run enabled and disabled functional selections against the same unchanged flag state.
+
+CNP supports the existing `run_tag:@R1CRmCreateCaseFiles` and `run_tag:@R1CRmCreateCaseFilesOff` labels. Nightly supports
+the equivalent `TAGS` parameter. No new release selector or automatic flag mutation is introduced.
+
+Release-specific functional and accessibility scenarios live under `features/releaseFlags`. Their Jira story, epic and
+test identifiers are intentionally unassigned pending confirmed ticket metadata. A Cucumber dry run proves scenario
+selection and step binding only; it is not evidence of a completed browser journey or deployed authentication.

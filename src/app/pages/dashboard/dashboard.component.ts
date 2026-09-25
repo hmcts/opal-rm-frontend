@@ -1,3 +1,6 @@
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '@app/flows/cases/constants/release-1c-rm-create-case-files-feature-flag.constant';
+import { filterCreateCasefileDashboardConfig } from '@app/flows/cases/utils/filter-create-casefile-dashboard-config.utils';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
@@ -15,6 +18,7 @@ import { DASHBOARD_CONFIG_DEFAULT_DASHBOARD } from './constants/dashboard-config
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent {
+  private readonly globalStore = inject(GlobalStore);
   private readonly activatedRoute = inject(ActivatedRoute);
 
   /**
@@ -29,12 +33,15 @@ export class DashboardComponent {
    * Resolves the dashboard configuration based on the current route parameter 'dashboardType'. If the parameter is valid and corresponds to a known dashboard type, it returns the specific configuration for that type. If the parameter is missing or invalid, it falls back to the default dashboard configuration defined in DASHBOARD_CONFIG_DEFAULT_DASHBOARD.
    */
   public readonly resolvedConfig = computed<IDashboardPageConfiguration>(() => {
+    const featureFlags: Record<string, unknown> = this.globalStore.featureFlags();
     const dashboardType = this.dashboardType();
-
-    if (dashboardType && isDashboardPageType(dashboardType)) {
-      return DASHBOARD_PAGE_CONFIGURATION_MAP[dashboardType];
-    }
-
-    return DASHBOARD_PAGE_CONFIGURATION_MAP[DASHBOARD_PAGE_DEFAULT_TAB] ?? DASHBOARD_CONFIG_DEFAULT_DASHBOARD;
+    const config =
+      dashboardType && isDashboardPageType(dashboardType)
+        ? DASHBOARD_PAGE_CONFIGURATION_MAP[dashboardType]
+        : (DASHBOARD_PAGE_CONFIGURATION_MAP[DASHBOARD_PAGE_DEFAULT_TAB] ?? DASHBOARD_CONFIG_DEFAULT_DASHBOARD);
+    return filterCreateCasefileDashboardConfig(
+      config,
+      featureFlags?.[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] === true,
+    );
   });
 }

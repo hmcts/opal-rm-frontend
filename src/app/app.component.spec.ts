@@ -365,8 +365,33 @@ describe('AppComponent - browser', () => {
     expect(fixture.debugElement.query(By.directive(MojAlertComponent))).toBeNull();
   });
 
+  it('hides primary navigation while release flags are missing', () => {
+    globalStore.setAuthenticated(true);
+    globalStore.setUserState(createUserStateWithPermissions([1]));
+    globalStore.setFeatureFlags({});
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    expect(hasPrimaryNavigation(fixture)).toBe(false);
+  });
+
+  it('shows only Cases and removes the navigation wrapper when the release is disabled', () => {
+    globalStore.setAuthenticated(true);
+    globalStore.setUserState(createUserStateWithPermissions([1, 6, 14, 15]));
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    expect(getPrimaryNavigationTexts(fixture)).toEqual(['Cases']);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': false });
+    fixture.detectChanges();
+    expect(hasPrimaryNavigation(fixture)).toBe(false);
+    expect(fixture.debugElement.query(By.directive(MojHeaderComponent))).not.toBeNull();
+    expect(fixture.debugElement.query(By.directive(GovukFooterComponent))).not.toBeNull();
+  });
+
   it('should configure primary navigation to use path-driven mode', () => {
     globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([1]));
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
 
@@ -378,6 +403,8 @@ describe('AppComponent - browser', () => {
 
   it('should hide primary navigation when the active route opts into hidden primary navigation', async () => {
     globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([1]));
     const fixture = TestBed.createComponent(AppComponent);
     const router = TestBed.inject(Router);
 
@@ -390,6 +417,8 @@ describe('AppComponent - browser', () => {
 
   it('should hide primary navigation throughout Create Casefile and restore it after leaving', async () => {
     globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([1]));
     const fixture = TestBed.createComponent(AppComponent);
     const router = TestBed.inject(Router);
 
@@ -405,6 +434,8 @@ describe('AppComponent - browser', () => {
 
   it('should show primary navigation on dashboard routes when the user is authenticated and active', async () => {
     globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([1]));
     const fixture = TestBed.createComponent(AppComponent);
     const router = TestBed.inject(Router);
 
@@ -415,14 +446,23 @@ describe('AppComponent - browser', () => {
     expect(hasPrimaryNavigation(fixture)).toBe(true);
   });
 
+  it('shows only Cases for an active user with no permissions when its release is enabled', () => {
+    globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([]));
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    expect(getPrimaryNavigationTexts(fixture)).toEqual(['Cases']);
+  });
+
   it.each([
     { navigationItem: 'Reports', permissionType: 'report' },
     { navigationItem: 'Search', permissionType: 'search' },
-    { navigationItem: 'Cases', permissionType: 'accounts' },
   ])(
     'should hide $navigationItem in primary navigation when the user lacks all $permissionType permissions',
     ({ navigationItem }) => {
       globalStore.setAuthenticated(true);
+      globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
       globalStore.setUserState(createUserStateWithPermissions([]));
 
       const fixture = TestBed.createComponent(AppComponent);

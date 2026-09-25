@@ -1,3 +1,4 @@
+@R1CRmCreateCaseFiles
 @JIRA-LABEL:create-draft-casefile @functional
 Feature: Creditor accessibility
   Background:

@@ -1,14 +1,21 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router, RouterStateSnapshot } from '@angular/router';
+import {
+  ActivatedRouteSnapshot,
+  Router,
+  RouterStateSnapshot,
+  UrlTree,
+  convertToParamMap,
+  provideRouter,
+} from '@angular/router';
 import { OpalUserService } from '@hmcts/opal-frontend-common/services/opal-user-service';
 import { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { firstValueFrom, isObservable, of, throwError } from 'rxjs';
-import { createSpyObj } from '@app/testing/create-spy-obj.helper';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { LaunchDarklyService } from '@hmcts/opal-frontend-common/services/launch-darkly-service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { of, throwError } from 'rxjs';
 import { dashboardLandingGuard } from './dashboard-landing.guard';
-import { SEARCH_PERMISSIONS } from '@app/flows/search/constants/search-permissions.constant';
-import { CASES_PERMISSIONS } from '@app/flows/cases/constants/cases-permissions.constant';
 
 const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpalUserState => {
   const userState = structuredClone(OPAL_USER_STATE_MOCK);
@@ -32,59 +39,55 @@ const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpal
 };
 
 describe('dashboardLandingGuard', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let mockRouter: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let mockOpalUserService: any;
-
-  const runGuard = async () => {
-    const result = TestBed.runInInjectionContext(() => dashboardLandingGuard({} as never, {} as RouterStateSnapshot));
-    return isObservable(result) ? firstValueFrom(result) : result;
+  const key = 'release-1c-rm-create-case-files';
+  const flags = signal<Record<string, boolean>>({});
+  const initializeFlags = vi.fn<() => Promise<void>>();
+  const getUserState = vi.fn();
+  const runGuard = async (dashboardType = 'cases', sectionKey?: string) => {
+    const route = {
+      data: sectionKey ? { sectionKey } : {},
+      paramMap: convertToParamMap({ dashboardType }),
+    } as ActivatedRouteSnapshot;
+    return TestBed.runInInjectionContext(() => dashboardLandingGuard(route, {} as RouterStateSnapshot));
   };
-
+  const serialize = (result: unknown) => TestBed.inject(Router).serializeUrl(result as UrlTree);
   beforeEach(() => {
-    mockRouter = createSpyObj('Router', ['createUrlTree']);
-    mockOpalUserService = createSpyObj('OpalUserService', ['getLoggedInUserState']);
-
-    mockRouter.createUrlTree.mockImplementation((commands: string[]) => commands.join('/'));
-    mockOpalUserService.getLoggedInUserState.mockReturnValue(of(createUserStateWithPermissions([])));
-
+    flags.set({ [key]: true });
+    initializeFlags.mockReset().mockResolvedValue(undefined);
+    getUserState.mockReset().mockReturnValue(of(createUserStateWithPermissions([1])));
     TestBed.configureTestingModule({
       providers: [
-        { provide: Router, useValue: mockRouter },
-        { provide: OpalUserService, useValue: mockOpalUserService },
+        provideRouter([]),
+        { provide: GlobalStore, useValue: { featureFlags: flags } },
+        { provide: OpalUserService, useValue: { getLoggedInUserState: getUserState } },
+        {
+          provide: LaunchDarklyService,
+          useValue: { initializeLaunchDarklyFlags: initializeFlags, initializeLaunchDarklyClient: vi.fn() },
+        },
       ],
     });
   });
-
-  it('routes to Search when the user has a search permission', async () => {
-    mockOpalUserService.getLoggedInUserState.mockReturnValue(
-      of(createUserStateWithPermissions([SEARCH_PERMISSIONS[0]])),
-    );
-
-    const result = await runGuard();
-
-    expect(result).toBe('//dashboard/search');
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'search']);
+  it.each([false, undefined])('denies when the flag is %s', async (enabled) => {
+    flags.set(enabled === undefined ? {} : { [key]: enabled });
+    expect(serialize(await runGuard())).toBe('/access-denied');
+    expect(getUserState).not.toHaveBeenCalled();
   });
-
-  it('routes to Cases when search is unavailable but accounts is permitted', async () => {
-    mockOpalUserService.getLoggedInUserState.mockReturnValue(
-      of(createUserStateWithPermissions([CASES_PERMISSIONS[0]])),
-    );
-
-    const result = await runGuard();
-
-    expect(result).toBe('//dashboard/cases');
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'cases']);
+  it('allows enabled Cases for users with no permissions', async () => {
+    getUserState.mockReturnValue(of(createUserStateWithPermissions([])));
+    expect(serialize(await runGuard())).toBe('/dashboard/cases');
   });
-
-  it('falls back to the default cases dashboard when user state lookup fails', async () => {
-    mockOpalUserService.getLoggedInUserState.mockReturnValue(throwError(() => new Error('boom')));
-
-    const result = await runGuard();
-
-    expect(result).toBe('//dashboard/cases');
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'cases']);
+  it('denies when user state fails', async () => {
+    getUserState.mockReturnValue(throwError(() => new Error('User state unavailable')));
+    expect(serialize(await runGuard())).toBe('/access-denied');
+  });
+  it('allows the enabled and permitted Cases section', async () => {
+    expect(serialize(await runGuard())).toBe('/dashboard/cases');
+  });
+  it('waits for flag initialization', async () => {
+    flags.set({});
+    initializeFlags.mockImplementation(async () => {
+      flags.set({ [key]: true });
+    });
+    expect(serialize(await runGuard())).toBe('/dashboard/cases');
   });
 });

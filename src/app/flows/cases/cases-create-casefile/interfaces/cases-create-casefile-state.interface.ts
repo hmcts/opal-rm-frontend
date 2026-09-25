@@ -17,6 +17,7 @@ export interface ICasesCreateCasefileState {
   centralAuthorityDetails: ICasesCreateCasefileCentralAuthorityDetails | null;
   paymentArrangement: CasesCreateCasefilePaymentArrangement | null;
   commentsAndNotes: ICasesCreateCasefileCommentsNotes | null;
+  pendingOrderTermResultId: string | null;
   taskStatuses: ICasesCreateCasefileTaskStatuses;
   unsavedChanges: boolean;
   stateChanges: boolean;

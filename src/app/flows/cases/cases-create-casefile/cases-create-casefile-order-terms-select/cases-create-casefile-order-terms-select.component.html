@@ -1,0 +1,11 @@
+<div class="govuk-grid-column-two-thirds">
+  <opal-lib-govuk-back-link (clickEvent)="handleCancel()" />
+  <app-cases-create-casefile-order-terms-select-form
+    [initialFormData]="initialFormData"
+    [loadState]="owner.state()"
+    (formSubmit)="handleFormSubmit($event)"
+    (unsavedChanges)="handleUnsavedChanges($event)"
+    (cancel)="handleCancel()"
+    (retry)="owner.load()"
+  />
+</div>

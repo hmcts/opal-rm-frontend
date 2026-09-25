@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
@@ -58,6 +59,54 @@ describe('OpalMaintenanceService', () => {
   });
 
   afterEach(() => http.verify());
+
+  it('requests active order terms afresh for each subscription and preserves server ordering', () => {
+    const results = {
+      count: 2,
+      refData: [
+        { result_id: 'TERM02', result_title: 'Additional maintenance' },
+        { result_id: 'TERM01', result_title: 'Maintenance' },
+      ],
+    };
+    const source = service.getResults({ order_term: true, active: true });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      source.subscribe((response) => expect(response).toEqual(results));
+      const request = http.expectOne('/opal-maintenance-service/results?order_term=true&active=true');
+      expect(request.request.method).toBe('GET');
+      const noRetry = withoutHttpRetry();
+      for (const token of noRetry.keys()) {
+        expect(request.request.context.get(token)).toEqual(noRetry.get(token));
+      }
+      request.flush(results);
+    }
+  });
+
+  it('returns an empty Results response without fixture fallback and fetches again on re-entry', () => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      service.getResults({ order_term: true, active: true }).subscribe((response) => {
+        expect(response).toEqual({ count: 0, refData: [] });
+      });
+      http.expectOne('/opal-maintenance-service/results?order_term=true&active=true').flush({ count: 0, refData: [] });
+    }
+  });
+
+  it('propagates Results failures and allows an explicit retry', () => {
+    let failed = false;
+    service.getResults({ order_term: true, active: true }).subscribe({
+      error: (error) => {
+        failed = true;
+        expect(error.status).toBe(503);
+      },
+    });
+    http
+      .expectOne('/opal-maintenance-service/results?order_term=true&active=true')
+      .flush({ detail: 'Unavailable' }, { status: 503, statusText: 'Service Unavailable' });
+    expect(failed).toBe(true);
+    service.getResults({ order_term: true, active: true }).subscribe((response) => {
+      expect(response).toEqual({ count: 0, refData: [] });
+    });
+    http.expectOne('/opal-maintenance-service/results?order_term=true&active=true').flush({ count: 0, refData: [] });
+  });
 
   it('requests active Create Casefile applications afresh on each entry', () => {
     for (let attempt = 0; attempt < 3; attempt++) {

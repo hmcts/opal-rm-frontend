@@ -57,6 +57,13 @@ const pageDefinitions = [
     fieldNamesFile:
       'cases-create-casefile-order-details/constants/cases-create-casefile-order-details-field-names.constant.ts',
   },
+  {
+    directory: 'cases-create-casefile-order-terms-select',
+    prefix: 'create_casefile_order_terms_select_',
+    constantName: 'CASES_CREATE_CASEFILE_ORDER_TERMS_SELECT_FIELD_NAMES',
+    fieldNamesFile:
+      'cases-create-casefile-order-terms-select/constants/cases-create-casefile-order-terms-select-field-names.constant.ts',
+  },
 ];
 
 const templatePaths = {
@@ -77,6 +84,10 @@ const templatePaths = {
     'cases-create-casefile-managing-payments/cases-create-casefile-managing-payments-form/cases-create-casefile-managing-payments-form.component.html',
   orderDetails:
     'cases-create-casefile-order-details/cases-create-casefile-order-details-form/cases-create-casefile-order-details-form.component.html',
+  orderTermsSelect:
+    'cases-create-casefile-order-terms-select/cases-create-casefile-order-terms-select-form/cases-create-casefile-order-terms-select-form.component.html',
+  orderTermsSummary:
+    'cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component.html',
   respondentDetails:
     'cases-create-casefile-respondent-details/cases-create-casefile-respondent-details-form/cases-create-casefile-respondent-details-form.component.html',
   restrictedInformation:
@@ -206,6 +217,19 @@ const structuralIdentifierAllowlist = new Set([
     'create_casefile_order_details_return_to_case_details',
   ),
   structuralIdentifierKey(templatePaths.orderDetails, 'span', 'id', 'create_casefile_order_details_cancel'),
+
+  structuralIdentifierKey(templatePaths.orderTermsSelect, 'div', 'id', 'create_casefile_order_terms_status'),
+  structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_retry'),
+  structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_continue'),
+  structuralIdentifierKey(templatePaths.orderTermsSelect, 'span', 'id', 'create_casefile_order_terms_cancel'),
+
+  structuralIdentifierKey(
+    templatePaths.orderTermsSummary,
+    'opal-lib-govuk-button',
+    'buttonId',
+    'create_casefile_order_terms_add',
+  ),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'a', 'id', 'create_casefile_order_terms_return'),
 
   structuralIdentifierKey(templatePaths.managingPayments, 'button', 'id', 'returnToCaseDetails'),
   structuralIdentifierKey(templatePaths.managingPayments, 'span', 'id', 'cancelManagingPayments'),

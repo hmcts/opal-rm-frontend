@@ -319,10 +319,7 @@ export const CasesCreateCasefileStore = signalStore(
         const creditorExists = store
           .minorCreditors()
           .some((existing) => existing.sequenceNumber === creditor.sequenceNumber);
-        const creditorIsAssociated = store
-          .orderTerms()
-          .some((term) => term.creditor?.type === 'minor' && term.creditor.sequenceNumber === creditor.sequenceNumber);
-        if (!creditorExists || !creditorIsAssociated) return false;
+        if (!creditorExists) return false;
       }
 
       const orderTerms = store

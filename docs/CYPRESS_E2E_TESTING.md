@@ -1,6 +1,6 @@
 # Cypress E2E Testing
 
-Use this guide when writing or updating Cypress E2E tests and Cucumber feature files in opal-frontend.
+Use this guide when writing or updating Cypress E2E tests and Cucumber feature files in opal-rm-frontend.
 
 ## Required References
 
@@ -43,3 +43,27 @@ yarn cypress run --browser chrome --spec 'cypress/e2e/functional/opal/features/m
 
 - When a feature fails because of a real product bug, do not patch application behavior just to green the test.
 - Skip or xfail the test if unavoidable and report the underlying issue in the task update.
+
+## Unsaved changes and native leave-site dialogs
+
+Journeys can register `beforeunload` listeners while data is unsaved. Browser reloads,
+Cypress test isolation and navigation between specs can consequently open a native **Leave site?**
+dialog and block a headless worker until the pipeline times out. A passing login worker does not
+mean the other parallel workers completed.
+
+`cypress/support/e2e.ts` installs a shared capture listener through `window:before:load`, before
+application listeners are registered. It stops `beforeunload` propagation on every application window
+so application listeners cannot cancel unloading during E2E runs. This applies across journeys to
+reloads and scenario/spec transitions, including cleanup after a failing scenario. It is E2E support
+code, not a production change; it also prevents other application unload listeners from running.
+Keep this behaviour out of component support so guard tests can exercise the real listeners.
+
+Do not use `window:confirm` to handle this native browser dialog. Use `cy.once('window:confirm', ...)`
+for application route-guard confirmations, asserting the expected message and chosen response.
+Those confirmations remain enabled. Setting `window.onbeforeunload = null` alone does not remove
+Angular listeners registered with `addEventListener`.
+
+E2E refresh scenarios prove the resulting navigation and state reset with the native prompt suppressed.
+They do not prove browser Leave/Cancel behaviour. Retain unit/component coverage of the actual guard
+and verify native dialog behaviour separately in a browser without this E2E helper. Do not claim a
+Cucumber dry run, or one passing parallel worker, as evidence of a completed functional suite.

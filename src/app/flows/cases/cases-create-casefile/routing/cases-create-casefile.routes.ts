@@ -7,6 +7,7 @@ import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-cr
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
+import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
 import { fetchCasesCreateCasefileCountriesResolver } from './resolvers/fetch-cases-create-casefile-countries-resolver/fetch-cases-create-casefile-countries.resolver';
 
 export const routing: Routes = [
@@ -98,8 +99,9 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileOrderDetailsComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderDetails },
-    resolve: { title: TitleResolver },
+    resolve: { title: TitleResolver, applications: fetchCasesCreateCasefileApplicationsResolver },
   },
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsSummary,

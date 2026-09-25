@@ -333,6 +333,38 @@ describe('AppComponent - browser', () => {
     vi.useRealTimers();
   });
 
+  it.each([null, 'synthetic-operation-9805'])(
+    'announces the safe banner text and optional correlation %s',
+    (operationId) => {
+      globalStore.setAuthenticated(true);
+      globalStore.setBannerError({
+        error: true,
+        title: 'There was a problem',
+        message: 'You can try again.',
+        operationId,
+      });
+      const fixture = TestBed.createComponent(AppComponent);
+      fixture.detectChanges();
+      const alert = fixture.debugElement.query(By.directive(MojAlertComponent)).componentInstance as MojAlertComponent;
+      expect(alert.ariaLabel).toBe(
+        `There was a problem. You can try again.${operationId ? ` Error code: ${operationId}` : ''}`,
+      );
+    },
+  );
+
+  it('does not render the error announcement when unauthenticated', () => {
+    globalStore.setAuthenticated(false);
+    globalStore.setBannerError({
+      error: true,
+      title: 'There was a problem',
+      message: 'You can try again.',
+      operationId: null,
+    });
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.directive(MojAlertComponent))).toBeNull();
+  });
+
   it('should configure primary navigation to use path-driven mode', () => {
     globalStore.setAuthenticated(true);
     const fixture = TestBed.createComponent(AppComponent);

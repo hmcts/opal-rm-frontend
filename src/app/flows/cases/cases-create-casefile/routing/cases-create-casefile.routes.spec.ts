@@ -20,6 +20,7 @@ import { CasesCreateCasefileOrderTermCreditorComponent } from '../cases-create-c
 import { CasesCreateCasefileOrderTermLookupsService } from '../cases-create-casefile-order-terms-input/services/cases-create-casefile-order-term-lookups.service';
 import { CasesCreateCasefileOrderDetailsComponent } from '../cases-create-casefile-order-details/cases-create-casefile-order-details.component';
 import { CasesCreateCasefileOrderTermsSummaryComponent } from '../cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component';
+import { CasesCreateCasefileOrderTermsRemoveComponent } from '../cases-create-casefile-order-terms-remove/cases-create-casefile-order-terms-remove.component';
 import { CasesCreateCasefileRespondentDetailsComponent } from '../cases-create-casefile-respondent-details/cases-create-casefile-respondent-details.component';
 import { CasesCreateCasefileTaskListComponent } from '../cases-create-casefile-task-list/cases-create-casefile-task-list.component';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
@@ -32,6 +33,8 @@ import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-cr
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
+import { casesCreateCasefileOrderTermsSelectGuard } from './guards/cases-create-casefile-order-terms-select.guard';
+import { casesCreateCasefileOrderTermsRemoveGuard } from './guards/cases-create-casefile-order-terms-remove.guard';
 import { casesCreateCasefileOrderTermCreditorGuard } from './guards/cases-create-casefile-order-term-creditor.guard';
 import { casesCreateCasefileMinorCreditorSummaryGuard } from './guards/cases-create-casefile-minor-creditor-summary.guard';
 import { fetchCasesCreateCasefileOrderTermResolver } from './resolvers/fetch-cases-create-casefile-order-term-resolver/fetch-cases-create-casefile-order-term.resolver';
@@ -44,6 +47,14 @@ import { OpalMaintenanceService } from '../../services/opal-maintenance-service/
 
 @Component({ template: '' })
 class TestDestinationComponent {}
+
+const acceptedTerm = {
+  termId: 1,
+  resultId: 'MAT',
+  parameters: {},
+  creditor: null,
+  presentation: { title: 'Maintenance', fields: [] },
+};
 
 const guardedRouteCases = [
   ['taskList', 'Case details'],
@@ -191,7 +202,7 @@ describe('Create Casefile routes', () => {
     );
 
     expect(route?.loadComponent).toEqual(expect.any(Function));
-    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard]);
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermsSelectGuard]);
     expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsSelect });
     expect(route?.resolve).toEqual({ title: TitleResolver, orderTerms: fetchCasesCreateCasefileOrderTermsResolver });
@@ -220,6 +231,20 @@ describe('Create Casefile routes', () => {
     expect(route?.providers).toEqual([CasesCreateCasefileOrderTermLookupsService]);
     expect(route?.data).toBeUndefined();
     expect(route?.resolve).toEqual({ orderTerm: fetchCasesCreateCasefileOrderTermResolver });
+  });
+
+  it('registers protected Order term removal with an index guard, title resolution and lazy component', async () => {
+    const route = routing.find(
+      (candidate) =>
+        candidate.path === `${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsRemove}/:orderTermIndex`,
+    );
+
+    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermsRemoveGuard]);
+    expect(route?.canDeactivate).toBeUndefined();
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsRemove });
+    expect(route?.resolve).toEqual({ title: TitleResolver });
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }>);
+    expect(component.name).toBe(CasesCreateCasefileOrderTermsRemoveComponent.name);
   });
 
   it('registers the guarded Creditor placeholder destination', async () => {
@@ -306,7 +331,7 @@ describe('Create Casefile routes', () => {
       ],
     });
     patchState(TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ ...acceptedTerm }],
       currentOrderTermId: 1,
       creditorDraft: null,
     });
@@ -338,7 +363,7 @@ describe('Create Casefile routes', () => {
       patchState(
         TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>,
         {
-          orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+          orderTerms: [{ ...acceptedTerm }],
           currentOrderTermId,
         },
       );
@@ -363,7 +388,7 @@ describe('Create Casefile routes', () => {
       ],
     });
     patchState(TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ ...acceptedTerm }],
       currentOrderTermId: 1,
     });
 
@@ -416,7 +441,7 @@ describe('Create Casefile routes', () => {
       ],
     });
     patchState(TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ ...acceptedTerm }],
       currentOrderTermId: 999,
     });
 

@@ -11,6 +11,7 @@ import type { ICasesCreateCasefileAcceptedOrderTerm } from './cases-create-casef
 import type { ICasesCreateCasefileCreditorDraft } from './cases-create-casefile-creditor-draft.interface';
 import type { ICasesCreateCasefileMinorCreditor } from './cases-create-casefile-minor-creditor.interface';
 import type { ICasesCreateCasefileTaskStatuses } from './cases-create-casefile-task-statuses.interface';
+import type { ICasesCreateCasefileOrderTermAmendment } from './cases-create-casefile-order-term-amendment.interface';
 
 export interface ICasesCreateCasefileState {
   caseTypeSelection: CasesCreateCasefileCaseTypeSelection | null;
@@ -27,6 +28,7 @@ export interface ICasesCreateCasefileState {
   nextMinorCreditorSequence: number;
   creditorDraft: ICasesCreateCasefileCreditorDraft | null;
   orderTermDraft: ICasesCreateCasefileOrderTermDraft | null;
+  orderTermAmendment: ICasesCreateCasefileOrderTermAmendment | null;
   commentsAndNotes: ICasesCreateCasefileCommentsNotes | null;
   pendingOrderTermResultId: string | null;
   taskStatuses: ICasesCreateCasefileTaskStatuses;

@@ -12,12 +12,14 @@ import { CasesCreateCasefileComponent } from '../cases-create-casefile.component
 import { CasesCreateCasefileOrderTermsInputFormComponent } from './cases-create-casefile-order-terms-input-form/cases-create-casefile-order-terms-input-form.component';
 import { CasesCreateCasefileOrderTermsInputComponent } from './cases-create-casefile-order-terms-input.component';
 import type { ICasesCreateCasefileOrderTermPage } from './interfaces/cases-create-casefile-order-term-page.interface';
+import { orderTermPresentation } from './utils/cases-create-casefile-order-term-presentation';
 
 @Component({ template: '<h1>Destination</h1>' })
 class TestDestinationComponent {}
 
 const amountId = 'create_casefile_order_terms_input_amount';
 const creditorId = 'create_casefile_order_terms_input_creditor';
+const expiryDateId = 'create_casefile_order_terms_input_expiry_date';
 const page: ICasesCreateCasefileOrderTermPage = {
   resultId: 'MAT',
   title: 'Maintenance',
@@ -61,18 +63,32 @@ const page: ICasesCreateCasefileOrderTermPage = {
       options: [],
       lookup: null,
     },
+    {
+      name: 'expiry_date',
+      id: expiryDateId,
+      label: 'Expiry date',
+      kind: 'date',
+      required: false,
+      hint: '',
+      min: null,
+      max: null,
+      past: false,
+      options: [],
+      lookup: null,
+    },
   ],
 };
 
 const inputPath = 'cases/create-casefile/order-terms/add/:resultId';
 const selectionPath = 'cases/create-casefile/order-terms/select';
 const creditorPath = 'cases/create-casefile/order-terms/creditor';
+const summaryPath = 'cases/create-casefile/order-terms/summary';
 const taskListPath = 'cases/create-casefile/task-list';
 const acceptedTerm = (
   parameters: Record<string, string | number | boolean>,
   termId = 1,
   creditor: { type: 'applicant' } | null = null,
-) => ({ termId, resultId: 'MAT', parameters, creditor });
+) => ({ termId, resultId: 'MAT', parameters, creditor, presentation: orderTermPresentation(page) });
 
 function seed(store: InstanceType<typeof CasesCreateCasefileStore>): void {
   store.setOrderDetails({
@@ -83,6 +99,22 @@ function seed(store: InstanceType<typeof CasesCreateCasefileStore>): void {
     dateArrearsLastUpdated: '2026-09-17',
   });
   store.setPendingOrderTermResultId('MAT');
+}
+
+function seedAmendment(store: InstanceType<typeof CasesCreateCasefileStore>): number {
+  store.prepareOrderTermDraft(page);
+  expect(store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '10.00', expiry_date: '2026-10-01' } })).toBe(
+    true,
+  );
+  store.setPendingOrderTermResultId('MAT');
+  store.prepareOrderTermDraft(page);
+  expect(store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '20.00', expiry_date: '2026-11-02' } })).toBe(
+    true,
+  );
+  const termId = store.currentOrderTermId()!;
+  expect(store.assignCurrentOrderTermCreditor(termId, { type: 'applicant' })).toBe(true);
+  expect(store.beginOrderTermAmendment(termId)).toBe(true);
+  return termId;
 }
 
 async function configure(routes: Routes = []): Promise<InstanceType<typeof CasesCreateCasefileStore>> {
@@ -109,6 +141,7 @@ function routedInput(creditorGuard: CanActivateFn = () => true): Routes {
     },
     { path: selectionPath, component: TestDestinationComponent },
     { path: creditorPath, component: TestDestinationComponent, canActivate: [creditorGuard] },
+    { path: summaryPath, component: TestDestinationComponent },
     { path: taskListPath, component: TestDestinationComponent },
   ];
 }
@@ -130,6 +163,8 @@ describe('Order term input routed parent', () => {
     expect(child.initialDirty).toBe(true);
     expect(child.frequency).toBe('Monthly');
     expect(TestBed.inject(Title).getTitle()).toBe('OPAL - Maintenance');
+    expect(fixture.nativeElement.querySelector('.govuk-back-link')?.textContent.trim()).toBe('Back');
+    expect(fixture.nativeElement.querySelector('#order-term-amendment-cancel')).toBeNull();
 
     store.setOrderDetails({ ...store.orderDetails()!, paymentFrequency: 'Weekly' });
     fixture.detectChanges();
@@ -378,7 +413,13 @@ describe('Order term input routed parent', () => {
     child.handleFormSubmit(new SubmitEvent('submit'));
     await harness.fixture.whenStable();
     expect(store.orderTerms()).toEqual([
-      { termId: 1, resultId: 'OPTIONAL', parameters: { apply_indexation: true }, creditor: null },
+      {
+        termId: 1,
+        resultId: 'OPTIONAL',
+        parameters: { apply_indexation: true },
+        creditor: null,
+        presentation: orderTermPresentation(optionalPage),
+      },
     ]);
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/add/OPTIONAL');
 
@@ -389,7 +430,13 @@ describe('Order term input routed parent', () => {
     await harness.fixture.whenStable();
 
     expect(store.orderTerms()).toEqual([
-      { termId: 1, resultId: 'OPTIONAL', parameters: { apply_indexation: false }, creditor: null },
+      {
+        termId: 1,
+        resultId: 'OPTIONAL',
+        parameters: { apply_indexation: false },
+        creditor: null,
+        presentation: orderTermPresentation(optionalPage),
+      },
     ]);
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/creditor');
   });
@@ -421,5 +468,138 @@ describe('Order term input routed parent', () => {
     expect(second).not.toBe(first);
     expect(second.page.resultId).toBe('MCHILD');
     expect(TestBed.inject(Title).getTitle()).toBe('OPAL - Child maintenance');
+  });
+
+  it('hydrates the selected amendment once, including dates, and preserves edits on revisit', async () => {
+    const store = await configure();
+    seedAmendment(store);
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    fixture.detectChanges();
+    let child = fixture.debugElement.query(
+      (element) => element.componentInstance instanceof CasesCreateCasefileOrderTermsInputFormComponent,
+    ).componentInstance as CasesCreateCasefileOrderTermsInputFormComponent;
+
+    expect(child.initialValues).toEqual({ amount: '20.00', expiry_date: '02/11/2026' });
+    fixture.componentInstance.handleDraftChange({ values: { amount: '25', expiry_date: '03/11/2026' }, dirty: true });
+    fixture.destroy();
+
+    const revisited = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    revisited.detectChanges();
+    child = revisited.debugElement.query(
+      (element) => element.componentInstance instanceof CasesCreateCasefileOrderTermsInputFormComponent,
+    ).componentInstance as CasesCreateCasefileOrderTermsInputFormComponent;
+    expect(child.initialValues).toEqual({ amount: '25', expiry_date: '03/11/2026' });
+    expect(store.orderTerms()[1].parameters).toEqual({ amount: '20.00', expiry_date: '2026-11-02' });
+  });
+
+  it('stages an amendment without changing accepted terms through declined navigation and retry', async () => {
+    const store = await configure();
+    const termId = seedAmendment(store);
+    const acceptedBefore = structuredClone(store.orderTerms());
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(TestBed.inject(Router), 'navigateByUrl')
+      .mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    const component = fixture.componentInstance;
+    const submission = {
+      formData: { [amountId]: '30', [expiryDateId]: '04/11/2026' },
+      nestedFlow: false,
+    };
+
+    component.handleFormSubmit(submission);
+    component.handleFormSubmit(submission);
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(store.orderTermAmendment()).toMatchObject({
+      termId,
+      inputComplete: true,
+      term: { parameters: { amount: '30.00', expiry_date: '2026-11-04' } },
+    });
+
+    finish(false);
+    await fixture.whenStable();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(store.orderTermAmendment()).not.toBeNull();
+
+    navigate.mockRejectedValueOnce(new Error('Synthetic navigation failure')).mockResolvedValueOnce(true);
+    component.handleFormSubmit(submission);
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    component.handleFormSubmit(submission);
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledTimes(3));
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(store.orderTermAmendment()?.termId).toBe(termId);
+  });
+
+  it('cancels the whole amendment only after successful summary navigation', async () => {
+    const store = await configure();
+    const termId = seedAmendment(store);
+    const acceptedBefore = structuredClone(store.orderTerms());
+    const navigate = vi
+      .spyOn(TestBed.inject(Router), 'navigateByUrl')
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new Error('Synthetic cancellation failure'))
+      .mockResolvedValueOnce(true);
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    const component = fixture.componentInstance;
+    component.handleDraftChange({ values: { amount: '31' }, dirty: true });
+
+    await component.handleCancel();
+    expect(store.orderTermAmendment()?.termId).toBe(termId);
+    await component.handleCancel();
+    expect(store.orderTermAmendment()?.termId).toBe(termId);
+    await component.handleCancel();
+
+    expect(navigate).toHaveBeenLastCalledWith('/cases/create-casefile/order-terms/summary');
+    expect(store.orderTermAmendment()).toBeNull();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+  });
+
+  it('retains a dirty amendment when routed Cancel is declined and discards it after confirmation', async () => {
+    const store = await configure(routedInput());
+    seedAmendment(store);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const harness = await RouterTestingHarness.create('/cases/create-casefile/order-terms/add/MAT');
+    const component = harness.routeDebugElement!.componentInstance as CasesCreateCasefileOrderTermsInputComponent;
+    harness.fixture.detectChanges();
+    expect(harness.fixture.nativeElement.querySelector('.govuk-back-link')).toBeNull();
+    expect(
+      harness.fixture.nativeElement.querySelector('#order-term-amendment-cancel .button-link')?.textContent.trim(),
+    ).toBe('Cancel amendment');
+    component.handleDraftChange({ values: { amount: '31' }, dirty: true });
+
+    await component.handleCancel();
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/add/MAT');
+    expect(store.orderTermAmendment()).not.toBeNull();
+    expect(store.orderTermDraft()?.values).toEqual({ amount: '31' });
+
+    confirm.mockReturnValue(true);
+    await component.handleCancel();
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/summary');
+    expect(store.orderTermAmendment()).toBeNull();
+  });
+
+  it('does not cancel a replacement amendment after late navigation completes', async () => {
+    const store = await configure();
+    seedAmendment(store);
+    const original = store.orderTermAmendment();
+    let finish!: (value: boolean) => void;
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockImplementation(
+      () => new Promise<boolean>((resolve) => (finish = resolve)),
+    );
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    const cancellation = fixture.componentInstance.handleCancel();
+
+    store.resetStore();
+    seed(store);
+    seedAmendment(store);
+    const replacement = store.orderTermAmendment();
+    expect(replacement).not.toBe(original);
+    finish(true);
+    await cancellation;
+
+    expect(store.orderTermAmendment()).toBe(replacement);
+    expect(store.orderTerms()).toHaveLength(2);
   });
 });

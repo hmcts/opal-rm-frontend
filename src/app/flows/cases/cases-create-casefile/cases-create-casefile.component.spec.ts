@@ -83,6 +83,30 @@ describe('CasesCreateCasefileComponent', () => {
     expect(component.canDeactivate()).toBe(true);
   });
 
+  it('blocks departure and unload while an order term amendment is pending', () => {
+    const term = {
+      termId: 1,
+      resultId: 'MAT',
+      parameters: { amount: '12.30' },
+      creditor: { type: 'applicant' as const },
+      presentation: { title: 'Maintenance', fields: [] },
+    };
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      stateChanges: false,
+      unsavedChanges: false,
+      orderTerms: [term],
+      currentOrderTermId: 1,
+      orderTermAmendment: { termId: 1, term, inputComplete: true, ready: false },
+    });
+
+    expect(component.handleBeforeUnload()).toBe(false);
+    expect(component.canDeactivate()).toBe(false);
+
+    store.cancelOrderTermAmendment(1);
+    expect(component.handleBeforeUnload()).toBe(true);
+    expect(component.canDeactivate()).toBe(true);
+  });
+
   it('clears a populated creditor draft when the shell is destroyed', () => {
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
       creditorDraft: { termId: 1, branch: 'add-new', countryName: 'United Kingdom' },

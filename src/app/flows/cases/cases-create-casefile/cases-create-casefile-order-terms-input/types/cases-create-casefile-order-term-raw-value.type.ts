@@ -1,1 +1,1 @@
-export type CasesCreateCasefileOrderTermRawValue = string | boolean | null;
+export type CasesCreateCasefileOrderTermRawValue = string | number | boolean | null;

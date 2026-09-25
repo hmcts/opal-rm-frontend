@@ -17,7 +17,16 @@ import { CasesCreateCasefileOrderTermCreditorComponent } from './cases-create-ca
 @Component({ template: '<h1>Summary</h1>' })
 class TestDestinationComponent {}
 
-const acceptedTerm = { termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null };
+const acceptedTerm = {
+  termId: 1,
+  resultId: 'MAT',
+  parameters: { amount: '12.30' },
+  creditor: null,
+  presentation: {
+    title: 'Maintenance',
+    fields: [{ name: 'amount', label: 'Amount', kind: 'money' as const, options: [] }],
+  },
+};
 const existingMinorCreditor = {
   sequenceNumber: 4,
   displayName: 'Existing Synthetic Creditor',
@@ -44,6 +53,25 @@ const majorCreditor = {
   active: true,
   central_authority: false,
 };
+const amendmentPage = {
+  resultId: 'MAT',
+  title: 'Maintenance',
+  fields: [
+    {
+      name: 'amount',
+      id: 'create_casefile_order_terms_input_amount',
+      label: 'Amount',
+      kind: 'money' as const,
+      required: true,
+      hint: '',
+      min: 0,
+      max: null,
+      past: false,
+      options: [],
+      lookup: null,
+    },
+  ],
+};
 
 function seedCurrentTerm(store: InstanceType<typeof CasesCreateCasefileStore>): void {
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
@@ -53,7 +81,10 @@ function seedCurrentTerm(store: InstanceType<typeof CasesCreateCasefileStore>): 
   });
 }
 
-async function setup(majorCreditors = [majorCreditor]) {
+async function setup(
+  majorCreditors = [majorCreditor],
+  prepareStore: (store: InstanceType<typeof CasesCreateCasefileStore>) => void = seedCurrentTerm,
+) {
   await TestBed.configureTestingModule({
     imports: [CasesCreateCasefileOrderTermCreditorComponent],
     providers: [
@@ -66,9 +97,22 @@ async function setup(majorCreditors = [majorCreditor]) {
     ],
   }).compileComponents();
   const store = TestBed.inject(CasesCreateCasefileStore);
-  seedCurrentTerm(store);
+  prepareStore(store);
   const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermCreditorComponent);
   return { fixture, component: fixture.componentInstance, store, router: TestBed.inject(Router) };
+}
+
+function seedAmendment(store: InstanceType<typeof CasesCreateCasefileStore>): void {
+  patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+    orderTerms: [
+      { ...acceptedTerm, termId: 1, parameters: { amount: '10.00' } },
+      { ...acceptedTerm, termId: 2, parameters: { amount: '20.00' }, creditor: { type: 'applicant' } },
+    ],
+    currentOrderTermId: 2,
+    nextOrderTermId: 3,
+  });
+  expect(store.beginOrderTermAmendment(2)).toBe(true);
+  expect(store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '30.00' } }, amendmentPage)).toBe(true);
 }
 
 function routedCreditor(): Routes {
@@ -172,7 +216,11 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
       nestedFlow: false,
     });
     await vi.waitFor(() => expect(navigate).toHaveBeenCalledOnce());
-    expect(store.orderTerms()[0].creditor).toEqual({ type: 'major', majorCreditorId: 99 });
+    expect(store.orderTerms()[0].creditor).toEqual({
+      type: 'major',
+      majorCreditorId: 99,
+      displayName: 'Synthetic Major Creditor',
+    });
   });
 
   it('keeps accepted assignments and minor allocation state when starting add-new details', async () => {
@@ -321,5 +369,115 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/summary');
     expect(store.creditorDraft()).toBeNull();
     expect(store.orderTerms()).toEqual([{ ...acceptedTerm }]);
+  });
+
+  it('restores the selected amendment creditor rather than another accepted term', async () => {
+    const { fixture } = await setup([majorCreditor], seedAmendment);
+    fixture.detectChanges();
+    const child = fixture.debugElement.query(By.directive(CasesCreateCasefileOrderTermCreditorFormComponent))
+      .componentInstance as CasesCreateCasefileOrderTermCreditorFormComponent;
+
+    expect(child.initialFormData).toEqual({
+      create_casefile_order_term_creditor_choice: 'applicant',
+      create_casefile_order_term_creditor_major_creditor_id: null,
+    });
+  });
+
+  it('commits an existing-creditor amendment only after successful summary navigation', async () => {
+    const { component, store, router } = await setup([majorCreditor], seedAmendment);
+    const acceptedBefore = structuredClone(store.orderTerms());
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    const form = {
+      formData: {
+        create_casefile_order_term_creditor_choice: 'major' as const,
+        create_casefile_order_term_creditor_major_creditor_id: 47,
+      },
+      nestedFlow: false,
+    };
+
+    component.handleFormSubmit(form);
+    component.handleFormSubmit(form);
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+
+    finish(false);
+    await vi.waitFor(() => expect(component.navigationFailed()).toBe(true));
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(store.orderTermAmendment()).toMatchObject({ ready: true });
+
+    navigate.mockRejectedValueOnce(new Error('Synthetic navigation failure')).mockResolvedValueOnce(true);
+    component.handleFormSubmit(form);
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    component.handleFormSubmit(form);
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledTimes(3));
+
+    expect(store.orderTerms()).toHaveLength(2);
+    expect(store.orderTerms()[0]).toEqual(acceptedBefore[0]);
+    expect(store.orderTerms()[1]).toMatchObject({
+      termId: 2,
+      parameters: { amount: '30.00' },
+      creditor: { type: 'major', majorCreditorId: 47, displayName: 'Synthetic Major Creditor' },
+    });
+    expect(store.orderTermAmendment()).toBeNull();
+  });
+
+  it('keeps add-new amendment work temporary and cancels it only after successful summary navigation', async () => {
+    const { component, store, router } = await setup([majorCreditor], seedAmendment);
+    const acceptedBefore = structuredClone(store.orderTerms());
+    vi.spyOn(router, 'navigateByUrl')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new Error('Synthetic cancellation failure'))
+      .mockResolvedValueOnce(true);
+
+    component.handleFormSubmit({
+      formData: {
+        create_casefile_order_term_creditor_choice: 'add-new',
+        create_casefile_order_term_creditor_major_creditor_id: null,
+      },
+      nestedFlow: false,
+    });
+    await vi.waitFor(() => expect(store.creditorDraft()).toEqual({ termId: 2, branch: 'add-new' }));
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(store.orderTermAmendment()).toMatchObject({ ready: false });
+
+    await component.handleCancel();
+    expect(store.orderTermAmendment()).not.toBeNull();
+    expect(store.creditorDraft()).toEqual({ termId: 2, branch: 'add-new' });
+    await component.handleCancel();
+    expect(store.orderTermAmendment()).not.toBeNull();
+    expect(store.creditorDraft()).toEqual({ termId: 2, branch: 'add-new' });
+    await component.handleCancel();
+    expect(store.orderTermAmendment()).toBeNull();
+    expect(store.creditorDraft()).toBeNull();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+  });
+
+  it('does not complete a replacement amendment after late creditor navigation succeeds', async () => {
+    const { component, store, router } = await setup([majorCreditor], seedAmendment);
+    let finish!: (value: boolean) => void;
+    vi.spyOn(router, 'navigateByUrl').mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    component.handleFormSubmit({
+      formData: {
+        create_casefile_order_term_creditor_choice: 'major',
+        create_casefile_order_term_creditor_major_creditor_id: 47,
+      },
+      nestedFlow: false,
+    });
+    const original = store.orderTermAmendment();
+
+    store.resetStore();
+    seedAmendment(store);
+    const replacement = store.orderTermAmendment();
+    expect(replacement).not.toBe(original);
+    finish(true);
+    await vi.waitFor(() => expect(store.orderTermAmendment()).toBe(replacement));
+
+    expect(store.orderTerms()).toHaveLength(2);
+    expect(store.orderTerms()[1].parameters).toEqual({ amount: '20.00' });
   });
 });

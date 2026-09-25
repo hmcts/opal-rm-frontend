@@ -2,6 +2,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { AppComponent } from 'src/app/app.component';
 import { HIDE_PRIMARY_NAV_ROUTE_DATA_KEY } from 'src/app/constants/route-data.constant';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { patchState, type WritableStateSource } from '@ngrx/signals';
 import { SessionService } from '@hmcts/opal-frontend-common/services/session-service';
 import { LaunchDarklyService } from '@hmcts/opal-frontend-common/services/launch-darkly-service';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
@@ -24,9 +25,14 @@ import { routing } from 'src/app/flows/cases/cases-create-casefile/routing/cases
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import type { IOpalMaintenanceResultReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-result-reference-data-response.interface';
+import type { IOpalMaintenanceCountryReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
 import { OpalMaintenanceService } from 'src/app/flows/cases/services/opal-maintenance-service/opal-maintenance.service';
 import { SAVED_APPLICANT_ORGANISATION } from '../../mocks/applicant-organisation.mock';
+import { COUNTRIES_RESPONSE } from '../../mocks/countries.mock';
+import type { ICasesCreateCasefileAcceptedOrderTerm } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-accepted-order-term.interface';
+import type { ICasesCreateCasefileMinorCreditor } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-minor-creditor.interface';
+import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-state.interface';
 import { CREDITOR_MAJOR_RESPONSE } from '../../creditor/mocks/creditor.mock';
 import { ORDER_TERMS_MOCK } from '../mocks/order-terms.mock';
 
@@ -47,6 +53,9 @@ interface IOrderTermsSetup {
   source?: Observable<IOpalMaintenanceResultReferenceDataResponse>;
   savedId?: string | null;
   initialChild?: string;
+  acceptedTerms?: ICasesCreateCasefileAcceptedOrderTerm[];
+  minorCreditors?: ICasesCreateCasefileMinorCreditor[];
+  countriesSource?: Observable<IOpalMaintenanceCountryReferenceDataResponse>;
 }
 
 export function setupOrderTerms({
@@ -58,6 +67,9 @@ export function setupOrderTerms({
   initialDraftDirty = true,
   savedId = null,
   initialChild = PATHS.children.orderTermsSelect,
+  acceptedTerms = [],
+  minorCreditors = [],
+  countriesSource,
 }: IOrderTermsSetup = {}) {
   const store = new CasesCreateCasefileStore();
   store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
@@ -72,6 +84,14 @@ export function setupOrderTerms({
     dateArrearsLastUpdated: '2026-09-16',
   });
   store.setPendingOrderTermResultId(savedId);
+  const seededTerms = structuredClone(acceptedTerms);
+  const seededCreditors = structuredClone(minorCreditors);
+  patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+    orderTerms: seededTerms,
+    nextOrderTermId: Math.max(...seededTerms.map(({ termId }) => termId), 0) + 1,
+    minorCreditors: seededCreditors,
+    nextMinorCreditorSequence: Math.max(...seededCreditors.map(({ sequenceNumber }) => sequenceNumber), 0) + 1,
+  });
   if (draftValues && savedId) {
     const detail = OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[savedId];
     store.prepareOrderTermDraft({
@@ -141,6 +161,10 @@ export function setupOrderTerms({
           useValue: {
             getResults,
             getResult,
+            getCountries: cy
+              .stub()
+              .callsFake(() => countriesSource ?? of(structuredClone(COUNTRIES_RESPONSE)))
+              .as('getCountries'),
             getMajorCreditors: getMajorCreditors as (
               params: unknown,
             ) => Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse>,

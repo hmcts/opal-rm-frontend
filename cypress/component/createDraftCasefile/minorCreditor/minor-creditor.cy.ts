@@ -6,6 +6,7 @@ import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-c
 import { ERROR_SUMMARY_TITLE } from '../constants/create-casefile-test-copy.constant';
 import {
   MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK,
+  MINOR_CREDITOR_MAT_PRESENTATION_MOCK,
   MINOR_CREDITOR_NON_UK_MOCK,
   MINOR_CREDITOR_UK_MOCK,
 } from './mocks/minor-creditor.mock';
@@ -144,6 +145,7 @@ describe('Minor creditor details', () => {
             resultId: 'MAT',
             parameters: { amount: '12.30' },
             creditor: { type: 'minor', sequenceNumber: 7 },
+            presentation: MINOR_CREDITOR_MAT_PRESENTATION_MOCK,
           },
         ],
         minorCreditors: [{ sequenceNumber: 7, displayName: 'Example creditor', details: MINOR_CREDITOR_UK_MOCK }],

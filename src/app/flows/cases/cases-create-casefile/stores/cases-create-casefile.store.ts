@@ -14,6 +14,9 @@ import type { ICasesCreateCasefileOrderDetails } from '../interfaces/cases-creat
 import type { ICasesCreateCasefileOrderTerm } from '../interfaces/cases-create-casefile-order-term.interface';
 import type { ICasesCreateCasefileMinorCreditor } from '../interfaces/cases-create-casefile-minor-creditor.interface';
 import type { ICasesCreateCasefileMinorCreditorDetails } from '../interfaces/cases-create-casefile-minor-creditor-details.interface';
+import type { ICasesCreateCasefileCreditorDraft } from '../interfaces/cases-create-casefile-creditor-draft.interface';
+import type { ICasesCreateCasefileOrderTermAmendment } from '../interfaces/cases-create-casefile-order-term-amendment.interface';
+import type { ICasesCreateCasefileOrderTermPresentation } from '../interfaces/cases-create-casefile-order-term-presentation.interface';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
@@ -26,6 +29,7 @@ import { associatedMinorCreditors } from '../utils/cases-create-casefile-associa
 import type { ICasesCreateCasefileOrderTermPage } from '../cases-create-casefile-order-terms-input/interfaces/cases-create-casefile-order-term-page.interface';
 import type { CasesCreateCasefileOrderTermRawValue } from '../cases-create-casefile-order-terms-input/types/cases-create-casefile-order-term-raw-value.type';
 import { restoreOrderTermDraft } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-draft';
+import { orderTermPresentation } from '../cases-create-casefile-order-terms-input/utils/cases-create-casefile-order-term-presentation';
 
 const normalizeOptionalText = (value: string | null): string | null => (value?.trim() ? value : null);
 
@@ -107,6 +111,7 @@ export const CasesCreateCasefileStore = signalStore(
         nextMinorCreditorSequence: selectionUnchanged ? store.nextMinorCreditorSequence() : 1,
         creditorDraft: selectionUnchanged ? store.creditorDraft() : null,
         orderTermDraft: selectionUnchanged ? store.orderTermDraft() : null,
+        orderTermAmendment: selectionUnchanged ? store.orderTermAmendment() : null,
         commentsAndNotes: selectionUnchanged ? store.commentsAndNotes() : null,
         pendingOrderTermResultId: selectionUnchanged ? store.pendingOrderTermResultId() : null,
         taskStatuses,
@@ -247,6 +252,7 @@ export const CasesCreateCasefileStore = signalStore(
       });
     },
     acceptOrderTerm: (term: ICasesCreateCasefileOrderTerm): boolean => {
+      if (store.orderTermAmendment()) return false;
       const draft = store.orderTermDraft();
       if (!draft || term.resultId !== draft.resultId || term.resultId !== store.pendingOrderTermResultId())
         return false;
@@ -258,7 +264,10 @@ export const CasesCreateCasefileStore = signalStore(
       );
       const termId = store.nextOrderTermId();
       patchState(store, {
-        orderTerms: [...store.orderTerms(), { resultId: term.resultId, parameters, termId, creditor: null }],
+        orderTerms: [
+          ...store.orderTerms(),
+          { resultId: term.resultId, parameters, termId, creditor: null, presentation: draft.presentation },
+        ],
         currentOrderTermId: termId,
         nextOrderTermId: termId + 1,
         creditorDraft: null,
@@ -269,26 +278,40 @@ export const CasesCreateCasefileStore = signalStore(
       });
       return true;
     },
-    replaceAcceptedOrderTerm: (termId: number, term: ICasesCreateCasefileOrderTerm): boolean => {
-      if (store.currentOrderTermId() !== termId) return false;
+    replaceAcceptedOrderTerm: (
+      termId: number,
+      term: ICasesCreateCasefileOrderTerm,
+      presentation?: ICasesCreateCasefileOrderTermPresentation,
+    ): boolean => {
+      if (store.orderTermAmendment() || store.currentOrderTermId() !== termId) return false;
       const accepted = store.orderTerms().find((existing) => existing.termId === termId);
       if (!accepted || accepted.resultId !== term.resultId) return false;
 
-      const orderTerms = store
-        .orderTerms()
-        .map((existing) =>
-          existing.termId === termId
-            ? { ...existing, resultId: term.resultId, parameters: { ...term.parameters } }
-            : existing,
-        );
+      const orderTerms = store.orderTerms().map((existing) =>
+        existing.termId === termId
+          ? {
+              ...existing,
+              resultId: term.resultId,
+              parameters: { ...term.parameters },
+              presentation: presentation ?? existing.presentation,
+            }
+          : existing,
+      );
       patchState(store, { orderTerms, currentOrderTermId: termId, unsavedChanges: false, stateChanges: true });
       return true;
     },
     assignCurrentOrderTermCreditor: (termId: number, creditor: CasesCreateCasefileCreditorAssignment): boolean => {
-      if (store.currentOrderTermId() !== termId || !store.orderTerms().some((term) => term.termId === termId)) {
+      if (
+        store.orderTermAmendment() ||
+        store.currentOrderTermId() !== termId ||
+        !store.orderTerms().some((term) => term.termId === termId)
+      ) {
         return false;
       }
-      if (creditor.type === 'major' && (!Number.isInteger(creditor.majorCreditorId) || creditor.majorCreditorId <= 0)) {
+      if (
+        creditor.type === 'major' &&
+        (!Number.isInteger(creditor.majorCreditorId) || creditor.majorCreditorId <= 0 || !creditor.displayName.trim())
+      ) {
         return false;
       }
       if (creditor.type === 'minor') {
@@ -296,10 +319,7 @@ export const CasesCreateCasefileStore = signalStore(
         const creditorExists = store
           .minorCreditors()
           .some((existing) => existing.sequenceNumber === creditor.sequenceNumber);
-        const creditorIsAssociated = store
-          .orderTerms()
-          .some((term) => term.creditor?.type === 'minor' && term.creditor.sequenceNumber === creditor.sequenceNumber);
-        if (!creditorExists || !creditorIsAssociated) return false;
+        if (!creditorExists) return false;
       }
 
       const orderTerms = store
@@ -315,6 +335,7 @@ export const CasesCreateCasefileStore = signalStore(
       return true;
     },
     removeAcceptedOrderTerm: (termId: number): boolean => {
+      if (store.orderTermAmendment()) return false;
       if (!store.orderTerms().some((term) => term.termId === termId)) return false;
 
       const orderTerms = store.orderTerms().filter((term) => term.termId !== termId);
@@ -333,6 +354,19 @@ export const CasesCreateCasefileStore = signalStore(
       if (store.currentOrderTermId() !== termId || !store.orderTerms().some((term) => term.termId === termId)) {
         return false;
       }
+      const amendment = store.orderTermAmendment();
+      if (amendment) {
+        if (!amendment.inputComplete || amendment.termId !== termId) return false;
+        const draft = store.creditorDraft();
+        patchState(store, {
+          orderTermAmendment: { ...amendment, ready: false },
+          creditorDraft:
+            draft?.termId === termId && draft.branch === 'add-new' && draft.existingSequenceNumber === undefined
+              ? draft
+              : { termId, branch: 'add-new' },
+        });
+        return true;
+      }
       patchState(store, { creditorDraft: { termId, branch: 'add-new' } });
       return true;
     },
@@ -345,6 +379,23 @@ export const CasesCreateCasefileStore = signalStore(
       const term = store.orderTerms().find((item) => item.termId === termId);
       if (store.currentOrderTermId() !== termId || !term || !countryName) return false;
       if (draft && draft.termId !== termId) return false;
+
+      const amendment = store.orderTermAmendment();
+      if (amendment) {
+        if (
+          amendment.termId !== termId ||
+          !amendment.inputComplete ||
+          draft?.branch !== 'add-new' ||
+          draft.existingSequenceNumber !== undefined
+        )
+          return false;
+        patchState(store, {
+          orderTermAmendment: { ...amendment, ready: false },
+          creditorDraft: { ...draft, details: structuredClone(details), countryName },
+          unsavedChanges: false,
+        });
+        return true;
+      }
 
       const assignedSequence = term.creditor?.type === 'minor' ? term.creditor.sequenceNumber : undefined;
       if (
@@ -368,6 +419,7 @@ export const CasesCreateCasefileStore = signalStore(
     },
     acceptNewMinorCreditor: (termId: number, details: ICasesCreateCasefileMinorCreditorDetails): number | null => {
       if (
+        store.orderTermAmendment() ||
         store.currentOrderTermId() !== termId ||
         !store.orderTerms().some((term) => term.termId === termId) ||
         store.creditorDraft()?.termId !== termId ||
@@ -404,6 +456,7 @@ export const CasesCreateCasefileStore = signalStore(
     ): boolean => {
       const term = store.orderTerms().find((candidate) => candidate.termId === termId);
       if (
+        store.orderTermAmendment() ||
         store.currentOrderTermId() !== termId ||
         store.creditorDraft() !== null ||
         term?.creditor?.type !== 'minor' ||
@@ -454,7 +507,151 @@ export const CasesCreateCasefileStore = signalStore(
     },
   })),
   withMethods((store) => ({
+    beginOrderTermAmendment: (termId: number): boolean => {
+      const existing = store.orderTermAmendment();
+      if (existing) return existing.termId === termId;
+      const term = store.orderTerms().find((candidate) => candidate.termId === termId);
+      if (!term) return false;
+      patchState(store, {
+        orderTermAmendment: { termId, term: structuredClone(term), inputComplete: false, ready: false },
+        currentOrderTermId: termId,
+        pendingOrderTermResultId: term.resultId,
+        orderTermDraft: null,
+        creditorDraft: null,
+      });
+      return true;
+    },
+    stageOrderTermAmendment: (
+      term: ICasesCreateCasefileOrderTerm,
+      page: ICasesCreateCasefileOrderTermPage,
+    ): boolean => {
+      const pending = store.orderTermAmendment();
+      if (
+        !pending ||
+        pending.termId !== store.currentOrderTermId() ||
+        term.resultId !== pending.term.resultId ||
+        page.resultId !== term.resultId
+      )
+        return false;
+      const names = new Set(page.fields.filter((field) => field.kind !== 'readonly').map((field) => field.name));
+      const parameters = Object.fromEntries(Object.entries(term.parameters).filter(([name]) => names.has(name)));
+      patchState(store, {
+        orderTermAmendment: {
+          ...pending,
+          term: { ...pending.term, parameters, presentation: orderTermPresentation(page) },
+          inputComplete: true,
+          ready: false,
+        },
+        unsavedChanges: false,
+      });
+      return true;
+    },
+    stageAmendmentCreditor: (creditor: CasesCreateCasefileCreditorAssignment): boolean => {
+      const pending = store.orderTermAmendment();
+      if (!pending?.inputComplete || pending.termId !== store.currentOrderTermId()) return false;
+      if (
+        creditor.type === 'minor' &&
+        !store.minorCreditors().some((item) => item.sequenceNumber === creditor.sequenceNumber)
+      )
+        return false;
+      if (
+        creditor.type === 'major' &&
+        (!Number.isInteger(creditor.majorCreditorId) || creditor.majorCreditorId <= 0 || !creditor.displayName.trim())
+      )
+        return false;
+      patchState(store, {
+        orderTermAmendment: { ...pending, term: { ...pending.term, creditor: { ...creditor } }, ready: true },
+        creditorDraft: null,
+        unsavedChanges: false,
+      });
+      return true;
+    },
+    prepareAmendmentCompletion: (termId: number): boolean => {
+      const pending = store.orderTermAmendment();
+      const draft = store.creditorDraft();
+      if (
+        !pending?.inputComplete ||
+        pending.termId !== termId ||
+        store.currentOrderTermId() !== termId ||
+        draft?.termId !== termId ||
+        !draft.details ||
+        !draft.countryName ||
+        draft.existingSequenceNumber !== undefined
+      )
+        return false;
+      patchState(store, { orderTermAmendment: { ...pending, ready: true }, unsavedChanges: false });
+      return true;
+    },
+    completeOrderTermAmendment: (
+      expected: ICasesCreateCasefileOrderTermAmendment,
+      expectedCreditorDraft: ICasesCreateCasefileCreditorDraft | null,
+    ): boolean => {
+      if (
+        store.orderTermAmendment() !== expected ||
+        !expected.ready ||
+        store.currentOrderTermId() !== expected.termId ||
+        store.creditorDraft() !== expectedCreditorDraft ||
+        !store.orderTerms().some((term) => term.termId === expected.termId)
+      )
+        return false;
+      let term = structuredClone(expected.term);
+      let minorCreditors = store.minorCreditors();
+      let nextMinorCreditorSequence = store.nextMinorCreditorSequence();
+      if (expectedCreditorDraft) {
+        if (
+          expectedCreditorDraft.termId !== expected.termId ||
+          !expectedCreditorDraft.details ||
+          !expectedCreditorDraft.countryName ||
+          expectedCreditorDraft.existingSequenceNumber !== undefined
+        )
+          return false;
+        const details = structuredClone(expectedCreditorDraft.details);
+        const sequenceNumber = nextMinorCreditorSequence;
+        minorCreditors = [
+          ...minorCreditors,
+          { sequenceNumber, displayName: minorCreditorDisplayName(details.identity), details },
+        ];
+        term = { ...term, creditor: { type: 'minor', sequenceNumber } };
+        nextMinorCreditorSequence += 1;
+      } else {
+        const assignment = term.creditor;
+        if (
+          !assignment ||
+          (assignment.type === 'minor' &&
+            !minorCreditors.some((item) => item.sequenceNumber === assignment.sequenceNumber))
+        )
+          return false;
+      }
+      patchState(store, {
+        orderTerms: store.orderTerms().map((item) => (item.termId === expected.termId ? term : item)),
+        minorCreditors,
+        nextMinorCreditorSequence,
+        orderTermAmendment: null,
+        creditorDraft: null,
+        orderTermDraft: null,
+        currentOrderTermId: null,
+        pendingOrderTermResultId: null,
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+      return true;
+    },
+    cancelOrderTermAmendment: (termId: number): boolean => {
+      if (store.orderTermAmendment()?.termId !== termId) return false;
+      patchState(store, {
+        orderTermAmendment: null,
+        creditorDraft: null,
+        orderTermDraft: null,
+        currentOrderTermId: null,
+        pendingOrderTermResultId: null,
+        unsavedChanges: false,
+      });
+      return true;
+    },
+  })),
+  withMethods((store) => ({
     acceptPendingMinorCreditor: (termId: number): number | null => {
+      if (store.orderTermAmendment()) return null;
       const draft = store.creditorDraft();
       const term = store.orderTerms().find((item) => item.termId === termId);
       if (

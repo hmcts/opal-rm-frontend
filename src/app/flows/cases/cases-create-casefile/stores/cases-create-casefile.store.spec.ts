@@ -35,6 +35,10 @@ describe('CasesCreateCasefileStore', () => {
     title: 'Maintenance',
     fields: mapOrderTermParameters(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK['MAT'].result_parameters),
   };
+  const presentation = {
+    title: page.title,
+    fields: page.fields.map(({ name, label, kind, options }) => ({ name, label, kind, options })),
+  };
 
   const respondentDetails: ICasesCreateCasefileRespondentDetails = {
     title: 'Mx',
@@ -879,7 +883,7 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.acceptOrderTerm(term)).toBe(true);
     expect(store.acceptOrderTerm(term)).toBe(false);
     expect(store.orderTerms()).toEqual([
-      { termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null },
+      { presentation, termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null },
     ]);
     expect(store.currentOrderTermId()).toBe(1);
     expect(store.nextOrderTermId()).toBe(2);
@@ -927,8 +931,8 @@ describe('CasesCreateCasefileStore', () => {
 
     expect(store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '2.00' } })).toBe(true);
     expect(store.orderTerms()).toEqual([
-      { termId: 1, resultId: 'MAT', parameters: { amount: '1.00' }, creditor: null },
-      { termId: 2, resultId: 'MAT', parameters: { amount: '2.00' }, creditor: null },
+      { presentation, termId: 1, resultId: 'MAT', parameters: { amount: '1.00' }, creditor: null },
+      { presentation, termId: 2, resultId: 'MAT', parameters: { amount: '2.00' }, creditor: null },
     ]);
   });
 
@@ -957,6 +961,7 @@ describe('CasesCreateCasefileStore', () => {
       nextMinorCreditorSequence: 2,
       orderTerms: [1, 2].map((termId) => ({
         termId,
+        presentation,
         resultId: 'MAT',
         parameters: { amount: '12.30' },
         creditor: { type: 'minor' as const, sequenceNumber: 1 },
@@ -978,6 +983,7 @@ describe('CasesCreateCasefileStore', () => {
       nextMinorCreditorSequence: 2,
       orderTerms: [1, 2].map((termId) => ({
         termId,
+        presentation,
         resultId: 'MAT',
         parameters: { amount: '12.30' },
         creditor: { type: 'minor' as const, sequenceNumber: 1 },
@@ -993,8 +999,8 @@ describe('CasesCreateCasefileStore', () => {
 
   it.each([
     ['unknown term', 999, { type: 'applicant' } as const],
-    ['non-positive major ID', 1, { type: 'major', majorCreditorId: 0 } as const],
-    ['fractional major ID', 1, { type: 'major', majorCreditorId: 1.5 } as const],
+    ['non-positive major ID', 1, { type: 'major', majorCreditorId: 0, displayName: 'Invalid' } as const],
+    ['fractional major ID', 1, { type: 'major', majorCreditorId: 1.5, displayName: 'Invalid' } as const],
     ['zero minor sequence', 1, { type: 'minor', sequenceNumber: 0 } as const],
     ['negative minor sequence', 1, { type: 'minor', sequenceNumber: -1 } as const],
     ['fractional minor sequence', 1, { type: 'minor', sequenceNumber: 1.5 } as const],
@@ -1014,6 +1020,7 @@ describe('CasesCreateCasefileStore', () => {
       minorCreditors: [1, 2, 3, 4, 5].map((sequenceNumber) => minorCreditor(sequenceNumber)),
       orderTerms: [1, 2, 3, 4, 5].map((termId) => ({
         termId,
+        presentation,
         resultId: 'MAT',
         parameters: { amount: `${termId}.00` },
         creditor: { type: 'minor' as const, sequenceNumber: termId },
@@ -1025,14 +1032,31 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.minorCreditors().map((creditor) => creditor.displayName)).toEqual(Array(5).fill('Synthetic creditor'));
   });
 
-  it('rejects an existing minor creditor that is not associated with an accepted term', () => {
-    const termId = acceptMat();
+  it('assigns a retained minor creditor to a new term after its sole term is amended to the applicant', () => {
+    const first = acceptMat();
+    const retained = minorCreditor(1);
     patchState(stateSource, {
-      minorCreditors: [minorCreditor(1)],
+      orderTerms: store
+        .orderTerms()
+        .map((term) => ({ ...term, creditor: { type: 'minor' as const, sequenceNumber: 1 } })),
+      minorCreditors: [retained],
       nextMinorCreditorSequence: 2,
     });
+    expect(store.beginOrderTermAmendment(first)).toBe(true);
+    expect(store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '12.30' } }, page)).toBe(true);
+    expect(store.stageAmendmentCreditor({ type: 'applicant' })).toBe(true);
+    expect(store.completeOrderTermAmendment(store.orderTermAmendment()!, null)).toBe(true);
+    expect(store.minorCreditors()).toEqual([retained]);
 
-    expect(store.assignCurrentOrderTermCreditor(termId, { type: 'minor', sequenceNumber: 1 })).toBe(false);
+    const second = acceptMat('20.00');
+
+    expect(store.assignCurrentOrderTermCreditor(second, { type: 'minor', sequenceNumber: 1 })).toBe(true);
+    expect(store.orderTerms().map((term) => term.creditor)).toEqual([
+      { type: 'applicant' },
+      { type: 'minor', sequenceNumber: 1 },
+    ]);
+    expect(store.minorCreditors()).toEqual([retained]);
+    expect(store.nextMinorCreditorSequence()).toBe(2);
   });
 
   it('sets and clears add-new creditor intent only for the current accepted term', () => {
@@ -1047,7 +1071,7 @@ describe('CasesCreateCasefileStore', () => {
 
   it('creates and assigns a minor creditor in one accepted state', () => {
     patchState(stateSource, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
       currentOrderTermId: 1,
       creditorDraft: { termId: 1, branch: 'add-new' },
       nextMinorCreditorSequence: 4,
@@ -1072,7 +1096,7 @@ describe('CasesCreateCasefileStore', () => {
   it('stages a replacement without changing the prior assignment or sequence', () => {
     patchState(stateSource, {
       currentOrderTermId: 1,
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'applicant' } }],
+      orderTerms: [{ presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'applicant' } }],
       creditorDraft: { termId: 1, branch: 'add-new' },
       nextMinorCreditorSequence: 1,
     });
@@ -1106,7 +1130,7 @@ describe('CasesCreateCasefileStore', () => {
     (_description, override, countryName = 'United Kingdom') => {
       patchState(stateSource, {
         currentOrderTermId: 1,
-        orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+        orderTerms: [{ presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
         creditorDraft: { termId: 1, branch: 'add-new' },
         unsavedChanges: true,
         stateChanges: false,
@@ -1139,7 +1163,7 @@ describe('CasesCreateCasefileStore', () => {
   ])('preserves a pending accepted edit when the term now assigns %s', (_description, creditor) => {
     patchState(stateSource, {
       currentOrderTermId: 1,
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor }],
+      orderTerms: [{ presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor }],
       minorCreditors: [minorCreditor(1), minorCreditor(2)],
       nextMinorCreditorSequence: 3,
       creditorDraft: {
@@ -1166,7 +1190,7 @@ describe('CasesCreateCasefileStore', () => {
     const details = structuredClone(MINOR_CREDITOR_DETAILS_MOCK);
     patchState(stateSource, {
       currentOrderTermId: 1,
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
       creditorDraft: { termId: 1, branch: 'add-new' },
     });
 
@@ -1187,7 +1211,9 @@ describe('CasesCreateCasefileStore', () => {
     };
     patchState(stateSource, {
       currentOrderTermId: 1,
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } }],
+      orderTerms: [
+        { presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
+      ],
       minorCreditors: [existing],
       nextMinorCreditorSequence: 4,
       creditorDraft: null,
@@ -1207,13 +1233,17 @@ describe('CasesCreateCasefileStore', () => {
   it('rejects pending accepted edits when their assignment disappears', () => {
     patchState(stateSource, {
       currentOrderTermId: 1,
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } }],
+      orderTerms: [
+        { presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
+      ],
       minorCreditors: [minorCreditor(3, 'Previous name')],
       nextMinorCreditorSequence: 4,
       creditorDraft: null,
     });
     expect(store.savePendingMinorCreditorDetails(1, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom')).toBe(true);
-    patchState(stateSource, { orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }] });
+    patchState(stateSource, {
+      orderTerms: [{ presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+    });
     const before = structuredClone(store.creditorDraft());
 
     expect(store.acceptPendingMinorCreditor(1)).toBeNull();
@@ -1244,7 +1274,7 @@ describe('CasesCreateCasefileStore', () => {
   ])('rejects pending minor creditor acceptance for %s without mutation', (_description, override) => {
     patchState(stateSource, {
       currentOrderTermId: 1,
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
       nextMinorCreditorSequence: 4,
       creditorDraft: {
         termId: 1,
@@ -1282,8 +1312,8 @@ describe('CasesCreateCasefileStore', () => {
     patchState(stateSource, {
       currentOrderTermId: 1,
       orderTerms: [
-        { termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
-        { termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
+        { presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
+        { presentation, termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
       ],
       minorCreditors: [shared, orphan],
       nextMinorCreditorSequence: 3,
@@ -1309,7 +1339,7 @@ describe('CasesCreateCasefileStore', () => {
       identity: { type: 'individual' as const, title: null, firstNames: 'Synthetic', lastName: 'Person' },
     };
     patchState(stateSource, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
       currentOrderTermId: 1,
       creditorDraft: { termId: 1, branch: 'add-new' },
     });
@@ -1323,9 +1353,9 @@ describe('CasesCreateCasefileStore', () => {
     const replaced = minorCreditor(2, 'Replaced creditor');
     patchState(stateSource, {
       orderTerms: [
-        { termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
-        { termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 2 } },
-        { termId: 3, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
+        { presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
+        { presentation, termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 2 } },
+        { presentation, termId: 3, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
       ],
       currentOrderTermId: 2,
       minorCreditors: [retained, replaced],
@@ -1352,7 +1382,7 @@ describe('CasesCreateCasefileStore', () => {
     ['mismatched pending draft', { creditorDraft: { termId: 2, branch: 'add-new' as const } }],
   ])('rejects new minor creditor acceptance for %s without mutation', (_description, override) => {
     patchState(stateSource, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      orderTerms: [{ presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
       currentOrderTermId: 1,
       creditorDraft: { termId: 1, branch: 'add-new' },
       nextMinorCreditorSequence: 4,
@@ -1389,9 +1419,9 @@ describe('CasesCreateCasefileStore', () => {
     };
     patchState(stateSource, {
       orderTerms: [
-        { termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
-        { termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
-        { termId: 3, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 4 } },
+        { presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
+        { presentation, termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
+        { presentation, termId: 3, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 4 } },
       ],
       currentOrderTermId: 1,
       minorCreditors: [existing, other],
@@ -1420,14 +1450,22 @@ describe('CasesCreateCasefileStore', () => {
       'different assignment',
       {
         orderTerms: [
-          { termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor' as const, sequenceNumber: 4 } },
+          {
+            presentation,
+            termId: 1,
+            resultId: 'MAT',
+            parameters: {},
+            creditor: { type: 'minor' as const, sequenceNumber: 4 },
+          },
         ],
       },
     ],
     ['missing creditor', { minorCreditors: [] }],
   ])('rejects assigned minor creditor update for %s without mutation', (_description, override) => {
     patchState(stateSource, {
-      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } }],
+      orderTerms: [
+        { presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
+      ],
       currentOrderTermId: 1,
       minorCreditors: [minorCreditor(3, 'Previous name')],
       nextMinorCreditorSequence: 4,
@@ -1485,7 +1523,7 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.replaceAcceptedOrderTerm(1, { resultId: 'MAT', parameters: { amount: '2.00' } })).toBe(true);
     expect(store.replaceAcceptedOrderTerm(2, { resultId: 'MAT', parameters: { amount: '3.00' } })).toBe(false);
     expect(store.orderTerms()).toEqual([
-      { termId: 1, resultId: 'MAT', parameters: { amount: '2.00' }, creditor: null },
+      { presentation, termId: 1, resultId: 'MAT', parameters: { amount: '2.00' }, creditor: null },
     ]);
   });
 
@@ -1500,7 +1538,7 @@ describe('CasesCreateCasefileStore', () => {
     store.discardOrderTermDraft();
 
     expect(store.orderTerms()).toEqual([
-      { termId: 1, resultId: 'MAT', parameters: { amount: '1.00' }, creditor: null },
+      { presentation, termId: 1, resultId: 'MAT', parameters: { amount: '1.00' }, creditor: null },
     ]);
     expect(store.orderTermDraft()).toBeNull();
     expect(store.unsavedChanges()).toBe(false);
@@ -1529,7 +1567,7 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.pendingOrderTermResultId()).toBeNull();
     expect(store.orderTermDraft()).toBeNull();
     expect(store.orderTerms()).toEqual([
-      { termId: 1, resultId: 'MAT', parameters: { amount: '1.00' }, creditor: null },
+      { presentation, termId: 1, resultId: 'MAT', parameters: { amount: '1.00' }, creditor: null },
     ]);
     expect(store.currentOrderTermId()).toBeNull();
   });
@@ -1555,6 +1593,7 @@ describe('CasesCreateCasefileStore', () => {
 
     expect(store.orderTerms()).toEqual([
       {
+        presentation,
         termId: 1,
         resultId: 'MAT',
         parameters: { amount: '1.00' },
@@ -1620,5 +1659,247 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.minorCreditors()).toEqual([]);
     expect(store.nextMinorCreditorSequence()).toBe(1);
     expect(store.creditorDraft()).toBeNull();
+  });
+
+  describe('order term amendment transaction', () => {
+    const amendmentPage: ICasesCreateCasefileOrderTermPage = {
+      resultId: 'MAT',
+      title: 'Maintenance',
+      fields: [
+        {
+          name: 'amount',
+          id: 'create_casefile_order_term_amount',
+          label: 'Amount',
+          kind: 'money',
+          required: true,
+          hint: '',
+          min: null,
+          max: null,
+          past: false,
+          options: [],
+          lookup: null,
+        },
+      ],
+    };
+
+    const acceptAmount = (amount: string): number => {
+      store.setPendingOrderTermResultId(amendmentPage.resultId);
+      store.prepareOrderTermDraft(structuredClone(amendmentPage));
+      expect(store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount } })).toBe(true);
+      return store.currentOrderTermId()!;
+    };
+
+    it('keeps two equal Result IDs separate and stages without accepting', () => {
+      const first = acceptAmount('10.00');
+      const second = acceptAmount('20.00');
+      const before = structuredClone(store.orderTerms());
+
+      expect(store.beginOrderTermAmendment(second)).toBe(true);
+      expect(
+        store.stageOrderTermAmendment(
+          { resultId: 'MAT', parameters: { amount: '25.00', removed: 'discard' } },
+          amendmentPage,
+        ),
+      ).toBe(true);
+      expect(store.orderTerms()).toEqual(before);
+      expect(store.stageAmendmentCreditor({ type: 'applicant' })).toBe(true);
+      const pending = store.orderTermAmendment()!;
+      expect(store.completeOrderTermAmendment(pending, null)).toBe(true);
+      expect(store.orderTerms().map((term) => term.termId)).toEqual([first, second]);
+      expect(store.orderTerms()[0]).toEqual(before[0]);
+      expect(store.orderTerms()[1].parameters).toEqual({ amount: '25.00' });
+      expect(store.completeOrderTermAmendment(pending, null)).toBe(false);
+      expect(store.orderTerms()).toHaveLength(2);
+    });
+
+    it('cancels without replacing accepted objects or consuming identities', () => {
+      const termId = acceptAmount('10.00');
+      const terms = store.orderTerms();
+      const creditors = store.minorCreditors();
+      const nextTermId = store.nextOrderTermId();
+      const nextCreditorId = store.nextMinorCreditorSequence();
+
+      store.beginOrderTermAmendment(termId);
+      store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '99.00' } }, amendmentPage);
+      expect(store.cancelOrderTermAmendment(termId)).toBe(true);
+
+      expect(store.orderTerms()).toBe(terms);
+      expect(store.minorCreditors()).toBe(creditors);
+      expect(store.nextOrderTermId()).toBe(nextTermId);
+      expect(store.nextMinorCreditorSequence()).toBe(nextCreditorId);
+      expect(store.orderTermAmendment()).toBeNull();
+    });
+
+    it('rejects invalid identities, mismatched Results and competing transactions without changing accepted data', () => {
+      const termId = acceptAmount('10.00');
+      const terms = store.orderTerms();
+      const creditors = store.minorCreditors();
+
+      expect(store.beginOrderTermAmendment(termId + 1)).toBe(false);
+      expect(store.beginOrderTermAmendment(termId)).toBe(true);
+      expect(store.beginOrderTermAmendment(termId + 1)).toBe(false);
+      expect(
+        store.stageOrderTermAmendment({ resultId: 'MCHILD', parameters: { amount: '99.00' } }, amendmentPage),
+      ).toBe(false);
+      expect(
+        store.stageOrderTermAmendment(
+          { resultId: 'MAT', parameters: { amount: '99.00' } },
+          { ...amendmentPage, resultId: 'MCHILD' },
+        ),
+      ).toBe(false);
+      expect(store.cancelOrderTermAmendment(termId + 1)).toBe(false);
+      expect(store.orderTerms()).toBe(terms);
+      expect(store.minorCreditors()).toBe(creditors);
+    });
+
+    it('requires completed input and valid reviewed creditor assignments', () => {
+      const termId = acceptAmount('10.00');
+      const terms = store.orderTerms();
+      const creditors = store.minorCreditors();
+      expect(store.beginOrderTermAmendment(termId)).toBe(true);
+      expect(store.stageAmendmentCreditor({ type: 'applicant' })).toBe(false);
+      expect(store.prepareAmendmentCompletion(termId)).toBe(false);
+      expect(store.orderTerms()).toBe(terms);
+      expect(store.minorCreditors()).toBe(creditors);
+
+      expect(store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '20.00' } }, amendmentPage)).toBe(
+        true,
+      );
+      expect(store.stageAmendmentCreditor({ type: 'minor', sequenceNumber: 999 })).toBe(false);
+      expect(store.stageAmendmentCreditor({ type: 'major', majorCreditorId: 0, displayName: 'Invalid' })).toBe(false);
+      expect(store.stageAmendmentCreditor({ type: 'major', majorCreditorId: 901, displayName: '  ' })).toBe(false);
+      expect(store.orderTerms()).toBe(terms);
+      expect(store.minorCreditors()).toBe(creditors);
+    });
+
+    it('selects an existing minor creditor without replacing the shared record', () => {
+      const first = acceptAmount('10.00');
+      const second = acceptAmount('20.00');
+      const shared = minorCreditor(1);
+      patchState(stateSource, {
+        orderTerms: store
+          .orderTerms()
+          .map((term) => (term.termId === first ? { ...term, creditor: { type: 'minor', sequenceNumber: 1 } } : term)),
+        minorCreditors: [shared],
+        nextMinorCreditorSequence: 2,
+      });
+      const creditors = store.minorCreditors();
+
+      expect(store.beginOrderTermAmendment(second)).toBe(true);
+      expect(store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '25.00' } }, amendmentPage)).toBe(
+        true,
+      );
+      expect(store.stageAmendmentCreditor({ type: 'minor', sequenceNumber: 1 })).toBe(true);
+      const pending = store.orderTermAmendment()!;
+      expect(store.completeOrderTermAmendment(pending, null)).toBe(true);
+
+      expect(store.minorCreditors()).toBe(creditors);
+      expect(store.orderTerms().map((term) => term.creditor)).toEqual([
+        { type: 'minor', sequenceNumber: 1 },
+        { type: 'minor', sequenceNumber: 1 },
+      ]);
+    });
+
+    it('accepts a new minor creditor and replacement term atomically', () => {
+      const termId = acceptAmount('10.00');
+      expect(store.beginOrderTermAmendment(termId)).toBe(true);
+      expect(store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '30.00' } }, amendmentPage)).toBe(
+        true,
+      );
+      expect(store.setPendingNewMinorCreditor(termId)).toBe(true);
+      expect(store.savePendingMinorCreditorDetails(termId, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom')).toBe(true);
+      expect(store.prepareAmendmentCompletion(termId)).toBe(true);
+      const pending = store.orderTermAmendment()!;
+      const draft = store.creditorDraft();
+      expect(store.completeOrderTermAmendment(pending, draft)).toBe(true);
+
+      expect(store.orderTerms()).toHaveLength(1);
+      expect(store.orderTerms()[0]).toMatchObject({
+        termId,
+        parameters: { amount: '30.00' },
+        creditor: { type: 'minor', sequenceNumber: 1 },
+      });
+      expect(store.minorCreditors()).toHaveLength(1);
+      expect(store.nextMinorCreditorSequence()).toBe(2);
+    });
+
+    it('blocks eager accepted-state mutation APIs while an amendment is active', () => {
+      const termId = acceptAmount('10.00');
+      const existing = minorCreditor(1);
+      patchState(stateSource, {
+        orderTerms: [{ ...store.orderTerms()[0], creditor: { type: 'minor', sequenceNumber: 1 } }],
+        minorCreditors: [existing],
+        nextMinorCreditorSequence: 2,
+      });
+      expect(store.beginOrderTermAmendment(termId)).toBe(true);
+      expect(store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '20.00' } }, amendmentPage)).toBe(
+        true,
+      );
+      const terms = store.orderTerms();
+      const creditors = store.minorCreditors();
+
+      expect(store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount: '30.00' } })).toBe(false);
+      expect(store.replaceAcceptedOrderTerm(termId, { resultId: 'MAT', parameters: { amount: '30.00' } })).toBe(false);
+      expect(store.assignCurrentOrderTermCreditor(termId, { type: 'applicant' })).toBe(false);
+      expect(store.removeAcceptedOrderTerm(termId)).toBe(false);
+      expect(store.updateAssignedMinorCreditor(termId, 1, MINOR_CREDITOR_DETAILS_MOCK)).toBe(false);
+      expect(store.setPendingNewMinorCreditor(termId)).toBe(true);
+      expect(store.savePendingMinorCreditorDetails(termId, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom')).toBe(true);
+      const draft = store.creditorDraft();
+      expect(store.prepareAmendmentCompletion(termId)).toBe(true);
+      expect(store.setPendingNewMinorCreditor(termId)).toBe(true);
+      expect(store.creditorDraft()).toBe(draft);
+      expect(store.orderTermAmendment()?.ready).toBe(false);
+      expect(store.acceptNewMinorCreditor(termId, MINOR_CREDITOR_DETAILS_MOCK)).toBeNull();
+      expect(store.acceptPendingMinorCreditor(termId)).toBeNull();
+
+      expect(store.orderTerms()).toBe(terms);
+      expect(store.minorCreditors()).toBe(creditors);
+      expect(store.nextMinorCreditorSequence()).toBe(2);
+    });
+
+    it('cancels pending new creditor details and rejects stale completion after reset', () => {
+      const termId = acceptAmount('10.00');
+      store.beginOrderTermAmendment(termId);
+      store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '30.00' } }, amendmentPage);
+      store.setPendingNewMinorCreditor(termId);
+      store.savePendingMinorCreditorDetails(termId, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom');
+      store.prepareAmendmentCompletion(termId);
+      const pending = store.orderTermAmendment()!;
+      const draft = store.creditorDraft();
+
+      expect(store.cancelOrderTermAmendment(termId)).toBe(true);
+      expect(store.creditorDraft()).toBeNull();
+      expect(store.orderTerms()[0].parameters['amount']).toBe('10.00');
+      expect(store.completeOrderTermAmendment(pending, draft)).toBe(false);
+
+      store.beginOrderTermAmendment(termId);
+      const afterRestart = store.orderTermAmendment()!;
+      store.resetStore();
+      expect(store.completeOrderTermAmendment(afterRestart, null)).toBe(false);
+    });
+
+    it('preserves an amendment for the same case type and clears it for a changed case type', () => {
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+      const termId = acceptAmount('10.00');
+      store.beginOrderTermAmendment(termId);
+      const pending = store.orderTermAmendment();
+
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+      expect(store.orderTermAmendment()).toBe(pending);
+
+      store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS });
+      expect(store.orderTermAmendment()).toBeNull();
+    });
+
+    it.each(['resetForCaseTypeEdit', 'resetStore'] as const)('clears an amendment on %s', (method) => {
+      const termId = acceptAmount('10.00');
+      expect(store.beginOrderTermAmendment(termId)).toBe(true);
+
+      store[method]();
+
+      expect(store.orderTermAmendment()).toBeNull();
+      expect(store.orderTerms()).toEqual([]);
+    });
   });
 });

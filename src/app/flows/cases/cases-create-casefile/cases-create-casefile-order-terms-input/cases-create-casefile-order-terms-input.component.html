@@ -1,5 +1,13 @@
 <div class="govuk-grid-column-two-thirds">
-  <opal-lib-govuk-back-link (clickEvent)="handleCancel()" />
+  @if (amendmentInProgress()) {
+    <opal-lib-govuk-cancel-link
+      id="order-term-amendment-cancel"
+      cancelLinkText="Cancel amendment"
+      (linkClickEvent)="handleCancel()"
+    />
+  } @else {
+    <opal-lib-govuk-back-link (clickEvent)="handleCancel()" />
+  }
   @for (entry of pages(); track entry) {
     <app-cases-create-casefile-order-terms-input-form
       [page]="entry.page"

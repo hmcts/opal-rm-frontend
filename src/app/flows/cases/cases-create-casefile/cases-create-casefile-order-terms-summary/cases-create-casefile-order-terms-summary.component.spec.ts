@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileAcceptedOrderTerm } from '../interfaces/cases-create-casefile-accepted-order-term.interface';
@@ -47,6 +47,8 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
     fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsSummaryComponent);
   });
+
+  afterEach(() => vi.restoreAllMocks());
 
   it('renders the Order terms placeholder and returns to Case details without changing state', () => {
     const before = {
@@ -173,6 +175,53 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
 
     expect(store.orderTermAmendment()).toBe(amendment);
     expect(store.unsavedChanges()).toBe(true);
+  });
+
+  it('opens another term after confirming abandonment of the existing amendment', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    store.beginOrderTermAmendment(12);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    await fixture.componentInstance.handleChange(7);
+
+    expect(store.orderTermAmendment()?.termId).toBe(7);
+    expect(store.orderTermAmendment()?.term).toEqual(acceptedTerms[0]);
+    expect(store.orderTerms()).toEqual(acceptedTerms);
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+  });
+
+  it('clears the replacement amendment when switching cards fails to navigate', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    store.beginOrderTermAmendment(12);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    router.navigateByUrl.mockResolvedValueOnce(false);
+
+    await fixture.componentInstance.handleChange(7);
+
+    expect(store.orderTermAmendment()).toBeNull();
+    expect(store.orderTerms()).toEqual(acceptedTerms);
+    await fixture.componentInstance.handleChange(12);
+    expect(store.orderTermAmendment()?.termId).toBe(12);
+  });
+
+  it('preserves the pending amendment when switching terms is declined', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    store.beginOrderTermAmendment(12);
+    const amendment = store.orderTermAmendment();
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    await fixture.componentInstance.handleChange(7);
+
+    expect(window.confirm).toHaveBeenCalledOnce();
+    expect(store.orderTermAmendment()).toBe(amendment);
+    expect(store.orderTerms()).toEqual(acceptedTerms);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
   it('prevents a second Change from superseding the active navigation transaction', async () => {

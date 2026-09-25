@@ -387,6 +387,48 @@ describe('Order term amendment routed transaction', () => {
     },
   );
 
+  it(
+    'AC3. should open another term after returning to Summary with an unfinished amendment',
+    { tags: buildTags() },
+    () => {
+      setupAmendment();
+      openSecondInput();
+      continueToCreditor('41');
+      cy.get<Router>('@angularRouter').then((router) =>
+        router.navigateByUrl('/' + PATHS.root + '/' + PATHS.children.orderTermsSummary),
+      );
+      cy.get(S.orderTermsSummary.cards).should('have.length', 2);
+
+      const confirmation = cy.stub().onFirstCall().returns(false).onSecondCall().returns(true);
+      cy.on('window:confirm', confirmation);
+      cy.get(S.orderTermsSummary.change(1)).click();
+      cy.get(S.orderTermsSummary.cards).should('have.length', 2);
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTermAmendment()?.termId).to.eq(2);
+        expect(store.orderTermAmendment()?.term.parameters.amount).to.eq('41.00');
+        expect(confirmation).to.have.been.calledOnce;
+      });
+      cy.get(S.orderTermsSummary.change(1)).click();
+
+      cy.get(S.orderTermsInput.amount).should('have.value', '10.00');
+      cy.get(S.orderTermsInput.expiry).should('have.value', '30/11/2026');
+      assertOriginalAcceptedState();
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTermAmendment()?.termId).to.eq(1);
+      });
+      continueToCreditor('15');
+      cy.get(S.creditor.minor(1)).should('be.checked');
+      cy.get(S.creditor.continueButton).click();
+      cy.get(S.orderTermsSummary.cards).should('have.length', 2);
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTerms()[0].parameters.amount).to.eq('15.00');
+        expect(store.orderTerms()[1]).to.deep.equal(SUMMARY_TERMS[1]);
+        expect(store.minorCreditors()).to.deep.equal([originalCreditor]);
+        expect(store.orderTermAmendment()).to.eq(null);
+      });
+    },
+  );
+
   it('preserves raw input values through a routed revisit, including date conversion', { tags: buildTags() }, () => {
     setupAmendment();
     openSecondInput();

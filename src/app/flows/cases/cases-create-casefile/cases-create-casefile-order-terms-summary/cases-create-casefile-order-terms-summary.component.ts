@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DOCUMENT, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
 import { GovukDetailsComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-details';
@@ -28,6 +28,7 @@ import { creditorBankRows, orderTermRows } from './utils/cases-create-casefile-o
 })
 export class CasesCreateCasefileOrderTermsSummaryComponent {
   private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
   private readonly root = '/' + this.paths.root + '/';
@@ -76,8 +77,14 @@ export class CasesCreateCasefileOrderTermsSummaryComponent {
   public async handleChange(termId: number): Promise<void> {
     if (this.navigationInFlight) return;
     const card = this.cards().find((item) => item.termId === termId);
+    if (!card) return;
+    const pendingAmendment = this.store.orderTermAmendment();
+    if (pendingAmendment && pendingAmendment.termId !== termId) {
+      if (!this.document.defaultView?.confirm('Discard your unfinished changes to the other order term?')) return;
+      this.store.cancelOrderTermAmendment(pendingAmendment.termId);
+    }
     const existingAmendment = this.store.orderTermAmendment();
-    if (!card || !this.store.beginOrderTermAmendment(termId)) return;
+    if (!this.store.beginOrderTermAmendment(termId)) return;
     const amendment = this.store.orderTermAmendment();
     let navigated = false;
 

@@ -405,7 +405,7 @@ describe('Order term amendment routed transaction', () => {
       cy.get(S.orderTermsSummary.cards).should('have.length', 2);
       cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
         expect(store.orderTermAmendment()?.termId).to.eq(2);
-        expect(store.orderTermAmendment()?.term.parameters.amount).to.eq('41.00');
+        expect(store.orderTermAmendment()?.term.parameters['amount']).to.eq('41.00');
         expect(confirmation).to.have.been.calledOnce;
       });
       cy.get(S.orderTermsSummary.change(1)).click();
@@ -421,7 +421,7 @@ describe('Order term amendment routed transaction', () => {
       cy.get(S.creditor.continueButton).click();
       cy.get(S.orderTermsSummary.cards).should('have.length', 2);
       cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-        expect(store.orderTerms()[0].parameters.amount).to.eq('15.00');
+        expect(store.orderTerms()[0].parameters['amount']).to.eq('15.00');
         expect(store.orderTerms()[1]).to.deep.equal(SUMMARY_TERMS[1]);
         expect(store.minorCreditors()).to.deep.equal([originalCreditor]);
         expect(store.orderTermAmendment()).to.eq(null);

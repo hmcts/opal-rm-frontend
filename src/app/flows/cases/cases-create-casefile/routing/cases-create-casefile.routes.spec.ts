@@ -1,4 +1,5 @@
 import { CasesCreateCasefileMinorCreditorSummaryComponent } from '../cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component';
+import { CasesCreateCasefileMinorCreditorRemoveComponent } from '../cases-create-casefile-minor-creditor-remove/cases-create-casefile-minor-creditor-remove.component';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -32,6 +33,7 @@ import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-creat
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
 import { casesCreateCasefileOrderTermCreditorGuard } from './guards/cases-create-casefile-order-term-creditor.guard';
+import { casesCreateCasefileMinorCreditorSummaryGuard } from './guards/cases-create-casefile-minor-creditor-summary.guard';
 import { fetchCasesCreateCasefileOrderTermResolver } from './resolvers/fetch-cases-create-casefile-order-term-resolver/fetch-cases-create-casefile-order-term.resolver';
 import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
 import { fetchCasesCreateCasefileApplicationsResolver } from './resolvers/fetch-cases-create-casefile-applications-resolver/fetch-cases-create-casefile-applications.resolver';
@@ -255,15 +257,63 @@ describe('Create Casefile routes', () => {
     expect(component.name).toBe(CasesCreateCasefileMinorCreditorDetailsComponent.name);
   });
 
-  it('registers Minor creditor Summary with current-term guards and title resolution', async () => {
+  it('registers Minor creditor Summary with pending-draft guards and title resolution', async () => {
     const route = routing.find(
       (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorSummary,
     );
-    expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard]);
-    expect(route?.data).toEqual({ title: 'Minor creditor summary' });
+    expect(route?.canActivate).toEqual([
+      casesCreateCasefileFlowStateGuard,
+      casesCreateCasefileMinorCreditorSummaryGuard,
+    ]);
+    expect(route?.canDeactivate).toBeUndefined();
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorSummary });
     expect(route?.resolve).toEqual({ title: TitleResolver });
     const component = await (route?.loadComponent?.() as Promise<{ name: string }>);
     expect(component.name).toBe(CasesCreateCasefileMinorCreditorSummaryComponent.name);
+  });
+
+  it('registers Minor creditor removal with the shared pending-draft guards and no country resolver', async () => {
+    const route = routing.find(
+      (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorRemove,
+    );
+
+    expect(route?.canActivate).toEqual([
+      casesCreateCasefileFlowStateGuard,
+      casesCreateCasefileMinorCreditorSummaryGuard,
+    ]);
+    expect(route?.canDeactivate).toBeUndefined();
+    expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorRemove });
+    expect(route?.resolve).toEqual({ title: TitleResolver });
+    const component = await (route?.loadComponent?.() as Promise<{ name: string }>);
+    expect(component.name).toBe(CasesCreateCasefileMinorCreditorRemoveComponent.name);
+  });
+
+  it('redirects Summary with a current term but no populated pending draft to Creditor', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        CasesCreateCasefileStore,
+        provideRouter([
+          {
+            path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermCreditor}`,
+            component: TestDestinationComponent,
+          },
+          {
+            path: `${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorSummary}`,
+            component: TestDestinationComponent,
+            canActivate: [casesCreateCasefileMinorCreditorSummaryGuard],
+          },
+        ]),
+      ],
+    });
+    patchState(TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      currentOrderTermId: 1,
+      creditorDraft: null,
+    });
+
+    await RouterTestingHarness.create('/cases/create-casefile/order-terms/creditor/minor-creditor-summary');
+
+    expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/order-terms/creditor');
   });
 
   it.each([null, 999])(

@@ -16,6 +16,7 @@ export const CASES_CREATE_CASEFILE_ROUTING_PATHS: ICasesCreateCasefileRoutingPat
     orderTermCreditor: 'order-terms/creditor',
     minorCreditorDetails: 'order-terms/creditor/minor-creditor-details',
     minorCreditorSummary: 'order-terms/creditor/minor-creditor-summary',
+    minorCreditorRemove: 'order-terms/creditor/minor-creditor-remove',
     interestAndIndexation: 'interest-and-indexation',
     managingPayments: 'managing-payments',
     commentsAndNotes: 'comments-and-notes',

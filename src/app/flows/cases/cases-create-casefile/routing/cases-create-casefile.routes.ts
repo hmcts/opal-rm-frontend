@@ -7,6 +7,7 @@ import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-crea
 import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
 import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
+import { casesCreateCasefileMinorCreditorSummaryGuard } from './guards/cases-create-casefile-minor-creditor-summary.guard';
 import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
 import { casesCreateCasefileOrderTermCreditorGuard } from './guards/cases-create-casefile-order-term-creditor.guard';
 import { fetchCasesCreateCasefileCentralAuthoritiesResolver } from './resolvers/fetch-cases-create-casefile-central-authorities-resolver/fetch-cases-create-casefile-central-authorities.resolver';
@@ -163,8 +164,18 @@ export const routing: Routes = [
       import('../cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component').then(
         (component) => component.CasesCreateCasefileMinorCreditorSummaryComponent,
       ),
-    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermCreditorGuard],
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileMinorCreditorSummaryGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorSummary },
+    resolve: { title: TitleResolver },
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.minorCreditorRemove,
+    loadComponent: () =>
+      import('../cases-create-casefile-minor-creditor-remove/cases-create-casefile-minor-creditor-remove.component').then(
+        (component) => component.CasesCreateCasefileMinorCreditorRemoveComponent,
+      ),
+    canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileMinorCreditorSummaryGuard],
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorRemove },
     resolve: { title: TitleResolver },
   },
   {

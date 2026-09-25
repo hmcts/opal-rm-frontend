@@ -44,6 +44,21 @@ const enterMinimalOrganisation = (): void => {
   selectCountry('United Kingdom');
   cy.get(S.minorCreditor.bankNone).check();
 };
+const assertPendingMinorCreditor = (): void => {
+  cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
+    expect(store.creditorDraft()).to.include({ termId: 1, branch: 'add-new', countryName: 'United Kingdom' });
+    expect(store.creditorDraft()?.details?.identity).to.deep.equal({
+      type: 'organisation',
+      organisationName: 'Example creditor',
+    });
+    expect(store.creditorDraft()?.details?.address).to.include({ addressLine1: '1 Test Street', countryId: 826 });
+    expect(store.minorCreditors()).to.deep.equal([]);
+    expect(store.orderTerms()[0].creditor).to.eq(null);
+    expect(store.nextMinorCreditorSequence()).to.eq(1);
+    expect(store.unsavedChanges()).to.eq(false);
+  });
+};
+
 describe('Order term creditor', () => {
   it(
     'AC1, AC2. should enter the real routed page and request active non-Central-Authority Majors',
@@ -418,7 +433,7 @@ describe('Order term creditor', () => {
   );
 
   it(
-    'AC4. should save through the real router without a dirty warning and render Summary',
+    'AC4. should stage details through the real router without a dirty warning and render Summary',
     { tags: buildMinorCreditorTags() },
     () => {
       setupCreditor();
@@ -432,18 +447,13 @@ describe('Order term creditor', () => {
       assertRoute(PATHS.children.minorCreditorSummary);
       cy.get(S.heading).should('have.text', 'Minor creditor summary');
       cy.get('@unexpectedSaveConfirmation').should('not.have.been.called');
-      cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
-        expect(store.minorCreditors()).to.have.length(1);
-        expect(store.minorCreditors()[0].details.address.countryId).to.eq(826);
-        expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
-        expect(store.nextMinorCreditorSequence()).to.eq(2);
-      });
+      assertPendingMinorCreditor();
     },
   );
 
   for (const failure of ['false return', 'rejection'] as const) {
     it(
-      `AC4. should retain saved data after Summary navigation ${failure} and retry without duplication`,
+      `AC4. should retain pending data after Summary navigation ${failure} and retry without acceptance`,
       { tags: buildMinorCreditorTags() },
       () => {
         setupCreditor();
@@ -459,18 +469,12 @@ describe('Order term creditor', () => {
 
         cy.get(S.minorCreditor.save).click();
         cy.get(S.minorCreditor.save).should('be.visible');
-        cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
-          expect(store.minorCreditors()).to.have.length(1);
-          expect(store.nextMinorCreditorSequence()).to.eq(2);
-        });
+        assertPendingMinorCreditor();
         cy.get(S.minorCreditor.save).click();
 
         assertRoute(PATHS.children.minorCreditorSummary);
         cy.get(S.heading).should('have.text', 'Minor creditor summary');
-        cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
-          expect(store.minorCreditors()).to.have.length(1);
-          expect(store.nextMinorCreditorSequence()).to.eq(2);
-        });
+        assertPendingMinorCreditor();
       },
     );
   }

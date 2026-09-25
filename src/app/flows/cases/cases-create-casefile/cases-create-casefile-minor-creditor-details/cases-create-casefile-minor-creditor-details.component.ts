@@ -4,7 +4,6 @@ import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/com
 import type { IOpalMaintenanceCountryReferenceDataResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
-import type { ICasesCreateCasefileMinorCreditorDetails } from '../interfaces/cases-create-casefile-minor-creditor-details.interface';
 import { CasesCreateCasefileMinorCreditorDetailsFormComponent } from './cases-create-casefile-minor-creditor-details-form/cases-create-casefile-minor-creditor-details-form.component';
 import type { ICasesCreateCasefileMinorCreditorForm } from './interfaces/cases-create-casefile-minor-creditor-form.interface';
 import { toMinorCreditorDetails, toMinorCreditorFormData } from './utils/cases-create-casefile-minor-creditor-mapper';
@@ -28,8 +27,7 @@ export class CasesCreateCasefileMinorCreditorDetailsComponent
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
   private readonly summaryPath = '/' + this.paths.root + '/' + this.paths.children.minorCreditorSummary;
   private readonly entryCreditor = this.findEntryCreditor();
-  private acceptedSequence = this.entryCreditor?.sequenceNumber ?? null;
-  private acceptedDetails = this.entryCreditor?.details ?? null;
+  private readonly entryDraft = this.store.creditorDraft();
   private navigationInFlight = false;
   private readonly countries = [
     ...(this.route.snapshot.data['countries'] as IOpalMaintenanceCountryReferenceDataResponse).refData,
@@ -39,7 +37,11 @@ export class CasesCreateCasefileMinorCreditorDetailsComponent
       a.country_name.localeCompare(b.country_name, 'en'),
   );
   public readonly creditorPath = '/' + this.paths.root + '/' + this.paths.children.orderTermCreditor;
-  public readonly initialFormData = toMinorCreditorFormData(this.entryCreditor?.details ?? null);
+  public readonly initialFormData = toMinorCreditorFormData(
+    this.entryDraft?.termId === this.entryTermId
+      ? (this.entryDraft.details ?? null)
+      : (this.entryCreditor?.details ?? null),
+  );
   public readonly countryAutocompleteItems = this.countries.map((country) => ({
     name: country.country_name,
     value: country.country_id,
@@ -54,31 +56,7 @@ export class CasesCreateCasefileMinorCreditorDetailsComponent
       : null;
   }
 
-  private saveDetails(termId: number, details: ICasesCreateCasefileMinorCreditorDetails): boolean {
-    if (this.acceptedSequence === null) {
-      const sequence = this.store.acceptNewMinorCreditor(termId, details);
-      if (sequence === null) return false;
-      this.acceptedSequence = sequence;
-    } else {
-      const assignment = this.store.orderTerms().find((term) => term.termId === termId)?.creditor;
-      if (
-        this.store.creditorDraft() !== null ||
-        assignment?.type !== 'minor' ||
-        assignment.sequenceNumber !== this.acceptedSequence ||
-        !this.store.minorCreditors().some((creditor) => creditor.sequenceNumber === this.acceptedSequence)
-      )
-        return false;
-      if (
-        JSON.stringify(this.acceptedDetails) !== JSON.stringify(details) &&
-        !this.store.updateAssignedMinorCreditor(termId, this.acceptedSequence, details)
-      )
-        return false;
-    }
-    this.acceptedDetails = structuredClone(details);
-    return true;
-  }
-
-  private async navigateAccepted(): Promise<void> {
+  private async navigateSummary(): Promise<void> {
     this.navigationInFlight = true;
     try {
       await this.navigationRouter.navigateByUrl(this.summaryPath);
@@ -98,11 +76,25 @@ export class CasesCreateCasefileMinorCreditorDetailsComponent
     if (this.navigationInFlight || this.entryTermId === null || this.store.currentOrderTermId() !== this.entryTermId)
       return;
     const details = toMinorCreditorDetails(value.formData);
-    if (!this.saveDetails(this.entryTermId, details)) return;
+    const draft = this.store.creditorDraft();
+    const assignment = this.store.orderTerms().find((term) => term.termId === this.entryTermId)?.creditor;
+    if (this.entryDraft?.termId === this.entryTermId) {
+      if (draft?.termId !== this.entryTermId) return;
+    } else if (
+      !this.entryCreditor ||
+      assignment?.type !== 'minor' ||
+      assignment.sequenceNumber !== this.entryCreditor.sequenceNumber ||
+      (draft && draft.existingSequenceNumber !== this.entryCreditor.sequenceNumber)
+    )
+      return;
+    const countryName = this.countries.find(
+      (country) => country.country_id === details.address.countryId,
+    )?.country_name;
+    if (!countryName || !this.store.savePendingMinorCreditorDetails(this.entryTermId, details, countryName)) return;
     this.formComponent()?.acceptSavedData(toMinorCreditorFormData(details));
     this.handleUnsavedChanges(false);
     this.changeDetector.detectChanges();
-    void this.navigateAccepted();
+    void this.navigateSummary();
   }
 
   public async handleCancel(): Promise<void> {

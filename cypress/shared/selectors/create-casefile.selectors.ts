@@ -133,6 +133,15 @@ export const CreateCasefileSelectors = {
     save: '#create_casefile_minor_creditor_save',
     cancel: '#create_casefile_minor_creditor_cancel a',
   },
+  minorCreditorSummary: {
+    change: '#Change',
+    remove: '#Remove',
+    continue: '#minor-creditor-summary-continue',
+    cancel: 'opal-lib-govuk-cancel-link a',
+    back: '#minor-creditor-remove-back',
+    rows: 'opal-lib-govuk-summary-list .govuk-summary-list__row',
+    rowValue: (name: string) => `#minorCreditorDetails${name}Value`,
+  },
   minorCreditorDetails: {
     returnLink: '#returnToCreditor',
   },

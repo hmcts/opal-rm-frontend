@@ -1,12 +1,10 @@
-<div class="govuk-grid-row">
-  <div class="govuk-grid-column-two-thirds">
-    <app-cases-create-casefile-minor-creditor-details-form
-      [initialFormData]="initialFormData"
-      [countryAutocompleteItems]="countryAutocompleteItems"
-      [countrySelectOptions]="countrySelectOptions"
-      (formSubmit)="handleFormSubmit($event)"
-      (unsavedChanges)="handleUnsavedChanges($event)"
-      (cancel)="handleCancel()"
-    />
-  </div>
+<div class="govuk-grid-column-two-thirds">
+  <app-cases-create-casefile-minor-creditor-details-form
+    [initialFormData]="initialFormData"
+    [countryAutocompleteItems]="countryAutocompleteItems"
+    [countrySelectOptions]="countrySelectOptions"
+    (formSubmit)="handleFormSubmit($event)"
+    (unsavedChanges)="handleUnsavedChanges($event)"
+    (cancel)="handleCancel()"
+  />
 </div>

@@ -1,5 +1,7 @@
+import { casesCreateCasefileSubmissionGuard } from './guards/cases-create-casefile-submission.guard';
 import { CasesCreateCasefileSubmissionConfirmationComponent } from '../cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component';
 import { casesCreateCasefileCheckDetailsGuard } from './guards/cases-create-casefile-check-details.guard';
+import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { CasesCreateCasefileMinorCreditorSummaryComponent } from '../cases-create-casefile-minor-creditor-summary/cases-create-casefile-minor-creditor-summary.component';
 import { CasesCreateCasefileMinorCreditorRemoveComponent } from '../cases-create-casefile-minor-creditor-remove/cases-create-casefile-minor-creditor-remove.component';
 import { Component } from '@angular/core';
@@ -33,7 +35,6 @@ import { routing } from './cases-create-casefile.routes';
 import { casesCreateCasefileApplicantIndividualGuard } from './guards/cases-create-casefile-applicant-individual.guard';
 import { casesCreateCasefileApplicantOrganisationGuard } from './guards/cases-create-casefile-applicant-organisation.guard';
 import { casesCreateCasefileChildCanDeactivateGuard } from './guards/cases-create-casefile-child-can-deactivate.guard';
-import { casesCreateCasefileFlowStateGuard } from './guards/cases-create-casefile-flow-state.guard';
 import { casesCreateCasefileOrderTermSelectionGuard } from './guards/cases-create-casefile-order-term-selection.guard';
 import { casesCreateCasefileOrderTermsSelectGuard } from './guards/cases-create-casefile-order-terms-select.guard';
 import { casesCreateCasefileOrderTermsRemoveGuard } from './guards/cases-create-casefile-order-terms-remove.guard';
@@ -529,11 +530,11 @@ describe('Create Casefile routes', () => {
       expect(component?.name).toBe(expectedComponents[pathKey].name);
     },
   );
-  it('requires case completion before confirmation', async () => {
+  it('requires complete casefile data and successful submission before confirmation', async () => {
     const route = routing.find(
       (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.submissionConfirmation,
     );
-    expect(route?.canActivate).toEqual([casesCreateCasefileCheckDetailsGuard]);
+    expect(route?.canActivate).toEqual([casesCreateCasefileCheckDetailsGuard, casesCreateCasefileSubmissionGuard]);
     expect((await (route?.loadComponent?.() as Promise<{ name: string }>)).name).toBe(
       CasesCreateCasefileSubmissionConfirmationComponent.name,
     );

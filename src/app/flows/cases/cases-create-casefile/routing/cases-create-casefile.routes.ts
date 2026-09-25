@@ -1,3 +1,4 @@
+import { casesCreateCasefileSubmissionGuard } from './guards/cases-create-casefile-submission.guard';
 import { casesCreateCasefileCheckDetailsGuard } from './guards/cases-create-casefile-check-details.guard';
 import { Routes } from '@angular/router';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
@@ -33,8 +34,8 @@ export const routing: Routes = [
       import('../cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component').then(
         (m) => m.CasesCreateCasefileSubmissionConfirmationComponent,
       ),
-    canActivate: [casesCreateCasefileCheckDetailsGuard],
-    data: { title: 'Submission confirmation' },
+    canActivate: [casesCreateCasefileCheckDetailsGuard, casesCreateCasefileSubmissionGuard],
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.submissionConfirmation },
     resolve: { title: TitleResolver },
   },
   {

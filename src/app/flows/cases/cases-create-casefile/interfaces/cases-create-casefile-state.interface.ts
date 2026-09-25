@@ -18,6 +18,7 @@ import type { ICasesCreateCasefileMinorCreditorRemoval } from './cases-create-ca
 import type { ICasesCreateCasefileMinorCreditorRemovalOutcome } from './cases-create-casefile-minor-creditor-removal-outcome.interface';
 
 export interface ICasesCreateCasefileState {
+  submissionSucceeded: boolean;
   caseTypeSelection: CasesCreateCasefileCaseTypeSelection | null;
   applicantDetails: CasesCreateCasefileApplicantDetails | null;
   respondentDetails: ICasesCreateCasefileRespondentDetails | null;

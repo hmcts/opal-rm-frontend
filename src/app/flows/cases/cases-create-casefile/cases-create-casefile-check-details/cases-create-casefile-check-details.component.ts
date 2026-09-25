@@ -1,3 +1,7 @@
+import { catchError, EMPTY, finalize, take, tap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { UtilsService } from '@hmcts/opal-frontend-common/services/utils-service';
+import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { isCasesCreateCasefileIndividualApplicantSelection } from '../utils/cases-create-casefile-individual-applicant-selection';
 import { isCasesCreateCasefileOrganisationApplicantSelection } from '../utils/cases-create-casefile-organisation-applicant-selection';
 import {
@@ -5,10 +9,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
   Injector,
+  OnInit,
   signal,
   viewChild,
 } from '@angular/core';
@@ -49,7 +55,7 @@ import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-ca
     }
   `,
 })
-export class CasesCreateCasefileCheckDetailsComponent {
+export class CasesCreateCasefileCheckDetailsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly injector = inject(Injector);
@@ -64,12 +70,16 @@ export class CasesCreateCasefileCheckDetailsComponent {
   private readonly applications: readonly IOpalMaintenanceApplicationReferenceDataItem[] =
     this.route?.snapshot.data['applications']?.refData ?? [];
   private readonly navigating = signal(false);
+  private readonly submitting = signal(false);
+  private readonly maintenance = inject(OpalMaintenanceService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly utils = inject(UtilsService);
   private readonly snapshot = computed(() => getState(this.store));
   private readonly caseSections = computed(() =>
     reviewCaseSections(this.snapshot(), this.countries, this.applications),
   );
   public readonly navigationError = signal(false);
-  public readonly blocked = this.navigating.asReadonly();
+  public readonly blocked = computed(() => this.navigating() || this.submitting());
   public readonly beforeTerms = computed(() => {
     const snapshot = this.snapshot();
     const applicant = snapshot.applicantDetails;
@@ -127,6 +137,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
   private async navigate(path: string): Promise<boolean> {
     if (this.navigating()) return false;
     this.navigating.set(true);
+    this.navigationError.set(false);
     try {
       const navigated = await this.router.navigateByUrl(path);
       this.navigationError.set(!navigated);
@@ -139,6 +150,10 @@ export class CasesCreateCasefileCheckDetailsComponent {
     }
   }
 
+  public ngOnInit(): void {
+    this.store.setSubmissionSucceeded(false);
+  }
+
   public focusTarget(id: string): void {
     const target =
       this.host.nativeElement.querySelector<HTMLElement>(`[id="${id}"]`) ??
@@ -148,7 +163,28 @@ export class CasesCreateCasefileCheckDetailsComponent {
 
   public handleSubmit(): void {
     if (this.blocked()) return;
-    void this.navigate(this.root + this.paths.submissionConfirmation);
+    if (!this.store.checkCaseAvailable()) {
+      void this.navigate(this.root + this.paths.taskList);
+      return;
+    }
+    this.store.setSubmissionSucceeded(false);
+    this.submitting.set(true);
+    this.maintenance
+      .submitCasefile()
+      .pipe(
+        take(1),
+        tap(() => {
+          this.store.setSubmissionSucceeded(true);
+          void this.navigate(this.root + this.paths.submissionConfirmation);
+        }),
+        catchError(() => {
+          this.utils.scrollToTop();
+          return EMPTY;
+        }),
+        finalize(() => this.submitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
   }
 
   public async handleChange(section: string): Promise<void> {
@@ -201,7 +237,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   public handleBack(): void {
-    if (this.navigating()) return;
+    if (this.blocked()) return;
     this.reviewNavigation.clearContext();
     void this.navigate(this.root + this.paths.taskList);
   }

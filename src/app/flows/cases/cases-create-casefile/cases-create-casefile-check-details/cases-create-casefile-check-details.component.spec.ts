@@ -1,3 +1,9 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { EMPTY, Subject, of } from 'rxjs';
+import { UtilsService } from '@hmcts/opal-frontend-common/services/utils-service';
+import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
+import type { IOpalMaintenanceCasefileSubmissionResult } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-casefile-submission-result.interface';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { ActivatedRoute } from '@angular/router';
 import { getState, patchState, type WritableStateSource } from '@ngrx/signals';
@@ -5,7 +11,7 @@ import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casef
 import { createCasesCreateCasefileReviewState } from '../mocks/cases-create-casefile-review-state.mock';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
@@ -17,10 +23,12 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   const router = { navigateByUrl: vi.fn().mockResolvedValue(true) };
 
   beforeEach(async () => {
-    router.navigateByUrl.mockClear();
+    router.navigateByUrl.mockReset().mockResolvedValue(true);
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileCheckDetailsComponent],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: Router, useValue: router },
         CasesCreateCasefileStore,
         {
@@ -72,17 +80,130 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       stateChanges: store.stateChanges(),
     }).toEqual(before);
   });
-  it('simulates submission by navigating without changing the accepted draft', async () => {
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
+
+  it('invalidates earlier submission success when review is entered', () => {
+    store.setSubmissionSucceeded(true);
+    fixture.detectChanges();
+    expect(store.submissionSucceeded()).toBe(false);
+  });
+
+  it('retains the draft and review context until confirmation activates', async () => {
     patchState(
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
       createCasesCreateCasefileReviewState(),
     );
-    const before = structuredClone(getState(store));
+    const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
     fixture.detectChanges();
-    fixture.nativeElement.querySelector('#create_casefile_review_submit').click();
-    await Promise.resolve();
+    await fixture.whenStable();
+    review.setContext({ origin: 'review', section: 'respondent' });
+    const before = structuredClone(getState(store));
+    router.navigateByUrl.mockImplementationOnce(async () => {
+      expect(getState(store)).toEqual({ ...before, submissionSucceeded: true });
+      expect(review.context()?.section).toBe('respondent');
+      return true;
+    });
+    fixture.componentInstance.handleSubmit();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.navigationError()).toBe(false);
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/submission-confirmation');
+    expect(getState(store)).toEqual({ ...before, submissionSucceeded: true });
+  });
+
+  it('preserves an incomplete draft and redirects without submitting', async () => {
+    const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile');
+    const before = structuredClone(getState(store));
+    fixture.componentInstance.handleSubmit();
+    await fixture.whenStable();
+    expect(submit).not.toHaveBeenCalled();
     expect(getState(store)).toEqual(before);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/task-list');
+  });
+
+  it('locks actions during submission and retains the draft until confirmation activates', async () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const pending = new Subject<IOpalMaintenanceCasefileSubmissionResult>();
+    const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile').mockReturnValue(pending);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const before = structuredClone(getState(store));
+    const termId = store.orderTerms()[0].termId;
+    fixture.componentInstance.handleSubmit();
+    fixture.componentInstance.handleSubmit();
+    fixture.componentInstance.handleBack();
+    fixture.componentInstance.handleCancel();
+    await fixture.componentInstance.handleChange('respondent');
+    await fixture.componentInstance.handleTermChange(termId);
+    await fixture.componentInstance.handleTermRemove(termId);
+    expect(submit).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(getState(store)).toEqual(before);
+    pending.next({ draft_casefile_id: 'synthetic-completion' });
+    pending.complete();
+    await fixture.whenStable();
+    expect(getState(store)).toEqual({ ...before, submissionSucceeded: true });
+  });
+
+  it('retains the draft and permits resubmission after a failed request', async () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const pending = new Subject<IOpalMaintenanceCasefileSubmissionResult>();
+    const submit = vi
+      .spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile')
+      .mockReturnValueOnce(pending)
+      .mockReturnValueOnce(of({ draft_casefile_id: 'synthetic-retry' }));
+    const before = structuredClone(getState(store));
+    store.setSubmissionSucceeded(true);
+    const scrollToTop = vi.spyOn(TestBed.inject(UtilsService), 'scrollToTop').mockImplementation(() => undefined);
+    fixture.componentInstance.handleSubmit();
+    expect(store.submissionSucceeded()).toBe(false);
+    pending.error(new Error('Synthetic timeout'));
+    await fixture.whenStable();
+    expect(scrollToTop).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(getState(store)).toEqual(before);
+    fixture.componentInstance.handleSubmit();
+    await fixture.whenStable();
+    expect(submit).toHaveBeenCalledTimes(2);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/submission-confirmation');
+  });
+
+  it('does not navigate when the global error handler completes without a response', async () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile').mockReturnValue(EMPTY);
+    const before = structuredClone(getState(store));
+    store.setSubmissionSucceeded(true);
+    fixture.componentInstance.handleSubmit();
+    await fixture.whenStable();
+    expect(store.submissionSucceeded()).toBe(false);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(getState(store)).toEqual(before);
+    fixture.componentInstance.handleSubmit();
+    expect(submit).toHaveBeenCalledTimes(2);
+  });
+
+  it('unsubscribes from a pending submission when destroyed', () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const pending = new Subject<IOpalMaintenanceCasefileSubmissionResult>();
+    vi.spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile').mockReturnValue(pending);
+    fixture.componentInstance.handleSubmit();
+    expect(pending.observed).toBe(true);
+    fixture.destroy();
+    expect(pending.observed).toBe(false);
+    pending.next({ draft_casefile_id: 'synthetic-late' });
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
   it('keeps the correction context if Back is activated during a pending Change navigation', async () => {

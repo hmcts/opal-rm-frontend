@@ -77,6 +77,23 @@ describe('Order term selection form', () => {
     expect(fixture.nativeElement.querySelector('.govuk-error-summary').textContent).toContain('Select an order');
   });
 
+  it('reports later edits as unsaved when a submitted form remains on screen', () => {
+    const component = render({
+      ...ready,
+      records: [...ready.records, { result_id: 'MOCK02', result_title: 'Another term' }],
+    });
+    const changed = vi.fn();
+    component['unsavedChanges'].subscribe(changed);
+    component.form.controls[field].setValue('MOCK01');
+    component.handleFormSubmit(new Event('submit', { cancelable: true }) as SubmitEvent);
+    expect(component['formSubmitted']).toBe(true);
+
+    component.form.controls[field].setValue('MOCK02');
+
+    expect(component['formSubmitted']).toBe(false);
+    expect(changed).toHaveBeenLastCalledWith(true);
+  });
+
   it('emits Retry only while the failed load can be retried', () => {
     const component = render({ ...ready, status: 'error' });
     const retry = vi.fn();

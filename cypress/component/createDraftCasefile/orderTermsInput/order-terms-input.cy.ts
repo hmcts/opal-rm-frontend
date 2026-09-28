@@ -249,6 +249,29 @@ describe('Order term input regressions', () => {
     cy.get(S.orderTermsInput.amount).should('be.visible');
   });
 
+  for (const confirmed of [false, true]) {
+    it(
+      `AC4. should ${confirmed ? 'leave' : 'stay'} after changing selection following a failed detail lookup`,
+      { tags: buildTags() },
+      () => {
+        cy.intercept('GET', '**/opal-maintenance-service/results/MAT', { statusCode: 404, body: M.problem }).as(
+          'missingResult',
+        );
+        setupOrderTerms({ shell: true, savedId: 'MAT', detailHttp: true });
+        cy.get(S.orderTerms.continueButton).click();
+        cy.wait('@missingResult');
+        cy.get(S.globalErrorBanner).should('be.visible');
+        cy.get(S.orderTerms.select).select('MCHILD');
+        const confirm = cy.stub().as('cancelConfirmation').returns(confirmed);
+        cy.on('window:confirm', confirm);
+        cy.get(S.orderTerms.cancel).click();
+        cy.get('@cancelConfirmation').should('have.been.calledOnce');
+        if (confirmed) cy.get(S.orderTerms.add).should('be.visible');
+        else cy.get(S.orderTerms.select).should('have.value', 'MCHILD');
+      },
+    );
+  }
+
   it('AC2. should render the shared HTTP problem literally with correlation and retry', { tags: buildTags() }, () => {
     let attempts = 0;
     cy.intercept('GET', '**/opal-maintenance-service/results/MAT', (request) =>

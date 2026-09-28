@@ -201,6 +201,17 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     expect(dirty).toHaveBeenLastCalledWith(true);
   });
 
+  it('restores the dirty state when a valid submission proposal is not accepted', () => {
+    create();
+    const dirty = vi.spyOn(component['unsavedChanges'], 'emit');
+    fixture.detectChanges();
+    component.form.controls[FIELD.choice].setValue('applicant');
+
+    submit();
+
+    expect(dirty).toHaveBeenLastCalledWith(true);
+  });
+
   it('rebases the normalized entry snapshot after an accepted parent update', () => {
     create({ [FIELD.choice]: 'applicant', [FIELD.majorCreditorId]: null });
     const dirty = vi.spyOn(component['unsavedChanges'], 'emit');

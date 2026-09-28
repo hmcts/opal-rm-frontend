@@ -253,6 +253,32 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     await vi.waitFor(() => expect(component.navigationFailed()).toBe(true));
   });
 
+  it('restores dirty state when a changed repeat submission is ignored during pending navigation', async () => {
+    const { fixture, component, store, router } = await setup();
+    let finish!: (value: boolean) => void;
+    vi.spyOn(router, 'navigateByUrl').mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    fixture.detectChanges();
+    const child = fixture.debugElement.query(By.directive(CasesCreateCasefileOrderTermCreditorFormComponent))
+      .componentInstance as CasesCreateCasefileOrderTermCreditorFormComponent;
+
+    child.form.controls.create_casefile_order_term_creditor_choice.setValue('add-new');
+    child.handleFormSubmit(new SubmitEvent('submit'));
+    expect(child.initialFormData.create_casefile_order_term_creditor_choice).toBe('add-new');
+    expect(store.unsavedChanges()).toBe(false);
+
+    child.handleFormSubmit(new SubmitEvent('submit'));
+    expect(store.unsavedChanges()).toBe(false);
+
+    child.form.controls.create_casefile_order_term_creditor_choice.setValue('applicant');
+    child.handleFormSubmit(new SubmitEvent('submit'));
+
+    expect(store.unsavedChanges()).toBe(true);
+    finish(false);
+    await vi.waitFor(() => expect(component.navigationFailed()).toBe(true));
+    expect(store.creditorDraft()).toEqual({ termId: 1, branch: 'add-new' });
+    expect(store.unsavedChanges()).toBe(true);
+  });
+
   it('preserves a final Minor reference and edits when Cancel is declined or fails', async () => {
     const { component, store, router } = await setup();
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {

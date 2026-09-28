@@ -242,6 +242,62 @@ describe('Order term creditor', () => {
     },
   );
 
+  for (const navigationFailure of ['resolve false', 'reject'] as const) {
+    it(
+      `AC4. should retain a changed repeat submission when pending navigation ${
+        navigationFailure === 'resolve false' ? 'returns false' : 'rejects'
+      }`,
+      { tags: buildTags() },
+      () => {
+        setupCreditor();
+        cy.get<Router>('@angularRouter').then((router) => {
+          const navigateByUrl = router.navigateByUrl.bind(router);
+          let settle!: () => void;
+          const pendingNavigation = new Promise<boolean>((resolve, reject) => {
+            settle = () =>
+              navigationFailure === 'resolve false'
+                ? resolve(false)
+                : reject(new Error('Synthetic pending navigation failure'));
+          });
+          const navigation = cy.stub(router, 'navigateByUrl').as('pendingNavigation');
+          navigation.onFirstCall().returns(pendingNavigation);
+          navigation.onSecondCall().callsFake(navigateByUrl);
+          cy.wrap({ settle }, { log: false }).as('pendingNavigationController');
+        });
+
+        cy.get(S.creditor.addNew).check();
+        cy.get(S.creditor.continueButton).click();
+        cy.get('@pendingNavigation').should('have.been.calledOnce');
+        cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
+          expect(store.creditorDraft()).to.deep.equal({ termId: 1, branch: 'add-new' });
+          expect(store.unsavedChanges()).to.eq(false);
+        });
+
+        cy.get(S.creditor.applicant).check();
+        cy.get(S.creditor.continueButton).click();
+        cy.get('@pendingNavigation').should('have.been.calledOnce');
+        cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => expect(store.unsavedChanges()).to.eq(true));
+        cy.get<{ settle: () => void }>('@pendingNavigationController').then(({ settle }) => settle());
+        cy.get(S.errorSummary).should('contain.text', GENERIC_HTTP_ERROR_MESSAGE);
+
+        cy.window().then((window) => {
+          const confirm = cy.stub(window, 'confirm').returns(false);
+          cy.wrap(confirm, { log: false }).as('unsavedChangesConfirm');
+        });
+        cy.get(S.creditor.cancel).click();
+        cy.get('@unsavedChangesConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+        assertRoute(PATHS.children.orderTermCreditor);
+        cy.get(S.creditor.applicant).should('be.checked');
+        cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
+          expect(store.orderTerms()[0].creditor).to.eq(null);
+          expect(store.creditorDraft()).to.deep.equal({ termId: 1, branch: 'add-new' });
+          expect(store.unsavedChanges()).to.eq(true);
+        });
+        cy.screenshot(`po-9808-repeat-submit-${navigationFailure.replace(' ', '-')}`);
+      },
+    );
+  }
+
   for (const [context, state] of invalidEntryContexts) {
     it(
       `AC4. should reject direct entry with ${context} term context before requesting Majors`,

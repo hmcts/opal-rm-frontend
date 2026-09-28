@@ -170,5 +170,6 @@ export class CasesCreateCasefileOrderTermCreditorFormComponent
     // Submission is only a proposal to the parent. Keep later edits observable when the parent rejects stale context
     // or accepts locally but navigation fails; an accepted initialFormData input change rebases entrySnapshot.
     this.formSubmitted = false;
+    this.unsavedChanges.emit(this.hasUnsavedChanges());
   }
 }

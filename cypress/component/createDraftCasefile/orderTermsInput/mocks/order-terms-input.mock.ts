@@ -4,6 +4,50 @@ const autocompleteLabels = ['synthetic A & B', "synthetic O'Brien"];
 
 export const ORDER_TERMS_INPUT_MOCK = {
   autocompleteLabels,
+  documented: {
+    result_id: 'MAT',
+    result_title: 'Documented parameters',
+    result_parameters: JSON.stringify([
+      {
+        name: 'Amount',
+        prompt: 'Amount',
+        type: 'decimal-2dp',
+        mandatory: true,
+        min: -10,
+        max: 10,
+        language_dependent: false,
+      },
+      {
+        name: 'Frequency',
+        prompt: 'Payment frequency',
+        type: 'menu-radio',
+        mandatory: true,
+        min: 1,
+        max: 1,
+        language_dependent: false,
+        options: ['Weekly', 'Monthly'],
+      },
+      {
+        name: 'Terms',
+        prompt: 'Expiry terms',
+        type: 'menu-checkbox',
+        mandatory: true,
+        min: 1,
+        max: 1,
+        language_dependent: false,
+        options: ['A & B', 'Other'],
+      },
+      {
+        name: 'Details',
+        prompt: 'Details',
+        type: 'text-1000',
+        mandatory: false,
+        min: 0,
+        max: 1000,
+        language_dependent: false,
+      },
+    ]),
+  },
   controlErrors: ['Enter short text', 'Enter count', 'Select choice', 'Select menu', 'Select lookup', 'Select confirm'],
   problem: {
     status: 503,

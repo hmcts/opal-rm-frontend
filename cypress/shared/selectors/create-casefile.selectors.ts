@@ -57,6 +57,10 @@ export const CreateCasefileSelectors = {
     back: 'a.govuk-back-link',
   },
   orderTermsInput: {
+    termsFirst: '#create_casefile_order_terms_input_terms',
+    termsSecond: '#create_casefile_order_terms_input_terms-option-1',
+    termsFieldset: '#create_casefile_order_terms_input_terms-fieldset',
+    documentedDetails: '#create_casefile_order_terms_input_details',
     form: 'app-cases-create-casefile-order-terms-input-form form',
     radioOption: '#create_casefile_order_terms_input_choice-option-0',
     checkboxFieldset: '#create_casefile_order_terms_input_confirm-fieldset',

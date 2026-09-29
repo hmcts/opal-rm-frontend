@@ -37,6 +37,38 @@ const fillControls = () => {
 
 describe('Order term input', () => {
   beforeEach(() => cy.viewport(1280, 900));
+  it(
+    'AC1, AC3. should render documented metadata from HTTP and save signed amounts and checkbox labels',
+    { tags: buildTags() },
+    () => {
+      cy.intercept('GET', '**/opal-maintenance-service/results/MAT', { statusCode: 200, body: M.documented }).as(
+        'documentedResult',
+      );
+      setupOrderTerms({ shell: true, savedId: 'MAT', initialChild: inputPath(), detailHttp: true });
+      cy.wait('@documentedResult');
+      cy.get(S.orderTermsInput.frequency).should('contain.text', 'Weekly').find('input, select').should('not.exist');
+      cy.get(S.orderTermsInput.documentedDetails).should('have.prop', 'tagName', 'TEXTAREA');
+      cy.get(S.orderTermsInput.amount).type('-0.10');
+      cy.get(S.orderTermsInput.termsFirst).focus();
+      cy.press(Cypress.Keyboard.Keys.SPACE);
+      cy.get(S.orderTermsInput.termsSecond).check();
+      cy.get(S.orderTermsInput.continueButton).click();
+      cy.get(S.errorSummaryLinks).contains('Select no more than 1').click();
+      cy.get(S.orderTermsInput.termsFirst).should('be.focused');
+      cy.get(S.orderTermsInput.termsFieldset).should('contain.text', 'Expiry terms');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po-9807-documented-checkbox-validation');
+      cy.get(S.orderTermsInput.termsSecond).uncheck();
+      cy.get(S.orderTermsInput.continueButton).click();
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTerms()).to.deep.equal([
+          { resultId: 'MAT', parameters: { Amount: '-0.10', Terms: ['A & B'] } },
+        ]);
+      });
+    },
+  );
+
   it('AC1, AC2, AC3, AC4. should accept a metadata term locally and go to Creditor', { tags: buildTags() }, () => {
     setupOrderTerms({
       shell: true,

@@ -79,17 +79,29 @@
         @case ('checkbox') {
           <opal-lib-govuk-checkboxes
             [fieldSetId]="field.id + '-fieldset'"
-            legendText=""
+            [legendText]="view.checkboxes.length ? field.label : ''"
             [legendHint]="field.hint"
             [errors]="error"
           >
-            <div
-              opal-lib-govuk-checkboxes-item
-              [labelText]="field.label"
-              [inputId]="field.id"
-              [inputName]="field.id"
-              [control]="view.control"
-            ></div>
+            @if (view.checkboxes.length) {
+              @for (option of view.checkboxes; track option.value) {
+                <div
+                  opal-lib-govuk-checkboxes-item
+                  [labelText]="option.label"
+                  [inputId]="$first ? field.id : field.id + '-option-' + $index"
+                  [inputName]="field.id"
+                  [control]="option.control"
+                ></div>
+              }
+            } @else {
+              <div
+                opal-lib-govuk-checkboxes-item
+                [labelText]="field.label"
+                [inputId]="field.id"
+                [inputName]="field.id"
+                [control]="view.control"
+              ></div>
+            }
           </opal-lib-govuk-checkboxes>
         }
         @default {

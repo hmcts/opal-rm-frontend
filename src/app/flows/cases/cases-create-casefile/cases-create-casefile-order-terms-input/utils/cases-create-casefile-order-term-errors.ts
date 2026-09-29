@@ -25,6 +25,11 @@ export function orderTermErrorMessages(field: ICasesCreateCasefileOrderTermField
           : `${field.label} must be in the past`,
       priority: 3,
     },
+    minSelections: { message: `Select at least ${field.min} options for ${field.label.toLowerCase()}`, priority: 3 },
+    maxSelections: {
+      message: `Select no more than ${field.max} options for ${field.label.toLowerCase()}`,
+      priority: 3,
+    },
     choice: { message: `Select a valid ${field.label.toLowerCase()}`, priority: 2 },
     minLength: { message: `${field.label} must be ${field.min} characters or more`, priority: 3 },
     maxLength: { message: `${field.label} must be ${field.max} characters or fewer`, priority: 3 },

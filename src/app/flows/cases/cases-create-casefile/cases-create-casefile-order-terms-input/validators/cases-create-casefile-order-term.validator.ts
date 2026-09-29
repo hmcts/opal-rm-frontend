@@ -5,13 +5,13 @@ import type { ICasesCreateCasefileOrderTermField } from '../interfaces/cases-cre
 const blank = (value: unknown): boolean => value == null || (typeof value === 'string' && !value.trim());
 
 const units = (value: string): bigint => {
-  const [whole, fraction = ''] = value.split('.');
-  return BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+  const [whole, fraction = ''] = value.replace(/^-/, '').split('.');
+  const amount = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+  return value.startsWith('-') ? -amount : amount;
 };
 
 const moneyError = (value: string, field: ICasesCreateCasefileOrderTermField): string | null => {
   if (!/^-?\d+(\.\d+)?$/.test(value)) return 'numeric';
-  if (value.startsWith('-')) return 'min';
   if ((value.split('.')[1]?.length ?? 0) > 2) return 'precision';
   const amount = units(value);
   if (field.min !== null && amount < units(String(field.min))) return 'min';
@@ -37,10 +37,24 @@ const dateError = (value: string, field: ICasesCreateCasefileOrderTermField, dat
   return null;
 };
 
+const checkboxErrors = (raw: unknown, field: ICasesCreateCasefileOrderTermField) => {
+  if (
+    !Array.isArray(raw) ||
+    new Set(raw).size !== raw.length ||
+    raw.some((value) => !field.options.some((option) => option.value === value))
+  )
+    return { choice: true };
+  if (!raw.length) return field.required ? { required: true } : null;
+  if (field.min !== null && raw.length < Number(field.min)) return { minSelections: true };
+  if (field.max !== null && raw.length > Number(field.max)) return { maxSelections: true };
+  return null;
+};
+
 export function createOrderTermValidator(field: ICasesCreateCasefileOrderTermField, dates: DateService): ValidatorFn {
   return (control) => {
     const raw: unknown = control.value;
     if (field.kind === 'readonly') return null;
+    if (field.kind === 'checkbox' && field.options.length) return checkboxErrors(raw, field);
     if (field.kind === 'checkbox') {
       if (raw !== true && raw !== false && raw != null) return { choice: true };
       return field.required && raw !== true ? { required: true } : null;

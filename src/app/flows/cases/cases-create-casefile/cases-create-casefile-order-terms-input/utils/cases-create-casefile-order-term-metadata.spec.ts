@@ -35,7 +35,6 @@ describe('mapOrderTermParameters', () => {
       [amount, { ...amount, name: 'AMOUNT' }],
       [{ ...amount, prompt: '' }],
       [{ ...amount, mandatory: 'yes' }],
-      [{ ...amount, min: -1 }],
       [{ ...amount, max: 0, min: 1 }],
       [{ ...amount, conditional: true }],
       [{ ...amount, readonly: true }],
@@ -74,7 +73,7 @@ describe('mapOrderTermParameters', () => {
   );
 
   it('rejects malformed JSON and non-arrays', () => {
-    for (const value of ['{', '{}', 'null']) expect(() => mapOrderTermParameters(value)).toThrow();
+    for (const value of [null, '{', '{}', 'null']) expect(() => mapOrderTermParameters(value)).toThrow();
   });
 
   it('uses one generic error without exposing rejected metadata', () => {
@@ -91,7 +90,7 @@ describe('mapOrderTermParameters', () => {
     ).toThrowError(/^Unsupported order-term metadata$/);
   });
 
-  it('uses date sentinels as unbounded and preserves optional requiredness', () => {
+  it('uses ISO date bounds and preserves optional requiredness', () => {
     expect(
       map([
         {
@@ -100,15 +99,15 @@ describe('mapOrderTermParameters', () => {
           type: 'date',
           mandatory: false,
           language_dependent: false,
-          min: 0,
-          max: 'No Limit',
+          min: '1900-01-01',
+          max: '2100-12-31',
         },
       ])[0],
     ).toMatchObject({
       kind: 'date',
       required: false,
-      min: null,
-      max: null,
+      min: '1900-01-01',
+      max: '2100-12-31',
     });
   });
 
@@ -150,6 +149,11 @@ describe('mapOrderTermParameters', () => {
         type,
         mandatory: true,
         language_dependent: false,
+        ...(type === 'date'
+          ? { min: '1900-01-01', max: '2100-12-31' }
+          : type === 'integer'
+            ? { min: -2147483648, max: 2147483647 }
+            : {}),
         ...(choice ? { options: [{ value: 'A', label: 'First' }] } : {}),
       },
     ]);
@@ -229,7 +233,11 @@ describe('mapOrderTermParameters', () => {
     { type: 'integer', min: 2, max: 1 },
     { type: 'text', min: 2, max: 1 },
     { type: 'date', min: '2027-01-02', max: '2027-01-01' },
-    { type: 'date', min: '2027-02-30' },
+    { type: 'date', min: '2027-02-30', max: '2100-12-31' },
+    { type: 'date', min: 1, max: '2100-12-31' },
+    { type: 'date', min: 'not-a-date', max: '2100-12-31' },
+    { type: 'money', min: false },
+    { type: 'money', min: '1.234' },
     { type: 'text', min: 1.5 },
     { type: 'text', min: -1 },
   ])('rejects invalid or inverted bounds: $type $min $max', (bounds) => {
@@ -280,5 +288,70 @@ describe('mapOrderTermParameters', () => {
         },
       ]),
     ).toThrow('Unsupported order-term metadata');
+  });
+});
+
+describe('documented generic parameters', () => {
+  const parameter = {
+    name: 'Details',
+    prompt: 'Details',
+    type: 'text-60',
+    mandatory: true,
+    min: 1,
+    max: 60,
+    language_dependent: false,
+  };
+  it.each([
+    ['text-60', 'text', 60],
+    ['text-100', 'text', 100],
+    ['text-1000', 'long_text', 1000],
+  ])('maps %s with explicit length bounds', (type, kind, max) => {
+    expect(map([{ ...parameter, type, max }])[0]).toMatchObject({ name: 'Details', kind, min: 1, max });
+  });
+  it('accepts signed decimal bounds without losing precision', () => {
+    expect(map([{ ...parameter, type: 'decimal-2dp', min: -9999999999.99, max: 9999999999.99 }])[0]).toMatchObject({
+      kind: 'money',
+      min: '-9999999999.99',
+      max: '9999999999.99',
+    });
+  });
+  it.each(['menu-radio', 'menu-checkbox'])('preserves raw labels for %s', (type) => {
+    expect(map([{ ...parameter, type, min: 0, max: 1, options: ['A & B', '<literal>'] }])[0].options).toEqual([
+      { value: 'A & B', label: 'A & B' },
+      { value: '<literal>', label: '<literal>' },
+    ]);
+  });
+  it('inherits Frequency from order details despite menu metadata', () => {
+    expect(
+      map([{ ...parameter, name: 'Frequency', type: 'menu-radio', max: 1, options: ['Weekly', 'Monthly'] }])[0],
+    ).toMatchObject({ name: 'Frequency', kind: 'readonly' });
+  });
+  it.each(['min', 'max', 'mandatory', 'language_dependent'])('rejects missing %s', (key) => {
+    const data: Record<string, unknown> = { ...parameter };
+    delete data[key];
+    expect(() => map([data])).toThrow('Unsupported order-term metadata');
+  });
+  it.each([
+    { type: 'text-60', max: 61 },
+    { type: 'text-60', name: 'Frequency' },
+    { type: 'decimal-2dp', min: -10000000000 },
+    { type: 'decimal-2dp', min: '0' },
+    { type: 'decimal-2dp', min: -0.01, max: -0.02 },
+    { type: 'menu-radio', max: 2, options: ['A', 'B'] },
+    { type: 'menu-checkbox', max: 3, options: ['A', 'B'] },
+    { type: 'menu-checkbox', options: 'A, B' },
+    { type: 'menu-checkbox', options: ['A', 'A'] },
+    { type: 'menu-radio', options: [{ value: 'A', label: 'A' }] },
+  ])('rejects invalid contract metadata: %j', (extension) => {
+    expect(() => map([{ ...parameter, ...extension }])).toThrow('Unsupported order-term metadata');
+  });
+  it.each([
+    { type: 'date', min: 0, max: 'No Limit' },
+    { type: 'date', min: '1899-12-31', max: '2100-12-31' },
+    { type: 'date', min: '1900-01-01', max: '2101-01-01' },
+    { type: 'integer', min: -2147483649, max: 2147483647 },
+    { type: 'integer', min: 0, max: 2147483648 },
+  ])('rejects bounds outside documented limits: %j', (bounds) => {
+    expect(() => map([{ ...parameter, ...bounds }])).toThrow('Unsupported order-term metadata');
   });
 });

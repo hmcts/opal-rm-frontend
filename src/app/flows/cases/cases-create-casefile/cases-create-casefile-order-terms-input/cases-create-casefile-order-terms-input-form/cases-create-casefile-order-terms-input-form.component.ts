@@ -65,13 +65,16 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
     field: ICasesCreateCasefileOrderTermField;
     control: FormControl<CasesCreateCasefileOrderTermRawValue> | null;
     options: { value: string; name: string }[];
+    checkboxes: { value: string; label: string; control: FormControl<boolean> }[];
   }[] = [];
 
   protected override hasUnsavedChanges(): boolean {
     return (
       !this.formSubmitted &&
       (this.initialDirty ||
-        Object.entries(this.form.getRawValue()).some(([id, value]) => value !== this.initialRaw[id]))
+        Object.entries(this.form.getRawValue()).some(
+          ([id, value]) => JSON.stringify(value) !== JSON.stringify(this.initialRaw[id]),
+        ))
     );
   }
 
@@ -91,13 +94,35 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
         field.kind === 'readonly'
           ? null
           : new FormControl<CasesCreateCasefileOrderTermRawValue>(
-              initialValue ?? (field.kind === 'checkbox' ? false : ''),
+              initialValue ?? (field.kind === 'checkbox' ? (field.options.length ? [] : false) : ''),
               { validators: createOrderTermValidator(field, this.dates) },
             );
+      const checkboxes =
+        field.kind === 'checkbox' && control
+          ? field.options.map((option) => ({
+              ...option,
+              control: new FormControl(Array.isArray(initialValue) && initialValue.includes(option.value), {
+                nonNullable: true,
+              }),
+            }))
+          : [];
+      for (const checkbox of checkboxes) {
+        checkbox.control.valueChanges.pipe(takeUntil(this.ngUnsubscribe)).subscribe(() => {
+          control!.setValue(checkboxes.filter((item) => item.control.value).map((item) => item.value));
+          control!.markAsDirty();
+        });
+      }
+      if (checkboxes.length) {
+        control!.valueChanges.pipe(takeUntil(this.ngUnsubscribe)).subscribe((value) => {
+          for (const checkbox of checkboxes)
+            checkbox.control.setValue(Array.isArray(value) && value.includes(checkbox.value), { emitEvent: false });
+        });
+      }
       const view = {
         field,
         control,
         options,
+        checkboxes,
       };
       if (control) {
         this.form.addControl(field.id, control);

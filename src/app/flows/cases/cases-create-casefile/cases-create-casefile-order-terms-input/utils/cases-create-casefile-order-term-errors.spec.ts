@@ -17,11 +17,13 @@ describe('orderTermErrorMessages', () => {
       precision: { message: 'Enter an amount with no more than 2 decimal places', priority: 3 },
       invalidDate: { message: 'Enter a valid amount', priority: 2 },
       past: { message: 'Amount must be in the past', priority: 3 },
+      minSelections: { message: 'Select at least 0 options for amount', priority: 3 },
+      maxSelections: { message: 'Select no more than 9999999999.99 options for amount', priority: 3 },
       choice: { message: 'Select a valid amount', priority: 2 },
       minLength: { message: 'Amount must be 0 characters or more', priority: 3 },
-      maxLength: { message: 'Amount must be null characters or fewer', priority: 3 },
+      maxLength: { message: 'Amount must be 9999999999.99 characters or fewer', priority: 3 },
       min: { message: 'Amount must be 0 or more', priority: 3 },
-      max: { message: 'Amount must be null or less', priority: 3 },
+      max: { message: 'Amount must be 9999999999.99 or less', priority: 3 },
     });
   });
 
@@ -31,8 +33,8 @@ describe('orderTermErrorMessages', () => {
       required: { message: 'Enter child’s date of birth', priority: 1 },
       invalidDate: { message: 'Enter a valid child’s date of birth', priority: 2 },
       past: { message: 'Child’s date of birth must be in the past', priority: 3 },
-      min: { message: 'Child’s date of birth must be on or after null', priority: 3 },
-      max: { message: 'Child’s date of birth must be on or before null', priority: 3 },
+      min: { message: 'Child’s date of birth must be on or after 1900-01-01', priority: 3 },
+      max: { message: 'Child’s date of birth must be on or before 2100-12-31', priority: 3 },
     });
   });
 

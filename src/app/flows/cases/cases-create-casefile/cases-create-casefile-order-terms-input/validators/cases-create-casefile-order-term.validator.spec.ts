@@ -148,4 +148,31 @@ describe('createOrderTermValidator', () => {
     expect(errors(field({ kind: 'readonly', required: true }), undefined)).toBeNull();
     expect(errors(field({ kind: 'text' }), 123)).toEqual({ choice: true });
   });
+  it.each([
+    ['-0.01', null],
+    ['-10.01', 'min'],
+    ['10.01', 'max'],
+    ['-1.001', 'precision'],
+  ])('validates signed decimals %s against metadata bounds', (raw, error) => {
+    expect(errors(field({ kind: 'money', min: '-10.00', max: '10.00' }), raw)).toEqual(
+      error ? { [error]: true } : null,
+    );
+  });
+  it('validates checkbox membership, duplicates and selection counts', () => {
+    const group = field({
+      kind: 'checkbox',
+      min: 1,
+      max: 2,
+      options: ['A', 'B', 'C'].map((value) => ({ value, label: value })),
+    });
+    expect(errors(group, ['A'])).toBeNull();
+    expect(errors(group, ['A', 'B'])).toBeNull();
+    expect(errors(group, [])).toBeNull();
+    expect(errors({ ...group, required: true }, [])).toEqual({ required: true });
+    expect(errors({ ...group, min: 2 }, ['A'])).toEqual({ minSelections: true });
+    expect(errors(group, ['A', 'B', 'C'])).toEqual({ maxSelections: true });
+    expect(errors(group, ['A', 'A'])).toEqual({ choice: true });
+    expect(errors(group, ['unknown'])).toEqual({ choice: true });
+    expect(errors(group, true)).toEqual({ choice: true });
+  });
 });

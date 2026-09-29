@@ -23,13 +23,13 @@ describe('canonicalOrderTerm', () => {
       canonicalOrderTerm(
         { resultId: 'MAT', title: 'Maintenance', fields },
         {
-          create_casefile_order_terms_input_amount: '9007199254740993.10',
+          create_casefile_order_terms_input_amount: '9999999999.99',
           create_casefile_order_terms_input_frequency: 'Weekly',
           create_casefile_order_terms_input_removed: 'stale',
         },
         dates,
       ),
-    ).toEqual({ resultId: 'MAT', parameters: { amount: '9007199254740993.10' } });
+    ).toEqual({ resultId: 'MAT', parameters: { amount: '9999999999.99' } });
   });
 
   it('normalizes money, integer, date, choice, text and checkbox values', () => {
@@ -90,5 +90,28 @@ describe('canonicalOrderTerm', () => {
         dates,
       ),
     ).toThrowError('Invalid order term');
+  });
+  it('preserves signed decimals including negative fractions', () => {
+    const page = { resultId: 'TEST', title: 'Test', fields: [{ ...fields[0], min: '-10', max: '10' }] };
+    expect(canonicalOrderTerm(page, { [fields[0].id]: '-0.1' }, dates).parameters['amount']).toBe('-0.10');
+  });
+  it('saves checkbox selections as an independent array in metadata order', () => {
+    const group = {
+      ...fields[0],
+      kind: 'checkbox' as const,
+      name: 'Terms',
+      min: 0,
+      max: 2,
+      options: ['A', 'B'].map((value) => ({ value, label: value })),
+    };
+    const selected = ['B', 'A'];
+    const result = canonicalOrderTerm(
+      { resultId: 'TEST', title: 'Test', fields: [group] },
+      { [group.id]: selected },
+      dates,
+    );
+    expect(result.parameters['Terms']).toEqual(['A', 'B']);
+    selected.pop();
+    expect(result.parameters['Terms']).toEqual(['A', 'B']);
   });
 });

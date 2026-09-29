@@ -13,6 +13,12 @@ const text = (value: unknown): string => (typeof value === 'string' && value.tri
 const aliases: Record<string, ICasesCreateCasefileOrderTermField['kind']> = {
   money: 'money',
   decimal: 'money',
+  'decimal-2dp': 'money',
+  'text-60': 'text',
+  'text-100': 'text',
+  'text-1000': 'long_text',
+  'menu-radio': 'radio',
+  'menu-checkbox': 'checkbox',
   integer: 'integer',
   text: 'text',
   long_text: 'long_text',
@@ -41,8 +47,9 @@ const keys = new Set([
 ]);
 
 const decimalUnits = (value: string): bigint => {
-  const [whole, fraction = ''] = value.split('.');
-  return BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+  const [whole, fraction = ''] = value.replace(/^-/, '').split('.');
+  const units = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+  return value.startsWith('-') ? -units : units;
 };
 
 const bound = (
@@ -59,7 +66,7 @@ const bound = (
     return value;
   }
   if (kind === 'money') {
-    if ((typeof value !== 'string' && typeof value !== 'number') || !/^\d+(\.\d{1,2})?$/.test(String(value))) {
+    if ((typeof value !== 'string' && typeof value !== 'number') || !/^-?\d+(\.\d{1,2})?$/.test(String(value))) {
       return fail();
     }
     return String(value);
@@ -69,11 +76,11 @@ const bound = (
   return value;
 };
 
-const parseOptions = (value: unknown): { value: string; label: string }[] => {
+const parseOptions = (value: unknown, strings = false): { value: string; label: string }[] => {
   if (!Array.isArray(value) || !value.length) return fail();
   const seen = new Set<string>();
   return value.map((item) => {
-    const source = record(item);
+    const source = strings ? { value: text(item), label: text(item) } : record(item);
     if (Object.keys(source).some((key) => !['value', 'label'].includes(key))) return fail();
     const option = { value: text(source['value']), label: text(source['label']) };
     if (seen.has(option.value)) return fail();
@@ -90,12 +97,15 @@ const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
   const type = text(source['type']);
   if (!Object.hasOwn(aliases, type)) return fail();
   let kind = aliases[type];
+  const documented = /^(text-(60|100|1000)|decimal-2dp|menu-(radio|checkbox)|date|integer)$/.test(type);
+  if (documented && (source['min'] === undefined || source['max'] === undefined)) return fail();
+  if (type === 'decimal-2dp' && (typeof source['min'] !== 'number' || typeof source['max'] !== 'number')) return fail();
   if (typeof source['mandatory'] !== 'boolean' || source['language_dependent'] !== false) return fail();
   if (source['readonly'] !== undefined && typeof source['readonly'] !== 'boolean') return fail();
   if (source['hint'] !== undefined && typeof source['hint'] !== 'string') return fail();
   if (source['precision'] !== undefined && (kind !== 'money' || source['precision'] !== 2)) return fail();
   if (source['date_rule'] !== undefined && (kind !== 'date' || source['date_rule'] !== 'past')) return fail();
-  if (name === 'frequency') {
+  if (name.toLowerCase() === 'frequency' && !documented) {
     if (
       kind !== 'select' ||
       ['min', 'max', 'options', 'apidata', 'precision', 'date_rule'].some((key) => source[key] !== undefined)
@@ -104,7 +114,7 @@ const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
     }
     kind = 'readonly';
   } else if (source['readonly'] === true) return fail();
-  const choice = ['select', 'radio', 'autocomplete'].includes(kind);
+  const choice = ['select', 'radio', 'autocomplete'].includes(kind) || type === 'menu-checkbox';
   if (!choice && (source['options'] !== undefined || source['apidata'] !== undefined)) return fail();
   const lookup =
     source['apidata'] === undefined
@@ -112,20 +122,25 @@ const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
       : source['apidata'] === 'mock:order-term-options'
         ? 'mock:order-term-options'
         : fail();
-  const options = source['options'] === undefined ? [] : parseOptions(source['options']);
+  const options = source['options'] === undefined ? [] : parseOptions(source['options'], documented);
   if (choice && (lookup ? options.length > 0 : options.length === 0)) return fail();
   if (
     choice &&
+    !documented &&
     ((source['min'] !== undefined && source['min'] !== 0) ||
       (source['max'] !== undefined && source['max'] !== 'No Limit'))
   ) {
     return fail();
   }
-  if (['checkbox', 'readonly'].includes(kind) && (source['min'] !== undefined || source['max'] !== undefined)) {
+  if (
+    !documented &&
+    ['checkbox', 'readonly'].includes(kind) &&
+    (source['min'] !== undefined || source['max'] !== undefined)
+  ) {
     return fail();
   }
-  const min = choice ? null : bound(source['min'], kind, false);
-  const max = choice ? null : bound(source['max'], kind, true);
+  const min = choice && !documented ? null : bound(source['min'], kind, false);
+  const max = choice && !documented ? null : bound(source['max'], kind, true);
   if (min !== null && max !== null) {
     const reversed =
       kind === 'money'
@@ -134,6 +149,23 @@ const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
           ? min > max
           : String(min) > String(max);
     if (reversed) return fail();
+  }
+  if (documented) {
+    if (min === null || max === null) return fail();
+    if (kind === 'date' && (String(min) < '1900-01-01' || String(max) > '2100-12-31')) return fail();
+    if (kind === 'integer' && (Number(min) < -2147483648 || Number(max) > 2147483647)) return fail();
+    if (
+      type === 'decimal-2dp' &&
+      (decimalUnits(String(min)) < -999999999999n || decimalUnits(String(max)) > 999999999999n)
+    )
+      return fail();
+    if (type.startsWith('text-') && Number(max) > Number(type.slice(5))) return fail();
+    if (type === 'menu-radio' && (Number(min) > 1 || Number(max) !== 1)) return fail();
+    if (type === 'menu-checkbox' && (Number(max) < 1 || Number(max) > options.length)) return fail();
+    if (name.toLowerCase() === 'frequency') {
+      if (type !== 'menu-radio') return fail();
+      kind = 'readonly';
+    }
   }
   return {
     name,

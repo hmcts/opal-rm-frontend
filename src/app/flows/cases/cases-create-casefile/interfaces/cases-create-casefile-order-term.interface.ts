@@ -1,4 +1,4 @@
 export interface ICasesCreateCasefileOrderTerm {
   resultId: string;
-  parameters: Record<string, string | number | boolean>;
+  parameters: Record<string, string | string[] | number | boolean>;
 }

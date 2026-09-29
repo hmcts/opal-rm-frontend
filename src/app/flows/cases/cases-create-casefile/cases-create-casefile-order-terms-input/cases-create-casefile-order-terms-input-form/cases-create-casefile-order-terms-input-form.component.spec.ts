@@ -30,6 +30,11 @@ const allControlsPage: ICasesCreateCasefileOrderTermPage = {
         mandatory: true,
         language_dependent: false,
         hint: '<b>Plain hint</b>',
+        ...(kind === 'date'
+          ? { min: '1900-01-01', max: '2100-12-31' }
+          : kind === 'integer'
+            ? { min: -2147483648, max: 2147483647 }
+            : {}),
         ...(['select', 'radio', 'autocomplete'].includes(kind)
           ? {
               options: [
@@ -444,5 +449,41 @@ describe('Order terms input form', () => {
       formData: Object.fromEntries(Object.entries(values).map(([name, value]) => [id(name), value])),
       nestedFlow: false,
     });
+  });
+  it('renders checkbox options, restores selections and clears dirty state when edits are reverted', () => {
+    const page = {
+      resultId: 'TEST',
+      title: 'Terms',
+      fields: mapOrderTermParameters(
+        JSON.stringify([
+          {
+            name: 'Terms',
+            prompt: 'Expiry terms',
+            type: 'menu-checkbox',
+            mandatory: true,
+            min: 1,
+            max: 1,
+            language_dependent: false,
+            options: ['A & B', 'Other'],
+          },
+        ]),
+      ),
+    };
+    render(page, { Terms: ['A & B'] });
+    const boxes: NodeListOf<HTMLInputElement> = fixture.nativeElement.querySelectorAll('input[type=checkbox]');
+    expect(boxes).toHaveLength(2);
+    expect(boxes[0].checked).toBe(true);
+    expect(boxes[1].checked).toBe(false);
+    boxes[1].click();
+    fixture.detectChanges();
+    expect(host.onDraftChange).toHaveBeenLastCalledWith({ values: { Terms: ['A & B', 'Other'] }, dirty: true });
+    submit();
+    expect(host.onSubmit).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.govuk-error-summary').textContent).toContain('Select no more than 1');
+    boxes[1].click();
+    fixture.detectChanges();
+    expect(host.onDraftChange).toHaveBeenLastCalledWith({ values: { Terms: ['A & B'] }, dirty: false });
+    submit();
+    expect(host.onSubmit).toHaveBeenCalledWith(expect.objectContaining({ formData: { [id('terms')]: ['A & B'] } }));
   });
 });

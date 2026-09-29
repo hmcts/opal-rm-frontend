@@ -11,14 +11,22 @@ export function orderTermRows(
     const value = field.kind === 'readonly' ? frequency : term.parameters[field.name];
     if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) return [];
 
+    if (Array.isArray(value) && !value.length) return [];
     let formatted = String(value);
     if (field.kind === 'money') {
-      const [whole, fraction = '00'] = formatted.split('.');
-      formatted = `£${BigInt(whole).toLocaleString('en-GB')}.${fraction.padEnd(2, '0')}`;
+      const sign = formatted.startsWith('-') ? '-' : '';
+      const [whole, fraction = '00'] = formatted.replace(/^-/, '').split('.');
+      formatted = `${sign}£${BigInt(whole).toLocaleString('en-GB')}.${fraction.padEnd(2, '0')}`;
     } else if (field.kind === 'date') {
       formatted = DateTime.fromISO(formatted).setLocale('en-GB').toFormat('d LLLL yyyy');
     } else if (field.kind === 'checkbox') {
-      formatted = value === true ? 'Yes' : 'No';
+      formatted = Array.isArray(value)
+        ? value
+            .map((selected) => field.options.find((option) => option.value === selected)?.label ?? selected)
+            .join(', ')
+        : value === true
+          ? 'Yes'
+          : 'No';
     } else if (['select', 'radio', 'autocomplete'].includes(field.kind)) {
       formatted = field.options.find((option) => option.value === String(value))?.label ?? String(value);
     }

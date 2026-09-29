@@ -92,7 +92,15 @@ describe('Order term input', () => {
       cy.screenshot('po-9807-documented-checkbox-validation');
       cy.get(S.orderTermsInput.termsSecond).uncheck();
       cy.get(S.orderTermsInput.continueButton).click();
-      assertTerms({ Amount: '-0.10', Terms: ['A & B'] });
+      assertTerms(
+        { Amount: '-0.10', Terms: ['A & B'] },
+        null,
+        orderTermPresentation({
+          resultId: 'MAT',
+          title: M.documented.result_title,
+          fields: mapOrderTermParameters(M.documented.result_parameters),
+        }),
+      );
     },
   );
 

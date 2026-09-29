@@ -16,6 +16,25 @@ const term = (
 });
 
 describe('orderTermRows', () => {
+  it('preserves the sign of negative decimal fractions', () => {
+    const accepted = term([{ name: 'amount', label: 'Amount', kind: 'money', options: [] }], { amount: '-0.10' });
+    expect(orderTermRows(accepted, '')[0].value).toBe('-£0.10');
+  });
+  it('renders checkbox selections as their labels and omits empty groups', () => {
+    const fields = [
+      {
+        name: 'terms',
+        label: 'Terms',
+        kind: 'checkbox' as const,
+        options: [
+          { value: 'A', label: 'A & B' },
+          { value: 'other', label: 'Other' },
+        ],
+      },
+    ];
+    expect(orderTermRows(term(fields, { terms: ['A', 'other'] }), '')[0].value).toBe('A & B, Other');
+    expect(orderTermRows(term(fields, { terms: [] }), '')).toEqual([]);
+  });
   it('preserves metadata order and formats each supported saved value', () => {
     const accepted = term(
       [

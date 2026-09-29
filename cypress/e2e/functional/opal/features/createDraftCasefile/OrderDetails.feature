@@ -18,3 +18,8 @@ Feature: Create Draft Casefile Order Details
     Then Case Details retains my parties and announces the shared HTTP error and operation reference
     When I retry opening Order Details using the keyboard
     Then Order Details opens with the available applications
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805
+  Scenario: Refresh preserves hidden navigation and applies the direct-link guard
+    When I open Order Details with available applications
+    Then refreshing Order Details returns to Case Type with primary navigation hidden

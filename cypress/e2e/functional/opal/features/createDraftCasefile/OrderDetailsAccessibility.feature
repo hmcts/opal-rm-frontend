@@ -24,8 +24,3 @@ Feature: Order Details accessibility
     When the Order Details applications lookup fails
     Then Case Details retains my parties and announces the shared HTTP error and operation reference
     And I check the page for accessibility
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805
-  Scenario: Refresh preserves hidden navigation and applies the direct-link guard
-    When I open Order Details with available applications
-    Then refreshing Order Details returns to Case Type with primary navigation hidden

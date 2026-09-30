@@ -71,9 +71,7 @@ export class CasesCreateCasefileOrderDetailsFormComponent extends AbstractFormBa
       createCasesCreateCasefileOrderDetailsDateValidator(this.dates),
     ),
     create_casefile_order_details_payment_frequency: new FormControl<string | null>(null, (control) =>
-      CASES_CREATE_CASEFILE_ORDER_DETAILS_PAYMENT_FREQUENCIES.some((value) => value === control.value)
-        ? null
-        : { required: true },
+      CASES_CREATE_CASEFILE_ORDER_DETAILS_PAYMENT_FREQUENCIES.includes(control.value) ? null : { required: true },
     ),
     create_casefile_order_details_date_arrears_last_updated: new FormControl<string | null>(null, [
       Validators.required,
@@ -127,11 +125,13 @@ export class CasesCreateCasefileOrderDetailsFormComponent extends AbstractFormBa
       event instanceof KeyboardEvent && event.key === 'Enter' && target instanceof Element
         ? target.getAttribute('aria-activedescendant')
         : null;
-    const option =
-      target instanceof Element
-        ? (target.closest('[role="option"]') ??
-          (activeOptionId ? target.ownerDocument.getElementById(activeOptionId) : null))
-        : null;
+    let option: Element | null = null;
+    if (target instanceof Element) {
+      option = target.closest('[role="option"]');
+      if (!option && activeOptionId) {
+        option = target.ownerDocument.getElementById(activeOptionId);
+      }
+    }
     const activated = event.type === 'click' || (event instanceof KeyboardEvent && ['Enter', ' '].includes(event.key));
 
     if (

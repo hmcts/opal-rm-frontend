@@ -230,6 +230,35 @@ describe('CasesCreateCasefileOrderDetailsFormComponent', () => {
     expect(submit).toHaveBeenCalledWith({ formData, nestedFlow: false });
     expect(cancel).toHaveBeenCalledOnce();
   });
+  it.each(['input', 'div'])('ignores application input events from an unrelated %s', (tag) => {
+    createComponent({ ...emptyFormData, [FIELD_NAMES.applicationId]: 901 });
+    fixture.detectChanges();
+    const unrelated = document.createElement(tag);
+    unrelated.id = FIELD_NAMES.court;
+    unrelated.addEventListener('input', (event) => component.handleApplicationInput(event));
+    unrelated.dispatchEvent(new Event('input'));
+
+    expect(component.form.controls[FIELD_NAMES.applicationId].value).toBe(901);
+    expect(component.form.controls[FIELD_NAMES.applicationId].valid).toBe(true);
+    expect(component.form.pristine).toBe(true);
+  });
+
+  it('ignores selection events without an element target and keeps typed text unconfirmed', () => {
+    createComponent();
+    fixture.detectChanges();
+    const input = document.createElement('input');
+    input.id = `${FIELD_NAMES.applicationId}-autocomplete`;
+    input.value = applicationAutocompleteItems[0].name;
+    input.addEventListener('input', (event) => component.handleApplicationInput(event));
+    input.dispatchEvent(new Event('input'));
+    component.form.controls[FIELD_NAMES.applicationId].setValue(901);
+
+    component.handleApplicationSelection(new MouseEvent('click'));
+
+    expect(component.form.controls[FIELD_NAMES.applicationId].value).toBe(901);
+    expect(component.form.controls[FIELD_NAMES.applicationId].errors).toEqual({ invalidSelection: true });
+  });
+
   it('rejects an exact typed label converted to an ID by autocomplete blur', () => {
     createComponent({
       ...emptyFormData,

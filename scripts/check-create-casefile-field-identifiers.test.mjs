@@ -16,6 +16,8 @@ const centralAuthorityDirectory = 'cases-create-casefile-central-authority';
 const centralAuthorityFieldNamesPath = `${createCasefilePath}/${centralAuthorityDirectory}/constants/cases-create-casefile-central-authority-field-names.constant.ts`;
 const centralAuthorityTemplatePath = `${createCasefilePath}/${centralAuthorityDirectory}/cases-create-casefile-central-authority-form/cases-create-casefile-central-authority-form.component.html`;
 const managingPaymentsTemplatePath = `${createCasefilePath}/cases-create-casefile-managing-payments/cases-create-casefile-managing-payments-form/cases-create-casefile-managing-payments-form.component.html`;
+const orderDetailsDirectory = 'cases-create-casefile-order-details';
+const orderDetailsTemplatePath = `${createCasefilePath}/${orderDetailsDirectory}/cases-create-casefile-order-details-form/cases-create-casefile-order-details-form.component.html`;
 const temporaryRepositories = [];
 
 const supportingFieldNameConstants = [
@@ -48,6 +50,12 @@ const supportingFieldNameConstants = [
     exportName: 'CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES',
     key: 'majorCreditorId',
     value: 'create_casefile_central_authority_major_creditor_id',
+  },
+  {
+    path: `${orderDetailsDirectory}/constants/cases-create-casefile-order-details-field-names.constant.ts`,
+    exportName: 'CASES_CREATE_CASEFILE_ORDER_DETAILS_FIELD_NAMES',
+    key: 'applicationId',
+    value: 'create_casefile_order_details_application_id',
   },
 ];
 
@@ -151,7 +159,7 @@ test('rejects duplicate identifiers after resolving a field-map expression', asy
   );
 });
 
-test('accepts the Central Authority and Managing Payments structural action identifiers', async () => {
+test('accepts the maintained form structural action identifiers', async () => {
   const repositoryRoot = await createFixtureRepository();
   await Promise.all([
     writeFixtureFile(
@@ -170,6 +178,17 @@ test('accepts the Central Authority and Managing Payments structural action iden
       managingPaymentsTemplatePath,
       `<button id="returnToCaseDetails" type="submit">Return to case details</button>
 <span id="cancelManagingPayments"></span>
+`,
+    ),
+    writeFixtureFile(
+      repositoryRoot,
+      orderDetailsTemplatePath,
+      `<opal-lib-alphagov-accessible-autocomplete
+  [inputId]="fieldNames.applicationId"
+  [inputName]="fieldNames.applicationId"
+/>
+<button id="create_casefile_order_details_return_to_case_details" type="submit">Return to case details</button>
+<span id="create_casefile_order_details_cancel"></span>
 `,
     ),
   ]);

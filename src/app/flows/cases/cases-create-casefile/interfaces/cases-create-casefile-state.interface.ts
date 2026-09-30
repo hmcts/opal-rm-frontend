@@ -5,12 +5,14 @@ import type { ICasesCreateCasefileCommentsNotes } from './cases-create-casefile-
 import type { ICasesCreateCasefileInterestIndexation } from './cases-create-casefile-interest-indexation.interface';
 import type { ICasesCreateCasefileCentralAuthorityDetails } from './cases-create-casefile-central-authority-details.interface';
 import type { ICasesCreateCasefileRespondentDetails } from './cases-create-casefile-respondent-details.interface';
+import type { ICasesCreateCasefileOrderDetails } from './cases-create-casefile-order-details.interface';
 import type { ICasesCreateCasefileTaskStatuses } from './cases-create-casefile-task-statuses.interface';
 
 export interface ICasesCreateCasefileState {
   caseTypeSelection: CasesCreateCasefileCaseTypeSelection | null;
   applicantDetails: CasesCreateCasefileApplicantDetails | null;
   respondentDetails: ICasesCreateCasefileRespondentDetails | null;
+  orderDetails: ICasesCreateCasefileOrderDetails | null;
   interestAndIndexation: ICasesCreateCasefileInterestIndexation | null;
   centralAuthorityDetails: ICasesCreateCasefileCentralAuthorityDetails | null;
   paymentArrangement: CasesCreateCasefilePaymentArrangement | null;

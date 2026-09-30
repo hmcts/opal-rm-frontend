@@ -1,3 +1,4 @@
+import { CASES_CREATE_CASEFILE_ORDER_DETAILS_FIELD_NAMES as ORDER_FIELDS } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-details/constants/cases-create-casefile-order-details-field-names.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/constants/cases-create-casefile-case-type-field-names.constant';
 import { CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-central-authority/constants/cases-create-casefile-central-authority-field-names.constant';
 import { CASES_CREATE_CASEFILE_INTEREST_INDEXATION_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-interest-indexation/constants/cases-create-casefile-interest-indexation-field-names.constant';
@@ -26,6 +27,25 @@ export const CreateCasefileSelectors = {
   errorSummaryLinks: '.govuk-error-summary a',
   caseTypeError: `#${CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.caseType}-error-message`,
   applicantTypeError: `#${CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES.applicantType}-error-message`,
+  orderDetails: {
+    heading: 'h1',
+    application: `#${ORDER_FIELDS.applicationId}-autocomplete`,
+    applicationOptions: `#${ORDER_FIELDS.applicationId}-autocomplete__listbox [role="option"]`,
+    court: `#${ORDER_FIELDS.court}`,
+    dateOrderMade: `#${ORDER_FIELDS.dateOrderMade}`,
+    orderCalendar: `#${ORDER_FIELDS.dateOrderMade} + .moj-js-datepicker-toggle`,
+    paymentFrequency: `#${ORDER_FIELDS.paymentFrequency}`,
+    frequencyOptions: `#${ORDER_FIELDS.paymentFrequency} option`,
+    dateArrearsLastUpdated: `#${ORDER_FIELDS.dateArrearsLastUpdated}`,
+    arrearsCalendar: `#${ORDER_FIELDS.dateArrearsLastUpdated} + .moj-js-datepicker-toggle`,
+    calendar: `#datepicker-${ORDER_FIELDS.dateOrderMade}`,
+    calendarDay: '.moj-datepicker__calendar button:not([disabled])',
+    returnButton: '#create_casefile_order_details_return_to_case_details',
+    cancel: '#create_casefile_order_details_cancel a',
+    back: '.govuk-back-link',
+  },
+  liveAnnouncement: '.moj-alert--error [role="alert"]',
+  primaryNavigation: '#primaryNavigation',
   caseDetails: {
     backLink: '.govuk-back-link',
     caption: '.govuk-caption-l',

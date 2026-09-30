@@ -218,7 +218,7 @@ const structuralIdentifierAllowlist = new Set([
   ),
   structuralIdentifierKey(templatePaths.orderDetails, 'span', 'id', 'create_casefile_order_details_cancel'),
 
-  structuralIdentifierKey(templatePaths.orderTermsSelect, 'div', 'id', 'create_casefile_order_terms_status'),
+  structuralIdentifierKey(templatePaths.orderTermsSelect, 'output', 'id', 'create_casefile_order_terms_status'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_retry'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'button', 'id', 'create_casefile_order_terms_continue'),
   structuralIdentifierKey(templatePaths.orderTermsSelect, 'span', 'id', 'create_casefile_order_terms_cancel'),

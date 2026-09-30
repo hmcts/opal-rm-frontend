@@ -203,7 +203,7 @@ test('accepts the maintained form structural action identifiers', async () => {
     writeFixtureFile(
       repositoryRoot,
       orderTermsSelectTemplatePath,
-      `<div id="create_casefile_order_terms_status"></div>
+      `<output id="create_casefile_order_terms_status"></output>
 <button id="create_casefile_order_terms_retry" type="button">Retry</button>
 <select [id]="fieldNames.resultId" [name]="fieldNames.resultId"></select>
 <button id="create_casefile_order_terms_continue" type="submit">Continue</button>

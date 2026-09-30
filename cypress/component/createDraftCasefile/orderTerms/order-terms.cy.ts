@@ -31,7 +31,8 @@ describe('Order term selection', () => {
     cy.get(S.orderTerms.select).should('be.disabled');
     cy.get(S.orderTerms.continueButton).should('be.disabled');
     cy.get(S.orderTerms.cancel).should('be.visible');
-    cy.get(S.orderTerms.status).should('have.attr', 'role', 'status').and('contain.text', 'Loading order terms');
+    cy.get(S.orderTerms.status).should('match', 'output').and('contain.text', 'Loading order terms');
+    cy.get(S.orderTerms.status).should('have.attr', 'aria-live', 'polite').and('have.attr', 'aria-atomic', 'true');
     emit(response);
     cy.get(S.orderTerms.select).should('not.be.disabled').and('have.value', '');
     cy.get(S.orderTerms.select)

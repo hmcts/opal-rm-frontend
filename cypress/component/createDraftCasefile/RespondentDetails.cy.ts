@@ -7,7 +7,10 @@ import { CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_FIELD_NAMES } from 'src/app/fl
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-task-statuses.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
-import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from './constants/create-casefile-test-copy.constant';
+import {
+  ERROR_SUMMARY_TITLE,
+  UNSAVED_CHANGES_WARNING,
+} from '../../shared/constants/create-casefile-test-copy.constant';
 import {
   RESPONDENT_DETAILS_ERROR_MESSAGES,
   RESPONDENT_DETAILS_REQUIRED_ERROR_SUMMARY,

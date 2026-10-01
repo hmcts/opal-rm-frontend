@@ -5,7 +5,10 @@ import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-c
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { CasesCreateCasefileIndexationType } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-indexation-type.type';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
-import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
+import {
+  ERROR_SUMMARY_TITLE,
+  UNSAVED_CHANGES_WARNING,
+} from '../../../shared/constants/create-casefile-test-copy.constant';
 import { INTEREST_AND_INDEXATION_ERROR_MESSAGES } from './constants/interest-and-indexation-errors.constant';
 import { SAVED_INTEREST_AND_INDEXATION } from './mocks/interest-and-indexation.mock';
 import { setupInterestAndIndexation } from './setup/interest-and-indexation.setup';

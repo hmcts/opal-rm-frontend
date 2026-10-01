@@ -5,15 +5,25 @@ import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-c
 import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-state.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
+import {
+  ERROR_SUMMARY_TITLE,
+  UNSAVED_CHANGES_WARNING,
+} from '../../../shared/constants/create-casefile-test-copy.constant';
+import { CREDITOR_VALIDATION_COPY } from '../../../shared/constants/creditor-copy.constant';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
-import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
-import { CREDITOR_VALIDATION_COPY } from './constants/creditor-copy.constant';
 import { CREDITOR_MAJOR_RESPONSE } from './mocks/creditor.mock';
 import { setupCreditor, type CreditorStore } from './setup/creditor.setup';
 
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9808', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
 const assertRoute = (child: string) => cy.get<Router>('@angularRouter').its('url').should('eq', route(child));
+const scan = () => {
+  cy.document().its('documentElement.lang').should('eq', 'en');
+  cy.title().should('eq', 'OPAL - Creditor');
+  cy.get('main').should('exist');
+  cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+  cy.checkA11y();
+};
 const prohibitPersistence = () => {
   const request = cy.spy().as('prohibitedMaintenanceWrite');
   cy.intercept({ method: '+(POST|PUT|PATCH|DELETE)', url: '**/opal-maintenance-service/**' }, request);
@@ -34,6 +44,20 @@ describe('Order term creditor', () => {
       cy.get(S.creditor.major).should('exist').and('be.enabled').and('have.value', 'major');
       cy.get(S.creditor.addNew).should('exist').and('be.enabled').and('have.value', 'add-new');
       cy.get(S.creditor.minor(1)).should('not.exist');
+      cy.get(S.creditor.choiceLabels).then(($labels) => {
+        expect([...$labels].map((label) => label.textContent?.trim())).to.deep.equal([
+          'Test Organisation (Applicant)',
+          'Major creditor',
+          'Add a new minor creditor',
+        ]);
+      });
+      cy.get(S.creditor.majorConditional).should('have.class', 'govuk-radios__conditional--hidden');
+      cy.get(S.creditor.majorId).should('not.be.visible');
+      cy.get(S.creditor.major).check();
+      cy.get(S.creditor.majorConditional).should('not.have.class', 'govuk-radios__conditional--hidden');
+      cy.get(S.creditor.majorId).should('be.visible');
+      cy.get(S.creditor.applicant).check();
+      cy.get(S.creditor.majorId).should('not.be.visible');
       cy.get(S.creditor.continueButton).should('not.be.disabled');
       cy.get(S.primaryNavigation).should('not.exist');
       cy.get('@majorCreditorsRequest').should('have.been.calledOnceWithExactly', {
@@ -50,7 +74,18 @@ describe('Order term creditor', () => {
     for (const sequenceNumber of [1, 2, 3, 4, 5]) {
       cy.get(S.creditor.minor(sequenceNumber)).should('have.value', `minor:${sequenceNumber}`);
     }
-    cy.get('label').filter(':contains("Duplicate Synthetic Name (Minor creditor)")').should('have.length', 2);
+    cy.get(S.creditor.choiceLabels).then(($labels) => {
+      expect([...$labels].map((label) => label.textContent?.trim())).to.deep.equal([
+        'Test Organisation (Applicant)',
+        'Synthetic Minor One (Minor creditor)',
+        'Duplicate Synthetic Name (Minor creditor)',
+        'Synthetic Minor Three (Minor creditor)',
+        'Duplicate Synthetic Name (Minor creditor)',
+        'Synthetic Minor Five (Minor creditor)',
+        'Major creditor',
+        'Add a new minor creditor',
+      ]);
+    });
   });
 
   it('AC3. should focus the exact creditor error and preserve the current term', { tags: buildTags() }, () => {
@@ -65,6 +100,19 @@ describe('Order term creditor', () => {
       expect(store.orderTerms()).to.have.length(1);
       expect(store.orderTerms()[0].creditor).to.eq(null);
     });
+  });
+
+  it('AC3. should show and link the exact missing Major error without navigating', { tags: buildTags() }, () => {
+    setupCreditor();
+    cy.get(S.creditor.major).check();
+    cy.get(S.creditor.continueButton).click();
+
+    cy.get(S.errorSummary).should('be.focused').and('contain.text', ERROR_SUMMARY_TITLE);
+    cy.get(S.creditor.majorError).should('be.visible').and('contain.text', CREDITOR_VALIDATION_COPY.major);
+    cy.get(S.errorSummaryLinks).contains(CREDITOR_VALIDATION_COPY.major).click();
+    cy.get(S.creditor.majorId).should('be.focused');
+    cy.get(S.creditor.major).should('be.checked');
+    assertRoute(PATHS.children.orderTermCreditor);
   });
 
   for (const selection of [
@@ -190,7 +238,7 @@ describe('Order term creditor', () => {
         setupCreditor();
         cy.get(S.creditor.applicant).check();
         cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => expect(store.unsavedChanges()).to.eq(true));
-        cy.on('window:confirm', (message) => {
+        cy.once('window:confirm', (message) => {
           expect(message).to.eq(UNSAVED_CHANGES_WARNING);
           return confirmed;
         });
@@ -203,6 +251,23 @@ describe('Order term creditor', () => {
       },
     );
   }
+
+  it('RGAC1, RGAC2. should prevent beforeunload and retain the creditor edit', { tags: buildTags() }, () => {
+    setupCreditor({ shell: true });
+    cy.get(S.creditor.applicant).check();
+
+    cy.window().then((window) => {
+      const event = new Event('beforeunload', { cancelable: true });
+      expect(window.dispatchEvent(event)).to.eq(false);
+      expect(event.defaultPrevented).to.eq(true);
+    });
+
+    cy.get(S.creditor.applicant).should('be.checked');
+    cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
+      expect(store.unsavedChanges()).to.eq(true);
+      expect(store.orderTerms()[0].creditor).to.eq(null);
+    });
+  });
 
   it('AC4. should open details without allocating a Minor and restore add-new on Return', { tags: buildTags() }, () => {
     setupCreditor();
@@ -309,4 +374,94 @@ describe('Order term creditor', () => {
       },
     );
   }
+
+  describe('Accessibility and keyboard behaviour', () => {
+    it('AC1, AC5. should support keyboard choice, conditional focus and Continue', { tags: buildTags() }, () => {
+      setupCreditor({ shell: true });
+      cy.get(S.creditor.applicant).focus();
+      cy.press(Cypress.Keyboard.Keys.SPACE);
+      cy.get(S.creditor.applicant).should('be.checked').and('be.focused');
+      cy.press(Cypress.Keyboard.Keys.DOWN);
+      cy.get(S.creditor.major).should('be.checked').and('be.focused');
+      cy.get(S.creditor.majorId).should('be.visible');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.creditor.majorId)
+        .should('be.focused')
+        .select(String(CREDITOR_MAJOR_RESPONSE.refData[0].major_creditor_id));
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.creditor.continueButton).should('be.focused').type('{enter}');
+      assertRoute(PATHS.children.orderTermsSummary);
+    });
+
+    it(
+      'AC3, AC5. should activate the summary link with Enter and focus the creditor group',
+      { tags: buildTags() },
+      () => {
+        setupCreditor();
+        cy.get(S.creditor.continueButton).focus().type('{enter}');
+        cy.get(S.errorSummary).should('be.focused');
+        cy.get(S.errorSummaryLinks).contains(CREDITOR_VALIDATION_COPY.choice).focus();
+        cy.press(Cypress.Keyboard.Keys.ENTER);
+        cy.get(S.creditor.applicant).should('be.focused');
+        cy.get(S.creditor.choiceFieldset).find('legend').should('contain.text', 'Select creditor');
+      },
+    );
+
+    it('AC4, AC5. should activate Cancel independently with Enter', { tags: buildTags() }, () => {
+      setupCreditor();
+      cy.get(S.creditor.applicant).check();
+      cy.once('window:confirm', (message) => {
+        expect(message).to.eq(UNSAVED_CHANGES_WARNING);
+        return false;
+      });
+      cy.get(S.creditor.cancel).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      assertRoute(PATHS.children.orderTermCreditor);
+      cy.get(S.creditor.applicant).should('be.checked');
+    });
+
+    it(
+      'AC5. should pass strict Axe scans with the Major conditional hidden and visible, and after validation',
+      { tags: buildTags() },
+      () => {
+        setupCreditor({ shell: true });
+        scan();
+        cy.get(S.creditor.major)
+          .should('have.attr', 'aria-controls', 'create_casefile_order_term_creditor_major')
+          .and('not.have.attr', 'aria-expanded');
+        cy.get(S.creditor.major).check();
+        cy.get(S.creditor.majorId).should('be.visible');
+        scan();
+        cy.screenshot('po-9808-after-creditor-initial');
+        cy.get(S.creditor.continueButton).click();
+        cy.get(S.errorSummary).should('be.focused');
+        scan();
+        cy.screenshot('po-9808-after-creditor-validation');
+      },
+    );
+
+    it('AC5. should pass Axe on the details destination', { tags: buildTags() }, () => {
+      setupCreditor({ shell: true });
+      cy.get(S.creditor.addNew).check();
+      cy.get(S.creditor.continueButton).click();
+      cy.title().should('eq', 'OPAL - Minor creditor details');
+      cy.get('main').should('exist');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po-9808-after-minor-creditor-details');
+    });
+
+    it('AC5. should reflow at 320 CSS pixels without horizontal document overflow', { tags: buildTags() }, () => {
+      cy.viewport(320, 900);
+      setupCreditor({ shell: true, seedFiveMinorCreditors: true });
+      cy.get(S.creditor.major).check();
+      cy.get(S.creditor.majorId).should('be.visible');
+      cy.document().then((document) => {
+        expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth);
+      });
+      cy.get(S.creditor.continueButton).should('be.visible');
+      cy.get(S.creditor.cancel).should('be.visible');
+      cy.screenshot('po-9808-after-creditor-major-320px');
+    });
+  });
 });

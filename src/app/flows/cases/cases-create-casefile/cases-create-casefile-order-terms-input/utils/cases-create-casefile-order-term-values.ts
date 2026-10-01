@@ -3,7 +3,39 @@ import type { DateService } from '@hmcts/opal-frontend-common/services/date-serv
 import type { ICasesCreateCasefileOrderTerm } from '../../interfaces/cases-create-casefile-order-term.interface';
 import type { ICasesCreateCasefileOrderTermPage } from '../interfaces/cases-create-casefile-order-term-page.interface';
 import type { CasesCreateCasefileOrderTermRawValue } from '../types/cases-create-casefile-order-term-raw-value.type';
+import type { ICasesCreateCasefileOrderTermField } from '../interfaces/cases-create-casefile-order-term-field.interface';
 import { createOrderTermValidator } from '../validators/cases-create-casefile-order-term.validator';
+
+const emptyValue = (field: ICasesCreateCasefileOrderTermField): CasesCreateCasefileOrderTermRawValue => {
+  if (field.kind !== 'checkbox') return null;
+  return field.options.length ? [] : false;
+};
+
+const canonicalValue = (
+  field: ICasesCreateCasefileOrderTermField,
+  value: Exclude<CasesCreateCasefileOrderTermRawValue, null>,
+  dates: DateService,
+): string | string[] | number | boolean => {
+  if (field.kind === 'checkbox') {
+    if (Array.isArray(value))
+      return field.options.filter((option) => value.includes(option.value)).map((option) => option.value);
+    return value === true;
+  }
+  const text = String(value).trim();
+  switch (field.kind) {
+    case 'money': {
+      const [whole, fraction = ''] = text.replace(/^-/, '').split('.');
+      const sign = text.startsWith('-') && /[1-9]/.test(text) ? '-' : '';
+      return `${sign}${BigInt(whole)}.${fraction.padEnd(2, '0')}`;
+    }
+    case 'integer':
+      return Number(text);
+    case 'date':
+      return dates.getFromFormat(text, 'dd/MM/yyyy').toFormat('yyyy-MM-dd');
+    default:
+      return text;
+  }
+};
 
 export function canonicalOrderTerm(
   page: ICasesCreateCasefileOrderTermPage,
@@ -13,29 +45,10 @@ export function canonicalOrderTerm(
   const entries: [string, string | string[] | number | boolean][] = [];
   for (const field of page.fields) {
     if (field.kind === 'readonly') continue;
-    const value = raw[field.id] ?? (field.kind === 'checkbox' ? (field.options.length ? [] : false) : null);
+    const value = raw[field.id] ?? emptyValue(field);
     if (createOrderTermValidator(field, dates)(new FormControl(value))) throw new Error('Invalid order term');
     if (value == null || (typeof value === 'string' && !value.trim())) continue;
-    if (field.kind === 'checkbox' && Array.isArray(value)) {
-      entries.push([
-        field.name,
-        field.options.filter((option) => value.includes(option.value)).map((option) => option.value),
-      ]);
-      continue;
-    }
-    if (field.kind === 'checkbox') {
-      entries.push([field.name, value === true]);
-      continue;
-    }
-    const text = String(value).trim();
-    if (field.kind === 'money') {
-      const [whole, fraction = ''] = text.replace(/^-/, '').split('.');
-      const sign = text.startsWith('-') && /[1-9]/.test(text) ? '-' : '';
-      entries.push([field.name, `${sign}${BigInt(whole)}.${fraction.padEnd(2, '0')}`]);
-    } else if (field.kind === 'integer') entries.push([field.name, Number(text)]);
-    else if (field.kind === 'date')
-      entries.push([field.name, dates.getFromFormat(text, 'dd/MM/yyyy').toFormat('yyyy-MM-dd')]);
-    else entries.push([field.name, text]);
+    entries.push([field.name, canonicalValue(field, value, dates)]);
   }
   return { resultId: page.resultId, parameters: Object.fromEntries(entries) };
 }

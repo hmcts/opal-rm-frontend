@@ -1,3 +1,4 @@
+import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { ICasesCreateCasefileOrderTermField } from '../interfaces/cases-create-casefile-order-term-field.interface';
@@ -22,7 +23,8 @@ describe('CasesCreateCasefileOrderTermLookupsService', () => {
   let service: CasesCreateCasefileOrderTermLookupsService;
 
   beforeEach(() => {
-    service = new CasesCreateCasefileOrderTermLookupsService();
+    TestBed.configureTestingModule({ providers: [CasesCreateCasefileOrderTermLookupsService] });
+    service = TestBed.inject(CasesCreateCasefileOrderTermLookupsService);
   });
 
   it('preserves fields that do not request lookup data', async () => {

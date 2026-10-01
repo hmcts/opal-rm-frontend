@@ -9,9 +9,10 @@ export function orderTermErrorMessages(field: ICasesCreateCasefileOrderTermField
     child_date_of_birth: 'Enter child’s date of birth',
   };
   const choose = ['select', 'radio', 'autocomplete', 'checkbox'].includes(field.kind);
+  const action = choose ? 'Select' : 'Enter';
   const requiredMessage = Object.hasOwn(required, field.name)
     ? required[field.name]
-    : `${choose ? 'Select' : 'Enter'} ${field.label.toLowerCase()}`;
+    : `${action} ${field.label.toLowerCase()}`;
   return {
     required: { message: requiredMessage, priority: 1 },
     numeric: { message: 'Enter numbers only', priority: 2 },

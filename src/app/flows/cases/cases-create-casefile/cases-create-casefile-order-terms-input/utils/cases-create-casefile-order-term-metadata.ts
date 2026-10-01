@@ -89,90 +89,127 @@ const parseOptions = (value: unknown, strings = false): { value: string; label: 
   });
 };
 
-const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
-  const source = record(value);
-  if (Object.keys(source).some((key) => !keys.has(key))) return fail();
-  const name = text(source['name']);
-  if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) return fail();
-  const type = text(source['type']);
-  if (!Object.hasOwn(aliases, type)) return fail();
-  let kind = aliases[type];
-  const documented = /^(text-(60|100|1000)|decimal-2dp|menu-(radio|checkbox)|date|integer)$/.test(type);
-  if (documented && (source['min'] === undefined || source['max'] === undefined)) return fail();
-  if (type === 'decimal-2dp' && (typeof source['min'] !== 'number' || typeof source['max'] !== 'number')) return fail();
+const validateAttributes = (
+  source: Record<string, unknown>,
+  kind: ICasesCreateCasefileOrderTermField['kind'],
+): void => {
   if (typeof source['mandatory'] !== 'boolean' || source['language_dependent'] !== false) return fail();
   if (source['readonly'] !== undefined && typeof source['readonly'] !== 'boolean') return fail();
   if (source['hint'] !== undefined && typeof source['hint'] !== 'string') return fail();
   if (source['precision'] !== undefined && (kind !== 'money' || source['precision'] !== 2)) return fail();
   if (source['date_rule'] !== undefined && (kind !== 'date' || source['date_rule'] !== 'past')) return fail();
+};
+
+const fieldKind = (
+  source: Record<string, unknown>,
+  name: string,
+  type: string,
+  documented: boolean,
+): ICasesCreateCasefileOrderTermField['kind'] => {
+  const kind = aliases[type];
   if (name.toLowerCase() === 'frequency' && !documented) {
     if (
       kind !== 'select' ||
       ['min', 'max', 'options', 'apidata', 'precision', 'date_rule'].some((key) => source[key] !== undefined)
-    ) {
-      return fail();
-    }
-    kind = 'readonly';
-  } else if (source['readonly'] === true) return fail();
-  const choice = ['select', 'radio', 'autocomplete'].includes(kind) || type === 'menu-checkbox';
-  if (!choice && (source['options'] !== undefined || source['apidata'] !== undefined)) return fail();
-  const lookup =
-    source['apidata'] === undefined
-      ? null
-      : source['apidata'] === 'mock:order-term-options'
-        ? 'mock:order-term-options'
-        : fail();
-  const options = source['options'] === undefined ? [] : parseOptions(source['options'], documented);
-  if (choice && (lookup ? options.length > 0 : options.length === 0)) return fail();
-  if (
-    choice &&
-    !documented &&
-    ((source['min'] !== undefined && source['min'] !== 0) ||
-      (source['max'] !== undefined && source['max'] !== 'No Limit'))
-  ) {
-    return fail();
-  }
-  if (
-    !documented &&
-    ['checkbox', 'readonly'].includes(kind) &&
-    (source['min'] !== undefined || source['max'] !== undefined)
-  ) {
-    return fail();
-  }
-  const min = choice && !documented ? null : bound(source['min'], kind, false);
-  const max = choice && !documented ? null : bound(source['max'], kind, true);
-  if (min !== null && max !== null) {
-    const reversed =
-      kind === 'money'
-        ? decimalUnits(String(min)) > decimalUnits(String(max))
-        : typeof min === 'number' && typeof max === 'number'
-          ? min > max
-          : String(min) > String(max);
-    if (reversed) return fail();
-  }
-  if (documented) {
-    if (min === null || max === null) return fail();
-    if (kind === 'date' && (String(min) < '1900-01-01' || String(max) > '2100-12-31')) return fail();
-    if (kind === 'integer' && (Number(min) < -2147483648 || Number(max) > 2147483647)) return fail();
-    if (
-      type === 'decimal-2dp' &&
-      (decimalUnits(String(min)) < -999999999999n || decimalUnits(String(max)) > 999999999999n)
     )
       return fail();
-    if (type.startsWith('text-') && Number(max) > Number(type.slice(5))) return fail();
-    if (type === 'menu-radio' && (Number(min) > 1 || Number(max) !== 1)) return fail();
-    if (type === 'menu-checkbox' && (Number(max) < 1 || Number(max) > options.length)) return fail();
-    if (name.toLowerCase() === 'frequency') {
-      if (type !== 'menu-radio') return fail();
-      kind = 'readonly';
-    }
+    return 'readonly';
   }
+  if (source['readonly'] === true) return fail();
+  if (name.toLowerCase() === 'frequency') {
+    if (type !== 'menu-radio') return fail();
+    return 'readonly';
+  }
+  return kind;
+};
+
+const parseLookup = (value: unknown): ICasesCreateCasefileOrderTermField['lookup'] => {
+  if (value === undefined) return null;
+  if (value === 'mock:order-term-options') return value;
+  return fail();
+};
+
+const validateLegacyBounds = (
+  source: Record<string, unknown>,
+  choice: boolean,
+  kind: ICasesCreateCasefileOrderTermField['kind'],
+): void => {
+  if (
+    choice &&
+    ((source['min'] !== undefined && source['min'] !== 0) ||
+      (source['max'] !== undefined && source['max'] !== 'No Limit'))
+  )
+    return fail();
+  if (['checkbox', 'readonly'].includes(kind) && (source['min'] !== undefined || source['max'] !== undefined))
+    return fail();
+};
+
+const reversedBounds = (
+  min: string | number,
+  max: string | number,
+  kind: ICasesCreateCasefileOrderTermField['kind'],
+): boolean => {
+  if (kind === 'money') return decimalUnits(String(min)) > decimalUnits(String(max));
+  if (typeof min === 'number' && typeof max === 'number') return min > max;
+  return String(min) > String(max);
+};
+
+const validateRange = <T extends string | number | bigint>(min: T, max: T, lower: T, upper: T): void => {
+  if (min < lower || max > upper) return fail();
+};
+
+const validateDocumentedBounds = (
+  type: string,
+  min: string | number | null,
+  max: string | number | null,
+  optionCount: number,
+): void => {
+  if (min === null || max === null) return fail();
+  switch (type) {
+    case 'date':
+      validateRange(String(min), String(max), '1900-01-01', '2100-12-31');
+      break;
+    case 'integer':
+      validateRange(Number(min), Number(max), -2147483648, 2147483647);
+      break;
+    case 'decimal-2dp':
+      validateRange(decimalUnits(String(min)), decimalUnits(String(max)), -999999999999n, 999999999999n);
+      break;
+    case 'menu-radio':
+      if (Number(min) > 1 || Number(max) !== 1) return fail();
+      break;
+    case 'menu-checkbox':
+      if (Number(max) < 1 || Number(max) > optionCount) return fail();
+      break;
+    default:
+      if (Number(max) > Number(type.slice(5))) return fail();
+  }
+};
+
+const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
+  const source = record(value);
+  if (Object.keys(source).some((key) => !keys.has(key))) return fail();
+  const name = text(source['name']);
+  if (!/^[A-Za-z]\w*$/.test(name)) return fail();
+  const type = text(source['type']);
+  if (!Object.hasOwn(aliases, type)) return fail();
+  const documented = /^(text-(60|100|1000)|decimal-2dp|menu-(radio|checkbox)|date|integer)$/.test(type);
+  validateAttributes(source, aliases[type]);
+  const kind = fieldKind(source, name, type, documented);
+  const choice = ['select', 'radio', 'autocomplete'].includes(aliases[type]) || type === 'menu-checkbox';
+  // Legacy inherited Frequency has no editable choices or bounds.
+  const editableChoice = choice && !(kind === 'readonly' && !documented);
+  if (!editableChoice && (source['options'] !== undefined || source['apidata'] !== undefined)) return fail();
+  const lookup = parseLookup(source['apidata']);
+  const options = source['options'] === undefined ? [] : parseOptions(source['options'], documented);
+  if (editableChoice && (lookup ? options.length > 0 : options.length === 0)) return fail();
+  const { min, max } = parseBounds(source, type, documented, editableChoice, kind, options.length);
   return {
     name,
     id: `create_casefile_order_terms_input_${name.toLowerCase()}`,
     label: text(source['prompt']),
     kind,
-    required: source['mandatory'],
+    required: source['mandatory'] as boolean,
     hint: (source['hint'] as string | undefined) ?? '',
     min,
     max,
@@ -180,6 +217,24 @@ const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
     options,
     lookup,
   };
+};
+
+const parseBounds = (
+  source: Record<string, unknown>,
+  type: string,
+  documented: boolean,
+  choice: boolean,
+  kind: ICasesCreateCasefileOrderTermField['kind'],
+  optionCount: number,
+): Pick<ICasesCreateCasefileOrderTermField, 'min' | 'max'> => {
+  if (documented && (source['min'] === undefined || source['max'] === undefined)) return fail();
+  if (type === 'decimal-2dp' && (typeof source['min'] !== 'number' || typeof source['max'] !== 'number')) return fail();
+  if (!documented) validateLegacyBounds(source, choice, kind);
+  const min = choice && !documented ? null : bound(source['min'], aliases[type], false);
+  const max = choice && !documented ? null : bound(source['max'], aliases[type], true);
+  if (min !== null && max !== null && reversedBounds(min, max, aliases[type])) return fail();
+  if (documented) validateDocumentedBounds(type, min, max, optionCount);
+  return { min, max };
 };
 
 export function mapOrderTermParameters(json: string | null): ICasesCreateCasefileOrderTermField[] {

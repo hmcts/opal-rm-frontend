@@ -114,4 +114,18 @@ describe('canonicalOrderTerm', () => {
     selected.pop();
     expect(result.parameters['Terms']).toEqual(['A', 'B']);
   });
+  it('saves an absent optional checkbox group as an empty selection', () => {
+    const group = {
+      ...fields[0],
+      kind: 'checkbox' as const,
+      required: false,
+      min: 0,
+      max: 1,
+      options: [{ value: 'A', label: 'Alpha' }],
+    };
+    expect(canonicalOrderTerm({ resultId: 'TEST', title: 'Test', fields: [group] }, {}, dates)).toEqual({
+      resultId: 'TEST',
+      parameters: { [group.name]: [] },
+    });
+  });
 });

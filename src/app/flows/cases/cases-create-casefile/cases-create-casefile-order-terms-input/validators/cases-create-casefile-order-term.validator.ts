@@ -50,40 +50,45 @@ const checkboxErrors = (raw: unknown, field: ICasesCreateCasefileOrderTermField)
   return null;
 };
 
+const booleanCheckboxErrors = (raw: unknown, required: boolean) => {
+  if (raw !== true && raw !== false && raw != null) return { choice: true };
+  return required && raw !== true ? { required: true } : null;
+};
+
+const textError = (value: string, field: ICasesCreateCasefileOrderTermField): string | null => {
+  if (field.min !== null && value.length < Number(field.min)) return 'minLength';
+  if (field.max !== null && value.length > Number(field.max)) return 'maxLength';
+  return null;
+};
+
+const valueError = (raw: string, field: ICasesCreateCasefileOrderTermField, dates: DateService): string | null => {
+  const value = raw.trim();
+  switch (field.kind) {
+    case 'money':
+      return moneyError(value, field);
+    case 'integer':
+      return integerError(value, field);
+    case 'date':
+      return dateError(value, field, dates);
+    case 'select':
+    case 'radio':
+    case 'autocomplete':
+      return field.options.some((option) => option.value === raw) ? null : 'choice';
+    default:
+      return textError(value, field);
+  }
+};
+
 export function createOrderTermValidator(field: ICasesCreateCasefileOrderTermField, dates: DateService): ValidatorFn {
   return (control) => {
     const raw: unknown = control.value;
     if (field.kind === 'readonly') return null;
-    if (field.kind === 'checkbox' && field.options.length) return checkboxErrors(raw, field);
     if (field.kind === 'checkbox') {
-      if (raw !== true && raw !== false && raw != null) return { choice: true };
-      return field.required && raw !== true ? { required: true } : null;
+      return field.options.length ? checkboxErrors(raw, field) : booleanCheckboxErrors(raw, field.required);
     }
     if (blank(raw)) return field.required ? { required: true } : null;
     if (typeof raw !== 'string') return { choice: true };
-    const value = raw.trim();
-    let error: string | null = null;
-    switch (field.kind) {
-      case 'money':
-        error = moneyError(value, field);
-        break;
-      case 'integer':
-        error = integerError(value, field);
-        break;
-      case 'date':
-        error = dateError(value, field, dates);
-        break;
-      case 'select':
-      case 'radio':
-      case 'autocomplete':
-        error = field.options.some((option) => option.value === raw) ? null : 'choice';
-        break;
-      case 'text':
-      case 'long_text':
-        if (field.min !== null && value.length < Number(field.min)) error = 'minLength';
-        else if (field.max !== null && value.length > Number(field.max)) error = 'maxLength';
-        break;
-    }
+    const error = valueError(raw, field, dates);
     return error ? { [error]: true } : null;
   };
 }

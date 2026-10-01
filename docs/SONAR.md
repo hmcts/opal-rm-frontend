@@ -7,11 +7,53 @@ definitive source for Quality Gate status.
 ## Quality gates
 
 - Duplicated lines on New Code must be strictly below 3%.
-- Coverage on New Code must meet the configured gate; aim for 100% meaningful coverage.
+- Target 100% meaningful line and condition coverage on New Code before handoff. The configured Quality Gate is a
+  minimum, not the completion target. A request for 100% is not satisfied by meeting the gate threshold.
 - Overall metrics are improvement signals, not permission to refactor unrelated code.
 
 Meaningful coverage proves observable behaviour and important paths, including business rules, validation, state
 transitions, transformations, and error handling. Do not add tests that merely execute lines to improve a metric.
+
+## Preventing maintainability findings
+
+Review the complete changed functions before running checks:
+
+- Keep cognitive complexity at or below 15 per function. Split metadata parsing, validation and value conversion into
+  cohesive helpers with explicit inputs and outcomes. Keep rejection rules and error precedence intact. Do not merely
+  move branches into another oversized function or replace clear logic with opaque expressions.
+- Do not nest ternary expressions, including ternaries inside template literals or constructor arguments. Name the
+  intermediate decision or use an early return.
+- Use optional chaining for a nullable receiver when it preserves the original guard's behaviour. Check subsequent
+  property access remains safe, particularly when both compared values can be absent.
+- Use `includes()` for value membership and `some()` for predicates. Keep type narrowing honest; do not cast away a
+  potentially absent or invalid value to satisfy the type checker.
+- Use concise equivalent regular-expression classes (for example `\w` for `[A-Za-z0-9_]`). Preserve separate leading
+  character restrictions and validate accepted and rejected input examples.
+- Prefer semantic test assertions such as `expect(collection).toHaveLength(3)` over asserting its numeric `.length`.
+
+Passing ESLint does not prove these Sonar rules pass: the tools do not necessarily enable the same rules. Where a
+local Sonar-compatible analyser is available, check the changed functions with the configured complexity limit.
+Otherwise explicitly record that limitation and inspect the next external analysis before marking findings resolved.
+Documentation and manual review supplement automated checks; neither guarantees a clean scan.
+
+## Closing coverage gaps
+
+Inspect both line and branch/condition coverage in a freshly generated report. Zero uncovered lines can still leave
+uncovered conditions and a New Code coverage percentage below 100%. Check each affected file rather than relying on
+an aggregate rounded percentage.
+
+For every uncovered outcome, identify the behaviour it protects and add an assertion that would fail if that behaviour
+regressed. Cover applicable defaults and empty collections, optional inputs, stale selections, missing drafts, rejected
+store updates, cancelled navigation, retry paths and error handling. Exercise injectable services through Angular DI
+when that is how the application constructs them. Do not call generated framework factories solely for coverage.
+
+If duplicated state makes a branch impossible, first establish and simplify the invariant with regression coverage;
+do not remove a protective guard just to remove an uncovered branch. Refactoring must preserve existing behaviour.
+
+After the final edit, regenerate coverage and inspect `coverage/lcov.info` and the HTML report (including conditions).
+Compare changed executable lines against the PR's actual base, especially for stacked branches. Record the base,
+commands and uncovered line/condition counts. Local whole-file coverage supports the assessment, but does not replace
+Sonar's New Code calculation. Recheck the external analysis for the pushed commit; a result for an earlier SHA is stale.
 
 ## Form identifiers
 

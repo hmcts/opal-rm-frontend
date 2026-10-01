@@ -30,11 +30,8 @@ const allControlsPage: ICasesCreateCasefileOrderTermPage = {
         mandatory: true,
         language_dependent: false,
         hint: '<b>Plain hint</b>',
-        ...(kind === 'date'
-          ? { min: '1900-01-01', max: '2100-12-31' }
-          : kind === 'integer'
-            ? { min: -2147483648, max: 2147483647 }
-            : {}),
+        ...(kind === 'date' ? { min: '1900-01-01', max: '2100-12-31' } : {}),
+        ...(kind === 'integer' ? { min: -2147483648, max: 2147483647 } : {}),
         ...(['select', 'radio', 'autocomplete'].includes(kind)
           ? {
               options: [
@@ -174,7 +171,7 @@ describe('Order terms input form', () => {
     expect(Object.keys(component.form.controls)).toEqual([id('amount'), id('expiry_date'), id('arrears')]);
     expect(fixture.nativeElement.querySelector(`#${id('frequency')} dd`).textContent).toBe('Weekly');
     expect(component.form.contains(id('frequency'))).toBe(false);
-    expect(fixture.nativeElement.querySelectorAll('input').length).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('input')).toHaveLength(3);
     expect(host.onDraftChange).not.toHaveBeenCalled();
     expect(host.onUnsavedChanges).not.toHaveBeenCalled();
   });
@@ -485,5 +482,27 @@ describe('Order terms input form', () => {
     expect(host.onDraftChange).toHaveBeenLastCalledWith({ values: { Terms: ['A & B'] }, dirty: false });
     submit();
     expect(host.onSubmit).toHaveBeenCalledWith(expect.objectContaining({ formData: { [id('terms')]: ['A & B'] } }));
+  });
+  it('starts an optional checkbox group unchecked and submits an empty selection', () => {
+    const fields = mapOrderTermParameters(
+      JSON.stringify([
+        {
+          name: 'Terms',
+          prompt: 'Terms',
+          type: 'menu-checkbox',
+          mandatory: false,
+          min: 0,
+          max: 1,
+          language_dependent: false,
+          options: ['A', 'B'],
+        },
+      ]),
+    );
+    render({ resultId: 'TEST', title: 'Terms', fields });
+    const boxes: NodeListOf<HTMLInputElement> = fixture.nativeElement.querySelectorAll('input[type=checkbox]');
+    expect(boxes).toHaveLength(2);
+    expect(Array.from(boxes, (box) => box.checked)).toEqual([false, false]);
+    submit();
+    expect(host.onSubmit).toHaveBeenCalledWith(expect.objectContaining({ formData: { [id('terms')]: [] } }));
   });
 });

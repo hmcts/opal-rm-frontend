@@ -997,4 +997,29 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.orderTerms()).toEqual([]);
     expect(store.orderTermDraft()).toBeNull();
   });
+  it('preserves the draft when the same result is selected again', () => {
+    store.setPendingOrderTermResultId(page.resultId);
+    store.prepareOrderTermDraft(page);
+    store.updateOrderTermDraft({ amount: '12.30' }, true);
+    const draft = store.orderTermDraft();
+    store.setPendingOrderTermResultId(page.resultId);
+    expect(store.orderTermDraft()).toEqual(draft);
+    expect(store.unsavedChanges()).toBe(true);
+  });
+
+  it('ignores metadata arriving for a result that is no longer selected', () => {
+    store.setPendingOrderTermResultId('OTHER');
+    store.prepareOrderTermDraft(page);
+    expect(store.orderTermDraft()).toBeNull();
+    expect(store.pendingOrderTermResultId()).toBe('OTHER');
+  });
+
+  it('ignores draft updates after the draft has been discarded', () => {
+    store.setPendingOrderTermResultId(page.resultId);
+    store.prepareOrderTermDraft(page);
+    store.discardOrderTermDraft();
+    store.updateOrderTermDraft({ amount: '12.30' }, true);
+    expect(store.orderTermDraft()).toBeNull();
+    expect(store.unsavedChanges()).toBe(false);
+  });
 });

@@ -71,6 +71,11 @@ describe('fetchCasesCreateCasefileOrderTermResolver', () => {
         provideRouter([
           { path: 'selection', component: TestSelectionComponent },
           {
+            path: 'input',
+            component: TestInputComponent,
+            resolve: { orderTerm: fetchCasesCreateCasefileOrderTermResolver },
+          },
+          {
             path: 'input/:resultId',
             component: TestInputComponent,
             resolve: { orderTerm: fetchCasesCreateCasefileOrderTermResolver },
@@ -329,5 +334,13 @@ describe('fetchCasesCreateCasefileOrderTermResolver', () => {
       title: GENERIC_HTTP_ERROR_TITLE,
       message: GENERIC_HTTP_ERROR_MESSAGE,
     });
+  });
+  it('cancels navigation with no result ID without requesting details', async () => {
+    await configure();
+    await router.navigateByUrl('/input');
+    expect(router.url).toBe('/selection');
+    expect(getResult).not.toHaveBeenCalled();
+    expect(resolveLookups).not.toHaveBeenCalled();
+    expect(setBannerError).toHaveBeenCalledWith(expect.objectContaining({ error: true }));
   });
 });

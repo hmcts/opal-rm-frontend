@@ -371,4 +371,53 @@ describe('Order term input routed parent', () => {
     expect(second.page.resultId).toBe('MCHILD');
     expect(TestBed.inject(Title).getTitle()).toBe('OPAL - Child maintenance');
   });
+  it('renders empty defaults when no matching draft or order details exist', async () => {
+    const store = await configure();
+    store.resetStore();
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    fixture.detectChanges();
+    const child = fixture.debugElement.query(
+      (element) => element.componentInstance instanceof CasesCreateCasefileOrderTermsInputFormComponent,
+    ).componentInstance as CasesCreateCasefileOrderTermsInputFormComponent;
+    expect(child.initialValues).toEqual({});
+    expect(child.initialDirty).toBe(false);
+    expect(child.frequency).toBe('');
+    expect(store.unsavedChanges()).toBe(false);
+  });
+
+  it('does not submit without a current page', async () => {
+    const store = await configure();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    const component = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent).componentInstance;
+    component.pages.set([]);
+    component.handleFormSubmit({ formData: { [amountId]: '12.3' }, nestedFlow: false });
+    expect(store.orderTerms()).toEqual([]);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('does not navigate when the selected result has changed before submission', async () => {
+    const store = await configure();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    const component = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent).componentInstance;
+    store.setPendingOrderTermResultId('OTHER');
+    component.handleFormSubmit({ formData: { [amountId]: '12.3' }, nestedFlow: false });
+    expect(store.orderTerms()).toEqual([]);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it.each(['missing page', 'removed accepted term'])('does not retry after %s', async (reason) => {
+    const store = await configure();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
+    const component = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent).componentInstance;
+    component.handleFormSubmit({ formData: { [amountId]: '12.3' }, nestedFlow: false });
+    await Promise.resolve();
+    navigate.mockClear();
+    component.handleDraftChange({ values: { amount: '20' }, dirty: true });
+    if (reason === 'missing page') component.pages.set([]);
+    else store.resetStore();
+    const accepted = store.orderTerms();
+    component.handleFormSubmit({ formData: { [amountId]: '20' }, nestedFlow: false });
+    expect(store.orderTerms()).toEqual(accepted);
+    expect(navigate).not.toHaveBeenCalled();
+  });
 });

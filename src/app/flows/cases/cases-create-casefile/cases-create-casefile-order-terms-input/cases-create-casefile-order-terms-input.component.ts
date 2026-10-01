@@ -33,7 +33,6 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
   private readonly dates = inject(DateService);
   private readonly title = inject(Title);
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
-  private accepted = false;
   private acceptedTermIndex: number | null = null;
   private retryDraft: ICasesCreateCasefileOrderTermDraftChange | null = null;
   public readonly pages = signal<OrderTermPageEntry[]>([]);
@@ -45,7 +44,6 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
       const page = data['orderTerm'] as ICasesCreateCasefileOrderTermPage;
       this.store.prepareOrderTermDraft(page);
       const draft = this.store.orderTermDraft();
-      this.accepted = false;
       this.acceptedTermIndex = null;
       this.retryDraft = null;
       this.stateUnsavedChanges = draft?.dirty ?? false;
@@ -63,7 +61,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
 
   public handleDraftChange(change: ICasesCreateCasefileOrderTermDraftChange): void {
     this.stateUnsavedChanges = change.dirty;
-    if (this.accepted) {
+    if (this.acceptedTermIndex !== null) {
       this.retryDraft = change;
       this.store.setUnsavedChanges(change.dirty);
       return;
@@ -80,7 +78,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
     formData: Record<string, CasesCreateCasefileOrderTermRawValue>;
     nestedFlow: boolean;
   }): void {
-    if (!this.accepted) {
+    if (this.acceptedTermIndex === null) {
       const current = this.pages()[0];
       if (!current) return;
       let term: ICasesCreateCasefileOrderTerm;
@@ -90,11 +88,10 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
         return;
       }
       if (!this.store.acceptOrderTerm(term)) return;
-      this.accepted = true;
       this.acceptedTermIndex = this.store.orderTerms().length - 1;
     } else if (this.retryDraft) {
       const current = this.pages()[0];
-      if (!current || this.acceptedTermIndex === null) return;
+      if (!current) return;
       let term: ICasesCreateCasefileOrderTerm;
       try {
         term = canonicalOrderTerm(current.page, form.formData, this.dates);

@@ -90,13 +90,14 @@ export class CasesCreateCasefileOrderTermsInputFormComponent extends AbstractFor
     this.views = this.page.fields.map((field) => {
       const options = field.options.map((option) => ({ value: option.value, name: option.label }));
       const initialValue = Object.hasOwn(this.initialValues, field.name) ? this.initialValues[field.name] : null;
+      let emptyValue: CasesCreateCasefileOrderTermRawValue = '';
+      if (field.kind === 'checkbox') emptyValue = field.options.length ? [] : false;
       const control =
         field.kind === 'readonly'
           ? null
-          : new FormControl<CasesCreateCasefileOrderTermRawValue>(
-              initialValue ?? (field.kind === 'checkbox' ? (field.options.length ? [] : false) : ''),
-              { validators: createOrderTermValidator(field, this.dates) },
-            );
+          : new FormControl<CasesCreateCasefileOrderTermRawValue>(initialValue ?? emptyValue, {
+              validators: createOrderTermValidator(field, this.dates),
+            });
       const checkboxes =
         field.kind === 'checkbox' && control
           ? field.options.map((option) => ({

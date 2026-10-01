@@ -30,8 +30,7 @@ export const fetchCasesCreateCasefileOrderTermResolver: ResolveFn<ICasesCreateCa
     defaultIfEmpty(null),
     switchMap((detail) => {
       if (
-        !detail ||
-        detail.result_id !== resultId ||
+        detail?.result_id !== resultId ||
         typeof detail.result_title !== 'string' ||
         !detail.result_title.trim() ||
         typeof detail.result_parameters !== 'string'
@@ -39,12 +38,11 @@ export const fetchCasesCreateCasefileOrderTermResolver: ResolveFn<ICasesCreateCa
         return reject();
       }
 
+      const supportedFrequencies: readonly string[] = CASES_CREATE_CASEFILE_ORDER_DETAILS_PAYMENT_FREQUENCIES;
       const fields = mapOrderTermParameters(detail.result_parameters);
       if (
         fields.some((field) => field.kind === 'readonly') &&
-        !CASES_CREATE_CASEFILE_ORDER_DETAILS_PAYMENT_FREQUENCIES.some(
-          (value) => value === store.orderDetails()?.paymentFrequency,
-        )
+        !supportedFrequencies.includes(store.orderDetails()?.paymentFrequency ?? '')
       ) {
         return reject();
       }

@@ -231,8 +231,7 @@ export const CasesCreateCasefileStore = signalStore(
     },
     acceptOrderTerm: (term: ICasesCreateCasefileOrderTerm): boolean => {
       const draft = store.orderTermDraft();
-      if (!draft || term.resultId !== draft.resultId || term.resultId !== store.pendingOrderTermResultId())
-        return false;
+      if (term.resultId !== draft?.resultId || term.resultId !== store.pendingOrderTermResultId()) return false;
 
       const parameters = Object.fromEntries(
         Object.entries(term.parameters).filter(
@@ -250,7 +249,7 @@ export const CasesCreateCasefileStore = signalStore(
     },
     replaceAcceptedOrderTerm: (index: number, term: ICasesCreateCasefileOrderTerm): boolean => {
       const accepted = store.orderTerms()[index];
-      if (!accepted || accepted.resultId !== term.resultId) return false;
+      if (accepted?.resultId !== term.resultId) return false;
 
       const orderTerms = [...store.orderTerms()];
       orderTerms[index] = term;

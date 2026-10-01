@@ -1,6 +1,7 @@
 import { Router } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { CasesCreateCasefileComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile.component';
+import type { ICasesCreateCasefileOrderTerm } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-order-term.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { CasesCreateCasefileCreditorAssignment } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-creditor-assignment.type';
 import type { IOpalMaintenanceResultDetail } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-result-detail.interface';
@@ -24,7 +25,7 @@ const openControls = () =>
     detailSource: of(structuredClone(M.allControls)),
   });
 const assertTerms = (
-  parameters: Record<string, string | number | boolean>,
+  parameters: ICasesCreateCasefileOrderTerm['parameters'],
   creditor: CasesCreateCasefileCreditorAssignment | null = null,
 ) =>
   cy
@@ -68,11 +69,7 @@ describe('Order term input', () => {
       cy.screenshot('po-9807-documented-checkbox-validation');
       cy.get(S.orderTermsInput.termsSecond).uncheck();
       cy.get(S.orderTermsInput.continueButton).click();
-      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-        expect(store.orderTerms()).to.deep.equal([
-          { resultId: 'MAT', parameters: { Amount: '-0.10', Terms: ['A & B'] } },
-        ]);
-      });
+      assertTerms({ Amount: '-0.10', Terms: ['A & B'] });
     },
   );
 

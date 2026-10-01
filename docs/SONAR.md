@@ -30,6 +30,8 @@ Review the complete changed functions before running checks:
 - Use concise equivalent regular-expression classes (for example `\w` for `[A-Za-z0-9_]`). Preserve separate leading
   character restrictions and validate accepted and rejected input examples.
 - Prefer semantic test assertions such as `expect(collection).toHaveLength(3)` over asserting its numeric `.length`.
+- Extract repeated union types into a named domain type alias. Keep reusable aliases in a dedicated `.type.ts` file
+  and import them directly wherever the same concept is used.
 
 Passing ESLint does not prove these Sonar rules pass: the tools do not necessarily enable the same rules. Where a
 local Sonar-compatible analyser is available, check the changed functions with the configured complexity limit.

@@ -1,3 +1,4 @@
+import type { CasesCreateCasefileOrderTermBound } from '../types/cases-create-casefile-order-term-bound.type';
 import { DateTime } from 'luxon';
 import type { ICasesCreateCasefileOrderTermField } from '../interfaces/cases-create-casefile-order-term-field.interface';
 
@@ -56,7 +57,7 @@ const bound = (
   value: unknown,
   kind: ICasesCreateCasefileOrderTermField['kind'],
   upper: boolean,
-): string | number | null => {
+): CasesCreateCasefileOrderTermBound => {
   if (value === undefined || (upper && value === 'No Limit')) return null;
   if (kind === 'date') {
     if (!upper && value === 0) return null;
@@ -160,8 +161,8 @@ const validateRange = <T extends string | number | bigint>(min: T, max: T, lower
 
 const validateDocumentedBounds = (
   type: string,
-  min: string | number | null,
-  max: string | number | null,
+  min: CasesCreateCasefileOrderTermBound,
+  max: CasesCreateCasefileOrderTermBound,
   optionCount: number,
 ): void => {
   if (min === null || max === null) return fail();

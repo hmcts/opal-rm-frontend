@@ -6,6 +6,8 @@ import type { IOpalMaintenanceApplicationReferenceDataResponse } from './interfa
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorParams } from './interfaces/opal-maintenance-major-creditor-params.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
+import type { IOpalMaintenanceResultParams } from './interfaces/opal-maintenance-result-params.interface';
+import type { IOpalMaintenanceResultReferenceDataResponse } from './interfaces/opal-maintenance-result-reference-data-response.interface';
 
 @Injectable({ providedIn: 'root' })
 export class OpalMaintenanceService {
@@ -53,6 +55,13 @@ export class OpalMaintenanceService {
         context: withoutHttpRetry(),
       },
     );
+  }
+
+  public getResults(params: IOpalMaintenanceResultParams): Observable<IOpalMaintenanceResultReferenceDataResponse> {
+    return this.http.get<IOpalMaintenanceResultReferenceDataResponse>('/opal-maintenance-service/results', {
+      params: { order_term: params.order_term, active: params.active },
+      context: withoutHttpRetry(),
+    });
   }
 
   public getCountries(active: boolean): Observable<IOpalMaintenanceCountryReferenceDataResponse> {

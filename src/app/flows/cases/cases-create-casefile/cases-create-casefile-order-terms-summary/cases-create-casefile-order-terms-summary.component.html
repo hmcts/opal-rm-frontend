@@ -1,4 +1,23 @@
 <div class="govuk-grid-column-two-thirds">
-  <opal-lib-govuk-back-link (clickEvent)="handleBack()"></opal-lib-govuk-back-link>
+  <opal-lib-govuk-back-link (clickEvent)="handleBack()" />
   <h1 class="govuk-heading-l">Order terms</h1>
+  <p class="govuk-body">There are currently no order terms.</p>
+  <opal-lib-govuk-button
+    buttonId="create_casefile_order_terms_add"
+    type="button"
+    buttonClasses="govuk-button--secondary"
+    (buttonClickEvent)="handleAddTerms()"
+  >
+    Add terms
+  </opal-lib-govuk-button>
+  <p class="govuk-body">
+    <a
+      class="govuk-link"
+      id="create_casefile_order_terms_return"
+      href="/cases/create-casefile/task-list"
+      (click)="$event.preventDefault(); handleBack()"
+    >
+      Return to case details
+    </a>
+  </p>
 </div>

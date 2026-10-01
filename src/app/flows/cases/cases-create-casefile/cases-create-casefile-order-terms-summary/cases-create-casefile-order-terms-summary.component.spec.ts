@@ -21,7 +21,6 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
     fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsSummaryComponent);
-    fixture.detectChanges();
   });
 
   it('renders the Order terms placeholder and returns to Case details without changing state', () => {
@@ -31,6 +30,7 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
       unsavedChanges: store.unsavedChanges(),
       stateChanges: store.stateChanges(),
     };
+    fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds h1')?.textContent.trim()).toBe(
       'Order terms',
@@ -43,5 +43,23 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
       unsavedChanges: store.unsavedChanges(),
       stateChanges: store.stateChanges(),
     }).toEqual(before);
+  });
+
+  it('starts a fresh add without marking Order Terms provided', () => {
+    store.setPendingOrderTermResultId('MOCK02');
+    const statuses = { ...store.taskStatuses() };
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('#create_casefile_order_terms_add').click();
+    expect(store.pendingOrderTermResultId()).toBeNull();
+    expect(store.taskStatuses()).toEqual(statuses);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/order-terms/select');
+  });
+
+  it('shows an empty Summary even when an input selection exists', () => {
+    store.setPendingOrderTermResultId('MOCK01');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('There are currently no order terms.');
+    fixture.nativeElement.querySelector('#create_casefile_order_terms_return').click();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/task-list');
   });
 });

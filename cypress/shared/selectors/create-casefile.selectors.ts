@@ -44,6 +44,18 @@ export const CreateCasefileSelectors = {
     cancel: '#create_casefile_order_details_cancel a',
     back: '.govuk-back-link',
   },
+  orderTerms: {
+    heading: 'h1',
+    select: '#create_casefile_order_terms_select_result_id',
+    selectError: '#create_casefile_order_terms_select_result_id-error-message',
+    continueButton: '#create_casefile_order_terms_continue',
+    cancel: '#create_casefile_order_terms_cancel a',
+    retry: '#create_casefile_order_terms_retry',
+    status: '#create_casefile_order_terms_status',
+    add: '#create_casefile_order_terms_add',
+    return: '#create_casefile_order_terms_return',
+    back: 'a.govuk-back-link',
+  },
   liveAnnouncement: '.moj-alert--error [role="alert"]',
   primaryNavigation: '#primaryNavigation',
   caseDetails: {

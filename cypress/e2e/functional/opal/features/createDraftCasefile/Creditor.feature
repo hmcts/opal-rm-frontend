@@ -23,6 +23,12 @@ Feature: Capture a creditor for an order term
     Then the creditor validation summary links to the required choice
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
+  Scenario: Require a Major creditor selection
+    When I choose the Major creditor type
+    And I continue from creditor selection
+    Then the Major creditor validation summary links to the required selection
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
   Scenario: Accept an active Major creditor by ID
     When I choose a Major creditor
     Then the selected Major creditor remains identified by ID

@@ -20,6 +20,10 @@ export class CreditorFlow {
   public chooseMajor(): void {
     this.actions.chooseMajor();
   }
+  /** Chooses the Major branch without a resolved creditor. */
+  public chooseMajorType(): void {
+    this.actions.chooseMajorType();
+  }
   /** Chooses add-new Minor intent. */
   public chooseAddNew(): void {
     this.actions.chooseAddNew();
@@ -35,6 +39,10 @@ export class CreditorFlow {
   /** Checks required-choice validation. */
   public assertValidation(): void {
     this.actions.assertValidation();
+  }
+  /** Checks required-Major validation. */
+  public assertMajorValidation(): void {
+    this.actions.assertMajorValidation();
   }
   /** Checks stable-ID Major selection. */
   public assertMajorSelected(): void {

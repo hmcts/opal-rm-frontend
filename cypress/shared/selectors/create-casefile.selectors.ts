@@ -93,11 +93,13 @@ export const CreateCasefileSelectors = {
   creditor: {
     applicant: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-applicant`,
     major: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-major`,
+    majorConditional: '#create_casefile_order_term_creditor_major',
     majorId: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.majorCreditorId}`,
     addNew: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-add-new`,
     minor: (sequenceNumber: number) =>
       `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-minor-${sequenceNumber}`,
     choiceFieldset: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}`,
+    choiceLabels: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice} .govuk-radios__label`,
     choiceError: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-error-message`,
     majorError: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.majorCreditorId}-error-message`,
     continueButton: '#create_casefile_order_term_creditor_continue',

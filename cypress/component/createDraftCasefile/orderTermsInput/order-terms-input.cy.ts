@@ -5,7 +5,10 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/case
 import type { CasesCreateCasefileCreditorAssignment } from 'src/app/flows/cases/cases-create-casefile/types/cases-create-casefile-creditor-assignment.type';
 import type { IOpalMaintenanceResultDetail } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-result-detail.interface';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
-import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
+import {
+  ERROR_SUMMARY_TITLE,
+  UNSAVED_CHANGES_WARNING,
+} from '../../../shared/constants/create-casefile-test-copy.constant';
 import { setupOrderTerms, type OrderTermsStore } from '../orderTerms/setup/order-terms.setup';
 import { ORDER_TERMS_INPUT_MOCK as M } from './mocks/order-terms-input.mock';
 import { ORDER_TERMS_INPUT_COPY } from './constants/order-terms-input-copy.constant';

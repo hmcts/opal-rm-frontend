@@ -1,4 +1,6 @@
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
+import { UNSAVED_CHANGES_WARNING } from '../../../../../shared/constants/create-casefile-test-copy.constant';
+import { CREDITOR_VALIDATION_COPY } from '../../../../../shared/constants/creditor-copy.constant';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { E2E_CREDITOR_MAJOR_RESPONSE } from '../../mocks/createDraftCasefile/creditor.mock';
 
@@ -28,8 +30,13 @@ export class CreditorActions {
 
   /** Selects the second synthetic Major by its stable ID. */
   public chooseMajor(): void {
-    cy.get(S.creditor.major).check();
+    this.chooseMajorType();
     cy.get(S.creditor.majorId).select(String(E2E_CREDITOR_MAJOR_RESPONSE.refData[1].major_creditor_id));
+  }
+
+  /** Selects the Major creditor branch without selecting a resolved record. */
+  public chooseMajorType(): void {
+    cy.get(S.creditor.major).check();
   }
 
   /** Selects the add-new navigation branch. */
@@ -56,6 +63,16 @@ export class CreditorActions {
     cy.get(S.creditor.applicant).should('be.focused');
   }
 
+  /** Checks required-Major validation, linked focus and route retention. */
+  public assertMajorValidation(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermCreditor);
+    cy.get(S.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
+    cy.get(S.creditor.majorError).should('be.visible').and('contain.text', CREDITOR_VALIDATION_COPY.major);
+    cy.get(S.errorSummaryLinks).contains(CREDITOR_VALIDATION_COPY.major).click();
+    cy.get(S.creditor.majorId).should('be.focused');
+    cy.get(S.creditor.major).should('be.checked');
+  }
+
   /** Checks the selected Major remains represented by its numeric ID. */
   public assertMajorSelected(): void {
     cy.get(S.creditor.major).should('be.checked');
@@ -79,7 +96,10 @@ export class CreditorActions {
    * @param confirmed Whether to accept the unsaved-changes warning.
    */
   public cancel(confirmed: boolean): void {
-    cy.on('window:confirm', () => confirmed);
+    cy.once('window:confirm', (message) => {
+      expect(message).to.eq(UNSAVED_CHANGES_WARNING);
+      return confirmed;
+    });
     cy.get(S.creditor.cancel).click();
   }
 

@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { parseTemplate } from '@angular/compiler';
 
 const scriptRepositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const rootArgumentIndex = process.argv.indexOf('--root');
@@ -86,6 +87,8 @@ const templatePaths = {
     'cases-create-casefile-order-details/cases-create-casefile-order-details-form/cases-create-casefile-order-details-form.component.html',
   orderTermsSelect:
     'cases-create-casefile-order-terms-select/cases-create-casefile-order-terms-select-form/cases-create-casefile-order-terms-select-form.component.html',
+  orderTermsInput:
+    'cases-create-casefile-order-terms-input/cases-create-casefile-order-terms-input-form/cases-create-casefile-order-terms-input-form.component.html',
   orderTermsSummary:
     'cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component.html',
   respondentDetails:
@@ -515,6 +518,12 @@ const pageDefinitionFor = (templatePath) =>
 const acceptedPrefixesFor = (templatePath) => {
   const pageDefinition = pageDefinitionFor(templatePath);
   if (pageDefinition !== undefined) return [pageDefinition.prefix];
+  if (templatePath.includes('/cases-create-casefile-order-terms-input/')) {
+    return ['create_casefile_order_terms_input_'];
+  }
+  if (templatePath.includes('/cases-create-casefile-order-term-creditor/')) {
+    return ['create_casefile_order_term_creditor_'];
+  }
   if (templatePath.includes('/cases-create-casefile-bank-details/')) {
     return ['create_casefile_applicant_individual_', 'create_casefile_applicant_organisation_'];
   }
@@ -537,10 +546,56 @@ const acceptedPrefixesFor = (templatePath) => {
   return [];
 };
 
+// Only this metadata adapter's canonical ID may drive dynamic controls. Runtime
+// mapper tests separately enforce unique IDs for every field in the collection.
+const isOrderTermIdentifier = (attribute, expression) => {
+  const value = expression.replace(/\s+/g, ' ').trim();
+  if (
+    ['id', 'inputId', 'inputName', 'selectId', 'selectName', 'fieldSetId'].includes(attribute) &&
+    value === 'field.id'
+  ) {
+    return true;
+  }
+  return (
+    (attribute === 'inputId' && value === "field.id + '-option-' + $index") ||
+    (attribute === 'fieldSetId' && value === "field.id + '-fieldset'")
+  );
+};
+
+// Angular's parser identifies mutually exclusive branches. Do not suppress
+// duplicates in the same branch or in independent conditional blocks.
+const orderTermBranchScopes = (source, displayPath, failures) => {
+  const parsed = parseTemplate(source, displayPath);
+  if (parsed.errors?.length) {
+    failures.push(`${displayPath}: invalid dynamic form template`);
+  }
+  const scopes = new Map();
+  const visit = (nodes, scope) => {
+    for (const node of nodes) {
+      const branches = node.branches ?? node.groups;
+      if (branches) {
+        branches.forEach((branch, index) => visit(branch.children, [...scope, [node.sourceSpan.start.offset, index]]));
+      } else {
+        scopes.set(node.sourceSpan.start.offset, scope);
+        if (node.children) visit(node.children, scope);
+      }
+    }
+  };
+  visit(parsed.nodes, []);
+  return scopes;
+};
+
+const mutuallyExclusive = (first, second) =>
+  first.some(([owner, branch]) =>
+    second.some(([otherOwner, otherBranch]) => owner === otherOwner && branch !== otherBranch),
+  );
+
 for (const templatePath of await collectTemplates(createCasefileRoot)) {
   const source = await readFile(templatePath, 'utf8');
   const displayPath = relative(repositoryRoot, templatePath);
   const templatePathWithinCreateCasefile = relative(createCasefileRoot, templatePath);
+  const dynamicOrderTerms = templatePathWithinCreateCasefile === templatePaths.orderTermsInput;
+  const branchScopes = dynamicOrderTerms ? orderTermBranchScopes(source, displayPath, failures) : new Map();
   const pageDefinition = pageDefinitionFor(templatePath);
   const acceptedPrefixes = acceptedPrefixesFor(templatePath);
   const fieldNames = pageDefinition === undefined ? undefined : fieldNamesByDirectory.get(pageDefinition.directory);
@@ -581,6 +636,8 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
           : isCanonicalIdentifier(value, acceptedPrefixes) || structurallyAllowed;
       }
 
+      if (dynamicOrderTerms && isBound && isOrderTermIdentifier(attributeName, value)) valid = true;
+
       if (!valid) {
         failures.push(`${displayPath}:${line}: noncanonical ${attributeMatch[2]}="${value}"`);
       }
@@ -588,14 +645,16 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
       if (idAttributes.has(attributeName)) {
         const idKey = duplicateKeyFor(attributeName, value, isBound, fieldNames, tagName, attributes);
         if (idKey === undefined) continue;
-        const priorLine = ids.get(idKey);
-        if (priorLine !== undefined) {
+        const scope = branchScopes.get(tagMatch.index) ?? [];
+        const declarations = ids.get(idKey) ?? [];
+        const prior = declarations.find((declaration) => !mutuallyExclusive(declaration.scope, scope));
+        if (prior !== undefined) {
           failures.push(
-            `${displayPath}:${line}: duplicate ID declaration "${value}" (first declared on line ${priorLine})`,
+            `${displayPath}:${line}: duplicate ID declaration "${value}" (first declared on line ${prior.line})`,
           );
-        } else {
-          ids.set(idKey, line);
         }
+        declarations.push({ line, scope });
+        ids.set(idKey, declarations);
       }
     }
   }

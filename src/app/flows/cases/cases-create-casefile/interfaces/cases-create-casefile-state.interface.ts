@@ -6,6 +6,8 @@ import type { ICasesCreateCasefileInterestIndexation } from './cases-create-case
 import type { ICasesCreateCasefileCentralAuthorityDetails } from './cases-create-casefile-central-authority-details.interface';
 import type { ICasesCreateCasefileRespondentDetails } from './cases-create-casefile-respondent-details.interface';
 import type { ICasesCreateCasefileOrderDetails } from './cases-create-casefile-order-details.interface';
+import type { ICasesCreateCasefileOrderTermDraft } from './cases-create-casefile-order-term-draft.interface';
+import type { ICasesCreateCasefileOrderTerm } from './cases-create-casefile-order-term.interface';
 import type { ICasesCreateCasefileTaskStatuses } from './cases-create-casefile-task-statuses.interface';
 
 export interface ICasesCreateCasefileState {
@@ -16,6 +18,8 @@ export interface ICasesCreateCasefileState {
   interestAndIndexation: ICasesCreateCasefileInterestIndexation | null;
   centralAuthorityDetails: ICasesCreateCasefileCentralAuthorityDetails | null;
   paymentArrangement: CasesCreateCasefilePaymentArrangement | null;
+  orderTerms: ICasesCreateCasefileOrderTerm[];
+  orderTermDraft: ICasesCreateCasefileOrderTermDraft | null;
   commentsAndNotes: ICasesCreateCasefileCommentsNotes | null;
   pendingOrderTermResultId: string | null;
   taskStatuses: ICasesCreateCasefileTaskStatuses;

@@ -68,6 +68,7 @@ const assertTabMovesTo = (selector: string): void => {
 type DestinationScenario = {
   childPath: string;
   taskLinkSelector: string;
+  returnSelector: string;
   heading: string;
   prerequisiteTasks: CasesCreateCasefileTask[];
   selection?: CasesCreateCasefileCaseTypeSelection;
@@ -77,18 +78,21 @@ const destinationScenarios: DestinationScenario[] = [
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails,
     taskLinkSelector: Page.caseDetails.respondentLink,
+    returnSelector: Page.respondentDetails.cancelLink,
     heading: 'Respondent details',
     prerequisiteTasks: [],
   },
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual,
     taskLinkSelector: Page.caseDetails.applicantLink,
+    returnSelector: Page.applicantIndividual.cancelLink,
     heading: 'Applicant details',
     prerequisiteTasks: [],
   },
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation,
     taskLinkSelector: Page.caseDetails.applicantLink,
+    returnSelector: Page.applicantOrganisation.cancelLink,
     heading: 'Applicant details',
     prerequisiteTasks: [],
     selection: {
@@ -99,48 +103,56 @@ const destinationScenarios: DestinationScenario[] = [
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.centralAuthorityDetails,
     taskLinkSelector: Page.caseDetails.centralAuthorityLink,
+    returnSelector: Page.centralAuthority.cancelLink,
     heading: 'Central authority details',
     prerequisiteTasks: [],
   },
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderDetails,
     taskLinkSelector: Page.caseDetails.orderDetailsLink,
+    returnSelector: Page.caseDetails.backLink,
     heading: 'Order details',
     prerequisiteTasks: partyTasks,
   },
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.orderTermsSummary,
     taskLinkSelector: Page.caseDetails.orderTermsLink,
+    returnSelector: Page.orderTerms.return,
     heading: 'Order terms',
     prerequisiteTasks: remainingOrderPrerequisites,
   },
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.interestAndIndexation,
     taskLinkSelector: Page.caseDetails.interestAndIndexationLink,
+    returnSelector: Page.interestAndIndexation.cancelLink,
     heading: 'Interest and indexation',
     prerequisiteTasks: remainingOrderPrerequisites,
   },
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.managingPayments,
     taskLinkSelector: Page.caseDetails.managingPaymentsLink,
+    returnSelector: Page.managingPayments.cancelLink,
     heading: 'Managing payments',
     prerequisiteTasks: remainingOrderPrerequisites,
   },
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.commentsAndNotes,
     taskLinkSelector: Page.caseDetails.commentsAndNotesLink,
+    returnSelector: Page.commentsAndNotes.cancelLink,
     heading: 'Comments and notes',
     prerequisiteTasks: [],
   },
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.checkCaseDetails,
     taskLinkSelector: Page.caseDetails.checkCaseButton,
+    returnSelector: Page.caseDetails.backLink,
     heading: 'Check case details',
     prerequisiteTasks: mandatoryTasks,
   },
   {
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.cancel,
     taskLinkSelector: Page.caseDetails.cancelLink,
+    returnSelector: Page.caseDetails.backLink,
     heading: 'Cancel case creation',
     prerequisiteTasks: [],
   },
@@ -322,23 +334,7 @@ describe('Create Casefile Case Details Task List', () => {
         assertRouterPath(scenario.childPath);
         assertExactText(Page.caseDetails.heading, scenario.heading);
         assertStoreState(selection, scenario.prerequisiteTasks);
-        cy.get(
-          scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails
-            ? Page.respondentDetails.cancelLink
-            : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.centralAuthorityDetails
-              ? Page.centralAuthority.cancelLink
-              : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual
-                ? Page.applicantIndividual.cancelLink
-                : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation
-                  ? Page.applicantOrganisation.cancelLink
-                  : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.interestAndIndexation
-                    ? Page.interestAndIndexation.cancelLink
-                    : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.managingPayments
-                      ? Page.managingPayments.cancelLink
-                      : scenario.childPath === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.commentsAndNotes
-                        ? Page.commentsAndNotes.cancelLink
-                        : Page.caseDetails.backLink,
-        ).click();
+        cy.get(scenario.returnSelector).click();
         assertRouterPath(taskListPath);
         assertExactText(Page.caseDetails.heading, 'Case details');
         assertStoreState(selection, scenario.prerequisiteTasks);
@@ -524,7 +520,7 @@ describe('Create Casefile Case Details Task List', () => {
     cy.wait('@getCountries');
     cy.get(Page.respondentDetails.cancelLink).click();
     cy.get(Page.caseDetails.orderTermsLink).click();
-    cy.get(Page.caseDetails.backLink).click();
+    cy.get(Page.orderTerms.return).click();
     cy.get(Page.caseDetails.checkCaseButton).click();
     cy.get(Page.caseDetails.backLink).click();
     cy.get(Page.caseDetails.cancelLink).click();

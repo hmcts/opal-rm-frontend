@@ -17,7 +17,7 @@ export const ORDER_DETAILS_MOCK = {
   saved: {
     applicationId: 901,
     court: 'Synthetic court',
-    dateOrderMade: null,
+    dateOrderMade: '2026-01-01',
     paymentFrequency: 'Weekly',
     dateArrearsLastUpdated: '2026-01-01',
   } satisfies ICasesCreateCasefileOrderDetails,

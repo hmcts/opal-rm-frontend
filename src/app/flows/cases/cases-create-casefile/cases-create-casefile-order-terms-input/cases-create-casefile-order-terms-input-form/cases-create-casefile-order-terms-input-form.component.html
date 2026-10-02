@@ -1,0 +1,161 @@
+<span class="govuk-caption-l">Order terms</span>
+<h1 class="govuk-heading-l">{{ page.resultId }} - {{ page.title }}</h1>
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+<form (submit)="handleFormSubmit($event)">
+  @for (view of views; track view.field.id) {
+    @let field = view.field; @let error = formControlErrorMessages[field.id];
+    @if (field.kind === 'readonly') {
+      <dl class="govuk-!-margin-top-0 govuk-!-margin-bottom-6" [id]="field.id">
+        <dt class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">{{ field.label }}</dt>
+        <dd class="govuk-body govuk-!-margin-left-0 govuk-!-margin-bottom-0">{{ frequency }}</dd>
+      </dl>
+      @if (field.hint) {
+        <p class="govuk-hint">{{ field.hint }}</p>
+      }
+    } @else if (view.control) {
+      @switch (field.kind) {
+        @case ('money') {
+          <fieldset
+            class="govuk-fieldset"
+            [attr.aria-label]="field.label"
+            [attr.aria-describedby]="field.hint ? field.id + '-hint' : null"
+          >
+            @if (field.hint) {
+              <p class="govuk-hint" [id]="field.id + '-hint'">{{ field.hint }}</p>
+            }
+            <opal-lib-govuk-text-input-prefix-suffix
+              [labelText]="field.label"
+              labelClasses="govuk-label--s"
+              inputClasses="govuk-input--width-10"
+              prefixText="£"
+              [inputId]="field.id"
+              [inputName]="field.id"
+              [control]="view.control"
+              [errors]="error"
+            />
+          </fieldset>
+        }
+        @case ('long_text') {
+          <opal-lib-govuk-text-area
+            labelClasses="govuk-label--s"
+            [labelText]="field.label"
+            [hintText]="field.hint"
+            [inputId]="field.id"
+            [inputName]="field.id"
+            [control]="view.control"
+            [errors]="error"
+          />
+        }
+        @case ('date') {
+          <opal-lib-moj-date-picker
+            labelClasses="govuk-label--s"
+            [labelText]="field.label"
+            [hintText]="field.hint"
+            [inputId]="field.id"
+            [inputName]="field.id"
+            [control]="view.control"
+            [errors]="error"
+            (dateChange)="setInputValue($event, field.id)"
+          />
+        }
+        @case ('select') {
+          <opal-lib-govuk-select
+            labelClasses="govuk-label--s"
+            [labelText]="field.label"
+            [selectHint]="field.hint"
+            [selectId]="field.id"
+            [selectName]="field.id"
+            [options]="view.options"
+            [control]="form.controls[field.id]"
+            [errors]="error"
+          />
+        }
+        @case ('radio') {
+          <opal-lib-govuk-radio
+            [fieldSetId]="field.id"
+            legendClasses="govuk-fieldset__legend--s"
+            [legendText]="field.label"
+            [legendHint]="field.hint"
+            [errors]="error"
+          >
+            @for (option of view.options; track option.value) {
+              <div
+                opal-lib-govuk-radios-item
+                [labelText]="option.name"
+                [inputId]="field.id + '-option-' + $index"
+                [inputName]="field.id"
+                [inputValue]="option.value"
+                [control]="view.control"
+              ></div>
+            }
+          </opal-lib-govuk-radio>
+        }
+        @case ('autocomplete') {
+          <opal-lib-alphagov-accessible-autocomplete
+            labelClasses="govuk-label--s"
+            [labelText]="field.label"
+            [hintText]="field.hint"
+            [inputId]="field.id"
+            [inputName]="field.id"
+            [control]="view.control"
+            [errors]="error"
+            [autoCompleteItems]="view.options"
+            [suggestionTemplate]="suggestionTemplate"
+          />
+        }
+        @case ('checkbox') {
+          <opal-lib-govuk-checkboxes
+            [fieldSetId]="field.id + '-fieldset'"
+            legendClasses="govuk-fieldset__legend--s"
+            [legendText]="view.checkboxes.length ? field.label : ''"
+            [legendHint]="field.hint"
+            [errors]="error"
+          >
+            @if (view.checkboxes.length) {
+              @for (option of view.checkboxes; track option.value) {
+                <div
+                  opal-lib-govuk-checkboxes-item
+                  [labelText]="option.label"
+                  [inputId]="$first ? field.id : field.id + '-option-' + $index"
+                  [inputName]="field.id"
+                  [control]="option.control"
+                ></div>
+              }
+            } @else {
+              <div
+                opal-lib-govuk-checkboxes-item
+                labelClasses="govuk-label--s"
+                [labelText]="field.label"
+                [inputId]="field.id"
+                [inputName]="field.id"
+                [control]="view.control"
+              ></div>
+            }
+          </opal-lib-govuk-checkboxes>
+        }
+        @default {
+          <opal-lib-govuk-text-input
+            inputClasses="govuk-input--width-20"
+            labelClasses="govuk-label--s"
+            [labelText]="field.label"
+            [hintText]="field.hint"
+            [hintHtml]="false"
+            [inputId]="field.id"
+            [inputName]="field.id"
+            [control]="view.control"
+            [errors]="error"
+          />
+        }
+      }
+    }
+  }
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
+  <div class="govuk-button-group">
+    <button id="create_casefile_order_terms_input_continue" type="submit" class="govuk-button govuk-!-margin-right-4">
+      Continue
+    </button>
+    <span id="create_casefile_order_terms_input_cancel">
+      <opal-lib-govuk-cancel-link (linkClickEvent)="cancel.emit()" />
+    </span>
+  </div>
+</form>

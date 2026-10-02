@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete';
-import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
+
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { MojDatePickerComponent } from '@hmcts/opal-frontend-common/components/moj/moj-date-picker';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
@@ -50,6 +50,31 @@ describe('CasesCreateCasefileOrderDetailsFormComponent', () => {
     Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
   });
 
+  it('requires Date order made before saving otherwise valid details', () => {
+    createComponent({
+      ...emptyFormData,
+      [FIELD_NAMES.applicationId]: 901,
+      [FIELD_NAMES.paymentFrequency]: 'Weekly',
+      [FIELD_NAMES.dateArrearsLastUpdated]: '01/09/2026',
+    });
+    fixture.detectChanges();
+    const submit = vi.spyOn(component['formSubmit'], 'emit');
+    component.handleFormSubmit(new SubmitEvent('submit'));
+    expect(submit).not.toHaveBeenCalled();
+    expect(component.form.controls[FIELD_NAMES.dateOrderMade].hasError('required')).toBe(true);
+    expect(component.formErrorSummaryMessage.map(({ message }) => message)).toContain('Enter the date order made');
+  });
+
+  it('renders payment frequencies as radios and restores the saved selection', () => {
+    createComponent({ ...emptyFormData, [FIELD_NAMES.paymentFrequency]: 'Monthly' });
+    fixture.detectChanges();
+    const radios = Array.from(fixture.nativeElement.querySelectorAll('input[type="radio"]')) as HTMLInputElement[];
+    expect(radios.map((radio) => radio.value)).toEqual(['Weekly', 'Fortnightly', 'Monthly', 'Quarterly', 'Yearly']);
+    expect(radios.find((radio) => radio.checked)?.value).toBe('Monthly');
+    radios[1].click();
+    expect(component.form.controls[FIELD_NAMES.paymentFrequency].value).toBe('Fortnightly');
+  });
+
   it.each([FIELD_NAMES.dateOrderMade, FIELD_NAMES.dateArrearsLastUpdated])(
     'reports a calendar-only edit to %s and clears it when restored',
     (field) => {
@@ -77,11 +102,12 @@ describe('CasesCreateCasefileOrderDetailsFormComponent', () => {
 
     expect(component.formErrorSummaryMessage.map((error) => error.message)).toEqual([
       'Select an application code',
+      'Enter the date order made',
       'Select a payment frequency',
       'Enter the date arrears last updated',
     ]);
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.govuk-error-summary'));
-    expect(component.form.controls[FIELD_NAMES.dateOrderMade].valid).toBe(true);
+    expect(component.form.controls[FIELD_NAMES.dateOrderMade].valid).toBe(false);
   });
 
   it('renders exact labels, canonical identifiers, options and actions', () => {
@@ -95,17 +121,15 @@ describe('CasesCreateCasefileOrderDetailsFormComponent', () => {
     const dates = fixture.debugElement
       .queryAll(By.directive(MojDatePickerComponent))
       .map((element) => element.componentInstance as MojDatePickerComponent);
-    const frequency = fixture.debugElement.query(By.directive(GovukSelectComponent))
-      .componentInstance as GovukSelectComponent;
 
     expect({ label: autocomplete.labelText, id: autocomplete.inputId, name: autocomplete.inputName }).toEqual({
-      label: 'Application',
+      label: 'Select application',
       id: FIELD_NAMES.applicationId,
       name: FIELD_NAMES.applicationId,
     });
     expect(autocomplete.autoCompleteItems).toBe(applicationAutocompleteItems);
     expect({ label: textInput.labelText, id: textInput.inputId, name: textInput.inputName }).toEqual({
-      label: 'Court that made the order',
+      label: 'Court that made the order (optional)',
       id: FIELD_NAMES.court,
       name: FIELD_NAMES.court,
     });
@@ -117,25 +141,13 @@ describe('CasesCreateCasefileOrderDetailsFormComponent', () => {
         inputName: FIELD_NAMES.dateArrearsLastUpdated,
       },
     ]);
-    expect({ label: frequency.labelText, id: frequency.selectId, name: frequency.selectName }).toEqual({
-      label: 'Payment frequency',
-      id: FIELD_NAMES.paymentFrequency,
-      name: FIELD_NAMES.paymentFrequency,
-    });
-    const renderedFrequencyOptions = Array.from(
-      fixture.nativeElement.querySelectorAll(`#${FIELD_NAMES.paymentFrequency} option`),
-    ).map((option) => {
-      const htmlOption = option as HTMLOptionElement;
-      return { value: htmlOption.value, text: htmlOption.textContent?.trim() };
-    });
-    expect(renderedFrequencyOptions).toEqual([
-      { value: '', text: '' },
-      { value: 'Weekly', text: 'Weekly' },
-      { value: 'Fortnightly', text: 'Fortnightly' },
-      { value: 'Monthly', text: 'Monthly' },
-      { value: 'Quarterly', text: 'Quarterly' },
-      { value: 'Yearly', text: 'Yearly' },
-    ]);
+    const radios = Array.from(fixture.nativeElement.querySelectorAll('input[type="radio"]')) as HTMLInputElement[];
+    expect(radios.map(({ value, name }) => ({ value, name }))).toEqual(
+      ['Weekly', 'Fortnightly', 'Monthly', 'Quarterly', 'Yearly'].map((value) => ({
+        value,
+        name: FIELD_NAMES.paymentFrequency,
+      })),
+    );
     expect(component.form.controls[FIELD_NAMES.paymentFrequency].value).toBeNull();
     expect(component.form.controls[FIELD_NAMES.paymentFrequency].valid).toBe(false);
     expect(
@@ -211,11 +223,26 @@ describe('CasesCreateCasefileOrderDetailsFormComponent', () => {
     expect(submit).not.toHaveBeenCalled();
   });
 
+  it('rejects an unsupported restored frequency without submitting', () => {
+    createComponent({
+      ...emptyFormData,
+      [FIELD_NAMES.applicationId]: 901,
+      [FIELD_NAMES.dateOrderMade]: '01/09/2026',
+      [FIELD_NAMES.dateArrearsLastUpdated]: '01/09/2026',
+      [FIELD_NAMES.paymentFrequency]: 'Unrecognised',
+    });
+    fixture.detectChanges();
+    const submit = vi.spyOn(component['formSubmit'], 'emit');
+    component.handleFormSubmit(new SubmitEvent('submit'));
+    expect(submit).not.toHaveBeenCalled();
+    expect(component.formControlErrorMessages[FIELD_NAMES.paymentFrequency]).toBe('Select a payment frequency');
+  });
+
   it('submits valid restored values and emits Cancel', () => {
     const formData: ICasesCreateCasefileOrderDetailsFormData = {
       [FIELD_NAMES.applicationId]: 901,
       [FIELD_NAMES.court]: 'Test Court',
-      [FIELD_NAMES.dateOrderMade]: null,
+      [FIELD_NAMES.dateOrderMade]: '01/09/2026',
       [FIELD_NAMES.paymentFrequency]: 'Monthly',
       [FIELD_NAMES.dateArrearsLastUpdated]: '15/09/2026',
     };

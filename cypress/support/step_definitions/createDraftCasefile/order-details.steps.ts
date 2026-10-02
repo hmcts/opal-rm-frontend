@@ -3,9 +3,7 @@ import { OrderDetailsFlow } from '../../../e2e/functional/opal/flows/createDraft
 const flow = new OrderDetailsFlow();
 Given('I have completed the parties for a new REMO In casefile', () => flow.completeParties());
 When('I open Order Details with available applications', () => flow.openAvailable());
-When('I save an application, monthly payments and an arrears date without an order date', () =>
-  flow.saveWithoutOrderDate(),
-);
+When('I save an application, monthly payments and both required dates', () => flow.saveRequiredDetails());
 Then('Order Details is marked Provided and the remaining order tasks are available', () => flow.assertProvided());
 When('I reopen Order Details', () => flow.reopen());
 Then('my saved Order Details are editable', () => flow.assertEditable());

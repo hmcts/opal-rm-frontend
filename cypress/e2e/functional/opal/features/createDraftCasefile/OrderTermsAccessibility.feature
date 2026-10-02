@@ -12,7 +12,7 @@ Feature: Order term selection accessibility
     When I continue from order term selection
     Then the order term validation summary links to the required choice
     And I check the page for accessibility
-    When I choose order term "MOCK01"
+    When I choose order term "MAT"
     And I continue from order term selection
-    Then the input destination identifies order term "MOCK01" without creating a draft
+    Then the input destination identifies order term "MAT" without creating a draft
     And I check the page for accessibility

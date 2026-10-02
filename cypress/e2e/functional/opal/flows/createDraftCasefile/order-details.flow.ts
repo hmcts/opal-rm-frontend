@@ -11,9 +11,9 @@ export class OrderDetailsFlow {
   public openAvailable(): void {
     this.actions.openAvailable();
   }
-  /** Saves required values while leaving the optional order date empty. */
-  public saveWithoutOrderDate(): void {
-    this.actions.saveWithoutOrderDate();
+  /** Saves the application, payment frequency and both required dates. */
+  public saveRequiredDetails(): void {
+    this.actions.saveRequiredDetails();
   }
   /** Checks task availability and absence of draft creation. */
   public assertProvided(): void {

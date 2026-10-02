@@ -41,12 +41,12 @@ export class OrderDetailsActions {
       .should('deep.equal', { application_group: 'Create Casefile', active: 'true' });
     this.assertAvailable();
   }
-  /** Saves required values while leaving the optional order date empty. */
-  public saveWithoutOrderDate(): void {
+  /** Saves the application, payment frequency and both required dates. */
+  public saveRequiredDetails(): void {
     cy.get(S.orderDetails.application).type('TEST01').type('{downArrow}{enter}');
-    cy.get(S.orderDetails.paymentFrequency).select('Monthly');
+    cy.get(S.orderDetails.frequencyOptions).check('Monthly');
     cy.get(S.orderDetails.dateArrearsLastUpdated).type('01/01/2026');
-    cy.get(S.orderDetails.dateOrderMade).should('have.value', '');
+    cy.get(S.orderDetails.dateOrderMade).type('01/01/2026');
     cy.get(S.orderDetails.returnButton).click();
   }
   /** Checks task availability and absence of draft creation. */
@@ -66,9 +66,9 @@ export class OrderDetailsActions {
   /** Checks that all saved values are restored for editing. */
   public assertEditable(): void {
     cy.get(S.orderDetails.application).should('have.value', 'TEST01 - Synthetic application');
-    cy.get(S.orderDetails.paymentFrequency).should('have.value', 'Monthly');
+    cy.get(S.orderDetails.frequencyOptions).filter(':checked').should('have.value', 'Monthly');
     cy.get(S.orderDetails.dateArrearsLastUpdated).should('have.value', '01/01/2026');
-    cy.get(S.orderDetails.dateOrderMade).should('have.value', '');
+    cy.get(S.orderDetails.dateOrderMade).should('have.value', '01/01/2026');
   }
   /** Returns a correlated service failure when entering the form. */
   public openWithFailure(): void {
@@ -119,7 +119,14 @@ export class OrderDetailsActions {
   /** Checks that validation focuses the linked summary. */
   public assertErrorFocus(): void {
     cy.get(S.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
-    cy.get(S.errorSummaryLinks).should('have.length', 3);
+    cy.get(S.errorSummaryLinks).should((links) => {
+      expect([...links].map((link) => link.textContent?.trim())).to.deep.equal([
+        'Select an application code',
+        'Enter the date order made',
+        'Select a payment frequency',
+        'Enter the date arrears last updated',
+      ]);
+    });
   }
   /** Returns an empty lookup and checks that entry is blocked with safe copy. */
   public openEmpty(): void {

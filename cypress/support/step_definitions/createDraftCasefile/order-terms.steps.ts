@@ -14,3 +14,7 @@ Then('the input destination identifies order term {string} without creating a dr
 Then('order term {string} is selected', (id: string) => flow.assertSelection(id));
 Then('the order term validation summary links to the required choice', () => flow.assertValidation());
 Then('reloading the order term destination returns to Case Type with navigation hidden', () => flow.reload());
+When('I enter order term amount {string}', (amount: string) => flow.enterAmount(amount));
+When('I continue from order term input', () => flow.continueInput());
+Then('I reach Creditor without creating a draft casefile', () => flow.assertCreditor());
+Then('the amount validation summary links to Amount', () => flow.assertAmountRequired());

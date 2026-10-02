@@ -18,7 +18,7 @@ describe('Order Details', () => {
     cy.wait('@applications')
       .its('request.query')
       .should('deep.equal', { application_group: 'Create Casefile', active: 'true' });
-    cy.get(S.orderDetails.paymentFrequency).select('Monthly');
+    cy.get(S.orderDetails.frequencyOptions).check('Monthly');
     cy.get(S.orderDetails.returnButton).click();
     cy.get<Store>('@casesCreateCasefileStore').should((store) => {
       expect(store.orderDetails()).to.deep.equal({ ...M.saved, paymentFrequency: 'Monthly' });
@@ -29,7 +29,7 @@ describe('Order Details', () => {
     cy.get(S.caseDetails.orderDetailsLink).click();
     cy.wait('@applications');
     cy.get('@applications.all').should('have.length', 2);
-    cy.get(S.orderDetails.paymentFrequency).should('have.value', 'Monthly');
+    cy.get(S.orderDetails.frequencyOptions).filter(':checked').should('have.value', 'Monthly');
   });
 
   it('AC2. should retain saved details after an empty lookup and retry on re-entry', { tags: buildTags() }, () => {
@@ -56,7 +56,7 @@ describe('Order Details', () => {
     cy.get(S.caseDetails.orderDetailsLink).click();
     cy.get(S.orderDetails.returnButton).click();
     cy.get(S.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
-    cy.get(S.errorSummaryLinks).should('have.length', 3);
+    cy.get(S.errorSummaryLinks).should('have.length', 4);
     cy.get(S.errorSummaryLinks).contains('Select an application code').focus();
     cy.press(Cypress.Keyboard.Keys.ENTER);
     cy.get(S.orderDetails.application).should('be.focused');
@@ -212,20 +212,20 @@ describe('Order Details independent browser contracts', () => {
     setupOrderDetails();
     cy.get(S.caseDetails.orderDetailsLink).click();
     cy.get(S.orderDetails.application).type('TEST01 - Synthetic application');
-    cy.get(S.orderDetails.paymentFrequency).select('Monthly');
+    cy.get(S.orderDetails.frequencyOptions).check('Monthly');
     cy.get(S.orderDetails.dateArrearsLastUpdated).type('01/01/2026');
     cy.get(S.orderDetails.returnButton).click();
     cy.get(S.errorSummary).should('contain.text', 'Select an application code from the list');
     cy.get<Store>('@casesCreateCasefileStore').should((store) => expect(store.orderDetails()).to.equal(null));
   });
 
-  it('AC3. should accept a 40-character court and an empty optional date', { tags: buildTags() }, () => {
+  it('AC3. should accept a 40-character court with a valid required date', { tags: buildTags() }, () => {
     openSaved();
     cy.get(S.orderDetails.court).clear().type('C'.repeat(40));
     cy.get(S.orderDetails.returnButton).click();
     cy.get<Store>('@casesCreateCasefileStore').should((store) => {
       expect(store.orderDetails()?.court).to.equal('C'.repeat(40));
-      expect(store.orderDetails()?.dateOrderMade).to.equal(null);
+      expect(store.orderDetails()?.dateOrderMade).to.equal(M.saved.dateOrderMade);
     });
   });
 
@@ -258,7 +258,7 @@ describe('Order Details independent browser contracts', () => {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const year = today.getFullYear();
     openSaved();
-    cy.get(S.orderDetails.dateOrderMade).type(`${day}/${month}/${year}`);
+    cy.get(S.orderDetails.dateOrderMade).clear().type(`${day}/${month}/${year}`);
     cy.get(S.orderDetails.dateArrearsLastUpdated).clear().type(`${day}/${month}/${year}`);
     cy.get(S.orderDetails.returnButton).click();
     cy.get<Store>('@casesCreateCasefileStore').should((store) => {
@@ -267,16 +267,13 @@ describe('Order Details independent browser contracts', () => {
     });
   });
 
-  it('AC3. should have only the blank and five specified frequencies with no default', { tags: buildTags() }, () => {
+  it('AC3. should have five radio frequencies with no default', { tags: buildTags() }, () => {
     lookup();
     setupOrderDetails();
     cy.get(S.caseDetails.orderDetailsLink).click();
-    cy.get<HTMLSelectElement>(S.orderDetails.paymentFrequency).should(($select) =>
-      expect($select[0].value).to.equal(''),
-    );
+    cy.get(S.orderDetails.frequencyOptions).should('have.length', 5).and('not.be.checked');
     cy.get(S.orderDetails.frequencyOptions).should((options) =>
-      expect([...options].map((option) => (option as HTMLOptionElement).value)).to.deep.equal([
-        '',
+      expect([...options].map((option) => (option as HTMLInputElement).value)).to.deep.equal([
         'Weekly',
         'Fortnightly',
         'Monthly',
@@ -393,8 +390,8 @@ describe('Order Details routed lifecycle', () => {
       cy.wait('@applications');
       cy.get(S.orderDetails.application).clear().type('TEST02').type('{downArrow}{enter}');
       cy.get(S.orderDetails.court).clear().type('New synthetic court');
-      cy.get(S.orderDetails.dateOrderMade).type('02/01/2026');
-      cy.get(S.orderDetails.paymentFrequency).select('Quarterly');
+      cy.get(S.orderDetails.dateOrderMade).clear().type('02/01/2026');
+      cy.get(S.orderDetails.frequencyOptions).check('Quarterly');
       cy.get(S.orderDetails.dateArrearsLastUpdated).clear().type('03/01/2026');
       const confirmation = cy.stub();
       cy.on('window:confirm', confirmation);
@@ -423,7 +420,7 @@ describe('Order Details routed lifecycle', () => {
       cy.get(S.orderDetails.application).should('have.value', 'TEST02 - Second synthetic application');
       cy.get(S.orderDetails.court).should('have.value', 'New synthetic court');
       cy.get(S.orderDetails.dateOrderMade).should('have.value', '02/01/2026');
-      cy.get(S.orderDetails.paymentFrequency).should('have.value', 'Quarterly');
+      cy.get(S.orderDetails.frequencyOptions).filter(':checked').should('have.value', 'Quarterly');
       cy.get(S.orderDetails.dateArrearsLastUpdated).should('have.value', '03/01/2026');
     },
   );
@@ -592,17 +589,19 @@ describe('Order Details entry and select integrity', () => {
     cy.wait('@applications');
     cy.get(S.orderDetails.application).should('be.visible');
   });
-  it('AC3. should reject a tampered frequency instead of saving an unknown value', { tags: buildTags() }, () => {
-    openSaved();
-    cy.get<HTMLSelectElement>(S.orderDetails.paymentFrequency).then(($select) => {
-      const option = $select[0].ownerDocument.createElement('option');
-      option.value = 'Unrecognised';
-      option.textContent = 'Unrecognised';
-      $select[0].append(option);
-    });
-    cy.get(S.orderDetails.paymentFrequency).select('Unrecognised');
-    cy.get(S.orderDetails.returnButton).click();
-    cy.get(S.errorSummary).should('contain.text', 'Select a payment frequency');
-    assertSaved();
-  });
+  it(
+    'AC3. should require Date order made and focus its error without replacing saved details',
+    { tags: buildTags() },
+    () => {
+      openSaved();
+      cy.get(S.orderDetails.dateOrderMade).clear();
+      cy.get(S.orderDetails.returnButton).click();
+      cy.get(S.errorSummaryLinks).contains('Enter the date order made').click();
+      cy.get(S.orderDetails.dateOrderMade).should('be.focused');
+      assertSaved();
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po-9807-order-details-required-date');
+    },
+  );
 });

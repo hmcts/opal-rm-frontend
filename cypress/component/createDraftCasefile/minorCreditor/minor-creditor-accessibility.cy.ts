@@ -1,7 +1,7 @@
 import { Router } from '@angular/router';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
-import { UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
+import { UNSAVED_CHANGES_WARNING } from '../../../shared/constants/create-casefile-test-copy.constant';
 import { setupCreditor, type CreditorStore } from '../creditor/setup/creditor.setup';
 import {
   MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK,

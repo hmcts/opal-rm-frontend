@@ -1,3 +1,6 @@
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { REVIEW_SUBMISSION_RECEIPT } from './mocks/review.mock';
+import { interceptReviewSubmission, REVIEW_SUBMISSION_URL } from './setup/review-submission.intercept';
 import { getState } from '@ngrx/signals';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { CasesCreateCasefileReviewNavigationService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-review-navigation.service';
@@ -18,7 +21,7 @@ const assertDraftRetained = () =>
     .get<ReviewStore>('@reviewStore')
     .should((store) => expect(getState(store)).to.deep.equal(createCompleteReviewState()));
 
-describe('Check case details local mock review', () => {
+describe('Check case details submission', () => {
   it(
     'AC1. should display every accepted review section without originator or generated fields',
     { tags: buildTags() },
@@ -64,6 +67,7 @@ describe('Check case details local mock review', () => {
     'AC1, AC6. should tab to the contextual Change action and request correction with review context',
     { tags: buildTags() },
     () => {
+      cy.intercept('POST', REVIEW_SUBMISSION_URL, cy.spy().as('prohibitedPost'));
       setupReview();
       cy.get(S.heading).focus();
       cy.press(Cypress.Keyboard.Keys.TAB);
@@ -73,6 +77,7 @@ describe('Check case details local mock review', () => {
         expect(navigation.context()).to.deep.equal({ origin: 'review', section: 'respondent' }),
       );
       assertDraftRetained();
+      cy.get('@prohibitedPost').should('not.have.been.called');
     },
   );
 
@@ -108,12 +113,14 @@ describe('Check case details local mock review', () => {
     'AC1. should render REMO Out without an applicant-type choice and retain the individual applicant',
     { tags: buildTags() },
     () => {
+      interceptReviewSubmission();
       setupReview({ state: createRemoOutReviewState() });
       cy.get(S.section('caseType')).should('contain.text', 'REMO Out').and('not.contain.text', 'Applicant type');
       cy.get(S.section('applicant'))
         .should('contain.text', 'Alternative Applicant')
         .and('contain.text', '31 January 1990');
       cy.get(S.submit).click();
+      cy.wait('@draftCasefilePost').its('request.body.casefile_type').should('equal', 'REMO Out');
       cy.get(S.errors).should('not.exist');
     },
   );
@@ -184,19 +191,121 @@ describe('Check case details local mock review', () => {
     },
   );
 
-  it('AC3. should simulate submission by navigating with the draft unchanged', { tags: buildTags() }, () => {
-    setupReview();
-    cy.get(S.submit).click();
-    cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
-    assertDraftRetained();
-  });
-  it('should retain the draft when confirmation navigation fails', { tags: buildTags() }, () => {
-    setupReview({ failNavigation: true });
-    cy.get(S.submit).click();
-    cy.get(S.errors).should('contain.text', 'The page could not be opened').and('be.focused');
-    assertDraftRetained();
-  });
-  it('should retain the draft when opening cancellation', { tags: buildTags() }, () => {
+  it(
+    'AC3. should POST resolved codes and open confirmation only after a successful response',
+    { tags: buildTags() },
+    () => {
+      let releaseResponse: () => void;
+      const responseReady = new Promise<void>((resolve) => {
+        releaseResponse = resolve;
+      });
+      cy.intercept('POST', REVIEW_SUBMISSION_URL, (request) =>
+        responseReady.then(() => request.reply({ statusCode: 201, body: REVIEW_SUBMISSION_RECEIPT })),
+      ).as('draftCasefilePost');
+      setupReview();
+      cy.get(S.submit).click();
+      cy.get(S.submit).should('be.enabled').click();
+      cy.get(S.change('respondent')).should('match', 'a').click();
+      cy.get('@routerNavigate').should('not.have.been.called');
+      assertDraftRetained();
+      cy.then(() => releaseResponse());
+      cy.wait('@draftCasefilePost').then(({ request, response }) => {
+        expect(response?.statusCode).to.equal(201);
+        expect(request.body.business_unit_id).to.equal(44);
+        expect(request.body.casefile.respondent_account.application_code).to.equal('TEST');
+        expect(request.body.casefile.respondent_account.respondent.party_details.address.cjs_code).to.equal(101);
+        expect(request.body.casefile.applicant.party_details.address.cjs_code).to.equal(101);
+        expect(request.body.casefile.respondent_account.order_details.order_terms).to.deep.equal([
+          {
+            result_id: 'TEST01',
+            creditor_type: 'Applicant',
+            result_responses: [{ parameter_name: 'amount', response: '100.00' }],
+          },
+        ]);
+        expect(request.body).not.to.have.property('taskStatuses');
+      });
+      cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
+      cy.get<ReviewStore>('@reviewStore').should((store) => {
+        expect(store.submissionSucceeded()).to.equal(true);
+        expect(store.respondentDetails()).to.deep.equal(createCompleteReviewState().respondentDetails);
+        expect(store.applicantDetails()).to.deep.equal(createCompleteReviewState().applicantDetails);
+        expect(store.orderTerms()).to.deep.equal(createCompleteReviewState().orderTerms);
+      });
+      cy.get('@draftCasefilePost.all').should('have.length', 1);
+    },
+  );
+  it(
+    'AC3. should POST comma-separated checkbox selections and omit unselected parameters',
+    { tags: buildTags() },
+    () => {
+      const state = createCompleteReviewState();
+      state.orderTerms[0].parameters = {
+        single: ['Option 1'],
+        multiple: ['Option 1', 'Option 2', 'Option 3'],
+        empty: [],
+      };
+      state.orderTerms[0].presentation.fields = [
+        { name: 'single', label: 'Single selection', kind: 'checkbox', options: [] },
+        { name: 'multiple', label: 'Multiple selections', kind: 'checkbox', options: [] },
+        { name: 'empty', label: 'No selection', kind: 'checkbox', options: [] },
+      ];
+      interceptReviewSubmission();
+      setupReview({ state });
+      cy.get(S.submit).click();
+      cy.wait('@draftCasefilePost').then(({ request }) => {
+        expect(request.body.casefile.respondent_account.order_details.order_terms[0].result_responses).to.deep.equal([
+          { parameter_name: 'single', response: 'Option 1' },
+          { parameter_name: 'multiple', response: 'Option 1,Option 2,Option 3' },
+        ]);
+      });
+      cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
+    },
+  );
+
+  it(
+    'AC3. should preserve the draft and use the global banner after a rejected submission',
+    { tags: buildTags() },
+    () => {
+      interceptReviewSubmission(400);
+      setupReview();
+      cy.get(S.submit).click();
+      cy.wait('@draftCasefilePost');
+      cy.get<InstanceType<typeof GlobalStore>>('@globalStore').should((store) => {
+        expect(store.bannerError()).to.include({ error: true, message: 'Synthetic validation failure' });
+      });
+      cy.get(S.errors).should('not.exist');
+      assertDraftRetained();
+      cy.get('@routerNavigate').should('not.have.been.called');
+      cy.get('@draftCasefilePost.all').should('have.length', 1);
+    },
+  );
+  it(
+    'AC3. should retain the successful submission and retry navigation without submitting again',
+    { tags: buildTags() },
+    () => {
+      interceptReviewSubmission();
+      setupReview({ failNavigation: true });
+      cy.get(S.submit).click();
+      cy.wait('@draftCasefilePost');
+      cy.get<InstanceType<typeof GlobalStore>>('@globalStore').should((store) =>
+        expect(store.bannerError().error).to.equal(true),
+      );
+      cy.get(S.errors).should('not.exist');
+      cy.get<ReviewStore>('@reviewStore').should((store) => {
+        expect(store.submissionSucceeded()).to.equal(true);
+        expect(store.respondentDetails()).to.deep.equal(createCompleteReviewState().respondentDetails);
+        expect(store.orderTerms()).to.deep.equal(createCompleteReviewState().orderTerms);
+      });
+      cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
+        navigate.onSecondCall().resolves(true),
+      );
+      cy.get(S.submit).should('be.enabled').click();
+      cy.get('@routerNavigate').should('have.been.calledTwice');
+      cy.get(S.errors).should('not.exist');
+      cy.get('@draftCasefilePost.all').should('have.length', 1);
+    },
+  );
+  it('AC4. should retain the draft when opening cancellation', { tags: buildTags() }, () => {
     setupReview();
     cy.get(S.cancel).click();
     cy.get('@routerNavigate').should('have.been.calledWith', route(PATHS.children.cancel));

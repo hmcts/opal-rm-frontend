@@ -11,6 +11,7 @@ export const APPLICANT_ORGANISATION_ERROR_MESSAGES = {
   bankNameOnAccount: 'Enter name on account',
   bankSortCode: 'Enter correct sort code',
   bankAccountNumber: 'Account number must be between 6 and 8 numbers',
+  nonUkBankPaymentReference: 'Enter non-UK bank account payment reference',
   bankPaymentReference: 'Enter UK bank account payment reference',
 } as const;
 

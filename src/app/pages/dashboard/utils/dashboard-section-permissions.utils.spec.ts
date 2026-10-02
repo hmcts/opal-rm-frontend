@@ -1,9 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { NAVIGATION_BAR_CONFIGURATION } from '@app/constants/navigation-bar-configuration.constant';
 import { DASHBOARD_PAGE_DEFAULT_TAB } from '../constants/dashboard-config-default-tab.constant';
-import { DASHBOARD_SECTION_PERMISSIONS } from '../constants/dashboard-section-permissions.constant';
 import {
   canAccessFinesPrimaryNavigationSection,
   getAccessiblePrimaryNavigationItems,
@@ -38,8 +37,20 @@ const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpal
 };
 
 describe('dashboard-section-permissions.utils', () => {
-  beforeEach(() => {
-    DASHBOARD_SECTION_PERMISSIONS.administration = [6];
+  it.each([
+    { businessUnitId: 44, permissionId: 21, allowed: true },
+    { businessUnitId: 45, permissionId: 21, allowed: false },
+    { businessUnitId: 44, permissionId: 1, allowed: false },
+    { businessUnitId: 44, permissionId: 5, allowed: false },
+    { businessUnitId: 44, permissionId: 13, allowed: false },
+  ])('checks case creation for $businessUnitId / $permissionId', ({ businessUnitId, permissionId, allowed }) => {
+    const userState = createUserStateWithPermissions([permissionId]);
+    userState.business_unit_users = [{ ...userState.business_unit_users[0], business_unit_id: businessUnitId }];
+    expect(canAccessFinesPrimaryNavigationSection('cases', userState)).toBe(allowed);
+  });
+
+  it('denies Cases when user state is unavailable', () => {
+    expect(canAccessFinesPrimaryNavigationSection('cases', null)).toBe(false);
   });
 
   it('deduplicates user permission ids across business units', () => {
@@ -50,19 +61,17 @@ describe('dashboard-section-permissions.utils', () => {
     expect(hasAnyPermission([14, 15], [1, 6])).toBe(false);
   });
 
-  it('allows access when a section has no configured required permissions', () => {
-    DASHBOARD_SECTION_PERMISSIONS.administration = [];
-
-    expect(canAccessFinesPrimaryNavigationSection('administration', createUserStateWithPermissions([]))).toBe(true);
+  it.each(['search', 'reports', 'administration'] as const)('denies %s pending RM permissions', (section) => {
+    expect(canAccessFinesPrimaryNavigationSection(section, createUserStateWithPermissions([1, 6, 14, 15, 21]))).toBe(
+      false,
+    );
   });
 
-  it('filters the primary navigation down to accessible sections', () => {
-    const userState = createUserStateWithPermissions([6, 14]);
-
-    expect(getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, userState)).toEqual([
-      { key: 'search', value: 'Search' },
-      { key: 'reports', value: 'Reports' },
-      { key: 'administration', value: 'Administration' },
+  it('shows only Cases for a user with the RM permission', () => {
+    const state = createUserStateWithPermissions([6, 14, 21]);
+    state.business_unit_users[0].business_unit_id = 44;
+    expect(getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, state)).toEqual([
+      { key: 'cases', value: 'Cases' },
     ]);
   });
 
@@ -78,9 +87,10 @@ describe('dashboard-section-permissions.utils', () => {
       { key: 'cases', value: 'Cases' },
       { key: 'search', value: 'Search' },
     ] as const;
-    const userState = createUserStateWithPermissions([1, 6, 14]);
+    const userState = createUserStateWithPermissions([6, 14, 21]);
+    userState.business_unit_users[0].business_unit_id = 44;
 
-    expect(getDashboardLandingType(reorderedNavigationItems, userState)).toBe('search');
+    expect(getDashboardLandingType(reorderedNavigationItems, userState)).toBe('cases');
   });
 
   it('falls back to the default tab for landing when nothing is accessible', () => {

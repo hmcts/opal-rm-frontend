@@ -1,3 +1,7 @@
+import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
@@ -22,6 +26,7 @@ export function setupReview(options: ReviewSetupOptions = {}) {
     ...createCompleteReviewState(),
     ...structuredClone(options.state ?? {}),
   });
+  if (options.confirmation) store.setSubmissionSucceeded(true);
   return cy.document().then((document) => {
     document.documentElement.lang = 'en';
     document.body.classList.add('govuk-template__body');
@@ -33,6 +38,9 @@ export function setupReview(options: ReviewSetupOptions = {}) {
       {
         providers: [
           provideRouter([]),
+          provideHttpClient(withInterceptors([httpErrorInterceptor])),
+          { provide: GlobalStore, useValue: new GlobalStore() },
+          { provide: AppInsightsService, useValue: { logException: () => undefined } },
           { provide: CasesCreateCasefileStore, useValue: store },
           {
             provide: ActivatedRoute,
@@ -50,6 +58,7 @@ export function setupReview(options: ReviewSetupOptions = {}) {
     ).then(({ fixture }) => {
       cy.stub(TestBed.inject(Router), 'navigateByUrl').as('routerNavigate').resolves(!options.failNavigation);
       cy.wrap(store, { log: false }).as('reviewStore');
+      cy.wrap(TestBed.inject(GlobalStore), { log: false }).as('globalStore');
       cy.wrap(TestBed.inject(CasesCreateCasefileReviewNavigationService), { log: false }).as('reviewNavigation');
       fixture.detectChanges();
     });

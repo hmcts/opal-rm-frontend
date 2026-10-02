@@ -221,6 +221,18 @@ describe('createCasesCreateCasefileApplicantBankBranchController', () => {
     expect(activationOrder).toEqual(nonUkFieldOrder);
   });
 
+  it.each([null, '', '   '])('requires a non-UK payment reference for blank value %s', (value) => {
+    const controller = createController();
+    controller.applySelection(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK);
+    controls.nonUkBankPaymentReference.setValue(value);
+    expect(controls.nonUkBankPaymentReference.hasError('required')).toBe(true);
+    controls.nonUkBankPaymentReference.setValue('PAY-9817');
+    expect(controls.nonUkBankPaymentReference.valid).toBe(true);
+    controller.applySelection(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE);
+    expect(controls.nonUkBankPaymentReference.disabled).toBe(true);
+    expect(controls.nonUkBankPaymentReference.errors).toBeNull();
+  });
+
   it('enables the non-UK branch with its exact validator composition', () => {
     const controller = createController();
 
@@ -238,7 +250,7 @@ describe('createCasesCreateCasefileApplicantBankBranchController', () => {
       true,
     );
     expect(controls.nonUkBankAccountNumber.hasValidator(nonUkAccountNumberValidator)).toBe(true);
-    expect(controls.nonUkBankPaymentReference.validator).toBeNull();
+    expect(controls.nonUkBankPaymentReference.hasValidator(requiredTextValidator)).toBe(true);
     expect(controls.nonUkBankName.validator).toBeNull();
     for (const control of ukControls()) {
       expect(control.disabled).toBe(true);

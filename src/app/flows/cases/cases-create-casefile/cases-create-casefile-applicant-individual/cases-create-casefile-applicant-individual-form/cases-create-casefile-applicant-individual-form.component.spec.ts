@@ -775,7 +775,7 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     expect(accountNumber.hasError('ukAccountNumberLength')).toBe(true);
   });
 
-  it('accepts a non-UK account with a valid BIC and optional payment reference', () => {
+  it('requires a non-UK payment reference before accepting an otherwise valid account', () => {
     component.initialFormData = {
       ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
       create_casefile_applicant_individual_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
@@ -791,9 +791,14 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     expect(component.form.controls['create_casefile_applicant_individual_non_uk_bank_name_on_account'].enabled).toBe(
       true,
     );
+    const reference = component.form.controls.create_casefile_applicant_individual_non_uk_bank_payment_reference;
+    expect(reference.hasError('required')).toBe(true);
+    component.handleFormSubmit(new SubmitEvent('submit'));
     expect(
-      component.form.controls['create_casefile_applicant_individual_non_uk_bank_payment_reference'].errors,
-    ).toBeNull();
+      component.formControlErrorMessages['create_casefile_applicant_individual_non_uk_bank_payment_reference'],
+    ).toBe('Enter non-UK bank account payment reference');
+    reference.setValue('PAY-9817');
+    expect(reference.valid).toBe(true);
     expect(
       component.form.controls['create_casefile_applicant_individual_non_uk_bank_bic_swift_code'].errors,
     ).toBeNull();
@@ -810,6 +815,7 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
       create_casefile_applicant_individual_uk_bank_account_number: null,
       create_casefile_applicant_individual_uk_bank_payment_reference: null,
       create_casefile_applicant_individual_non_uk_bank_name_on_account: 'Account holder',
+      create_casefile_applicant_individual_non_uk_bank_payment_reference: 'PAY-9817',
       create_casefile_applicant_individual_non_uk_bank_bic_swift_code: null,
       create_casefile_applicant_individual_non_uk_bank_iban: null,
     };

@@ -2,7 +2,7 @@
 Feature: Cancel case creation
   Background:
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
-    And I am reviewing a complete casefile for simulated submission
+    And I am reviewing a complete casefile for submission
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9818
   Scenario: Return to review without losing the case

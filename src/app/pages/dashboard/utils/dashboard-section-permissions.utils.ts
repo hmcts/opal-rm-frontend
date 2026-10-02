@@ -1,3 +1,4 @@
+import { OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID } from '@app/flows/cases/services/opal-maintenance-service/constants/opal-maintenance-business-unit-ids.constant';
 import { INavigationBarConfiguration } from '@app/interfaces/navigation-bar-configuration.interface';
 import { DASHBOARD_PAGE_DEFAULT_TAB } from '@app/pages/dashboard/constants/dashboard-config-default-tab.constant';
 import { DashboardPageType } from '@app/pages/dashboard/types/dashboard.type';
@@ -26,10 +27,20 @@ export const canAccessFinesPrimaryNavigationSection = (
   const requiredPermissionIds = DASHBOARD_SECTION_PERMISSIONS[sectionKey];
 
   if (!requiredPermissionIds?.length) {
-    return true;
+    return false;
   }
 
-  return hasAnyPermission(requiredPermissionIds, getUserPermissionIds(userState));
+  const sectionUserState =
+    sectionKey === 'cases' && userState
+      ? {
+          ...userState,
+          business_unit_users: userState.business_unit_users.filter(
+            (unit) => unit.business_unit_id === OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID,
+          ),
+        }
+      : userState;
+
+  return hasAnyPermission(requiredPermissionIds, getUserPermissionIds(sectionUserState));
 };
 
 export const getAccessiblePrimaryNavigationItems = (

@@ -8,7 +8,7 @@ import type { IOpalMaintenanceCountryReferenceDataItem } from 'src/app/flows/cas
 import type { IOpalMaintenanceApplicationReferenceDataItem } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-application-reference-data-item.interface';
 
 export const REVIEW_COUNTRIES: IOpalMaintenanceCountryReferenceDataItem[] = [
-  { country_id: 1, cjs_code: 1, country_name: 'Test country', date_used_from: '2020-01-01', active: true },
+  { country_id: 1, cjs_code: 101, country_name: 'Test country', date_used_from: '2020-01-01', active: true },
 ];
 export const REVIEW_APPLICATIONS: IOpalMaintenanceApplicationReferenceDataItem[] = [
   {
@@ -70,3 +70,21 @@ export function createMixedCreditorReviewState() {
   state.nextMinorCreditorSequence = 4;
   return state;
 }
+
+export const REVIEW_SUBMISSION_RECEIPT = {
+  draft_casefile_id: 123,
+  business_unit_id: 44,
+  created_date: '2026-10-02T12:00:00Z',
+  submitted_by: 'synthetic-user',
+  submitted_by_name: 'Synthetic User',
+  casefile_type: 'REMO In',
+  casefile_status: 'SUBMITTED',
+  casefile_status_date: '2026-10-02T12:00:00Z',
+  casefile_snapshot: {
+    respondent_account: { account_id: null, account_number: null, respondent_name: 'Respondent, Test' },
+    applicant_account: { account_id: null, account_number: null, applicant_name: 'Applicant, Test' },
+    minor_creditor_accounts: [],
+  },
+  timeline_data: [{ username: 'Synthetic User', status: 'Submitted', status_date: '2026-10-02T12:00:00Z' }],
+};
+export const REVIEW_SUBMISSION_ERROR = { detail: 'Synthetic validation failure', retriable: true };

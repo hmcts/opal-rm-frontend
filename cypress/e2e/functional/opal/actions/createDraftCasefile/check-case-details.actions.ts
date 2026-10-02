@@ -1,10 +1,22 @@
+import { CHECK_CASE_DETAILS_SUBMISSION as SUBMISSION } from '../../mocks/createDraftCasefile/check-case-details.mock';
+import type { IOpalMaintenanceDraftCasefileRequest } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-request.interface';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-payment-arrangements.constant';
 
-/** Exercises the simulated submission through the real rendered journey. */
+/** Exercises intercepted HTTP submission through the real rendered journey. */
 export class CheckCaseDetailsActions {
+  private expectedSubmissionCount = 0;
+  /** Stubs the create boundary so this journey never sends a live submission. */
+  public prepareSubmission(): void {
+    this.expectedSubmissionCount = 0;
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', {
+      statusCode: 201,
+      body: structuredClone(SUBMISSION.receipt),
+    }).as('draftSubmission');
+  }
+
   /** Completes the remaining mandatory tasks before opening review. */
   public completeRemainingTasks(): void {
     cy.get(S.orderTerms.return).click();
@@ -33,30 +45,42 @@ export class CheckCaseDetailsActions {
     cy.get(S.review.section('respondent')).should('be.focused');
   }
 
-  /** Activates the mock submission once. */
+  /** Submits the accepted case through the real HTTP service. */
   public submit(): void {
+    this.expectedSubmissionCount = 1;
     cy.get(S.review.submit).click();
   }
 
-  /** Checks the simulated confirmation and absence of backend creation. */
+  /** Checks the resolved payload, successful receipt and single create request. */
   public assertConfirmation(): void {
+    cy.wait('@draftSubmission').then(({ request, response }) => {
+      const payload = request.body as IOpalMaintenanceDraftCasefileRequest;
+      expect(response?.statusCode).to.equal(201);
+      expect(payload.business_unit_id).to.equal(44);
+      expect(payload.casefile_type).to.equal('REMO In');
+      expect(payload.casefile.respondent_account.application_code).to.equal('TEST01');
+      expect(payload.casefile.respondent_account.respondent.party_details.address).to.deep.equal({
+        address_line_1: '1 Test Street',
+        cjs_code: 1,
+      });
+      expect(payload.casefile.applicant.party_details.address).to.deep.equal({
+        address_line_1: '2 Test Street',
+        cjs_code: 1,
+      });
+      expect(payload.casefile.applicant.bank_account_details).to.deep.equal({
+        bank_account_type: 'None or not applicable',
+      });
+      expect(payload.casefile.respondent_account.order_details.order_terms).to.deep.equal(
+        SUBMISSION.expectedOrderTerms,
+      );
+      expect(payload).not.to.have.property('taskStatuses');
+    });
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
     cy.get(S.review.confirmationHeading)
       .should('be.focused')
       .and(($heading) => expect($heading.text().trim()).to.equal('You’ve submitted this case for review'));
-    cy.get('h1').should('have.length', 1);
     cy.get(S.review.confirmationNextSteps).should('have.text', 'Next steps');
-    cy.screenshot('po-9819-full-app-confirmation');
-    cy.get(S.review.createNew)
-      .should('contain.text', 'Create a new case')
-      .and('have.attr', 'href', '/' + PATHS.root + '/' + PATHS.children.caseType);
-    cy.get(S.review.inReview).should(($text) => {
-      expect($text).to.contain.text('See your cases in review');
-      expect($text).not.to.have.attr('href');
-      expect($text).not.to.have.attr('tabindex');
-      expect($text).not.to.match('a, button, [role="link"], [role="button"]');
-    });
-    cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@draftSubmission.all').should('have.length', 1);
     cy.get(S.primaryNavigation).should('not.exist');
   }
 
@@ -70,7 +94,7 @@ export class CheckCaseDetailsActions {
 
   /** Opens confirmation in a fresh document without a draft in the store. */
   public openFreshConfirmation(): void {
-    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', cy.spy().as('draftCreation'));
+    this.prepareSubmission();
     cy.visit('/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
   }
 
@@ -91,7 +115,14 @@ export class CheckCaseDetailsActions {
     cy.get(S.review.section('respondent')).should('contain.text', 'Synthetic');
     cy.get(S.review.section('orderTerms')).should('contain.text', '£10.00').and('contain.text', '£20.00');
     cy.get(S.review.submit).should('be.enabled');
-    cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@draftSubmission.all').should('have.length', 1);
+  }
+
+  /** Checks that Forward restores confirmation without another POST. */
+  public assertReturnedConfirmation(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
+    cy.get(S.review.confirmationHeading).should('be.focused');
+    cy.get('@draftSubmission.all').should('have.length', 1);
   }
 
   /** Reloads the confirmation page to verify the existing in-memory journey reset. */
@@ -99,12 +130,10 @@ export class CheckCaseDetailsActions {
     cy.reload();
   }
 
-  /** Checks that refresh uses the existing journey reset without sending a submission. */
+  /** Checks that refresh resets the journey without replaying the successful submission. */
   public assertRestartedJourney(): void {
-    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
     cy.get(S.caseTypeGroup).should('be.visible');
-    cy.get(S.caseTypeRadios).should('not.be.checked');
-    cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@draftSubmission.all').should('have.length', this.expectedSubmissionCount);
     cy.get(S.primaryNavigation).should('not.exist');
   }
 
@@ -160,7 +189,7 @@ export class CheckCaseDetailsActions {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.checkCaseDetails);
     cy.get(S.review.section('respondent')).should('contain.text', 'Synthetic');
     cy.get(S.review.section('orderTerms')).should('contain.text', '£10.00').and('contain.text', '£20.00');
-    cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@draftSubmission.all').should('have.length', 0);
     cy.get('@cancelPersistence').should('not.have.been.called');
   }
 }

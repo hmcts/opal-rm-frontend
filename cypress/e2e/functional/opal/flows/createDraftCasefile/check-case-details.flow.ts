@@ -81,4 +81,8 @@ export class CheckCaseDetailsFlow {
   public assertRetainedDraft(): void {
     this.review.assertRetainedDraft();
   }
+  /** Checks that Forward restores confirmation without another POST. */
+  public assertReturnedConfirmation(): void {
+    this.review.assertReturnedConfirmation();
+  }
 }

@@ -1,5 +1,6 @@
 import type { ICasesCreateCasefileAcceptedOrderTerm } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-accepted-order-term.interface';
 import type { ICasesCreateCasefileMinorCreditor } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-minor-creditor.interface';
+import { MINOR_CREDITOR_DETAILS_MOCK } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
 import { FIRST_MAJOR_CREDITOR } from '../../centralAuthority/mocks/major-creditors.mock';
 
@@ -29,12 +30,21 @@ export const CREDITOR_MAJOR_RESPONSE: IOpalMaintenanceMajorCreditorReferenceData
   ],
 };
 
+const minorCreditor = (sequenceNumber: number, displayName: string): ICasesCreateCasefileMinorCreditor => ({
+  sequenceNumber,
+  displayName,
+  details: {
+    ...MINOR_CREDITOR_DETAILS_MOCK,
+    identity: { type: 'organisation', organisationName: displayName },
+  },
+});
+
 export const CREDITOR_MINOR_CREDITORS: ICasesCreateCasefileMinorCreditor[] = [
-  { sequenceNumber: 1, displayName: 'Synthetic Minor One' },
-  { sequenceNumber: 2, displayName: 'Duplicate Synthetic Name' },
-  { sequenceNumber: 3, displayName: 'Synthetic Minor Three' },
-  { sequenceNumber: 4, displayName: 'Duplicate Synthetic Name' },
-  { sequenceNumber: 5, displayName: 'Synthetic Minor Five' },
+  minorCreditor(1, 'Synthetic Minor One'),
+  minorCreditor(2, 'Duplicate Synthetic Name'),
+  minorCreditor(3, 'Synthetic Minor Three'),
+  minorCreditor(4, 'Duplicate Synthetic Name'),
+  minorCreditor(5, 'Synthetic Minor Five'),
 ];
 
 export const CREDITOR_ACCEPTED_TERMS: ICasesCreateCasefileAcceptedOrderTerm[] = [

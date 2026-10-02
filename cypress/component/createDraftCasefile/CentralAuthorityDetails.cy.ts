@@ -1,7 +1,7 @@
 import type { Router } from '@angular/router';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors } from 'cypress/shared/selectors/create-casefile.selectors';
-import { UNSAVED_CHANGES_WARNING } from './constants/create-casefile-test-copy.constant';
+import { UNSAVED_CHANGES_WARNING } from '../../shared/constants/create-casefile-test-copy.constant';
 import { CENTRAL_AUTHORITY_ERRORS } from './centralAuthority/constants/central-authority-errors.constant';
 import {
   SAVED_DETAILS_WITH_MISSING_RECORD,

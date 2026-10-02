@@ -7,7 +7,10 @@ import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-c
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { IOpalMaintenanceResultReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-result-reference-data-response.interface';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
-import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from '../constants/create-casefile-test-copy.constant';
+import {
+  ERROR_SUMMARY_TITLE,
+  UNSAVED_CHANGES_WARNING,
+} from '../../../shared/constants/create-casefile-test-copy.constant';
 import { ORDER_TERMS_MOCK as M } from './mocks/order-terms.mock';
 import { setupOrderTerms, type OrderTermsStore } from './setup/order-terms.setup';
 

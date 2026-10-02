@@ -7,7 +7,9 @@ import type { ICasesCreateCasefileCentralAuthorityDetails } from './cases-create
 import type { ICasesCreateCasefileRespondentDetails } from './cases-create-casefile-respondent-details.interface';
 import type { ICasesCreateCasefileOrderDetails } from './cases-create-casefile-order-details.interface';
 import type { ICasesCreateCasefileOrderTermDraft } from './cases-create-casefile-order-term-draft.interface';
-import type { ICasesCreateCasefileOrderTerm } from './cases-create-casefile-order-term.interface';
+import type { ICasesCreateCasefileAcceptedOrderTerm } from './cases-create-casefile-accepted-order-term.interface';
+import type { ICasesCreateCasefileCreditorDraft } from './cases-create-casefile-creditor-draft.interface';
+import type { ICasesCreateCasefileMinorCreditor } from './cases-create-casefile-minor-creditor.interface';
 import type { ICasesCreateCasefileTaskStatuses } from './cases-create-casefile-task-statuses.interface';
 
 export interface ICasesCreateCasefileState {
@@ -18,7 +20,12 @@ export interface ICasesCreateCasefileState {
   interestAndIndexation: ICasesCreateCasefileInterestIndexation | null;
   centralAuthorityDetails: ICasesCreateCasefileCentralAuthorityDetails | null;
   paymentArrangement: CasesCreateCasefilePaymentArrangement | null;
-  orderTerms: ICasesCreateCasefileOrderTerm[];
+  orderTerms: ICasesCreateCasefileAcceptedOrderTerm[];
+  currentOrderTermId: number | null;
+  nextOrderTermId: number;
+  minorCreditors: ICasesCreateCasefileMinorCreditor[];
+  nextMinorCreditorSequence: number;
+  creditorDraft: ICasesCreateCasefileCreditorDraft | null;
   orderTermDraft: ICasesCreateCasefileOrderTermDraft | null;
   commentsAndNotes: ICasesCreateCasefileCommentsNotes | null;
   pendingOrderTermResultId: string | null;

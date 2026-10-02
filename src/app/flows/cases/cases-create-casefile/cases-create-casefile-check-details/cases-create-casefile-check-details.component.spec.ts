@@ -1,3 +1,4 @@
+import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { UtilsService } from '@hmcts/opal-frontend-common/services/utils-service';
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
@@ -104,7 +105,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       casefile_type: 'REMO In',
     });
     expect(store.submissionSucceeded()).toBe(true);
-    expect(store.respondentDetails()).toEqual(createCasesCreateCasefileReviewState().respondentDetails);
+    expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/submission-confirmation');
   });
 
@@ -224,6 +225,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     await fixture.componentInstance.handleSubmit();
     expect(maintenance.createDraftCasefile).toHaveBeenCalledOnce();
     expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+    expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
   });
 
   it.each([

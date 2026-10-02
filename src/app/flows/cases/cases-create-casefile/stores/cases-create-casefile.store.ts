@@ -590,6 +590,14 @@ export const CasesCreateCasefileStore = signalStore(
         stateChanges: false,
       });
     },
+    /** Clears the accepted draft while retaining access to its confirmation. */
+    completeSubmission: (): void => {
+      patchState(store, {
+        ...CASES_CREATE_CASEFILE_STATE,
+        taskStatuses: { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES },
+        submissionSucceeded: true,
+      });
+    },
     setSubmissionSucceeded: (submissionSucceeded: boolean): void => {
       patchState(store, { submissionSucceeded });
     },

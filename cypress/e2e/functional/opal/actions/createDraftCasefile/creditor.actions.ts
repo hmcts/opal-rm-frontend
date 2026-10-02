@@ -2,7 +2,6 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/case
 import { UNSAVED_CHANGES_WARNING } from '../../../../../shared/constants/create-casefile-test-copy.constant';
 import { CREDITOR_VALIDATION_COPY } from '../../../../../shared/constants/creditor-copy.constant';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
-import { UNSAVED_CHANGES_WARNING } from '../../../../../component/createDraftCasefile/constants/create-casefile-test-copy.constant';
 import { E2E_CREDITOR_MAJOR_RESPONSE } from '../../mocks/createDraftCasefile/creditor.mock';
 import { COUNTRIES_RESPONSE } from '../../mocks/createDraftCasefile/countries.mock';
 

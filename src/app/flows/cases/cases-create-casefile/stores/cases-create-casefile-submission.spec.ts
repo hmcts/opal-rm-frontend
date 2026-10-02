@@ -1,3 +1,4 @@
+import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import { TestBed } from '@angular/core/testing';
 import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { describe, expect, it } from 'vitest';
@@ -6,15 +7,15 @@ import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casef
 import { CasesCreateCasefileStore } from './cases-create-casefile.store';
 
 describe('Casefile submission handoff', () => {
-  it('marks submission successful without taking over confirmation state handling', () => {
+  it('clears the accepted draft and retains only the submission marker', () => {
     const store = TestBed.inject(CasesCreateCasefileStore);
     patchState(
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
       createCasesCreateCasefileReviewState(),
     );
-    store.setSubmissionSucceeded(true);
-    expect(getState(store)).toEqual({ ...createCasesCreateCasefileReviewState(), submissionSucceeded: true });
-    expect(store.checkCaseAvailable()).toBe(true);
+    store.completeSubmission();
+    expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
+    expect(store.checkCaseAvailable()).toBe(false);
   });
 
   it.each(['resetStore', 'resetForCaseTypeEdit'] as const)('clears the receipt on %s', (reset) => {

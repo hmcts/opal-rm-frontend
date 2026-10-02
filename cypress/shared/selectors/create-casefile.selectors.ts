@@ -8,6 +8,14 @@ import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES } from 'src/app/flows/
 import { CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-term-creditor/constants/cases-create-casefile-order-term-creditor-field-names.constant';
 
 export const CreateCasefileSelectors = {
+  caseTypeHeading: '#create_casefile_case_type_heading',
+  cancellation: {
+    heading: '#create_casefile_cancel_heading',
+    warning: '#create_casefile_cancel_warning',
+    confirm: '#create_casefile_cancel_confirm',
+    back: '#create_casefile_cancel_back a',
+    error: '#create_casefile_cancel_error',
+  },
   review: {
     heading: '#review-heading',
     confirmationHeading: '#submission-confirmation-heading',

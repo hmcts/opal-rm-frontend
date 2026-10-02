@@ -6,7 +6,10 @@ import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../constants/cases-c
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from '../constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from '../constants/cases-create-casefile-payment-arrangements.constant';
-import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from '../constants/cases-create-casefile-state.constant';
+import {
+  CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES,
+  CASES_CREATE_CASEFILE_STATE,
+} from '../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileApplicantOrganisation } from '../interfaces/cases-create-casefile-applicant-organisation.interface';
 import type { ICasesCreateCasefileCommentsNotes } from '../interfaces/cases-create-casefile-comments-notes.interface';
@@ -25,6 +28,7 @@ import { mapOrderTermParameters } from '../cases-create-casefile-order-terms-inp
 import { MINOR_CREDITOR_DETAILS_MOCK } from '../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
 import type { ICasesCreateCasefileMinorCreditor } from '../interfaces/cases-create-casefile-minor-creditor.interface';
 import type { ICasesCreateCasefileAcceptedOrderTerm } from '../interfaces/cases-create-casefile-accepted-order-term.interface';
+import { createCasesCreateCasefileCancellationState } from '../mocks/cases-create-casefile-cancellation-state.mock';
 import { CasesCreateCasefileStore } from './cases-create-casefile.store';
 
 describe('CasesCreateCasefileStore', () => {
@@ -209,6 +213,14 @@ describe('CasesCreateCasefileStore', () => {
 
   it('starts without applicant details', () => {
     expect(store.applicantDetails()).toBeNull();
+  });
+
+  it('resets every canonical and transient field to the initial state', () => {
+    patchState(stateSource, createCasesCreateCasefileCancellationState());
+
+    store.resetStore();
+
+    expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
   });
 
   it('saves Order Details atomically and preserves other sections', () => {

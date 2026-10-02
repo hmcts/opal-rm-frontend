@@ -3,7 +3,7 @@ import { CASES_CREATE_CASEFILE_MINOR_CREDITOR_FIELD_NAMES as F } from 'src/app/f
 import type { ICasesCreateCasefileMinorCreditorDetails } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-minor-creditor-details.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
-import { ERROR_SUMMARY_TITLE } from '../constants/create-casefile-test-copy.constant';
+import { ERROR_SUMMARY_TITLE } from '../../../shared/constants/create-casefile-test-copy.constant';
 import {
   MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK,
   MINOR_CREDITOR_MAT_PRESENTATION_MOCK,

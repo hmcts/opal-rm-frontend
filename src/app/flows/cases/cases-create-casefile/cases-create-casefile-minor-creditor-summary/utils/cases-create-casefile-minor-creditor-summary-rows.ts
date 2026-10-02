@@ -4,11 +4,17 @@ import type { ICasesCreateCasefileMinorCreditorSummaryRow } from '../interfaces/
 export function minorCreditorSummaryRows(
   details: ICasesCreateCasefileMinorCreditorDetails,
   countryName: string,
+  presentation: 'summary' | 'removal' = 'summary',
 ): ICasesCreateCasefileMinorCreditorSummaryRow[] {
   const { identity, address, bank } = details;
+  const removalLabels: Readonly<Record<string, string>> = {
+    bankType: 'Type of bank account',
+    bicSwiftCode: 'BIC or SWIFT code',
+    branchSortCode: 'Branch code or sort code',
+  };
   const row = (id: string, label: string, value: string | null): ICasesCreateCasefileMinorCreditorSummaryRow => ({
     id,
-    label,
+    label: presentation === 'removal' ? (removalLabels[id] ?? label) : label,
     values: [value ?? '-'],
   });
   const name =

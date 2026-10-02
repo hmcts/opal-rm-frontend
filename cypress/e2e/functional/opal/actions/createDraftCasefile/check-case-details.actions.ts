@@ -118,6 +118,7 @@ export class CheckCaseDetailsActions {
     cy.get('@draftSubmission.all').should('have.length', 1);
   }
 
+  /** Checks that Forward restores confirmation without another POST. */
   public assertReturnedConfirmation(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
     cy.get(S.review.confirmationHeading).should('be.focused');

@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, UrlTree } from '@angular/router';
-import { getUserPermissionIds, hasAnyPermission } from '@app/pages/dashboard/utils/dashboard-section-permissions.utils';
+import { canAccessFinesPrimaryNavigationSection } from '@app/pages/dashboard/utils/dashboard-section-permissions.utils';
 import { isDashboardPageType } from '@app/pages/dashboard/constants/dashboard-config.constant';
 import { DashboardPageType } from '@app/pages/dashboard/types/dashboard.type';
 import { PAGES_ROUTING_PATHS as COMMON_PAGES_ROUTING_PATHS } from '@hmcts/opal-frontend-common/pages/routing/constants';
@@ -9,7 +9,7 @@ import { catchError, map, Observable, of } from 'rxjs';
 import { DASHBOARD_SECTION_PERMISSIONS } from '@app/pages/dashboard/constants/dashboard-section-permissions.constant';
 
 const getSectionKey = (route: ActivatedRouteSnapshot): DashboardPageType | null => {
-  const routeSectionKey = route.data['sectionKey'];
+  const routeSectionKey = route.data['sectionKey'] ?? route.parent?.data['sectionKey'];
 
   if (typeof routeSectionKey === 'string' && isDashboardPageType(routeSectionKey)) {
     return routeSectionKey;
@@ -32,13 +32,17 @@ export const dashboardSectionPermissionsGuard: CanActivateFn = (
   const sectionKey = getSectionKey(route);
   const requiredPermissionIds = sectionKey ? DASHBOARD_SECTION_PERMISSIONS[sectionKey] : undefined;
 
-  if (!requiredPermissionIds?.length) {
+  if (!sectionKey) {
     return true;
+  }
+
+  if (!requiredPermissionIds?.length) {
+    return router.createUrlTree([`/${COMMON_PAGES_ROUTING_PATHS.children.accessDenied}`]);
   }
 
   return opalUserService.getLoggedInUserState().pipe(
     map((userState) =>
-      hasAnyPermission(requiredPermissionIds, getUserPermissionIds(userState))
+      canAccessFinesPrimaryNavigationSection(sectionKey, userState)
         ? true
         : router.createUrlTree([`/${COMMON_PAGES_ROUTING_PATHS.children.accessDenied}`]),
     ),

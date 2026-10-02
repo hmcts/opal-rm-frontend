@@ -1,4 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import type { IOpalMaintenanceDraftCasefileRequest } from './interfaces/opal-maintenance-draft-casefile-request.interface';
+import type { IOpalMaintenanceDraftCasefileResponse } from './interfaces/opal-maintenance-draft-casefile-response.interface';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
 import { defer, of, Observable, shareReplay, tap } from 'rxjs';
@@ -46,6 +48,15 @@ export class OpalMaintenanceService {
     );
     cache.set(cacheKey, request);
     return request;
+  }
+
+  public createDraftCasefile(
+    request: IOpalMaintenanceDraftCasefileRequest,
+  ): Observable<HttpResponse<IOpalMaintenanceDraftCasefileResponse>> {
+    return this.http.post<IOpalMaintenanceDraftCasefileResponse>('/opal-maintenance-service/draft-casefiles', request, {
+      observe: 'response',
+      context: withoutHttpRetry(),
+    });
   }
 
   public getMaintenanceApplications(): Observable<IOpalMaintenanceApplicationReferenceDataResponse> {

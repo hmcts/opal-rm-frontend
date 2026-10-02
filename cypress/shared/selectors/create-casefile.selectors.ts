@@ -16,7 +16,7 @@ export const CreateCasefileSelectors = {
     bankDetails: '#review-applicant-bank details',
     bankToggle: '#review-applicant-bank summary',
     submit: '#create_casefile_review_submit',
-    cancel: '#create_casefile_review_cancel',
+    cancel: '#create_casefile_review_cancel a',
     errors: '#review-errors',
     termChange: (termId: number) => `#review-term-change-${termId}`,
     termRemove: (termId: number) => `#review-term-remove-${termId}`,

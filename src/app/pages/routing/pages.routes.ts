@@ -31,10 +31,12 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileComponent,
       ),
     children: casesCreateCasefileRouting,
-    canActivate: [authGuard, accountGuard],
+    canActivate: [authGuard, accountGuard, dashboardSectionPermissionsGuard],
+    canActivateChild: [dashboardSectionPermissionsGuard],
     canDeactivate: [canDeactivateGuard],
     data: {
       ...PRIMARY_NAV_HIDDEN_ROUTE_DATA,
+      sectionKey: 'cases',
     },
   },
 ];

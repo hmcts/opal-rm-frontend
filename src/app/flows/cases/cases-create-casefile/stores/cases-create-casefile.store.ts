@@ -133,6 +133,7 @@ export const CasesCreateCasefileStore = signalStore(
       }
 
       patchState(store, {
+        submissionSucceeded: false,
         caseTypeSelection,
         applicantDetails: null,
         respondentDetails: null,
@@ -588,6 +589,9 @@ export const CasesCreateCasefileStore = signalStore(
         unsavedChanges: validSelection !== null,
         stateChanges: false,
       });
+    },
+    setSubmissionSucceeded: (submissionSucceeded: boolean): void => {
+      patchState(store, { submissionSucceeded });
     },
     resetStore: (): void => {
       patchState(store, {

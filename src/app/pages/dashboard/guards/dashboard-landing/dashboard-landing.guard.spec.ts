@@ -7,7 +7,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { firstValueFrom, isObservable, of, throwError } from 'rxjs';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
 import { dashboardLandingGuard } from './dashboard-landing.guard';
-import { SEARCH_PERMISSIONS } from '@app/flows/search/constants/search-permissions.constant';
 import { CASES_PERMISSIONS } from '@app/flows/cases/constants/cases-permissions.constant';
 
 const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpalUserState => {
@@ -21,6 +20,7 @@ const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpal
     },
     {
       ...secondBusinessUnit,
+      business_unit_id: 44,
       permissions: permissionIds.map((permissionId) => ({
         permission_id: permissionId,
         permission_name: `Permission ${permissionId}`,
@@ -57,18 +57,16 @@ describe('dashboardLandingGuard', () => {
     });
   });
 
-  it('routes to Search when the user has a search permission', async () => {
-    mockOpalUserService.getLoggedInUserState.mockReturnValue(
-      of(createUserStateWithPermissions([SEARCH_PERMISSIONS[0]])),
-    );
+  it('does not select Search for a legacy Fines permission', async () => {
+    mockOpalUserService.getLoggedInUserState.mockReturnValue(of(createUserStateWithPermissions([6])));
 
     const result = await runGuard();
 
-    expect(result).toBe('//dashboard/search');
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'search']);
+    expect(result).toBe('//dashboard/cases');
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/', 'dashboard', 'cases']);
   });
 
-  it('routes to Cases when search is unavailable but accounts is permitted', async () => {
+  it('routes to Cases with the RM casefile permission', async () => {
     mockOpalUserService.getLoggedInUserState.mockReturnValue(
       of(createUserStateWithPermissions([CASES_PERMISSIONS[0]])),
     );

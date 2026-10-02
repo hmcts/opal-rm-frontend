@@ -39,6 +39,7 @@ interface IOrderTermsSetup {
   shell?: boolean;
   detailSource?: Observable<IOpalMaintenanceResultDetail | null>;
   detailHttp?: boolean;
+  draftDetail?: IOpalMaintenanceResultDetail;
   draftValues?: Record<string, CasesCreateCasefileOrderTermRawValue>;
   initialDraftDirty?: boolean;
   source?: Observable<IOpalMaintenanceResultReferenceDataResponse>;
@@ -51,6 +52,7 @@ export function setupOrderTerms({
   shell = false,
   detailSource,
   detailHttp = false,
+  draftDetail,
   draftValues,
   initialDraftDirty = true,
   savedId = null,
@@ -69,7 +71,7 @@ export function setupOrderTerms({
   });
   store.setPendingOrderTermResultId(savedId);
   if (draftValues && savedId) {
-    const detail = OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[savedId];
+    const detail = draftDetail ?? OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[savedId];
     store.prepareOrderTermDraft({
       resultId: savedId,
       title: detail.result_title,
@@ -82,15 +84,13 @@ export function setupOrderTerms({
     .callsFake(
       (id: string) =>
         detailSource ??
-        defer(() =>
-          detailHttp
-            ? TestBed.runInInjectionContext(() => new OpalMaintenanceService().getResult(id))
-            : of(
-                Object.hasOwn(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK, id)
-                  ? structuredClone(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[id])
-                  : null,
-              ),
-        ),
+        defer(() => {
+          if (detailHttp) return TestBed.runInInjectionContext(() => new OpalMaintenanceService().getResult(id));
+          const detail = Object.hasOwn(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK, id)
+            ? structuredClone(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[id])
+            : null;
+          return of(detail);
+        }),
     )
     .as('getResult');
   const disposed = cy.spy().as('resultsDisposed');

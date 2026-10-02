@@ -16,7 +16,10 @@ import { AlphagovAccessibleAutocompleteComponent } from '@hmcts/opal-frontend-co
 import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-common/components/alphagov/alphagov-accessible-autocomplete/interfaces';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
-import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
+import {
+  GovukRadioComponent,
+  GovukRadiosItemComponent,
+} from '@hmcts/opal-frontend-common/components/govuk/govuk-radio';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { MojDatePickerComponent } from '@hmcts/opal-frontend-common/components/moj/moj-date-picker';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
@@ -37,7 +40,8 @@ import { createCasesCreateCasefileOrderDetailsDateValidator } from '../validator
     GovukCancelLinkComponent,
     GovukErrorSummaryComponent,
     GovukTextInputComponent,
-    GovukSelectComponent,
+    GovukRadioComponent,
+    GovukRadiosItemComponent,
     MojDatePickerComponent,
   ],
   templateUrl: './cases-create-casefile-order-details-form.component.html',
@@ -66,10 +70,10 @@ export class CasesCreateCasefileOrderDetailsFormComponent extends AbstractFormBa
   public override form = new FormGroup({
     create_casefile_order_details_application_id: new FormControl<number | string | null>(null),
     create_casefile_order_details_court: new FormControl<string | null>(null, Validators.maxLength(40)),
-    create_casefile_order_details_date_order_made: new FormControl<string | null>(
-      null,
+    create_casefile_order_details_date_order_made: new FormControl<string | null>(null, [
+      Validators.required,
       createCasesCreateCasefileOrderDetailsDateValidator(this.dates),
-    ),
+    ]),
     create_casefile_order_details_payment_frequency: new FormControl<string | null>(null, (control) =>
       CASES_CREATE_CASEFILE_ORDER_DETAILS_PAYMENT_FREQUENCIES.includes(control.value) ? null : { required: true },
     ),

@@ -1,3 +1,4 @@
+import { OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK } from '../../../services/opal-maintenance-service/mocks/opal-maintenance-order-term-database.mock';
 import { TestBed } from '@angular/core/testing';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import { DateTime } from 'luxon';
@@ -127,5 +128,40 @@ describe('canonicalOrderTerm', () => {
       resultId: 'TEST',
       parameters: { [group.name]: [] },
     });
+  });
+  it('preserves database field names, omits inherited Frequency and revalidates date permissions on submission', () => {
+    const fields = mapOrderTermParameters(OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK['MCHILD'].result_parameters);
+    const page = { resultId: 'MCHILD', title: 'Child maintenance', fields };
+    const values = {
+      Amount: '12.3',
+      Frequency: 'Yearly',
+      Expiry: '17/09/2026',
+      Education: [],
+      Arrears: '',
+      Beneficiary: 'Synthetic child',
+      ChildDOB: '',
+      Respondent: 'Synthetic respondent',
+      Payment: 'Payable through the Court',
+      Commencement: '16/09/2026',
+    };
+    const raw = Object.fromEntries(fields.map((field) => [field.id, values[field.name as keyof typeof values]]));
+    expect(canonicalOrderTerm(page, raw, dates)).toEqual({
+      resultId: 'MCHILD',
+      parameters: {
+        Amount: '12.30',
+        Expiry: '2026-09-17',
+        Education: [],
+        Beneficiary: 'Synthetic child',
+        Respondent: 'Synthetic respondent',
+        Payment: 'Payable through the Court',
+        Commencement: '2026-09-16',
+      },
+    });
+    expect(() =>
+      canonicalOrderTerm(page, { ...raw, create_casefile_order_terms_input_expiry: '16/09/2026' }, dates),
+    ).toThrow('Invalid order term');
+    expect(() =>
+      canonicalOrderTerm(page, { ...raw, create_casefile_order_terms_input_childdob: '18/09/2026' }, dates),
+    ).toThrow('Invalid order term');
   });
 });

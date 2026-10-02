@@ -1,13 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
-import { GovukButtonComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-button';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 
 @Component({
   selector: 'app-cases-create-casefile-order-terms-summary',
-  imports: [GovukBackLinkComponent, GovukButtonComponent],
+  imports: [],
   templateUrl: './cases-create-casefile-order-terms-summary.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

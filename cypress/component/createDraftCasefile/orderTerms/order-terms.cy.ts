@@ -68,7 +68,7 @@ describe('Order term selection', () => {
     );
     cy.get(S.orderTerms.continueButton).click();
     assertRoute(PATHS.children.orderTermsInput + '/MAT');
-    cy.get(S.orderTerms.heading).should('have.text', 'Maintenance');
+    cy.get(S.orderTerms.heading).should('have.text', 'MAT - Maintenance');
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
       expect(store.pendingOrderTermResultId()).to.eq('MAT');
       expect(store.taskStatuses().orderTerms).to.eq(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
@@ -341,7 +341,7 @@ describe('Order term visual evidence', () => {
 
   it('AC4. should capture input destination', { tags: buildTags() }, () => {
     setupOrderTerms({ savedId: 'MAT', initialChild: PATHS.children.orderTermsInput + '/MAT' });
-    cy.get(S.orderTerms.heading).should('have.text', 'Maintenance');
+    cy.get(S.orderTerms.heading).should('have.text', 'MAT - Maintenance');
     cy.screenshot('po-9806-order-terms-input');
   });
 });

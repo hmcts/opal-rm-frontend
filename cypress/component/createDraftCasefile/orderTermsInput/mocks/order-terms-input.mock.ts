@@ -1,9 +1,41 @@
+import { OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-order-term-database.mock';
 import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-result-details.mock';
 
 const autocompleteLabels = ['synthetic A & B', "synthetic O'Brien"];
 
 export const ORDER_TERMS_INPUT_MOCK = {
   autocompleteLabels,
+  database: OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK,
+  databaseValues: {
+    MAT: {
+      Amount: '12.3',
+      Expiry: '01/10/2026',
+      Arrears: '',
+      Creditor: 'Synthetic creditor',
+      Respondent: 'Synthetic respondent',
+      Payment: 'Payable through the Court',
+      Commencement: '30/09/2026',
+    },
+    MCHILD: {
+      Amount: '12.3',
+      Expiry: '01/10/2026',
+      Education: [],
+      Arrears: '',
+      Beneficiary: 'Synthetic child',
+      ChildDOB: '',
+      Respondent: 'Synthetic respondent',
+      Payment: 'Payable through the Court',
+      Commencement: '30/09/2026',
+    },
+    MLUMP: {
+      Amount: '12.3',
+      Creditor: 'Synthetic creditor',
+      Respondent: 'Synthetic respondent',
+      Payment: 'Payable through the Court',
+      Reason: 'Synthetic reason',
+      Due: '01/10/2026',
+    },
+  },
   documented: {
     result_id: 'MAT',
     result_title: 'Documented parameters',

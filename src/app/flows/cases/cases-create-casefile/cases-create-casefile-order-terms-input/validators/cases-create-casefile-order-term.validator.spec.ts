@@ -1,3 +1,4 @@
+import { OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK } from '../../../services/opal-maintenance-service/mocks/opal-maintenance-order-term-database.mock';
 import { TestBed } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
@@ -174,5 +175,58 @@ describe('createOrderTermValidator', () => {
     expect(errors(group, ['A', 'A'])).toEqual({ choice: true });
     expect(errors(group, ['unknown'])).toEqual({ choice: true });
     expect(errors(group, true)).toEqual({ choice: true });
+  });
+  it.each([
+    [true, false, false],
+    [false, true, false],
+    [false, false, true],
+    [true, true, false],
+    [true, false, true],
+    [false, true, true],
+    [true, true, true],
+  ])('validates past=%s today=%s future=%s independently', (past, today, future) => {
+    const definition = mapOrderTermParameters(
+      JSON.stringify([
+        {
+          name: 'Date',
+          prompt: 'Date',
+          type: 'date',
+          mandatory: true,
+          language_dependent: false,
+          min: '1900-01-01',
+          max: '2100-12-31',
+          date_in_past: past,
+          date_today: today,
+          date_in_future: future,
+        },
+      ]),
+    )[0];
+    for (const [value, allowed] of [
+      ['16/09/2026', past],
+      ['17/09/2026', today],
+      ['18/09/2026', future],
+    ] as const) {
+      expect(errors(definition, value)).toEqual(allowed ? null : { datePeriod: true });
+    }
+  });
+
+  it('allows ChildDOB to be blank or today, but rejects future and invalid dates', () => {
+    const fields = mapOrderTermParameters(OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK['MCHILD'].result_parameters);
+    const dob = fields.find((field) => field.name === 'ChildDOB')!;
+    expect(errors(dob, '')).toBeNull();
+    expect(errors(dob, '17/09/2026')).toBeNull();
+    expect(errors(dob, '18/09/2026')).toEqual({ datePeriod: true });
+    expect(errors(dob, '31/02/2026')).toEqual({ invalidDate: true });
+    expect(errors(dob, '31/12/1899')).toEqual({ min: true });
+  });
+
+  it('requires MCHILD expiry and permits today or future dates within absolute bounds', () => {
+    const fields = mapOrderTermParameters(OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK['MCHILD'].result_parameters);
+    const expiry = fields.find((field) => field.name === 'Expiry')!;
+    expect(errors(expiry, '')).toEqual({ required: true });
+    expect(errors(expiry, '16/09/2026')).toEqual({ datePeriod: true });
+    expect(errors(expiry, '17/09/2026')).toBeNull();
+    expect(errors(expiry, '18/09/2026')).toBeNull();
+    expect(errors(expiry, '01/01/2101')).toEqual({ max: true });
   });
 });

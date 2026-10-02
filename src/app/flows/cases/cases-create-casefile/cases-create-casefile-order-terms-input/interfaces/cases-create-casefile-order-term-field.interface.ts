@@ -1,3 +1,4 @@
+import type { ICasesCreateCasefileOrderTermDatePermissions } from './cases-create-casefile-order-term-date-permissions.interface';
 import type { CasesCreateCasefileOrderTermBound } from '../types/cases-create-casefile-order-term-bound.type';
 export interface ICasesCreateCasefileOrderTermField {
   name: string;
@@ -10,6 +11,7 @@ export interface ICasesCreateCasefileOrderTermField {
   min: CasesCreateCasefileOrderTermBound;
   max: CasesCreateCasefileOrderTermBound;
   past: boolean;
+  datePermissions?: ICasesCreateCasefileOrderTermDatePermissions;
   options: { value: string; label: string }[];
   lookup: 'mock:order-term-options' | null;
 }

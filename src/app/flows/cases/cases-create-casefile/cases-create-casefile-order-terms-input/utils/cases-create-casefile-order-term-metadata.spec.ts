@@ -1,3 +1,4 @@
+import { OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK } from '../../../services/opal-maintenance-service/mocks/opal-maintenance-order-term-database.mock';
 import { describe, expect, it } from 'vitest';
 import { mapOrderTermParameters } from './cases-create-casefile-order-term-metadata';
 
@@ -149,11 +150,8 @@ describe('mapOrderTermParameters', () => {
         type,
         mandatory: true,
         language_dependent: false,
-        ...(type === 'date'
-          ? { min: '1900-01-01', max: '2100-12-31' }
-          : type === 'integer'
-            ? { min: -2147483648, max: 2147483647 }
-            : {}),
+        ...(type === 'date' ? { min: '1900-01-01', max: '2100-12-31' } : {}),
+        ...(type === 'integer' ? { min: -2147483648, max: 2147483647 } : {}),
         ...(choice ? { options: [{ value: 'A', label: 'First' }] } : {}),
       },
     ]);
@@ -353,5 +351,97 @@ describe('documented generic parameters', () => {
     { type: 'integer', min: 0, max: 2147483648 },
   ])('rejects bounds outside documented limits: %j', (bounds) => {
     expect(() => map([{ ...parameter, ...bounds }])).toThrow('Unsupported order-term metadata');
+  });
+});
+
+describe('October database metadata', () => {
+  it.each(['MAT', 'MCHILD', 'MLUMP'])('accepts all supplied %s fields without changing their names or order', (id) => {
+    const detail = OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK[id];
+    const fields = mapOrderTermParameters(detail.result_parameters);
+    const source = JSON.parse(detail.result_parameters!);
+    expect(fields.map((field) => field.name)).toEqual(source.map((field: { name: string }) => field.name));
+    expect(fields.map((field) => field.required)).toEqual(
+      source.map((field: { mandatory: boolean }) => field.mandatory),
+    );
+  });
+
+  it('maps explicit Frequency to the existing inherited read-only control', () => {
+    const fields = mapOrderTermParameters(OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK['MAT'].result_parameters);
+    expect(fields.find((field) => field.name === 'Frequency')).toMatchObject({
+      kind: 'readonly',
+      options: ['Weekly', 'Fortnightly', 'Monthly', 'Quarterly', 'Yearly'].map((value) => ({ value, label: value })),
+    });
+  });
+
+  it('preserves the supplied date permissions and optional ChildDOB', () => {
+    const fields = mapOrderTermParameters(OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK['MCHILD'].result_parameters);
+    expect(fields.find((field) => field.name === 'ChildDOB')).toMatchObject({
+      required: false,
+      datePermissions: { past: true, today: true, future: false },
+    });
+    expect(fields.find((field) => field.name === 'Expiry')).toMatchObject({
+      required: true,
+      datePermissions: { past: false, today: true, future: true },
+    });
+  });
+
+  const date = {
+    name: 'Date',
+    prompt: 'Date',
+    type: 'date',
+    mandatory: false,
+    min: '1900-01-01',
+    max: '2100-12-31',
+    language_dependent: false,
+    date_in_past: true,
+    date_today: true,
+    date_in_future: false,
+  };
+  it.each([
+    { date_in_past: 'true' },
+    { date_today: null },
+    { date_in_future: 1 },
+    { date_in_past: undefined },
+    { date_today: undefined },
+    { date_in_future: undefined },
+    { date_in_past: false, date_today: false },
+    { date_rule: 'past' },
+    { type: 'text-60', min: 0, max: 60 },
+  ])('rejects unusable date permissions %j', (change) => {
+    expect(() => map([{ ...date, ...change }])).toThrow('Unsupported order-term metadata');
+  });
+
+  it('rejects read-only data without a known inherited source', () => {
+    expect(() =>
+      map([
+        {
+          name: 'Other',
+          prompt: 'Other',
+          type: 'read-only',
+          mandatory: true,
+          language_dependent: false,
+          min: 1,
+          max: 1,
+          options: ['A'],
+        },
+      ]),
+    ).toThrow('Unsupported order-term metadata');
+  });
+  it('rejects a lookup on inherited Frequency instead of replacing its store source', () => {
+    expect(() =>
+      map([
+        {
+          name: 'Frequency',
+          prompt: 'Payment frequency',
+          type: 'read-only',
+          mandatory: true,
+          language_dependent: false,
+          min: 1,
+          max: 1,
+          options: ['Weekly'],
+          apidata: 'mock:order-term-options',
+        },
+      ]),
+    ).toThrow('Unsupported order-term metadata');
   });
 });

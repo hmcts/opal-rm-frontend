@@ -89,6 +89,18 @@ describe('Order terms input form', () => {
     }).compileComponents();
   });
 
+  it('renders a caption, result code, bold labels and compact pound inputs', () => {
+    render(matPage);
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('.govuk-caption-l')?.textContent).toBe('Order terms');
+    expect(root.querySelector('h1')?.textContent).toBe('MAT - Maintenance');
+    expect(root.querySelectorAll('.govuk-input__prefix')).toHaveLength(2);
+    expect(root.querySelector('.govuk-input__prefix')?.textContent?.trim()).toBe('£');
+    expect(root.querySelector('#' + id('amount'))?.classList.contains('govuk-input--width-10')).toBe(true);
+    expect(root.querySelector('label[for="' + id('amount') + '"]')?.classList.contains('govuk-label--s')).toBe(true);
+    expect(root.querySelector('dt')?.classList.contains('govuk-!-font-weight-bold')).toBe(true);
+  });
+
   function render(
     page = matPage,
     initialValues: Record<string, CasesCreateCasefileOrderTermRawValue> = {},
@@ -167,7 +179,7 @@ describe('Order terms input form', () => {
 
   it('renders only metadata fields in order with read-only frequency', () => {
     render();
-    expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Maintenance');
+    expect(fixture.nativeElement.querySelector('h1').textContent).toBe('MAT - Maintenance');
     expect(Object.keys(component.form.controls)).toEqual([id('amount'), id('expiry_date'), id('arrears')]);
     expect(fixture.nativeElement.querySelector(`#${id('frequency')} dd`).textContent).toBe('Weekly');
     expect(component.form.contains(id('frequency'))).toBe(false);
@@ -239,11 +251,14 @@ describe('Order terms input form', () => {
     expect(component.formErrorSummaryMessage.map((error) => error.fieldId)).toEqual(
       allControlsPage.fields.map((field) => field.id),
     );
-    for (const name of ['money', 'integer', 'text', 'long_text', 'date', 'select']) {
+    for (const name of ['integer', 'text', 'long_text', 'date', 'select']) {
       expect(fixture.nativeElement.querySelector(`#${id(name)}`).getAttribute('aria-describedby')).toBe(
         `${id(name)}-hint ${id(name)}-error-message`,
       );
     }
+    const money = fixture.nativeElement.querySelector(`#${id('money')}`) as HTMLInputElement;
+    expect(money.getAttribute('aria-describedby')).toBe(`${id('money')}-error-message`);
+    expect(money.closest('[role="group"]')?.getAttribute('aria-describedby')).toBe(`${id('money')}-hint`);
     for (const group of [id('radio'), `${id('checkbox')}-fieldset`]) {
       expect(fixture.nativeElement.querySelector(`#${group}`).getAttribute('aria-describedby')).toBe(
         `${group}-hint ${group}-error-message`,

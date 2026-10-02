@@ -10,7 +10,7 @@ export class OrderTermsFlow {
   public openSummary(): void {
     this.details.completeParties();
     this.details.openAvailable();
-    this.details.saveWithoutOrderDate();
+    this.details.saveRequiredDetails();
     this.actions.openSummary();
   }
 

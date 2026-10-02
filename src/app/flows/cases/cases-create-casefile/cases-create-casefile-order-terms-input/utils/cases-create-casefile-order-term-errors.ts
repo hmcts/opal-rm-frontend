@@ -13,7 +13,17 @@ export function orderTermErrorMessages(field: ICasesCreateCasefileOrderTermField
   const requiredMessage = Object.hasOwn(required, field.name)
     ? required[field.name]
     : `${action} ${field.label.toLowerCase()}`;
+  const periods = [
+    ['past', 'in the past'],
+    ['today', 'today'],
+    ['future', 'in the future'],
+  ] as const;
+  const description = periods
+    .filter(([period]) => field.datePermissions?.[period])
+    .map(([, label]) => label)
+    .join(' or ');
   return {
+    ...(field.datePermissions ? { datePeriod: { message: `${field.label} must be ${description}`, priority: 3 } } : {}),
     required: { message: requiredMessage, priority: 1 },
     numeric: { message: 'Enter numbers only', priority: 2 },
     integer: { message: 'Enter a whole number within the supported range', priority: 2 },

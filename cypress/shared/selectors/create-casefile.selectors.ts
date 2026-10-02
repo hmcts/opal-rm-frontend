@@ -35,7 +35,7 @@ export const CreateCasefileSelectors = {
     dateOrderMade: `#${ORDER_FIELDS.dateOrderMade}`,
     orderCalendar: `#${ORDER_FIELDS.dateOrderMade} + .moj-js-datepicker-toggle`,
     paymentFrequency: `#${ORDER_FIELDS.paymentFrequency}`,
-    frequencyOptions: `#${ORDER_FIELDS.paymentFrequency} option`,
+    frequencyOptions: `input[name="${ORDER_FIELDS.paymentFrequency}"]`,
     dateArrearsLastUpdated: `#${ORDER_FIELDS.dateArrearsLastUpdated}`,
     arrearsCalendar: `#${ORDER_FIELDS.dateArrearsLastUpdated} + .moj-js-datepicker-toggle`,
     calendar: `#datepicker-${ORDER_FIELDS.dateOrderMade}`,
@@ -57,6 +57,8 @@ export const CreateCasefileSelectors = {
     back: 'a.govuk-back-link',
   },
   orderTermsInput: {
+    databaseExpiry: '#create_casefile_order_terms_input_expiry',
+    databaseChildBirth: '#create_casefile_order_terms_input_childdob',
     termsFirst: '#create_casefile_order_terms_input_terms',
     termsSecond: '#create_casefile_order_terms_input_terms-option-1',
     termsFieldset: '#create_casefile_order_terms_input_terms-fieldset',

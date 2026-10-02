@@ -15,6 +15,7 @@ import {
 } from '@hmcts/opal-frontend-common/components/govuk/govuk-radio';
 import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import { GovukTextAreaComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-area';
+import { GovukTextInputPrefixSuffixComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input-prefix-suffix';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { MojDatePickerComponent } from '@hmcts/opal-frontend-common/components/moj/moj-date-picker';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
@@ -30,6 +31,7 @@ import { createOrderTermValidator } from '../validators/cases-create-casefile-or
   imports: [
     ReactiveFormsModule,
     GovukTextInputComponent,
+    GovukTextInputPrefixSuffixComponent,
     GovukTextAreaComponent,
     GovukSelectComponent,
     GovukRadioComponent,

@@ -259,7 +259,7 @@ describe('Order term input regressions', () => {
     setupOrderTerms({ savedId: 'MAT', detailHttp: true });
     cy.get(S.orderTerms.continueButton).click();
     cy.wait('@resultDetail').its('request.method').should('eq', 'GET');
-    cy.get(S.orderTerms.heading).should('have.text', M.mat.result_title);
+    cy.get(S.orderTerms.heading).should('have.text', `${M.mat.result_id} - ${M.mat.result_title}`);
     cy.get(S.orderTermsInput.amount).should('be.visible');
   });
 
@@ -411,7 +411,7 @@ describe('Order term input regressions', () => {
       initialChild: inputPath(),
       detailSource: of(structuredClone(M.literal)),
     });
-    cy.get(S.orderTerms.heading).should('have.text', M.literal.result_title);
+    cy.get(S.orderTerms.heading).should('have.text', `${M.literal.result_id} - ${M.literal.result_title}`);
     cy.get(S.orderTermsInput.shortText).should('be.visible');
     cy.get(S.orderTermsInput.shortTextLabel)
       .invoke('text')
@@ -515,4 +515,67 @@ describe('Order term input regressions', () => {
       },
     );
   }
+});
+
+describe('Database order-term metadata', () => {
+  for (const id of ['MAT', 'MCHILD', 'MLUMP'] as const) {
+    it(`AC1, AC3. should submit the supplied ${id} database metadata`, { tags: buildTags() }, () => {
+      cy.clock(new Date(2026, 9, 1, 12).getTime(), ['Date']);
+      cy.intercept('GET', `**/opal-maintenance-service/results/${id}`, { statusCode: 200, body: M.database[id] }).as(
+        'databaseResult',
+      );
+      setupOrderTerms({
+        shell: true,
+        savedId: id,
+        initialChild: inputPath(id),
+        detailHttp: true,
+        draftDetail: M.database[id],
+        draftValues: structuredClone(M.databaseValues[id]),
+      });
+      cy.wait('@databaseResult');
+      cy.get(S.orderTermsInput.form).should('be.visible');
+      if (id !== 'MLUMP')
+        cy.get(S.orderTermsInput.frequency).should('contain.text', 'Weekly').find('input, select').should('not.exist');
+      cy.get(S.orderTermsInput.continueButton).click();
+      cy.get<Router>('@angularRouter').its('url').should('eq', '/cases/create-casefile/order-terms/creditor');
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        const term = store.orderTerms()[0];
+        expect(term.resultId).to.equal(id);
+        expect(term.parameters['Amount']).to.equal('12.30');
+        expect(term.parameters).not.to.have.property('Frequency');
+        if (id === 'MCHILD') expect(term.parameters).not.to.have.property('ChildDOB');
+      });
+    });
+  }
+
+  it('AC3, AC5. should enforce expiry and birth-date permissions with accessible errors', { tags: buildTags() }, () => {
+    cy.clock(new Date(2026, 9, 1, 12).getTime(), ['Date']);
+    setupOrderTerms({
+      shell: true,
+      savedId: 'MCHILD',
+      initialChild: inputPath('MCHILD'),
+      detailSource: of(M.database['MCHILD']),
+      draftDetail: M.database['MCHILD'],
+      draftValues: structuredClone(M.databaseValues.MCHILD),
+    });
+    cy.get(S.orderTermsInput.databaseExpiry).clear();
+    cy.get(S.orderTermsInput.continueButton).click();
+    cy.get(S.errorSummaryLinks).contains('Enter expiry date');
+    cy.get(S.orderTermsInput.databaseExpiry).type('30/09/2026');
+    cy.get(S.orderTermsInput.databaseChildBirth).type('02/10/2026');
+    cy.get(S.orderTermsInput.continueButton).click();
+    cy.get(S.errorSummaryLinks).contains('Expiry date must be today or in the future').click();
+    cy.get(S.orderTermsInput.databaseExpiry).should('be.focused');
+    cy.get(S.errorSummaryLinks).contains("Child's date of birth must be in the past or today");
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+    cy.screenshot('po-9807-database-date-validation');
+    cy.get(S.orderTermsInput.databaseExpiry).clear().type('01/10/2026');
+    cy.get(S.orderTermsInput.databaseChildBirth).clear().type('01/10/2026');
+    cy.get(S.orderTermsInput.continueButton).click();
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      expect(store.orderTerms()[0].parameters['ChildDOB']).to.equal('2026-10-01');
+      expect(store.orderTerms()[0].parameters['Expiry']).to.equal('2026-10-01');
+    });
+  });
 });

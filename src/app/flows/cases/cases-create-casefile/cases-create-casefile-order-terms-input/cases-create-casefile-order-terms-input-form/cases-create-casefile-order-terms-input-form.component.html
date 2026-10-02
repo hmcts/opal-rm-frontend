@@ -1,11 +1,12 @@
-<h1 class="govuk-heading-l">{{ page.title }}</h1>
+<span class="govuk-caption-l">Order terms</span>
+<h1 class="govuk-heading-l">{{ page.resultId }} - {{ page.title }}</h1>
 <opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
 <form (submit)="handleFormSubmit($event)">
   @for (view of views; track view.field.id) {
     @let field = view.field; @let error = formControlErrorMessages[field.id];
     @if (field.kind === 'readonly') {
       <dl class="govuk-!-margin-top-0 govuk-!-margin-bottom-6" [id]="field.id">
-        <dt class="govuk-body govuk-!-margin-bottom-1">{{ field.label }}</dt>
+        <dt class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">{{ field.label }}</dt>
         <dd class="govuk-body govuk-!-margin-left-0 govuk-!-margin-bottom-0">{{ frequency }}</dd>
       </dl>
       @if (field.hint) {
@@ -13,8 +14,30 @@
       }
     } @else if (view.control) {
       @switch (field.kind) {
+        @case ('money') {
+          <div
+            role="group"
+            [attr.aria-label]="field.label"
+            [attr.aria-describedby]="field.hint ? field.id + '-hint' : null"
+          >
+            @if (field.hint) {
+              <p class="govuk-hint" [id]="field.id + '-hint'">{{ field.hint }}</p>
+            }
+            <opal-lib-govuk-text-input-prefix-suffix
+              [labelText]="field.label"
+              labelClasses="govuk-label--s"
+              inputClasses="govuk-input--width-10"
+              prefixText="£"
+              [inputId]="field.id"
+              [inputName]="field.id"
+              [control]="view.control"
+              [errors]="error"
+            />
+          </div>
+        }
         @case ('long_text') {
           <opal-lib-govuk-text-area
+            labelClasses="govuk-label--s"
             [labelText]="field.label"
             [hintText]="field.hint"
             [inputId]="field.id"
@@ -25,6 +48,7 @@
         }
         @case ('date') {
           <opal-lib-moj-date-picker
+            labelClasses="govuk-label--s"
             [labelText]="field.label"
             [hintText]="field.hint"
             [inputId]="field.id"
@@ -36,6 +60,7 @@
         }
         @case ('select') {
           <opal-lib-govuk-select
+            labelClasses="govuk-label--s"
             [labelText]="field.label"
             [selectHint]="field.hint"
             [selectId]="field.id"
@@ -48,6 +73,7 @@
         @case ('radio') {
           <opal-lib-govuk-radio
             [fieldSetId]="field.id"
+            legendClasses="govuk-fieldset__legend--s"
             [legendText]="field.label"
             [legendHint]="field.hint"
             [errors]="error"
@@ -66,6 +92,7 @@
         }
         @case ('autocomplete') {
           <opal-lib-alphagov-accessible-autocomplete
+            labelClasses="govuk-label--s"
             [labelText]="field.label"
             [hintText]="field.hint"
             [inputId]="field.id"
@@ -79,6 +106,7 @@
         @case ('checkbox') {
           <opal-lib-govuk-checkboxes
             [fieldSetId]="field.id + '-fieldset'"
+            legendClasses="govuk-fieldset__legend--s"
             [legendText]="view.checkboxes.length ? field.label : ''"
             [legendHint]="field.hint"
             [errors]="error"
@@ -96,6 +124,7 @@
             } @else {
               <div
                 opal-lib-govuk-checkboxes-item
+                labelClasses="govuk-label--s"
                 [labelText]="field.label"
                 [inputId]="field.id"
                 [inputName]="field.id"
@@ -106,6 +135,8 @@
         }
         @default {
           <opal-lib-govuk-text-input
+            inputClasses="govuk-input--width-20"
+            labelClasses="govuk-label--s"
             [labelText]="field.label"
             [hintText]="field.hint"
             [hintHtml]="false"
@@ -118,6 +149,7 @@
       }
     }
   }
+  <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible" />
   <div class="govuk-button-group">
     <button id="create_casefile_order_terms_input_continue" type="submit" class="govuk-button govuk-!-margin-right-4">
       Continue

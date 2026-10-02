@@ -69,7 +69,7 @@ export class OrderTermsActions {
   public assertInput(id: string): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermsInput + '/' + id);
     const titles: Record<string, string> = { MAT: 'Maintenance', MCHILD: 'Child maintenance' };
-    cy.get(S.orderTerms.heading).should('have.text', titles[id]);
+    cy.get(S.orderTerms.heading).should('have.text', `${id} - ${titles[id]}`);
     cy.get('@draftCreation').should('not.have.been.called');
     cy.get(S.primaryNavigation).should('not.exist');
   }

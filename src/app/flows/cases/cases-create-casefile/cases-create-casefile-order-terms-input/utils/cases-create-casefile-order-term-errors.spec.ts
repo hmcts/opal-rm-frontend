@@ -57,4 +57,20 @@ describe('orderTermErrorMessages', () => {
     };
     expect(orderTermErrorMessages(custom).required).toEqual({ message: 'Select category', priority: 1 });
   });
+  it.each([
+    [true, false, false, 'in the past'],
+    [false, true, false, 'today'],
+    [false, false, true, 'in the future'],
+    [true, true, false, 'in the past or today'],
+    [true, false, true, 'in the past or in the future'],
+    [false, true, true, 'today or in the future'],
+    [true, true, true, 'in the past or today or in the future'],
+  ] as const)('describes allowed dates for past=%s today=%s future=%s', (past, today, future, description) => {
+    const messages: Record<string, { message: string; priority: number }> = orderTermErrorMessages({
+      ...fields[2],
+      label: 'Expiry date',
+      datePermissions: { past, today, future },
+    });
+    expect(messages['datePeriod']).toEqual({ message: `Expiry date must be ${description}`, priority: 3 });
+  });
 });

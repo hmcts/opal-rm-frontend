@@ -1,3 +1,4 @@
+import { OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK } from '../../../../services/opal-maintenance-service/mocks/opal-maintenance-order-term-database.mock';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -342,5 +343,16 @@ describe('fetchCasesCreateCasefileOrderTermResolver', () => {
     expect(getResult).not.toHaveBeenCalled();
     expect(resolveLookups).not.toHaveBeenCalled();
     expect(setBannerError).toHaveBeenCalledWith(expect.objectContaining({ error: true }));
+  });
+  it.each(['MAT', 'MCHILD', 'MLUMP'])('resolves the supplied database metadata for %s', async (id) => {
+    const detail = OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK[id];
+    detailsSource = of(detail);
+    await configure();
+    store.setPendingOrderTermResultId(id);
+    await router.navigateByUrl(`/input/${id}`);
+    expect(router.url).toBe(`/input/${id}`);
+    expect(getResult).toHaveBeenCalledWith(id);
+    expect(resolveLookups).toHaveBeenCalledWith(mapOrderTermParameters(detail.result_parameters));
+    expect(setBannerError).not.toHaveBeenCalled();
   });
 });

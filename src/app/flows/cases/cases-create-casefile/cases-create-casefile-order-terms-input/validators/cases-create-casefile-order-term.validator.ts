@@ -1,3 +1,4 @@
+import type { ICasesCreateCasefileOrderTermDatePermissions } from '../interfaces/cases-create-casefile-order-term-date-permissions.interface';
 import type { ValidatorFn } from '@angular/forms';
 import type { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import type { ICasesCreateCasefileOrderTermField } from '../interfaces/cases-create-casefile-order-term-field.interface';
@@ -26,12 +27,24 @@ const integerError = (value: string, field: ICasesCreateCasefileOrderTermField):
   return null;
 };
 
+const datePermitted = (
+  iso: string,
+  today: string,
+  permissions: ICasesCreateCasefileOrderTermDatePermissions,
+): boolean => {
+  if (iso < today) return permissions.past;
+  if (iso === today) return permissions.today;
+  return permissions.future;
+};
+
 const dateError = (value: string, field: ICasesCreateCasefileOrderTermField, dates: DateService): string | null => {
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return 'invalidDate';
   const date = dates.getFromFormat(value, 'dd/MM/yyyy');
   if (!date.isValid) return 'invalidDate';
   const iso = date.toFormat('yyyy-MM-dd');
   if (field.past && iso >= dates.getDateNow().toFormat('yyyy-MM-dd')) return 'past';
+  if (field.datePermissions && !datePermitted(iso, dates.getDateNow().toFormat('yyyy-MM-dd'), field.datePermissions))
+    return 'datePeriod';
   if (field.min !== null && iso < String(field.min)) return 'min';
   if (field.max !== null && iso > String(field.max)) return 'max';
   return null;

@@ -1,3 +1,4 @@
+import { parseOrderTermDatePermissions } from './cases-create-casefile-order-term-date-permissions';
 import type { CasesCreateCasefileOrderTermBound } from '../types/cases-create-casefile-order-term-bound.type';
 import { DateTime } from 'luxon';
 import type { ICasesCreateCasefileOrderTermField } from '../interfaces/cases-create-casefile-order-term-field.interface';
@@ -12,6 +13,7 @@ const record = (value: unknown): Record<string, unknown> =>
 const text = (value: unknown): string => (typeof value === 'string' && value.trim() ? value.trim() : fail());
 
 const aliases: Record<string, ICasesCreateCasefileOrderTermField['kind']> = {
+  'read-only': 'readonly',
   money: 'money',
   decimal: 'money',
   'decimal-2dp': 'money',
@@ -45,6 +47,9 @@ const keys = new Set([
   'readonly',
   'precision',
   'date_rule',
+  'date_in_past',
+  'date_today',
+  'date_in_future',
 ]);
 
 const decimalUnits = (value: string): bigint => {
@@ -108,6 +113,10 @@ const fieldKind = (
   documented: boolean,
 ): ICasesCreateCasefileOrderTermField['kind'] => {
   const kind = aliases[type];
+  if (type === 'read-only') {
+    if (name.toLowerCase() !== 'frequency' || source['apidata'] !== undefined) return fail();
+    return kind;
+  }
   if (name.toLowerCase() === 'frequency' && !documented) {
     if (
       kind !== 'select' ||
@@ -176,6 +185,7 @@ const validateDocumentedBounds = (
     case 'decimal-2dp':
       validateRange(decimalUnits(String(min)), decimalUnits(String(max)), -999999999999n, 999999999999n);
       break;
+    case 'read-only':
     case 'menu-radio':
       if (Number(min) > 1 || Number(max) !== 1) return fail();
       break;
@@ -194,10 +204,11 @@ const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
   if (!/^[A-Za-z]\w*$/.test(name)) return fail();
   const type = text(source['type']);
   if (!Object.hasOwn(aliases, type)) return fail();
-  const documented = /^(text-(60|100|1000)|decimal-2dp|menu-(radio|checkbox)|date|integer)$/.test(type);
+  const documented = /^(text-(60|100|1000)|decimal-2dp|menu-(radio|checkbox)|read-only|date|integer)$/.test(type);
   validateAttributes(source, aliases[type]);
+  const datePermissions = parseOrderTermDatePermissions(source);
   const kind = fieldKind(source, name, type, documented);
-  const choice = ['select', 'radio', 'autocomplete'].includes(aliases[type]) || type === 'menu-checkbox';
+  const choice = ['select', 'radio', 'autocomplete', 'readonly'].includes(aliases[type]) || type === 'menu-checkbox';
   // Legacy inherited Frequency has no editable choices or bounds.
   const editableChoice = choice && !(kind === 'readonly' && !documented);
   if (!editableChoice && (source['options'] !== undefined || source['apidata'] !== undefined)) return fail();
@@ -215,6 +226,7 @@ const parseField = (value: unknown): ICasesCreateCasefileOrderTermField => {
     min,
     max,
     past: source['date_rule'] === 'past',
+    ...(datePermissions ? { datePermissions } : {}),
     options,
     lookup,
   };

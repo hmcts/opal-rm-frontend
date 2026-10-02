@@ -1,6 +1,25 @@
 <div class="govuk-grid-column-two-thirds">
   <span class="govuk-caption-l">Order terms</span>
   <h1 class="govuk-heading-l">Remove order term</h1>
+  @if (unavailable()) {
+    <p class="govuk-body" role="status">
+      This order term is no longer available to remove. Return to order terms to check the current details.
+    </p>
+  } @else {
+    <p class="govuk-body">Remove {{ termTitle }} from this case?</p>
+    <button
+      id="create_casefile_order_terms_remove_confirm"
+      class="govuk-button govuk-button--warning"
+      type="button"
+      [disabled]="busy()"
+      (click)="handleRemove()"
+    >
+      {{ navigationFailed() ? 'Continue after removal' : 'Remove order term' }}
+    </button>
+  }
+  @if (navigationFailed()) {
+    <p class="govuk-error-message" role="alert">The next page could not be opened. Try again.</p>
+  }
   <opal-lib-govuk-button
     buttonId="create_casefile_order_terms_remove_return"
     type="button"

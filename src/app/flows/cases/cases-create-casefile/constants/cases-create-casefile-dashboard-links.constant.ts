@@ -1,3 +1,4 @@
+import { CASES_PERMISSIONS } from '../../constants/cases-permissions.constant';
 import { IDashboardPageConfigurationLink } from '@hmcts/opal-frontend-common/pages/dashboard-page/interfaces';
 
 export const CASES_CREATE_CASEFILE_DASHBOARD_LINKS: IDashboardPageConfigurationLink[] = [
@@ -6,7 +7,7 @@ export const CASES_CREATE_CASEFILE_DASHBOARD_LINKS: IDashboardPageConfigurationL
     text: 'Create a case',
     routerLink: ['/cases/create-casefile'],
     fragment: null,
-    permissionIds: [],
+    permissionIds: [...CASES_PERMISSIONS],
     newTab: false,
     style: null,
   },

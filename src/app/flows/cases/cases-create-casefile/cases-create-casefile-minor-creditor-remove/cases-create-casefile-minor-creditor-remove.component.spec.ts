@@ -107,9 +107,7 @@ describe('CasesCreateCasefileMinorCreditorRemoveComponent', () => {
     expect(getState(store)).toEqual({ ...before, minorCreditorRemoval: null });
     expect(router.navigateByUrl).toHaveBeenCalledWith(
       '/cases/create-casefile/order-terms/creditor/minor-creditor-summary',
-      {
-        state: { minorCreditorRemovalReturnFocus: true },
-      },
+      { state: { minorCreditorRemovalReturnFocus: true } },
     );
   });
 

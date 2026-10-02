@@ -381,7 +381,7 @@ describe('Create Casefile Applicant Organisation', () => {
           type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
           nameOnAccount: 'Test Organisation',
           accountNumber: null,
-          paymentReference: null,
+          paymentReference: 'PAY-NONUK',
           bicSwiftCode: null,
           iban: 'GB29NWBK60161331926819',
           bankName: null,
@@ -390,6 +390,26 @@ describe('Create Casefile Applicant Organisation', () => {
       });
     },
   );
+
+  it('AC2. should require a non-UK payment reference before saving', { tags: buildTags('@JIRA-STORY:PO-9817') }, () => {
+    setupApplicantOrganisation({ savedApplicant: VALID_NON_UK_IBAN_APPLICANT_ORGANISATION });
+    cy.get(Page.applicantOrganisation.nonUkBankPaymentReference).clear();
+    cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
+    assertRouterPath(applicantPath);
+    cy.get(Page.applicantOrganisation.errorSummaryLinks).should(
+      'contain.text',
+      APPLICANT_ORGANISATION_ERROR_MESSAGES.nonUkBankPaymentReference,
+    );
+    cy.get(Page.applicantOrganisation.errorSummaryLinks)
+      .contains(APPLICANT_ORGANISATION_ERROR_MESSAGES.nonUkBankPaymentReference)
+      .click();
+    cy.get(Page.applicantOrganisation.nonUkBankPaymentReference).should('be.focused').type('PAY-9817');
+    cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
+    assertRouterPath(taskListPath);
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.applicantDetails()?.bankDetails).to.include({ type: 'non-uk', paymentReference: 'PAY-9817' });
+    });
+  });
 
   it('AC2. should save None and discard previously entered bank values', { tags: buildTags() }, () => {
     setupApplicantOrganisation({ savedApplicant: VALID_UK_APPLICANT_ORGANISATION });

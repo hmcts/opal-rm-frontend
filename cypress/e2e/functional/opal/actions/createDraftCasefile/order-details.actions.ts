@@ -119,7 +119,14 @@ export class OrderDetailsActions {
   /** Checks that validation focuses the linked summary. */
   public assertErrorFocus(): void {
     cy.get(S.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
-    cy.get(S.errorSummaryLinks).should('have.length', 3);
+    cy.get(S.errorSummaryLinks).should((links) => {
+      expect([...links].map((link) => link.textContent?.trim())).to.deep.equal([
+        'Select an application code',
+        'Enter the date order made',
+        'Select a payment frequency',
+        'Enter the date arrears last updated',
+      ]);
+    });
   }
   /** Returns an empty lookup and checks that entry is blocked with safe copy. */
   public openEmpty(): void {

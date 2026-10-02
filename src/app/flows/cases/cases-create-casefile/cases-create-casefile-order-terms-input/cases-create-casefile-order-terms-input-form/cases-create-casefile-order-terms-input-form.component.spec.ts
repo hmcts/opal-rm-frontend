@@ -258,7 +258,7 @@ describe('Order terms input form', () => {
     }
     const money = fixture.nativeElement.querySelector(`#${id('money')}`) as HTMLInputElement;
     expect(money.getAttribute('aria-describedby')).toBe(`${id('money')}-error-message`);
-    expect(money.closest('[role="group"]')?.getAttribute('aria-describedby')).toBe(`${id('money')}-hint`);
+    expect(money.closest('fieldset.govuk-fieldset')?.getAttribute('aria-describedby')).toBe(`${id('money')}-hint`);
     for (const group of [id('radio'), `${id('checkbox')}-fieldset`]) {
       expect(fixture.nativeElement.querySelector(`#${group}`).getAttribute('aria-describedby')).toBe(
         `${group}-hint ${group}-error-message`,

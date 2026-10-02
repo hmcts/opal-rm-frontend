@@ -15,8 +15,8 @@
     } @else if (view.control) {
       @switch (field.kind) {
         @case ('money') {
-          <div
-            role="group"
+          <fieldset
+            class="govuk-fieldset"
             [attr.aria-label]="field.label"
             [attr.aria-describedby]="field.hint ? field.id + '-hint' : null"
           >
@@ -33,7 +33,7 @@
               [control]="view.control"
               [errors]="error"
             />
-          </div>
+          </fieldset>
         }
         @case ('long_text') {
           <opal-lib-govuk-text-area

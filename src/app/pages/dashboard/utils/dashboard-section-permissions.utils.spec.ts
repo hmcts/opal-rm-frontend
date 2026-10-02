@@ -26,6 +26,7 @@ const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpal
     },
     {
       ...secondBusinessUnit,
+      business_unit_id: 44,
       permissions: permissionIds.map((permissionId) => ({
         permission_id: permissionId,
         permission_name: `Permission ${permissionId}`,
@@ -77,33 +78,31 @@ describe('dashboard-section-permissions.utils', () => {
     },
   );
 
-  it('shows Cases without permissions while RM permissions are not implemented', () => {
+  it('hides Cases without its RM permission even when released', () => {
     const user = createUserStateWithPermissions([]);
-    expect(getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, user, { [createFlag]: true })).toEqual([
-      { key: 'cases', value: 'Cases' },
-    ]);
+    expect(getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, user, { [createFlag]: true })).toEqual([]);
   });
 
   it('enforces a section permission when one is configured', () => {
-    DASHBOARD_SECTION_PERMISSIONS.cases = [1];
+    DASHBOARD_SECTION_PERMISSIONS.cases = [21];
     expect(
       canAccessFinesPrimaryNavigationSection('cases', createUserStateWithPermissions([]), { [createFlag]: true }),
     ).toBe(false);
     expect(
-      canAccessFinesPrimaryNavigationSection('cases', createUserStateWithPermissions([1]), { [createFlag]: true }),
+      canAccessFinesPrimaryNavigationSection('cases', createUserStateWithPermissions([21]), { [createFlag]: true }),
     ).toBe(true);
   });
 
   it('returns no permissions when user state is missing', () => {
     expect(getUserPermissionIds()).toEqual([]);
   });
-  it.each([undefined, []])('retains unrestricted permission semantics for released Cases (%j)', (permissions) => {
+  it.each([undefined, []])('denies released Cases without configured permissions (%j)', (permissions) => {
     DASHBOARD_SECTION_PERMISSIONS.cases = permissions;
-    expect(canAccessFinesPrimaryNavigationSection('cases', null, { [createFlag]: true })).toBe(true);
+    expect(canAccessFinesPrimaryNavigationSection('cases', null, { [createFlag]: true })).toBe(false);
   });
   it('selects the first accessible item when released', () => {
     expect(
-      getFirstAccessibleDashboardType(NAVIGATION_BAR_CONFIGURATION, createUserStateWithPermissions([1]), {
+      getFirstAccessibleDashboardType(NAVIGATION_BAR_CONFIGURATION, createUserStateWithPermissions([21]), {
         [createFlag]: true,
       }),
     ).toBe('cases');

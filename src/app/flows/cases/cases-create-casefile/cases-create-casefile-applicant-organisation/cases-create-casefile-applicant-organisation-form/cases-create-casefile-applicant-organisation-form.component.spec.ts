@@ -118,7 +118,9 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
         priority: 2,
       },
     },
-    create_casefile_applicant_organisation_non_uk_bank_payment_reference: {},
+    create_casefile_applicant_organisation_non_uk_bank_payment_reference: {
+      required: { message: 'Enter non-UK bank account payment reference', priority: 1 },
+    },
     create_casefile_applicant_organisation_non_uk_bank_name: {},
     create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: {
       branchSortCodePattern: { message: 'Enter correct branch or sort code', priority: 2 },
@@ -554,9 +556,14 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     const accountNumber = component.form.controls.create_casefile_applicant_organisation_non_uk_bank_account_number;
     expect(nameOnAccount.hasError('required')).toBe(true);
     expect(bic.hasError('internationalIdentifierRequired')).toBe(true);
+    const reference = component.form.controls.create_casefile_applicant_organisation_non_uk_bank_payment_reference;
+    expect(reference.hasError('required')).toBe(true);
+    component.handleFormSubmit(new SubmitEvent('submit'));
     expect(
-      component.form.controls.create_casefile_applicant_organisation_non_uk_bank_payment_reference.errors,
-    ).toBeNull();
+      component.formControlErrorMessages['create_casefile_applicant_organisation_non_uk_bank_payment_reference'],
+    ).toBe('Enter non-UK bank account payment reference');
+    reference.setValue('PAY-9817');
+    expect(reference.valid).toBe(true);
     expect(component.form.controls.create_casefile_applicant_organisation_non_uk_bank_name.errors).toBeNull();
 
     nameOnAccount.setValue('Account holder');

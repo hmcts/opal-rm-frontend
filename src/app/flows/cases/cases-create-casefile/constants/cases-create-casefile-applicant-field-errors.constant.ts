@@ -54,6 +54,9 @@ export const CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS = {
     ukBankPaymentReference: {
       required: createCasesCreateCasefileError('Enter UK bank account payment reference', 1),
     },
+    nonUkBankPaymentReference: {
+      required: createCasesCreateCasefileError('Enter non-UK bank account payment reference', 1),
+    },
     nonUkBankNameOnAccount: {
       required: createCasesCreateCasefileError('Enter name on account', 1),
     },

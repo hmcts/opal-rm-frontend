@@ -6,7 +6,7 @@ Feature: Cancel case creation accessibility
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9818
   Scenario: Open cancellation and continue to an empty case accessibly
-    Given I am reviewing a complete casefile for simulated submission
+    Given I am reviewing a complete casefile for submission
     When I open case creation cancellation
     Then I check the page for accessibility
     When I confirm discarding the local case

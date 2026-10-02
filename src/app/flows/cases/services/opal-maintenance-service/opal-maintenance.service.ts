@@ -1,9 +1,10 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import type { IOpalMaintenanceDraftCasefileRequest } from './interfaces/opal-maintenance-draft-casefile-request.interface';
+import type { IOpalMaintenanceDraftCasefileResponse } from './interfaces/opal-maintenance-draft-casefile-response.interface';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
 import { defer, of, Observable, shareReplay, tap } from 'rxjs';
 import type { IOpalMaintenanceApplicationReferenceDataResponse } from './interfaces/opal-maintenance-application-reference-data-response.interface';
-import type { IOpalMaintenanceCasefileSubmissionResult } from './interfaces/opal-maintenance-casefile-submission-result.interface';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorParams } from './interfaces/opal-maintenance-major-creditor-params.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
@@ -49,6 +50,15 @@ export class OpalMaintenanceService {
     return request;
   }
 
+  public createDraftCasefile(
+    request: IOpalMaintenanceDraftCasefileRequest,
+  ): Observable<HttpResponse<IOpalMaintenanceDraftCasefileResponse>> {
+    return this.http.post<IOpalMaintenanceDraftCasefileResponse>('/opal-maintenance-service/draft-casefiles', request, {
+      observe: 'response',
+      context: withoutHttpRetry(),
+    });
+  }
+
   public getMaintenanceApplications(): Observable<IOpalMaintenanceApplicationReferenceDataResponse> {
     return this.http.get<IOpalMaintenanceApplicationReferenceDataResponse>(
       '/opal-maintenance-service/maintenance-applications',
@@ -71,11 +81,6 @@ export class OpalMaintenanceService {
       `/opal-maintenance-service/results/${encodeURIComponent(resultId)}`,
       { context: withoutHttpRetry() },
     );
-  }
-
-  /** Temporary mock response; no backend case is created or saved. */
-  public submitCasefile(): Observable<IOpalMaintenanceCasefileSubmissionResult> {
-    return defer(() => of({ draft_casefile_id: globalThis.crypto.randomUUID() }));
   }
 
   public getCountries(active: boolean): Observable<IOpalMaintenanceCountryReferenceDataResponse> {

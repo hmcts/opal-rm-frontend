@@ -1,3 +1,4 @@
+import { dashboardSectionPermissionsGuard } from '../dashboard/guards/dashboard-section-permissions/dashboard-section-permissions.guard';
 import { accountGuard } from '@hmcts/opal-frontend-common/guards/account';
 import { authGuard } from '@hmcts/opal-frontend-common/guards/auth';
 import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
@@ -10,10 +11,18 @@ describe('page routes', () => {
   it('registers the Create Casefile shell', () => {
     const route = routing.find((candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.root);
 
-    expect(route?.canActivate).toEqual([authGuard, accountGuard, release1cRmCreateCaseFilesFeatureFlagGuard]);
-    expect(route?.canActivateChild).toEqual([release1cRmCreateCaseFilesFeatureFlagGuard]);
+    expect(route?.canActivate).toEqual([
+      authGuard,
+      accountGuard,
+      release1cRmCreateCaseFilesFeatureFlagGuard,
+      dashboardSectionPermissionsGuard,
+    ]);
+    expect(route?.canActivateChild).toEqual([
+      release1cRmCreateCaseFilesFeatureFlagGuard,
+      dashboardSectionPermissionsGuard,
+    ]);
     expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
-    expect(route?.data).toEqual(PRIMARY_NAV_HIDDEN_ROUTE_DATA);
+    expect(route?.data).toEqual({ ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, sectionKey: 'cases' });
     expect(route?.loadComponent).toEqual(expect.any(Function));
     expect(route?.children).toBeDefined();
   });

@@ -28,6 +28,7 @@ const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpal
     },
     {
       ...secondBusinessUnit,
+      business_unit_id: 44,
       permissions: permissionIds.map((permissionId) => ({
         permission_id: permissionId,
         permission_name: `Permission ${permissionId}`,
@@ -54,7 +55,7 @@ describe('dashboardLandingGuard', () => {
   beforeEach(() => {
     flags.set({ [key]: true });
     initializeFlags.mockReset().mockResolvedValue(undefined);
-    getUserState.mockReset().mockReturnValue(of(createUserStateWithPermissions([1])));
+    getUserState.mockReset().mockReturnValue(of(createUserStateWithPermissions([21])));
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -72,9 +73,9 @@ describe('dashboardLandingGuard', () => {
     expect(serialize(await runGuard())).toBe('/access-denied');
     expect(getUserState).not.toHaveBeenCalled();
   });
-  it('allows enabled Cases for users with no permissions', async () => {
+  it('denies enabled Cases for users with no permissions', async () => {
     getUserState.mockReturnValue(of(createUserStateWithPermissions([])));
-    expect(serialize(await runGuard())).toBe('/dashboard/cases');
+    expect(serialize(await runGuard())).toBe('/access-denied');
   });
   it('denies when user state fails', async () => {
     getUserState.mockReturnValue(throwError(() => new Error('User state unavailable')));

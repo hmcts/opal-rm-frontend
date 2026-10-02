@@ -11,10 +11,7 @@ import { NEVER } from 'rxjs';
 import { AppComponent } from 'src/app/app.component';
 import { LoginLocators as Login } from '../../shared/selectors/login.locators';
 import { PrimaryNavigationLocators as Nav } from '../../shared/selectors/primary-navigation.locators';
-import {
-  STARTER_USER_STATE_CASES_ONLY,
-  STARTER_USER_STATE_ALL_DASHBOARDS,
-} from '../CommonIntercepts/CommonUserState.mocks';
+import { STARTER_USER_STATE_CASES_ONLY } from '../CommonIntercepts/CommonUserState.mocks';
 
 const mountAppShell = ({
   authenticated,
@@ -73,7 +70,7 @@ describe('App shell', () => {
     cy.get(Nav.container).should('not.exist');
   });
 
-  it('shows only Cases for an active user with no permissions when the release is enabled', () => {
+  it('hides Cases without the RM permission even when the release is enabled', () => {
     const userState = structuredClone(STARTER_USER_STATE_CASES_ONLY);
     userState.business_unit_users.forEach((unit) => {
       unit.permissions = [];
@@ -85,14 +82,13 @@ describe('App shell', () => {
     });
 
     cy.get(Login.accountNavigationLink).should('contain.text', 'Sign out');
-    cy.get(Nav.items).should('have.length', 1);
-    cy.get(Nav.items).first().should('contain.text', Nav.labels.cases);
+    cy.get(Nav.container).should('not.exist');
   });
 
   it('shows only Cases even when the user has all starter permissions', () => {
     mountAppShell({
       authenticated: true,
-      userState: STARTER_USER_STATE_ALL_DASHBOARDS,
+      userState: STARTER_USER_STATE_CASES_ONLY,
       createCaseFilesEnabled: true,
     });
 
@@ -102,7 +98,7 @@ describe('App shell', () => {
   it('hides released navigation when the create-casefile flag changes to false', () => {
     mountAppShell({
       authenticated: true,
-      userState: STARTER_USER_STATE_ALL_DASHBOARDS,
+      userState: STARTER_USER_STATE_CASES_ONLY,
       createCaseFilesEnabled: true,
     }).then(({ component }) => {
       cy.get(Nav.items).should('have.length', 1).and('contain.text', Nav.labels.cases);

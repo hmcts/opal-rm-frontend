@@ -2,11 +2,11 @@ import { Given, Then, When } from '@badeball/cypress-cucumber-preprocessor';
 import { CheckCaseDetailsFlow } from '../../../e2e/functional/opal/flows/createDraftCasefile/check-case-details.flow';
 
 const flow = new CheckCaseDetailsFlow();
-Given('I am reviewing a complete casefile for simulated submission', () => flow.open());
+Given('I am reviewing a complete casefile for submission', () => flow.open());
 When('I correct the respondent from casefile review', () => flow.correctRespondent());
 Then('review shows the corrected respondent and unchanged orders', () => flow.assertCorrection());
-When('I submit the casefile for simulated submission', () => flow.submit());
-Then('a submission confirmation is shown without a backend create request', () => flow.assertConfirmation());
+When('I submit the casefile for submission', () => flow.submit());
+Then('the submitted case reference is shown after one create request', () => flow.assertConfirmation());
 When('I refresh the submission confirmation', () => flow.refreshConfirmation());
 When('I open cancellation and return to the reviewed draft', () => flow.cancel());
 When('I open case creation cancellation', () => flow.openCancellation());
@@ -22,3 +22,5 @@ When('I go forward to the previous casefile confirmation', () => flow.forwardToC
 Then('review retains the case after returning from confirmation', () => flow.assertReviewAfterConfirmation());
 
 When('I open casefile confirmation without submitting a case', () => flow.openFreshConfirmation());
+
+Then('confirmation is restored without another create request', () => flow.assertReturnedConfirmation());

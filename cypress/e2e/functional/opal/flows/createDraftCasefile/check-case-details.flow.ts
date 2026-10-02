@@ -9,6 +9,7 @@ export class CheckCaseDetailsFlow {
   /** Builds a complete case using the maintained real journey steps. */
   public open(): void {
     this.terms.givenTwoAcceptedMaintenanceOrders();
+    this.review.prepareSubmission();
     this.review.completeRemainingTasks();
   }
 
@@ -20,11 +21,11 @@ export class CheckCaseDetailsFlow {
   public assertCorrection(): void {
     this.review.assertCorrection();
   }
-  /** Activates the mock submission once. */
+  /** Submits the accepted case to the controlled HTTP boundary. */
   public submit(): void {
     this.review.submit();
   }
-  /** Checks the confirmation page and absence of backend creation. */
+  /** Checks the confirmation page, resolved payload and single successful submission. */
   public assertConfirmation(): void {
     this.review.assertConfirmation();
   }
@@ -79,5 +80,9 @@ export class CheckCaseDetailsFlow {
   /** Checks draft retention after visiting cancellation. */
   public assertRetainedDraft(): void {
     this.review.assertRetainedDraft();
+  }
+  /** Checks that Forward restores confirmation without another POST. */
+  public assertReturnedConfirmation(): void {
+    this.review.assertReturnedConfirmation();
   }
 }

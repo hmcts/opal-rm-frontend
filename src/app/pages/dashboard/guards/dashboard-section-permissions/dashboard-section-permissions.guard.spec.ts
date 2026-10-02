@@ -28,6 +28,7 @@ const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpal
     },
     {
       ...secondBusinessUnit,
+      business_unit_id: 44,
       permissions: permissionIds.map((permissionId) => ({
         permission_id: permissionId,
         permission_name: `Permission ${permissionId}`,
@@ -54,7 +55,7 @@ describe('dashboardSectionPermissionsGuard', () => {
   beforeEach(() => {
     flags.set({ [key]: true });
     initializeFlags.mockReset().mockResolvedValue(undefined);
-    getUserState.mockReset().mockReturnValue(of(createUserStateWithPermissions([1])));
+    getUserState.mockReset().mockReturnValue(of(createUserStateWithPermissions([21])));
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -72,9 +73,9 @@ describe('dashboardSectionPermissionsGuard', () => {
     expect(serialize(await runGuard())).toBe('/access-denied');
     expect(getUserState).not.toHaveBeenCalled();
   });
-  it('allows enabled Cases for users with no permissions', async () => {
+  it('denies enabled Cases for users with no permissions', async () => {
     getUserState.mockReturnValue(of(createUserStateWithPermissions([])));
-    expect(await runGuard()).toBe(true);
+    expect(serialize(await runGuard())).toBe('/access-denied');
   });
   it('denies when user state fails', async () => {
     getUserState.mockReturnValue(throwError(() => new Error('User state unavailable')));
@@ -99,5 +100,23 @@ describe('dashboardSectionPermissionsGuard', () => {
   });
   it('falls back from invalid section metadata to the route param', async () => {
     expect(await runGuard('cases', 'unknown')).toBe(true);
+  });
+  it('denies the RM permission when it belongs to another business unit', async () => {
+    const user = createUserStateWithPermissions([21]);
+    user.business_unit_users[1].business_unit_id = 45;
+    getUserState.mockReturnValue(of(user));
+    expect(serialize(await runGuard())).toBe('/access-denied');
+  });
+  it('checks child navigation against the parent casefile section', async () => {
+    getUserState.mockReturnValue(of(createUserStateWithPermissions([])));
+    const route = {
+      data: {},
+      parent: { data: { sectionKey: 'cases' } },
+      paramMap: convertToParamMap({}),
+    } as unknown as ActivatedRouteSnapshot;
+    const result = await TestBed.runInInjectionContext(() =>
+      dashboardSectionPermissionsGuard(route, {} as RouterStateSnapshot),
+    );
+    expect(serialize(result)).toBe('/access-denied');
   });
 });

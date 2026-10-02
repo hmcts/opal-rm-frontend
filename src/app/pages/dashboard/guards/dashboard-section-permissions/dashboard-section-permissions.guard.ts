@@ -11,7 +11,7 @@ import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '@app/flows/cases/c
 import { DASHBOARD_SECTION_FEATURE_FLAGS } from '@app/pages/dashboard/constants/dashboard-section-feature-flags.constant';
 
 const getSectionKey = (route: ActivatedRouteSnapshot): DashboardPageType | null => {
-  const routeSectionKey = route.data['sectionKey'];
+  const routeSectionKey = route.data['sectionKey'] ?? route.parent?.data['sectionKey'];
 
   if (typeof routeSectionKey === 'string' && isDashboardPageType(routeSectionKey)) {
     return routeSectionKey;

@@ -28,19 +28,6 @@ describe('Check case details accessibility', () => {
     },
   );
 
-  it(
-    'AC2, AC6. should announce and focus navigation errors without detected Axe violations',
-    { tags: buildTags() },
-    () => {
-      setupReview({ failNavigation: true });
-      cy.get(S.change('respondent')).click();
-      cy.get(S.errors).should('be.focused').and('have.attr', 'role', 'alert');
-      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-      cy.checkA11y();
-      cy.screenshot('po-9817-review-navigation-error');
-    },
-  );
-
   it('AC6. should reflow before and after disclosure at 320 CSS pixels', { tags: buildTags() }, () => {
     cy.viewport(320, 900);
     setupReview();

@@ -111,9 +111,6 @@ export const CasesCreateCasefileStore = signalStore(
     };
   }),
   withMethods((store) => ({
-    setSubmissionSucceeded: (submissionSucceeded: boolean): void => {
-      patchState(store, { submissionSucceeded });
-    },
     setCaseTypeSelection: (caseTypeSelection: CasesCreateCasefileCaseTypeSelection): void => {
       const selectionUnchanged = areCaseTypeSelectionsEqual(store.caseTypeSelection(), caseTypeSelection);
       const taskStatuses = selectionUnchanged
@@ -121,6 +118,7 @@ export const CasesCreateCasefileStore = signalStore(
         : { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES };
 
       patchState(store, {
+        submissionSucceeded: false,
         caseTypeSelection,
         applicantDetails: selectionUnchanged ? store.applicantDetails() : null,
         respondentDetails: selectionUnchanged ? store.respondentDetails() : null,
@@ -584,6 +582,9 @@ export const CasesCreateCasefileStore = signalStore(
         unsavedChanges: validSelection !== null,
         stateChanges: false,
       });
+    },
+    setSubmissionSucceeded: (submissionSucceeded: boolean): void => {
+      patchState(store, { submissionSucceeded });
     },
     resetStore: (): void => {
       patchState(store, {

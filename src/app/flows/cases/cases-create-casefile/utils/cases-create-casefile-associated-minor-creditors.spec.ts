@@ -9,6 +9,10 @@ describe('associatedMinorCreditors', () => {
     resultId: 'MAT',
     parameters: { amount: `${termId}.00` },
     creditor: { type: 'minor', sequenceNumber },
+    presentation: {
+      title: 'Maintenance',
+      fields: [{ name: 'amount', label: 'Amount', kind: 'money', options: [] }],
+    },
   });
 
   it('keeps referenced creditors in creation order including duplicate display names', () => {

@@ -12,13 +12,20 @@ import { MINOR_CREDITOR_DETAILS_MOCK } from './mocks/cases-create-casefile-minor
 import { toMinorCreditorFormData } from './utils/cases-create-casefile-minor-creditor-mapper';
 import { CASES_CREATE_CASEFILE_MINOR_CREDITOR_FIELD_NAMES as F } from './constants/cases-create-casefile-minor-creditor-field-names.constant';
 
-const term = { termId: 1, resultId: 'MAT', parameters: {}, creditor: null };
+const term = {
+  termId: 1,
+  resultId: 'MAT',
+  parameters: {},
+  creditor: null,
+  presentation: { title: 'Maintenance', fields: [] },
+};
 const saved = { sequenceNumber: 4, displayName: 'Example creditor', details: MINOR_CREDITOR_DETAILS_MOCK };
 const submission = () => ({
   formData: toMinorCreditorFormData(MINOR_CREDITOR_DETAILS_MOCK),
   nestedFlow: false as const,
 });
 const summaryPath = '/cases/create-casefile/order-terms/creditor/minor-creditor-summary';
+const orderTermsPath = '/cases/create-casefile/order-terms/summary';
 const patch = (store: InstanceType<typeof CasesCreateCasefileStore>, state: Partial<ICasesCreateCasefileState>) =>
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
 
@@ -50,6 +57,21 @@ async function setup(state: Partial<ICasesCreateCasefileState> = {}) {
   const fixture = TestBed.createComponent(CasesCreateCasefileMinorCreditorDetailsComponent);
   return { fixture, component: fixture.componentInstance, store, router: TestBed.inject(Router), countries };
 }
+
+const amendmentState = (): Partial<ICasesCreateCasefileState> => {
+  const selected = { ...term, termId: 2, parameters: { amount: '20.00' }, creditor: { type: 'applicant' as const } };
+  return {
+    orderTerms: [{ ...term, termId: 1, parameters: { amount: '10.00' } }, selected],
+    currentOrderTermId: 2,
+    orderTermAmendment: {
+      termId: 2,
+      term: { ...selected, parameters: { amount: '30.00' } },
+      inputComplete: true,
+      ready: false,
+    },
+    creditorDraft: { termId: 2, branch: 'add-new' },
+  };
+};
 
 describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
   beforeEach(() => vi.restoreAllMocks());
@@ -373,5 +395,52 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     component.handleUnsavedChanges(true);
     fixture.destroy();
     expect(store.unsavedChanges()).toBe(false);
+  });
+
+  it('keeps amendment creditor details temporary through failed review navigation and retry', async () => {
+    const { fixture, component, store, router } = await setup(amendmentState());
+    const acceptedBefore = structuredClone(store.orderTerms());
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new Error('Synthetic navigation failure'))
+      .mockResolvedValueOnce(true);
+    fixture.detectChanges();
+
+    component.handleFormSubmit(submission());
+    await fixture.whenStable();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(store.minorCreditors()).toEqual([]);
+    expect(store.creditorDraft()).toMatchObject({ termId: 2, details: MINOR_CREDITOR_DETAILS_MOCK });
+
+    component.handleFormSubmit(submission());
+    await fixture.whenStable();
+    component.handleFormSubmit(submission());
+    await fixture.whenStable();
+    expect(navigate).toHaveBeenCalledTimes(3);
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(store.orderTermAmendment()).toMatchObject({ termId: 2, ready: false });
+  });
+
+  it('cancels the whole amendment from details only after successful summary navigation', async () => {
+    const { component, store, router } = await setup(amendmentState());
+    const acceptedBefore = structuredClone(store.orderTerms());
+    vi.spyOn(router, 'navigateByUrl')
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new Error('Synthetic cancellation failure'))
+      .mockResolvedValueOnce(true);
+    component.handleUnsavedChanges(true);
+
+    await component.handleCancel();
+    expect(store.orderTermAmendment()).not.toBeNull();
+    expect(store.creditorDraft()).not.toBeNull();
+    await component.handleCancel();
+    expect(store.orderTermAmendment()).not.toBeNull();
+    await component.handleCancel();
+
+    expect(store.orderTermAmendment()).toBeNull();
+    expect(store.creditorDraft()).toBeNull();
+    expect(store.orderTerms()).toEqual(acceptedBefore);
+    expect(router.navigateByUrl).toHaveBeenLastCalledWith(orderTermsPath);
   });
 });

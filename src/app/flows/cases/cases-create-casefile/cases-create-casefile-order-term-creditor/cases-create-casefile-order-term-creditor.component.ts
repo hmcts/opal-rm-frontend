@@ -13,6 +13,7 @@ import { GENERIC_HTTP_ERROR_MESSAGE } from '@hmcts/opal-frontend-common/intercep
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
+import { cancelOrderTermAmendmentAfterNavigation } from '../utils/cases-create-casefile-order-term-amendment-navigation';
 import { CasesCreateCasefileOrderTermCreditorFormComponent } from './cases-create-casefile-order-term-creditor-form/cases-create-casefile-order-term-creditor-form.component';
 import type { ICasesCreateCasefileOrderTermCreditorForm } from './interfaces/cases-create-casefile-order-term-creditor-form.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
@@ -57,9 +58,32 @@ export class CasesCreateCasefileOrderTermCreditorComponent
   public readonly navigationFailed = signal(false);
   public readonly safeNavigationErrorMessage = GENERIC_HTTP_ERROR_MESSAGE;
   public readonly initialFormData = computed(() => {
-    const term = this.store.orderTerms().find((candidate) => candidate.termId === this.entryTermId);
+    const amendment = this.store.orderTermAmendment();
+    const term =
+      amendment?.termId === this.entryTermId
+        ? amendment.term
+        : this.store.orderTerms().find((candidate) => candidate.termId === this.entryTermId);
     return creditorFormValue(term?.creditor ?? null, this.store.creditorDraft()?.termId === this.entryTermId);
   });
+
+  private async completeAmendment(): Promise<void> {
+    const pending = this.store.orderTermAmendment();
+    if (!pending?.ready || this.navigationInFlight) return;
+    const creditorDraft = this.store.creditorDraft();
+    this.navigationInFlight = true;
+    this.navigationFailed.set(false);
+    try {
+      if (await this.navigationRouter.navigateByUrl(this.summaryPath)) {
+        this.store.completeOrderTermAmendment(pending, creditorDraft);
+      } else {
+        this.navigationFailed.set(true);
+      }
+    } catch {
+      this.navigationFailed.set(true);
+    } finally {
+      this.navigationInFlight = false;
+    }
+  }
 
   private async navigateAccepted(path: string): Promise<void> {
     if (this.navigationInFlight) return;
@@ -94,13 +118,39 @@ export class CasesCreateCasefileOrderTermCreditorComponent
     }
 
     const assignment = creditorAssignment(value.formData, this.store.minorCreditors(), this.majorCreditors);
-    if (!assignment || !this.store.assignCurrentOrderTermCreditor(termId, assignment)) return;
+    if (!assignment) return;
+    if (this.store.orderTermAmendment()) {
+      if (!this.store.stageAmendmentCreditor(assignment)) return;
+      this.handleUnsavedChanges(false);
+      this.changeDetector.detectChanges();
+      void this.completeAmendment();
+      return;
+    }
+    if (!this.store.assignCurrentOrderTermCreditor(termId, assignment)) return;
     this.handleUnsavedChanges(false);
     this.changeDetector.detectChanges();
     void this.navigateAccepted(this.summaryPath);
   }
 
   public async handleCancel(): Promise<void> {
+    const amendment = this.store.orderTermAmendment();
+    if (amendment) {
+      if (this.navigationInFlight) return;
+      this.navigationInFlight = true;
+      this.navigationFailed.set(false);
+      try {
+        const result = await cancelOrderTermAmendmentAfterNavigation(
+          this.navigationRouter,
+          this.store,
+          this.summaryPath,
+          amendment,
+        );
+        this.navigationFailed.set(result === 'failed');
+      } finally {
+        this.navigationInFlight = false;
+      }
+      return;
+    }
     if (this.navigationInFlight) return;
     this.navigationInFlight = true;
     this.navigationFailed.set(false);

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { patchState, WritableStateSource } from '@ngrx/signals';
+import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../constants/cases-create-casefile-applicant-bank-types.constant';
@@ -1067,6 +1067,240 @@ describe('CasesCreateCasefileStore', () => {
 
     expect(store.acceptNewMinorCreditor(1, MINOR_CREDITOR_DETAILS_MOCK)).toBeNull();
     expect(store.nextMinorCreditorSequence()).toBe(5);
+  });
+
+  it('stages a replacement without changing the prior assignment or sequence', () => {
+    patchState(stateSource, {
+      currentOrderTermId: 1,
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'applicant' } }],
+      creditorDraft: { termId: 1, branch: 'add-new' },
+      nextMinorCreditorSequence: 1,
+    });
+
+    expect(store.savePendingMinorCreditorDetails(1, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom')).toBe(true);
+    expect(store.orderTerms()[0].creditor).toEqual({ type: 'applicant' });
+    expect(store.minorCreditors()).toEqual([]);
+    expect(store.nextMinorCreditorSequence()).toBe(1);
+    expect(store.creditorDraft()).toMatchObject({
+      termId: 1,
+      details: MINOR_CREDITOR_DETAILS_MOCK,
+      countryName: 'United Kingdom',
+    });
+
+    expect(store.acceptPendingMinorCreditor(1)).toBe(1);
+    expect(store.minorCreditors()[0].details).toEqual(MINOR_CREDITOR_DETAILS_MOCK);
+    expect(store.minorCreditors()[0].details).not.toHaveProperty('countryName');
+    expect(store.orderTerms()[0].creditor).toEqual({ type: 'minor', sequenceNumber: 1 });
+    expect(store.creditorDraft()).toBeNull();
+    expect(store.acceptPendingMinorCreditor(1)).toBeNull();
+    expect(store.nextMinorCreditorSequence()).toBe(2);
+  });
+
+  it.each([
+    ['absent current term', { currentOrderTermId: null }],
+    ['nonexistent term', { orderTerms: [] }],
+    ['mismatched draft', { creditorDraft: { termId: 2, branch: 'add-new' as const } }],
+    ['absent country label', {}, ''],
+  ])(
+    'rejects pending minor creditor staging for %s without mutation',
+    (_description, override, countryName = 'United Kingdom') => {
+      patchState(stateSource, {
+        currentOrderTermId: 1,
+        orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+        creditorDraft: { termId: 1, branch: 'add-new' },
+        unsavedChanges: true,
+        stateChanges: false,
+        ...override,
+      });
+      const before = structuredClone({
+        orderTerms: store.orderTerms(),
+        minorCreditors: store.minorCreditors(),
+        nextMinorCreditorSequence: store.nextMinorCreditorSequence(),
+        creditorDraft: store.creditorDraft(),
+        unsavedChanges: store.unsavedChanges(),
+        stateChanges: store.stateChanges(),
+      });
+
+      expect(store.savePendingMinorCreditorDetails(1, MINOR_CREDITOR_DETAILS_MOCK, countryName)).toBe(false);
+      expect({
+        orderTerms: store.orderTerms(),
+        minorCreditors: store.minorCreditors(),
+        nextMinorCreditorSequence: store.nextMinorCreditorSequence(),
+        creditorDraft: store.creditorDraft(),
+        unsavedChanges: store.unsavedChanges(),
+        stateChanges: store.stateChanges(),
+      }).toEqual(before);
+    },
+  );
+
+  it.each([
+    ['another minor creditor', { type: 'minor' as const, sequenceNumber: 2 }],
+    ['the applicant', { type: 'applicant' as const }],
+  ])('preserves a pending accepted edit when the term now assigns %s', (_description, creditor) => {
+    patchState(stateSource, {
+      currentOrderTermId: 1,
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor }],
+      minorCreditors: [minorCreditor(1), minorCreditor(2)],
+      nextMinorCreditorSequence: 3,
+      creditorDraft: {
+        termId: 1,
+        branch: 'add-new',
+        existingSequenceNumber: 1,
+        details: MINOR_CREDITOR_DETAILS_MOCK,
+        countryName: 'United Kingdom',
+      },
+      unsavedChanges: true,
+      stateChanges: false,
+    });
+    const before = structuredClone(getState(store));
+    const changedDetails = {
+      ...MINOR_CREDITOR_DETAILS_MOCK,
+      identity: { type: 'organisation' as const, organisationName: 'Unaccepted replacement' },
+    };
+
+    expect(store.savePendingMinorCreditorDetails(1, changedDetails, 'France')).toBe(false);
+    expect(getState(store)).toEqual(before);
+  });
+
+  it('clones staged details and keeps accepted details isolated from later input mutation', () => {
+    const details = structuredClone(MINOR_CREDITOR_DETAILS_MOCK);
+    patchState(stateSource, {
+      currentOrderTermId: 1,
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      creditorDraft: { termId: 1, branch: 'add-new' },
+    });
+
+    expect(store.savePendingMinorCreditorDetails(1, details, 'United Kingdom')).toBe(true);
+    if (details.identity.type === 'organisation') details.identity.organisationName = 'Mutated input';
+    expect(store.creditorDraft()?.details).toEqual(MINOR_CREDITOR_DETAILS_MOCK);
+
+    expect(store.acceptPendingMinorCreditor(1)).toBe(1);
+    if (details.identity.type === 'organisation') details.identity.organisationName = 'Mutated again';
+    expect(store.minorCreditors()[0].details).toEqual(MINOR_CREDITOR_DETAILS_MOCK);
+  });
+
+  it('stages an accepted edit and updates its sequence only on acceptance', () => {
+    const existing = minorCreditor(3, 'Previous name');
+    const details = {
+      ...MINOR_CREDITOR_DETAILS_MOCK,
+      identity: { type: 'organisation' as const, organisationName: 'Updated name' },
+    };
+    patchState(stateSource, {
+      currentOrderTermId: 1,
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } }],
+      minorCreditors: [existing],
+      nextMinorCreditorSequence: 4,
+      creditorDraft: null,
+    });
+
+    expect(store.savePendingMinorCreditorDetails(1, details, 'United Kingdom')).toBe(true);
+    expect(store.creditorDraft()).toMatchObject({ existingSequenceNumber: 3, details, countryName: 'United Kingdom' });
+    expect(store.minorCreditors()).toEqual([existing]);
+    expect(store.nextMinorCreditorSequence()).toBe(4);
+
+    expect(store.acceptPendingMinorCreditor(1)).toBe(3);
+    expect(store.minorCreditors()[0]).toMatchObject({ sequenceNumber: 3, displayName: 'Updated name', details });
+    expect(store.nextMinorCreditorSequence()).toBe(4);
+    expect(store.creditorDraft()).toBeNull();
+  });
+
+  it('rejects pending accepted edits when their assignment disappears', () => {
+    patchState(stateSource, {
+      currentOrderTermId: 1,
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } }],
+      minorCreditors: [minorCreditor(3, 'Previous name')],
+      nextMinorCreditorSequence: 4,
+      creditorDraft: null,
+    });
+    expect(store.savePendingMinorCreditorDetails(1, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom')).toBe(true);
+    patchState(stateSource, { orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }] });
+    const before = structuredClone(store.creditorDraft());
+
+    expect(store.acceptPendingMinorCreditor(1)).toBeNull();
+    expect(store.creditorDraft()).toEqual(before);
+    expect(store.minorCreditors()[0].displayName).toBe('Previous name');
+    expect(store.nextMinorCreditorSequence()).toBe(4);
+  });
+
+  it.each([
+    ['absent current term', { currentOrderTermId: null }],
+    ['nonexistent term', { orderTerms: [] }],
+    [
+      'mismatched draft',
+      {
+        creditorDraft: {
+          termId: 2,
+          branch: 'add-new' as const,
+          details: MINOR_CREDITOR_DETAILS_MOCK,
+          countryName: 'United Kingdom',
+        },
+      },
+    ],
+    ['absent details', { creditorDraft: { termId: 1, branch: 'add-new' as const, countryName: 'United Kingdom' } }],
+    [
+      'absent country label',
+      { creditorDraft: { termId: 1, branch: 'add-new' as const, details: MINOR_CREDITOR_DETAILS_MOCK } },
+    ],
+  ])('rejects pending minor creditor acceptance for %s without mutation', (_description, override) => {
+    patchState(stateSource, {
+      currentOrderTermId: 1,
+      orderTerms: [{ termId: 1, resultId: 'MAT', parameters: {}, creditor: null }],
+      nextMinorCreditorSequence: 4,
+      creditorDraft: {
+        termId: 1,
+        branch: 'add-new',
+        details: MINOR_CREDITOR_DETAILS_MOCK,
+        countryName: 'United Kingdom',
+      },
+      unsavedChanges: false,
+      stateChanges: false,
+      ...override,
+    });
+    const before = structuredClone({
+      orderTerms: store.orderTerms(),
+      minorCreditors: store.minorCreditors(),
+      nextMinorCreditorSequence: store.nextMinorCreditorSequence(),
+      creditorDraft: store.creditorDraft(),
+      unsavedChanges: store.unsavedChanges(),
+      stateChanges: store.stateChanges(),
+    });
+
+    expect(store.acceptPendingMinorCreditor(1)).toBeNull();
+    expect({
+      orderTerms: store.orderTerms(),
+      minorCreditors: store.minorCreditors(),
+      nextMinorCreditorSequence: store.nextMinorCreditorSequence(),
+      creditorDraft: store.creditorDraft(),
+      unsavedChanges: store.unsavedChanges(),
+      stateChanges: store.stateChanges(),
+    }).toEqual(before);
+  });
+
+  it('keeps a shared prior creditor and prunes only an orphan when accepting a pending replacement', () => {
+    const shared = minorCreditor(1, 'Shared creditor');
+    const orphan = minorCreditor(2, 'Orphan creditor');
+    patchState(stateSource, {
+      currentOrderTermId: 1,
+      orderTerms: [
+        { termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
+        { termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 1 } },
+      ],
+      minorCreditors: [shared, orphan],
+      nextMinorCreditorSequence: 3,
+      creditorDraft: {
+        termId: 1,
+        branch: 'add-new',
+        details: MINOR_CREDITOR_DETAILS_MOCK,
+        countryName: 'United Kingdom',
+      },
+    });
+
+    expect(store.acceptPendingMinorCreditor(1)).toBe(3);
+    expect(store.minorCreditors().map((creditor) => creditor.sequenceNumber)).toEqual([1, 3]);
+    expect(store.orderTerms().map((term) => term.creditor)).toEqual([
+      { type: 'minor', sequenceNumber: 3 },
+      { type: 'minor', sequenceNumber: 1 },
+    ]);
   });
 
   it('builds an Individual display name from nonblank identity parts', () => {

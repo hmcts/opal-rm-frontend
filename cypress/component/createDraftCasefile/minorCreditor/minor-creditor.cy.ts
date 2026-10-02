@@ -15,12 +15,17 @@ const buildTags = (): string[] => ['@JIRA-STORY:PO-9809', '@JIRA-EPIC:PO-6506', 
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
 const error = (field: keyof typeof F, key: string): string => (ERRORS[F[field]]?.[key] as { message: string }).message;
 
-const assertAccepted = (details: ICasesCreateCasefileMinorCreditorDetails, displayName: string): void => {
+const assertPending = (details: ICasesCreateCasefileMinorCreditorDetails): void => {
   cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-    expect(store.minorCreditors()).to.deep.equal([{ sequenceNumber: 1, displayName, details }]);
-    expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
-    expect(store.nextMinorCreditorSequence()).to.eq(2);
-    expect(store.creditorDraft()).to.eq(null);
+    expect(store.minorCreditors()).to.deep.equal([]);
+    expect(store.orderTerms()[0].creditor).to.eq(null);
+    expect(store.nextMinorCreditorSequence()).to.eq(1);
+    expect(store.creditorDraft()).to.deep.equal({
+      termId: 1,
+      branch: 'add-new',
+      details,
+      countryName: 'United Kingdom',
+    });
     expect(store.unsavedChanges()).to.eq(false);
     expect(store.stateChanges()).to.eq(true);
   });
@@ -36,7 +41,7 @@ describe('Minor creditor details', () => {
     cy.get(S.minorCreditor.bankNone).should('be.checked');
     cy.get(S.minorCreditor.save).click();
 
-    assertAccepted(MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK, 'Dr Example Person');
+    assertPending(MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK);
   });
 
   it('AC1, AC4. should save Organisation, UK bank and the Country ID', { tags: buildTags() }, () => {
@@ -48,7 +53,7 @@ describe('Minor creditor details', () => {
     cy.get(S.minorCreditor.ukSortCode).should('have.value', '001122');
     cy.get(S.minorCreditor.save).click();
 
-    assertAccepted(MINOR_CREDITOR_UK_MOCK, 'Example creditor');
+    assertPending(MINOR_CREDITOR_UK_MOCK);
   });
 
   it('AC2, AC4. should save a non-UK bank when both international identifiers are blank', { tags: buildTags() }, () => {
@@ -60,7 +65,7 @@ describe('Minor creditor details', () => {
     cy.get(S.minorCreditor.nonUkPaymentReference).should('have.value', 'Example reference');
     cy.get(S.minorCreditor.save).click();
 
-    assertAccepted(MINOR_CREDITOR_NON_UK_MOCK, 'Example creditor');
+    assertPending(MINOR_CREDITOR_NON_UK_MOCK);
   });
 
   it(
@@ -155,7 +160,7 @@ describe('Minor creditor details', () => {
     });
   });
 
-  it('AC4. should retry failed navigation without allocating another creditor', { tags: buildTags() }, () => {
+  it('AC4. should retry failed navigation without accepting the pending creditor', { tags: buildTags() }, () => {
     setupMinorCreditor({ details: MINOR_CREDITOR_UK_MOCK });
     cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
       navigate.onFirstCall().resolves(false),
@@ -166,14 +171,15 @@ describe('Minor creditor details', () => {
     cy.get(S.minorCreditor.save).click();
 
     cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.minorCreditors()).to.have.length(1);
-      expect(store.nextMinorCreditorSequence()).to.eq(2);
-      expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
+      expect(store.minorCreditors()).to.deep.equal([]);
+      expect(store.nextMinorCreditorSequence()).to.eq(1);
+      expect(store.orderTerms()[0].creditor).to.eq(null);
+      expect(store.creditorDraft()?.details).to.deep.equal(MINOR_CREDITOR_UK_MOCK);
     });
     cy.get('@routerNavigate').should('have.been.calledTwice');
   });
 
-  it('AC4. should save new edits to the same creditor after navigation failure', { tags: buildTags() }, () => {
+  it('AC4. should update the same pending draft after navigation failure', { tags: buildTags() }, () => {
     setupMinorCreditor({ details: MINOR_CREDITOR_UK_MOCK });
     cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
       navigate.onFirstCall().rejects(new Error('Synthetic navigation failure')),
@@ -185,14 +191,13 @@ describe('Minor creditor details', () => {
     cy.get(S.minorCreditor.save).click();
 
     cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.minorCreditors()).to.have.length(1);
-      expect(store.minorCreditors()[0].sequenceNumber).to.eq(1);
-      expect(store.minorCreditors()[0].displayName).to.eq('Updated creditor');
-      expect(store.minorCreditors()[0].details.identity).to.deep.equal({
+      expect(store.minorCreditors()).to.deep.equal([]);
+      expect(store.nextMinorCreditorSequence()).to.eq(1);
+      expect(store.orderTerms()[0].creditor).to.eq(null);
+      expect(store.creditorDraft()?.details?.identity).to.deep.equal({
         type: 'organisation',
         organisationName: 'Updated creditor',
       });
-      expect(store.nextMinorCreditorSequence()).to.eq(2);
     });
   });
 

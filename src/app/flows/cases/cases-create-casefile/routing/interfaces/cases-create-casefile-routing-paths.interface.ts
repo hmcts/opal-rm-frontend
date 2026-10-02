@@ -14,6 +14,7 @@ export interface ICasesCreateCasefileRoutingPaths {
     orderTermCreditor: string;
     minorCreditorDetails: string;
     minorCreditorSummary: string;
+    minorCreditorRemove: string;
     interestAndIndexation: string;
     managingPayments: string;
     commentsAndNotes: string;

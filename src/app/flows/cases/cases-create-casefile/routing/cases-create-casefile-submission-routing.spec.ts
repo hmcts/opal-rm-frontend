@@ -1,3 +1,5 @@
+import { Location } from '@angular/common';
+import { provideLocationMocks } from '@angular/common/testing';
 import { CasesCreateCasefileCheckDetailsComponent } from '../cases-create-casefile-check-details/cases-create-casefile-check-details.component';
 import { By } from '@angular/platform-browser';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
@@ -44,6 +46,7 @@ describe('Submission route lifecycle', () => {
       providers: [
         provideHttpClient(withInterceptors([httpErrorInterceptor])),
         provideHttpClientTesting(),
+        provideLocationMocks(),
         { provide: GlobalStore, useValue: new GlobalStore() },
         { provide: AppInsightsService, useValue: { logException: vi.fn() } },
       ],
@@ -81,7 +84,7 @@ describe('Submission route lifecycle', () => {
     expect(getState(store)).toEqual(before);
   });
 
-  it('waits for HTTP 201 and hands off to the existing confirmation placeholder', async () => {
+  it('clears the accepted draft after HTTP 201 and prevents Back from reopening it', async () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
@@ -98,7 +101,8 @@ describe('Submission route lifecycle', () => {
     const before = structuredClone(getState(store));
     const http = TestBed.inject(HttpTestingController);
     const router = TestBed.inject(Router);
-    const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
+    const harness = await RouterTestingHarness.create('/cases/create-casefile/respondent-details');
+    await harness.navigateByUrl('/cases/create-casefile/check-case-details');
     await harness.fixture.whenStable();
     const review = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent))
       .componentInstance as CasesCreateCasefileCheckDetailsComponent;
@@ -117,12 +121,27 @@ describe('Submission route lifecycle', () => {
     harness.detectChanges();
     expect(router.url).toBe('/cases/create-casefile/submission-confirmation');
     expect(harness.routeNativeElement?.textContent).toContain('Submission confirmation');
-    expect(getState(store)).toEqual({ ...before, submissionSucceeded: true });
-    await harness.navigateByUrl('/cases/create-casefile/check-case-details');
-    const returnedReview = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent))
-      .componentInstance as CasesCreateCasefileCheckDetailsComponent;
-    await returnedReview.handleSubmit();
-    expect(router.url).toBe('/cases/create-casefile/submission-confirmation');
+    expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
+    // The harness navigates explicitly; enable the listener used by browser Back.
+    router.setUpLocationChangeListener();
+    TestBed.inject(Location).historyGo(-2);
+    await vi.waitFor(() => expect(router.url).toBe('/cases/create-casefile/case-type'));
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(router.url).toBe('/cases/create-casefile/case-type');
+    expect(harness.routeNativeElement?.querySelector('app-cases-create-casefile-respondent-details')).toBeNull();
+    for (const path of [
+      'respondent-details',
+      'applicant-details/individual',
+      'applicant-details/organisation',
+      'check-case-details',
+    ]) {
+      await harness.navigateByUrl('/cases/create-casefile/' + path);
+      expect(router.url).toBe('/cases/create-casefile/case-type');
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_review_submit')).toBeNull();
+      expect(store.respondentDetails()).toBeNull();
+      expect(store.applicantDetails()).toBeNull();
+    }
     http.expectNone(submissionUrl);
     await router.navigateByUrl('/dashboard/cases');
     await harness.fixture.whenStable();

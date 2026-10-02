@@ -88,3 +88,7 @@ export const REVIEW_SUBMISSION_RECEIPT = {
   timeline_data: [{ username: 'Synthetic User', status: 'Submitted', status_date: '2026-10-02T12:00:00Z' }],
 };
 export const REVIEW_SUBMISSION_ERROR = { detail: 'Synthetic validation failure', retriable: true };
+
+export function createSubmittedReviewState() {
+  return { ...createCompleteReviewState(), submissionSucceeded: true };
+}

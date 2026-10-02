@@ -1,6 +1,6 @@
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
-import { UNSAVED_CHANGES_WARNING } from '../../../../../component/createDraftCasefile/constants/create-casefile-test-copy.constant';
+import { UNSAVED_CHANGES_WARNING } from '../../../../../shared/constants/create-casefile-test-copy.constant';
 import { E2E_MINOR_CREDITOR as M } from '../../mocks/createDraftCasefile/minor-creditor.mock';
 
 /** Drives the Minor Creditor Details journey. */

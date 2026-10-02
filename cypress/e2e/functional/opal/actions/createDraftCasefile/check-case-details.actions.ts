@@ -1,10 +1,20 @@
+import { CHECK_CASE_DETAILS_SUBMISSION as SUBMISSION } from '../../mocks/createDraftCasefile/check-case-details.mock';
+import type { IOpalMaintenanceDraftCasefileRequest } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-request.interface';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-payment-arrangements.constant';
 
-/** Exercises the simulated submission through the real rendered journey. */
+/** Exercises intercepted HTTP submission through the real rendered journey. */
 export class CheckCaseDetailsActions {
+  /** Stubs the create boundary so this journey never sends a live submission. */
+  public prepareSubmission(): void {
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', {
+      statusCode: 201,
+      body: structuredClone(SUBMISSION.receipt),
+    }).as('draftSubmission');
+  }
+
   /** Completes the remaining mandatory tasks before opening review. */
   public completeRemainingTasks(): void {
     cy.get(S.orderTerms.return).click();
@@ -33,16 +43,38 @@ export class CheckCaseDetailsActions {
     cy.get(S.review.section('respondent')).should('be.focused');
   }
 
-  /** Activates the mock submission once. */
+  /** Submits the accepted case through the real HTTP service. */
   public submit(): void {
     cy.get(S.review.submit).click();
   }
 
-  /** Checks the simulated confirmation and absence of backend creation. */
+  /** Checks the resolved payload, successful receipt and single create request. */
   public assertConfirmation(): void {
+    cy.wait('@draftSubmission').then(({ request, response }) => {
+      const payload = request.body as IOpalMaintenanceDraftCasefileRequest;
+      expect(response?.statusCode).to.equal(201);
+      expect(payload.business_unit_id).to.equal(44);
+      expect(payload.casefile_type).to.equal('REMO In');
+      expect(payload.casefile.respondent_account.application_code).to.equal('TEST01');
+      expect(payload.casefile.respondent_account.respondent.party_details.address).to.deep.equal({
+        address_line_1: '1 Test Street',
+        cjs_code: 1,
+      });
+      expect(payload.casefile.applicant.party_details.address).to.deep.equal({
+        address_line_1: '2 Test Street',
+        cjs_code: 1,
+      });
+      expect(payload.casefile.applicant.bank_account_details).to.deep.equal({
+        bank_account_type: 'None or not applicable',
+      });
+      expect(payload.casefile.respondent_account.order_details.order_terms).to.deep.equal(
+        SUBMISSION.expectedOrderTerms,
+      );
+      expect(payload).not.to.have.property('taskStatuses');
+    });
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
     cy.get(S.review.confirmationHeading).should('have.text', 'Submission confirmation').and('be.focused');
-    cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@draftSubmission.all').should('have.length', 1);
     cy.get(S.primaryNavigation).should('not.exist');
   }
 
@@ -51,10 +83,10 @@ export class CheckCaseDetailsActions {
     cy.reload();
   }
 
-  /** Checks that refresh uses the existing journey reset without sending a submission. */
+  /** Checks that refresh resets the journey without replaying the successful submission. */
   public assertRestartedJourney(): void {
     cy.get(S.caseTypeGroup).should('be.visible');
-    cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@draftSubmission.all').should('have.length', 1);
     cy.get(S.primaryNavigation).should('not.exist');
   }
 
@@ -69,6 +101,6 @@ export class CheckCaseDetailsActions {
   /** Checks that cancellation navigation has retained the accepted draft. */
   public assertRetainedDraft(): void {
     cy.get(S.review.section('respondent')).should('contain.text', 'Synthetic');
-    cy.get('@draftCreation').should('not.have.been.called');
+    cy.get('@draftSubmission.all').should('have.length', 0);
   }
 }

@@ -26,29 +26,19 @@ describe('CasesCreateCasefileReviewSectionComponent', () => {
     expect(host.querySelector('.govuk-warning-text')?.textContent).toContain(section.warning);
     expect(host.querySelector('h2')?.textContent?.trim()).toBe('Applicant details');
   });
-  it('emits the section ID from a contextual change button', () => {
+  it('emits the section ID from a contextual change link', () => {
     const changed = vi.fn();
     fixture.componentInstance.changeEvent.subscribe(changed);
     fixture.detectChanges();
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    expect(button.textContent?.replace(/\s+/g, ' ').trim()).toBe('Change Applicant details');
-    button.click();
+    const link = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+    expect(link.textContent?.replace(/\s+/g, ' ').trim()).toBe('Change Applicant details');
+    link.click();
     expect(changed).toHaveBeenCalledExactlyOnceWith('applicant');
-  });
-  it('prevents change while disabled', () => {
-    fixture.componentRef.setInput('disabled', true);
-    const changed = vi.fn();
-    fixture.componentInstance.changeEvent.subscribe(changed);
-    fixture.detectChanges();
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    button.click();
-    expect(button.disabled).toBe(true);
-    expect(changed).not.toHaveBeenCalled();
   });
   it('omits a change action for a read-only section', () => {
     fixture.componentRef.setInput('actionable', false);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('button')).toBeNull();
+    expect(fixture.nativeElement.querySelector('a')).toBeNull();
   });
   it('supports native bank disclosure activation', () => {
     fixture.detectChanges();

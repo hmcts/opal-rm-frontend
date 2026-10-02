@@ -12,7 +12,7 @@ export function createCasesCreateCasefileReviewState(): ICasesCreateCasefileStat
     orderDetails: {
       applicationId: 901,
       court: null,
-      dateOrderMade: null,
+      dateOrderMade: '2026-09-01',
       paymentFrequency: 'Monthly',
       dateArrearsLastUpdated: '2026-09-15',
     },

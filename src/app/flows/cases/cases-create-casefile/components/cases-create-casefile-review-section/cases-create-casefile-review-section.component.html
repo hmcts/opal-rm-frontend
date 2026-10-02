@@ -2,17 +2,14 @@
   <opal-lib-govuk-summary-card-list [summaryCardListId]="id()" [cardTitle]="section().title" [headingLevel]="2">
     <ng-container actions>
       @if (actionable()) {
-        <li class="govuk-summary-card__action">
-          <button
-            [id]="id() + '-change'"
-            type="button"
-            class="govuk-link govuk-link--no-visited-state"
-            [disabled]="disabled()"
-            (click)="changeEvent.emit(section().id)"
-          >
-            Change <span class="govuk-visually-hidden">{{ section().title }}</span>
-          </button>
-        </li>
+        <li
+          opal-lib-govuk-summary-list-row-action-item
+          class="govuk-summary-card__action"
+          actionName="Change"
+          [actionId]="id() + '-change'"
+          [visuallyHiddenText]="' ' + section().title"
+          (linkClick)="changeEvent.emit(section().id)"
+        ></li>
       }
     </ng-container>
     <ng-container content>

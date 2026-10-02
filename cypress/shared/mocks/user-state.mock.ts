@@ -13,6 +13,7 @@ export const createStarterUserState = (permissionIds: readonly number[]): IOpalU
     },
     {
       ...secondBusinessUnit,
+      business_unit_id: 44,
       permissions: permissionIds.map((permissionId) => ({
         permission_id: permissionId,
         permission_name: `Permission ${permissionId}`,
@@ -25,16 +26,4 @@ export const createStarterUserState = (permissionIds: readonly number[]): IOpalU
 
 export const STARTER_USER_STATE_NO_DASHBOARD_PERMISSIONS = createStarterUserState([]);
 
-export const STARTER_USER_STATE_CASES_ONLY = createStarterUserState([
-  PERMISSIONS['create-and-manage-draft-accounts'],
-  PERMISSIONS['check-and-validate-draft-accounts'],
-  PERMISSIONS['consolidate'],
-]);
-
-export const STARTER_USER_STATE_ALL_DASHBOARDS = createStarterUserState([
-  PERMISSIONS['search-and-view-accounts'],
-  PERMISSIONS['create-and-manage-draft-accounts'],
-  PERMISSIONS['check-and-validate-draft-accounts'],
-  PERMISSIONS['consolidate'],
-  PERMISSIONS['operational-report-by-enforcement'],
-]);
+export const STARTER_USER_STATE_CASES_ONLY = createStarterUserState([PERMISSIONS['create-and-manage-draft-casefiles']]);

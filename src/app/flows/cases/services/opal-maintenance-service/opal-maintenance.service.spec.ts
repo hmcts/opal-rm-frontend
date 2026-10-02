@@ -1,3 +1,5 @@
+import { CasesCreateCasefilePayloadService } from '../../cases-create-casefile/services/cases-create-casefile-payload/cases-create-casefile-payload.service';
+import { createCasesCreateCasefileReviewState } from '../../cases-create-casefile/mocks/cases-create-casefile-review-state.mock';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -51,6 +53,27 @@ describe('OpalMaintenanceService', () => {
       }
     ).majorCreditorsCache.clear();
 
+  it('posts the mapped casefile once and returns the server receipt', async () => {
+    const request = TestBed.inject(CasesCreateCasefilePayloadService).buildAddCasefilePayload(
+      createCasesCreateCasefileReviewState(),
+      {
+        countries: [{ country_id: 1, cjs_code: 101, active: true }],
+        applications: [{ application_id: 901, application_code: 'TEST', active: true }],
+        majorCreditors: [],
+      },
+      44,
+    );
+    const response = firstValueFrom(service.createDraftCasefile(request));
+    const post = http.expectOne('/opal-maintenance-service/draft-casefiles');
+    expect(post.request.method).toBe('POST');
+    expect(post.request.body).toEqual(request);
+    for (const key of withoutHttpRetry().keys())
+      expect(post.request.context.get(key)).toEqual(withoutHttpRetry().get(key));
+    post.flush({ draft_casefile_id: 123, casefile_status: 'SUBMITTED' }, { status: 201, statusText: 'Created' });
+    expect((await response).body).toEqual({ draft_casefile_id: 123, casefile_status: 'SUBMITTED' });
+    http.expectNone('/opal-maintenance-service/draft-casefiles');
+  });
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
@@ -65,23 +88,7 @@ describe('OpalMaintenanceService', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    http.verify();
-  });
-
-  it('generates only when subscribed and returns distinct mock results', async () => {
-    const generate = vi.spyOn(globalThis.crypto, 'randomUUID');
-    const request = service.submitCasefile();
-    expect(generate).not.toHaveBeenCalled();
-    const first = await firstValueFrom(request);
-    const second = await firstValueFrom(service.submitCasefile());
-    expect(first.draft_casefile_id).toMatch(/\S+/);
-    expect(second.draft_casefile_id).not.toBe(first.draft_casefile_id);
-    expect(Object.keys(first)).toEqual(['draft_casefile_id']);
-    expect(generate).toHaveBeenCalledTimes(2);
-    TestBed.inject(HttpTestingController).expectNone(() => true);
-  });
+  afterEach(() => http.verify());
 
   it('requests active order terms afresh for each subscription and preserves server ordering', () => {
     const results = {

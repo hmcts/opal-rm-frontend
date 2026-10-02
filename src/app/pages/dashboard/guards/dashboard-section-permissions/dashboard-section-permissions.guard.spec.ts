@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { firstValueFrom, isObservable, of, throwError } from 'rxjs';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
 import { CASES_PERMISSIONS } from '@app/flows/cases/constants/cases-permissions.constant';
-import { SEARCH_PERMISSIONS } from '@app/flows/search/constants/search-permissions.constant';
 import { dashboardSectionPermissionsGuard } from './dashboard-section-permissions.guard';
 
 const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpalUserState => {
@@ -22,6 +21,7 @@ const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpal
     },
     {
       ...secondBusinessUnit,
+      business_unit_id: 44,
       permissions: permissionIds.map((permissionId) => ({
         permission_id: permissionId,
         permission_name: `Permission ${permissionId}`,
@@ -65,6 +65,18 @@ describe('dashboardSectionPermissionsGuard', () => {
     });
   });
 
+  it('checks child navigation using the casefile parent section', async () => {
+    const route = {
+      data: {},
+      parent: { data: { sectionKey: 'cases' } } as unknown as ActivatedRouteSnapshot,
+      paramMap: convertToParamMap({}),
+    } as ActivatedRouteSnapshot;
+    const result = TestBed.runInInjectionContext(() =>
+      dashboardSectionPermissionsGuard(route, {} as RouterStateSnapshot),
+    );
+    expect(isObservable(result) ? await firstValueFrom(result) : result).toBeInstanceOf(UrlTree);
+  });
+
   it('allows access when no dashboard section can be resolved', async () => {
     const result = await runGuard({ dashboardType: 'unknown' });
 
@@ -72,14 +84,10 @@ describe('dashboardSectionPermissionsGuard', () => {
     expect(mockOpalUserService.getLoggedInUserState).not.toHaveBeenCalled();
   });
 
-  it('allows access when the user has a required search permission', async () => {
-    mockOpalUserService.getLoggedInUserState.mockReturnValue(
-      of(createUserStateWithPermissions([SEARCH_PERMISSIONS[0]])),
-    );
-
-    const result = await runGuard({ sectionKey: 'search' });
-
-    expect(result).toBe(true);
+  it.each(['search', 'reports', 'administration'])('denies %s until RM permissions are defined', async (sectionKey) => {
+    mockOpalUserService.getLoggedInUserState.mockReturnValue(of(createUserStateWithPermissions([6, 14, 15, 21])));
+    expect(await runGuard({ sectionKey })).toBeInstanceOf(UrlTree);
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([`/${COMMON_PAGES_ROUTING_PATHS.children.accessDenied}`]);
   });
 
   it('redirects to access denied when the user lacks the required permission', async () => {
@@ -90,6 +98,18 @@ describe('dashboardSectionPermissionsGuard', () => {
 
     expect(result).toBe(expectedUrlTree);
     expect(mockRouter.createUrlTree).toHaveBeenCalledWith([`/${COMMON_PAGES_ROUTING_PATHS.children.accessDenied}`]);
+  });
+
+  it('denies case access when permission 21 belongs to another business unit', async () => {
+    const state = createUserStateWithPermissions([21]);
+    state.business_unit_users[1].business_unit_id = 45;
+    mockOpalUserService.getLoggedInUserState.mockReturnValue(of(state));
+    expect(await runGuard({ sectionKey: 'cases' })).toBeInstanceOf(UrlTree);
+  });
+
+  it('allows case access for permission 21 in the RM business unit', async () => {
+    mockOpalUserService.getLoggedInUserState.mockReturnValue(of(createUserStateWithPermissions([21])));
+    expect(await runGuard({ sectionKey: 'cases' })).toBe(true);
   });
 
   it('returns false when the user state lookup errors', async () => {

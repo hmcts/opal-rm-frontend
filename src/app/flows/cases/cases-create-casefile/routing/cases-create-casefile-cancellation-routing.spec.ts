@@ -70,7 +70,7 @@ describe('Cancellation route lifecycle', () => {
     const before = structuredClone(getState(store));
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
-    await click(harness, '#create_casefile_review_cancel');
+    await click(harness, '#create_casefile_review_cancel a');
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/cancel');
     expect(TestBed.inject(Title).getTitle()).toBe('OPAL - Cancel case creation');
     expect(document.activeElement?.id).toBe('create_casefile_cancel_heading');
@@ -87,7 +87,7 @@ describe('Cancellation route lifecycle', () => {
     const store = TestBed.inject(CasesCreateCasefileStore);
     const context = TestBed.inject(CasesCreateCasefileReviewNavigationService);
     const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
-    await click(harness, '#create_casefile_review_cancel');
+    await click(harness, '#create_casefile_review_cancel a');
     context.setContext({ origin: 'review', section: 'commentsAndNotes' });
     expect(context.context()).toEqual({ origin: 'review', section: 'commentsAndNotes' });
     await click(harness, '#create_casefile_cancel_confirm');

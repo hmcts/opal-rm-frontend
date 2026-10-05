@@ -97,7 +97,7 @@ describe('Check case details accessibility', () => {
           expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
         cy.get('@routerNavigate').should('have.been.calledOnceWith', '/' + PATHS.root + '/' + PATHS.children.caseType, {
-          state: { startNewCase: true },
+          state: { startNewCase: true, focusCaseTypeHeading: true },
         });
       },
     );

@@ -25,7 +25,7 @@ describe('DashboardComponent', () => {
     featureFlags.set({});
     dashboardTypeParamMapSubject = new BehaviorSubject(convertToParamMap({ dashboardType: 'cases' }));
     permissionsServiceMock = createSpyObj('PermissionsService', ['getUniquePermissions']);
-    permissionsServiceMock.getUniquePermissions.mockReturnValue([101, 202, 303]);
+    permissionsServiceMock.getUniquePermissions.mockReturnValue([21, 101, 202, 303]);
 
     await TestBed.configureTestingModule({
       imports: [DashboardComponent],

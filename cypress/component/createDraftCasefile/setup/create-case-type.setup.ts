@@ -1,7 +1,8 @@
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { EMPTY } from 'rxjs';
 import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, DefaultUrlSerializer } from '@angular/router';
 import { mount } from 'cypress/angular';
 import { CasesCreateCasefileCaseTypeComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/cases-create-casefile-case-type.component';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
@@ -12,6 +13,7 @@ export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCa
 export const setupCreateCasefileCaseType = (
   initialSelection: CasesCreateCasefileCaseTypeSelection | null = null,
   navigationFailure?: 'false' | 'throw',
+  completedArrival = false,
 ) => {
   const store = new CasesCreateCasefileStore();
   const returnPath =
@@ -38,7 +40,28 @@ export const setupCreateCasefileCaseType = (
       providers: [
         { provide: CasesCreateCasefileStore, useValue: store },
         { provide: CasesDraftNavigationService, useValue: { creationReturnUrl: () => returnPath } },
-        { provide: Router, useValue: { navigate, navigateByUrl, events: EMPTY, currentNavigation: () => null } },
+        {
+          provide: Router,
+          useValue: {
+            navigate,
+            navigateByUrl,
+            events: EMPTY,
+            currentNavigation: () => null,
+            lastSuccessfulNavigation: () =>
+              completedArrival
+                ? {
+                    trigger: 'imperative',
+                    finalUrl: new DefaultUrlSerializer().parse(
+                      '/' +
+                        CASES_CREATE_CASEFILE_ROUTING_PATHS.root +
+                        '/' +
+                        CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType,
+                    ),
+                    extras: { state: { startNewCase: true, focusCaseTypeHeading: true } },
+                  }
+                : null,
+          },
+        },
         { provide: ActivatedRoute, useValue: { parent: null } },
       ],
     }).then(() => {

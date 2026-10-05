@@ -34,7 +34,13 @@ import { ICasesCreateCasefileCaseTypeForm } from './interfaces/cases-create-case
 })
 export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBaseComponent implements OnInit {
   private readonly cancelRouter = inject(Router);
-  private readonly arrivalNavigation = this.cancelRouter.currentNavigation();
+  // Deferred outlet activation can construct this page after NavigationEnd cleared currentNavigation.
+  private readonly completedNavigation = this.cancelRouter.lastSuccessfulNavigation();
+  private readonly completedCaseTypeArrival =
+    this.completedNavigation?.finalUrl?.toString().split(/[?#]/)[0] ===
+    '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType;
+  private readonly arrivalNavigation =
+    this.cancelRouter.currentNavigation() ?? (this.completedCaseTypeArrival ? this.completedNavigation : null);
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly dashboardNavigation = inject(CasesDraftNavigationService);
@@ -44,7 +50,9 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
   public readonly cancelling = signal(false);
   public readonly cancelNavigationFailed = signal(false);
 
-  public readonly focusHeadingOnArrival = this.arrivalNavigation?.extras.state?.['focusCaseTypeHeading'] === true;
+  public readonly focusHeadingOnArrival =
+    this.arrivalNavigation?.trigger === 'imperative' &&
+    this.arrivalNavigation.extras.state?.['focusCaseTypeHeading'] === true;
 
   constructor() {
     super();

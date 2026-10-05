@@ -1,6 +1,7 @@
 import { Subject, of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
-import { setupInputterDashboard, pressDashboardEnter } from './setup/dashboard.setup';
+import { setupInputterDashboard } from './setup/dashboard.setup';
+import { pressDashboardEnter } from '../../../support/utils/press-dashboard-enter';
 import { dashboardFixtures } from './mocks/dashboard.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
 const buildTags = (): string[] => [

@@ -1,7 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
-import { ActivatedRoute, Router, UrlTree, NavigationCancel, NavigationCancellationCode } from '@angular/router';
+import {
+  ActivatedRoute,
+  Router,
+  UrlTree,
+  NavigationCancel,
+  NavigationCancellationCode,
+  DefaultUrlSerializer,
+} from '@angular/router';
 import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
@@ -21,7 +28,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileCaseTypeComponent>;
   let component: CasesCreateCasefileCaseTypeComponent;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
-  const router = createSpyObj(Router, ['navigate', 'currentNavigation', 'navigateByUrl']);
+  const router = createSpyObj(Router, ['navigate', 'currentNavigation', 'lastSuccessfulNavigation', 'navigateByUrl']);
 
   const events = new Subject<NavigationCancel>();
   const returnUrl = new UrlTree();
@@ -40,6 +47,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     router['navigateByUrl'].mockReset().mockResolvedValue(true);
     router['navigate'].mockReset();
     router['currentNavigation'].mockReset();
+    router['lastSuccessfulNavigation'].mockReset();
     fixture = TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
     component = fixture.componentInstance;
     store = TestBed.inject(CasesCreateCasefileStore);
@@ -67,6 +75,65 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     expect(getState(store)).toEqual(startNewCase ? CASES_CREATE_CASEFILE_STATE : before);
     expect(review.context()).toEqual(startNewCase ? null : { origin: 'review', section: 'respondent' });
     if (startNewCase) expect(arrival.nativeElement.querySelectorAll('input:checked')).toHaveLength(0);
+  });
+
+  it.each(['imperative', 'popstate', 'ordinary'])(
+    'preserves arrival intent when the component is activated after navigation completes: %s',
+    async (trigger) => {
+      patchState(
+        store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+        createCasesCreateCasefileReviewState(),
+      );
+      const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
+      review.setContext({ origin: 'review', section: 'respondent' });
+      const before = structuredClone(getState(store));
+      const intentional = trigger === 'imperative';
+      router['currentNavigation'].mockReturnValue(null);
+      router['lastSuccessfulNavigation'].mockReturnValue(
+        trigger === 'ordinary'
+          ? {
+              trigger: 'imperative',
+              extras: {},
+              finalUrl: new DefaultUrlSerializer().parse('/cases/create-casefile/case-type'),
+            }
+          : {
+              trigger,
+              extras: { state: { startNewCase: true, focusCaseTypeHeading: true } },
+              finalUrl: new DefaultUrlSerializer().parse('/cases/create-casefile/case-type'),
+            },
+      );
+      const arrival = TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
+      arrival.detectChanges();
+      await arrival.whenStable();
+      expect(getState(store)).toEqual(intentional ? CASES_CREATE_CASEFILE_STATE : before);
+      expect(review.context()).toEqual(intentional ? null : { origin: 'review', section: 'respondent' });
+      const heading = arrival.nativeElement.querySelector('#create_casefile_case_type_heading');
+      expect(heading).not.toBeNull();
+      expect(document.activeElement === heading).toBe(intentional);
+      if (intentional) expect(arrival.nativeElement.querySelectorAll('input:checked')).toHaveLength(0);
+    },
+  );
+
+  it.each(['previous-route', 'current-navigation'])('does not reuse stale completed intent: %s', (kind) => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const before = structuredClone(getState(store));
+    router['lastSuccessfulNavigation'].mockReturnValue({
+      trigger: 'imperative',
+      extras: { state: { startNewCase: true, focusCaseTypeHeading: true } },
+      finalUrl: new DefaultUrlSerializer().parse(
+        kind === 'previous-route' ? '/outside' : '/cases/create-casefile/case-type',
+      ),
+    });
+    router['currentNavigation'].mockReturnValue(
+      kind === 'current-navigation' ? { trigger: 'imperative', extras: {} } : null,
+    );
+    const arrival = TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
+    arrival.detectChanges();
+    expect(getState(store)).toEqual(before);
+    expect(arrival.componentInstance.focusHeadingOnArrival).toBe(false);
   });
 
   it('exposes null initial form data', () => {

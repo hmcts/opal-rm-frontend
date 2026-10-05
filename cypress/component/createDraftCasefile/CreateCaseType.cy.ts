@@ -4,7 +4,7 @@ import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from 'src/app/flows/cases
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
-import { pressDashboardEnter } from './dashboard/setup/dashboard.setup';
+import { pressDashboardEnter } from '../../support/utils/press-dashboard-enter';
 import { setupCreateCasefileCaseType } from './setup/create-case-type.setup';
 import type { CasesCreateCasefileStoreInstance } from './setup/create-case-type.setup';
 
@@ -203,6 +203,14 @@ describe('Create Casefile Case Type', () => {
     cy.get(Page.continueButton).should('have.focus');
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(Page.cancelLink).should('have.focus');
+  });
+
+  it('PO-10605. focuses the empty heading after completed creation navigation', { tags: buildTags() }, () => {
+    setupCreateCasefileCaseType(null, undefined, true);
+    cy.get(Page.caseTypeHeading).should('be.focused');
+    cy.get(Page.caseTypeRadios).filter(':checked').should('not.exist');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).should('be.focused');
   });
 
   it('AC3. should request Cases dashboard navigation on Cancel', { tags: buildTags() }, () => {

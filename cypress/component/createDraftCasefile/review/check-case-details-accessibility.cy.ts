@@ -1,3 +1,4 @@
+import { UrlTree } from '@angular/router';
 import { getState } from '@ngrx/signals';
 import { createSubmittedReviewState } from './mocks/review.mock';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
@@ -5,6 +6,7 @@ import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefi
 import { setupReview, type ReviewStore } from './setup/review.setup';
 
 const S = CreateCasefileSelectors.review;
+const IN_REVIEW_URL = '/cases/draft/create-and-manage/tabs?page=1&sort=created&direction=ascending#in-review';
 const buildTags = (story = 'PO-9817'): string[] => [
   '@JIRA-STORY:' + story,
   '@JIRA-EPIC:PO-6506',
@@ -46,7 +48,7 @@ describe('Check case details accessibility', () => {
 
   [1280, 320].forEach((width) => {
     it(
-      `AC1. should expose only the available confirmation action at ${width}px`,
+      `AC1. should expose both confirmation actions with keyboard navigation at ${width}px`,
       { tags: buildTags('PO-9819') },
       () => {
         cy.viewport(width, 800);
@@ -62,23 +64,33 @@ describe('Check case details accessibility', () => {
         cy.get(S.createNew)
           .should('contain.text', 'Create a new case')
           .and('have.attr', 'href', '/' + PATHS.root + '/' + PATHS.children.caseType);
-        cy.get(S.inReview).should(($text) => {
-          expect($text).to.contain.text('See your cases in review');
-          expect($text).not.to.have.attr('href');
-          expect($text).not.to.have.attr('tabindex');
-          expect($text).not.to.match('a, button, [role="link"], [role="button"]');
-        });
+        cy.get(S.inReview)
+          .should('match', 'a')
+          .and('contain.text', 'See your cases in review')
+          .and('have.attr', 'href', IN_REVIEW_URL);
         cy.press(Cypress.Keyboard.Keys.TAB);
         cy.get(S.createNew).should('be.focused');
         cy.press(Cypress.Keyboard.Keys.TAB);
-        cy.get(S.inReview).should('not.be.focused');
+        cy.get(S.inReview).should('be.focused');
+        cy.press(Cypress.Keyboard.Keys.ENTER);
+        cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
+          expect(navigate).to.have.been.calledOnce;
+          const url = navigate.firstCall.args[0];
+          expect(url).to.be.instanceOf(UrlTree);
+          expect(url.toString()).to.equal(IN_REVIEW_URL);
+        });
+        cy.get<ReviewStore>('@reviewStore').should((store) =>
+          expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
+        );
         cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
         cy.checkA11y();
         cy.document().should((document) =>
           expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
         );
         cy.screenshot(`po-9819-confirmation-${width}x800`);
-        cy.get(S.createNew).focus();
+        // The review request is verified above; isolate the next action's call count.
+        cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) => navigate.resetHistory());
+        cy.get(S.createNew).focus().should('be.focused');
         cy.press(Cypress.Keyboard.Keys.ENTER);
         cy.get<ReviewStore>('@reviewStore').should((store) =>
           expect(getState(store)).to.deep.equal(createSubmittedReviewState()),

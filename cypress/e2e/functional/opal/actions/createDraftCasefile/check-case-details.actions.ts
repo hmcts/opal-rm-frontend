@@ -103,26 +103,28 @@ export class CheckCaseDetailsActions {
     cy.go('back');
   }
 
-  /** Attempts to reopen the previous confirmation through browser history. */
-  public forwardToConfirmation(): void {
-    cy.go('forward');
-  }
-
-  /** Checks the retained case when Back returns within the current journey. */
-  public assertReviewAfterConfirmation(): void {
-    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.checkCaseDetails);
-    cy.get(S.review.heading).should('have.text', 'Check case details').and('be.focused');
-    cy.get(S.review.section('respondent')).should('contain.text', 'Synthetic');
-    cy.get(S.review.section('orderTerms')).should('contain.text', '£10.00').and('contain.text', '£20.00');
-    cy.get(S.review.submit).should('be.enabled');
+  /** Checks that submission leaves an empty journey with no way to resubmit the accepted case. */
+  public assertClearedJourneyAfterSubmission(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.get(S.caseTypeHeading).should('have.text', 'Create a case').and('be.visible');
+    cy.get(S.caseTypeGroup).find('input[type="radio"]:checked').should('not.exist');
+    cy.get(S.applicantTypeSelectedOption).should('have.text', 'Select');
+    cy.get(S.review.submit).should('not.exist');
+    cy.get(S.respondentDetails.firstNames).should('not.exist');
     cy.get('@draftSubmission.all').should('have.length', 1);
   }
 
-  /** Checks that Forward restores confirmation without another POST. */
-  public assertReturnedConfirmation(): void {
-    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
-    cy.get(S.review.confirmationHeading).should('be.focused');
-    cy.get('@draftSubmission.all').should('have.length', 1);
+  /** Checks that direct entry cannot reopen any submitted party form or review page. */
+  public assertSubmittedFormsBlocked(): void {
+    for (const path of [
+      PATHS.children.respondentDetails,
+      PATHS.children.applicantIndividual,
+      PATHS.children.applicantOrganisation,
+      PATHS.children.checkCaseDetails,
+    ]) {
+      cy.visit('/' + PATHS.root + '/' + path);
+      this.assertClearedJourneyAfterSubmission();
+    }
   }
 
   /** Reloads the confirmation page to verify the existing in-memory journey reset. */

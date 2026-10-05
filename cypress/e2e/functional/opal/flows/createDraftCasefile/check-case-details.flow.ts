@@ -41,13 +41,13 @@ export class CheckCaseDetailsFlow {
   public backFromConfirmation(): void {
     this.review.backFromConfirmation();
   }
-  /** Attempts to reopen the previous confirmation through browser history. */
-  public forwardToConfirmation(): void {
-    this.review.forwardToConfirmation();
+  /** Checks that Back cannot recover the submitted draft or allow another submission. */
+  public assertClearedJourneyAfterSubmission(): void {
+    this.review.assertClearedJourneyAfterSubmission();
   }
-  /** Checks the retained case when Back returns within the current journey. */
-  public assertReviewAfterConfirmation(): void {
-    this.review.assertReviewAfterConfirmation();
+  /** Checks that submitted party forms and review remain guarded. */
+  public assertSubmittedFormsBlocked(): void {
+    this.review.assertSubmittedFormsBlocked();
   }
   /** Reloads the confirmation page to verify the existing in-memory journey reset. */
   public refreshConfirmation(): void {
@@ -80,9 +80,5 @@ export class CheckCaseDetailsFlow {
   /** Checks draft retention after visiting cancellation. */
   public assertRetainedDraft(): void {
     this.review.assertRetainedDraft();
-  }
-  /** Checks that Forward restores confirmation without another POST. */
-  public assertReturnedConfirmation(): void {
-    this.review.assertReturnedConfirmation();
   }
 }

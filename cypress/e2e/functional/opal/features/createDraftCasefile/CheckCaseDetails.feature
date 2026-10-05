@@ -4,7 +4,7 @@ Feature: Check case details and submit for review
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9817
-  Scenario: Correct accepted details before submitting for review
+  Scenario: Correct accepted details before simulating submission
     Given I am reviewing a complete casefile for submission
     When I correct the respondent from casefile review
     Then review shows the corrected respondent and unchanged orders
@@ -27,21 +27,20 @@ Feature: Check case details and submit for review
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
   Scenario: Start an empty case from the confirmation
-    Given I am reviewing a complete casefile for simulated submission
-    When I submit the casefile for simulated submission
-    Then a submission confirmation is shown without a backend create request
+    Given I am reviewing a complete casefile for submission
+    When I submit the casefile for submission
+    Then the submitted case reference is shown after one create request
     When I create a new case from casefile confirmation
     Then an empty new case journey is shown without submitting data
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
-  Scenario: Back from confirmation retains the case in the current journey
-    Given I am reviewing a complete casefile for simulated submission
-    When I submit the casefile for simulated submission
-    Then a submission confirmation is shown without a backend create request
+  Scenario: Back from confirmation cannot recover the submitted case
+    Given I am reviewing a complete casefile for submission
+    When I submit the casefile for submission
+    Then the submitted case reference is shown after one create request
     When I go back from casefile confirmation
-    Then review retains the case after returning from confirmation
-    When I go forward to the previous casefile confirmation
-    Then review retains the case after returning from confirmation
+    Then the submitted case journey is empty without another create request
+    And the submitted party forms and review cannot be reopened
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
   Scenario: Fresh confirmation entry starts an empty case

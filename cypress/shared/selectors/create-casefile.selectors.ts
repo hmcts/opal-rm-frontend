@@ -58,6 +58,9 @@ export const CreateCasefileSelectors = {
     return: '#create_casefile_order_terms_return',
     back: 'a.govuk-back-link',
   },
+  orderTermCard: {
+    root: 'app-cases-create-casefile-order-term-card',
+  },
   orderTermsSummary: {
     cards: '[data-order-term-id]',
     card: (termId: number) => `[data-order-term-id="${termId}"]`,

@@ -47,7 +47,9 @@ export class CasesCreateCasefileSubmissionConfirmationComponent implements OnDes
     this.navigating.set(true);
     this.navigationError.set(false);
     try {
-      const navigated = await this.router.navigateByUrl(this.caseTypeUrl, { state: { startNewCase: true } });
+      const navigated = await this.router.navigateByUrl(this.caseTypeUrl, {
+        state: { startNewCase: true, focusCaseTypeHeading: true },
+      });
       this.navigationError.set(!navigated);
     } catch {
       this.navigationError.set(true);

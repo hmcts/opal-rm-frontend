@@ -66,7 +66,7 @@ describe('Mock submission route lifecycle', () => {
     expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
   });
   it.each(['create_casefile_confirmation_create_new'])(
-    'starts an empty case through the actual %s link',
+    'starts an empty case and focuses its heading through the actual %s link',
     async (linkId) => {
       TestBed.configureTestingModule({
         providers: [
@@ -94,10 +94,16 @@ describe('Mock submission route lifecycle', () => {
       expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
       const link = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('#' + linkId);
       expect(link).not.toBeNull();
+      link!.focus();
+      expect(document.activeElement).toBe(link);
       link!.click();
       await harness.fixture.whenStable();
       harness.detectChanges();
+      await harness.fixture.whenStable();
       expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
+      const heading = harness.routeNativeElement!.querySelector('#create_casefile_case_type_heading');
+      expect(heading).not.toBeNull();
+      expect(document.activeElement).toBe(heading);
       expect(harness.routeNativeElement!.querySelectorAll('input:checked')).toHaveLength(0);
       expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
     },

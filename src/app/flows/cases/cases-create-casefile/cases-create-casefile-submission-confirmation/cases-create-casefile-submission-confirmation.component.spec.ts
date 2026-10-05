@@ -95,7 +95,9 @@ describe('Submission confirmation', () => {
       fixture.detectChanges();
       await fixture.whenStable();
       expect(navigate).toHaveBeenCalledOnce();
-      expect(navigate).toHaveBeenCalledWith('/cases/create-casefile/case-type', { state: { startNewCase: true } });
+      expect(navigate).toHaveBeenCalledWith('/cases/create-casefile/case-type', {
+        state: { startNewCase: true, focusCaseTypeHeading: true },
+      });
       expect(getState(store)).toEqual(before);
       expect(review.context()).toEqual({ origin: 'review', section: 'respondent' });
       if (outcome !== 'success') {

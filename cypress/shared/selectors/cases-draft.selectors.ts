@@ -1,0 +1,22 @@
+import type { CasesDraftTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
+export const CasesDraftSelectors = {
+  heading: '#cases-draft-heading',
+  tab: (tab: CasesDraftTab) => '#cases-draft-' + tab + '-tab',
+  empty: '#cases-draft-empty',
+  row: (id: number) => '[data-draft-id="' + id + '"]',
+  column: (key: string) => '[data-column="' + key + '"]',
+  sort: (key: string) => 'th[columnKey="' + key + '"] button',
+  pagination: '#cases-draft-pagination',
+  create: '#cases-draft-create',
+  allRejected: '#cases-draft-all-rejected',
+  listRetry: '#cases-draft-list-retry',
+  badgeRetry: '#cases-draft-badge-retry',
+  navigationError: '#cases-draft-navigation-error',
+  loading: '#cases-draft-loading',
+  selectedHeading: '#cases-draft-selected-heading',
+  listError: '#cases-draft-list-error',
+  badgeError: '#cases-draft-badge-error',
+  tabs: '#cases-draft-tabs',
+  table: 'app-cases-draft-table',
+  pageStatus: 'app-cases-draft-table output',
+};

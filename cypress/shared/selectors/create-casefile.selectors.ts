@@ -57,6 +57,14 @@ export const CreateCasefileSelectors = {
     back: 'a.govuk-back-link',
   },
   orderTermsInput: {
+    field: (name: string) => `#create_casefile_order_terms_input_${name.toLowerCase()}`,
+    fieldError: (name: string) => `#create_casefile_order_terms_input_${name.toLowerCase()}-error-message`,
+    fieldLabel: (name: string) => `label[for="create_casefile_order_terms_input_${name.toLowerCase()}"]`,
+    fieldHint: (name: string) => `#create_casefile_order_terms_input_${name.toLowerCase()}-hint`,
+    controls:
+      'app-cases-create-casefile-order-terms-input-form input, app-cases-create-casefile-order-terms-input-form textarea, app-cases-create-casefile-order-terms-input-form select',
+    radioOptions: '#create_casefile_order_terms_input_choice input',
+    radioLabels: '#create_casefile_order_terms_input_choice label',
     databaseExpiry: '#create_casefile_order_terms_input_expiry',
     databaseChildBirth: '#create_casefile_order_terms_input_childdob',
     termsFirst: '#create_casefile_order_terms_input_terms',

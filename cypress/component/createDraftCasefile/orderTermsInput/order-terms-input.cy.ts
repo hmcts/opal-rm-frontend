@@ -1,4 +1,5 @@
 import { Router } from '@angular/router';
+import { GENERIC_HTTP_ERROR_MESSAGE } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { of, Subject } from 'rxjs';
 import { CasesCreateCasefileComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile.component';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
@@ -34,6 +35,19 @@ const fillControls = () => {
   cy.get(S.orderTermsInput.checkbox).focus();
   cy.press(Cypress.Keyboard.Keys.SPACE);
 };
+
+const path = (child: string) => '/' + PATHS.root + '/' + child;
+const assertSelection = () =>
+  cy.get<Router>('@angularRouter').its('url').should('eq', path(PATHS.children.orderTermsSelect));
+const exactInlineError = (field: string, message: string) =>
+  cy.get(S.orderTermsInput.fieldError(field)).should(($error) => {
+    expect(
+      $error
+        .text()
+        .replace(/^\s*Error:\s*/, '')
+        .trim(),
+    ).to.eq(message);
+  });
 
 describe('Order term input', () => {
   beforeEach(() => cy.viewport(1280, 900));
@@ -155,6 +169,292 @@ describe('Order term input', () => {
       cy.screenshot(validation ? 'po-9807-mchild-errors' : 'po-9807-mchild');
     });
   }
+  it('AC1. should render metadata labels, hints and complete options in metadata order', { tags: buildTags() }, () => {
+    setupOrderTerms({
+      shell: true,
+      savedId: 'MAT',
+      initialChild: inputPath(),
+      detailSource: of(structuredClone(M.allControls)),
+    });
+    cy.get(S.orderTerms.heading).should('have.text', 'MAT - Synthetic controls');
+    for (const [field, label] of [
+      ['short_text', 'Short text'],
+      ['long_text', 'Long text'],
+      ['count', 'Count'],
+      ['menu', 'Menu'],
+      ['lookup-autocomplete', 'Lookup'],
+      ['confirm', 'Confirm'],
+    ]) {
+      cy.get(S.orderTermsInput.fieldLabel(field)).should(($label) => expect($label.text().trim()).to.eq(label));
+    }
+    cy.get(S.orderTermsInput.radio)
+      .find('legend')
+      .should(($legend) => expect($legend.text().trim()).to.eq('Choice'));
+    cy.get(S.orderTermsInput.radioOptions).then((options) =>
+      expect([...options].map((option) => (option as HTMLInputElement).value)).to.deep.equal(['a', 'b']),
+    );
+    cy.get(S.orderTermsInput.radioLabels).then((labels) =>
+      expect([...labels].map((label) => label.textContent?.trim())).to.deep.equal(['Option A', 'Option B']),
+    );
+    cy.get(S.orderTermsInput.select)
+      .find('option')
+      .then((options) =>
+        expect([...options].map((option) => [option.value, option.text.trim()])).to.deep.equal([
+          ['', ''],
+          ['x', 'Option X'],
+        ]),
+      );
+    cy.get(S.orderTermsInput.fieldHint('lookup')).should(($hint) =>
+      expect($hint.text().trim()).to.eq('Choose a synthetic option'),
+    );
+    const selectors = [
+      S.orderTermsInput.shortText,
+      S.orderTermsInput.longText,
+      S.orderTermsInput.integer,
+      S.orderTermsInput.radioOption,
+      S.orderTermsInput.select,
+      S.orderTermsInput.autocomplete,
+      S.orderTermsInput.checkbox,
+    ];
+    const expectedIds = selectors.map((selector) => selector.slice(1));
+    cy.get(S.orderTermsInput.controls).should(($controls) => {
+      const renderedIds = [...$controls].map((control) => control.id).filter((id) => expectedIds.includes(id));
+      expect(renderedIds).to.deep.equal(expectedIds);
+    });
+    cy.get(S.orderTermsInput.autocomplete).type('Example');
+    cy.get(S.orderTermsInput.autocompleteOptions).then((options) =>
+      expect([...options].map((option) => option.textContent?.trim())).to.deep.equal(['Example A', 'Example B']),
+    );
+  });
+
+  for (const scenario of M.controlValidation) {
+    it(
+      `AC1, AC3. should enforce the metadata constraint for ${scenario.field}='${scenario.value}'`,
+      { tags: buildTags() },
+      () => {
+        setupOrderTerms({
+          savedId: 'MAT',
+          initialChild: inputPath(),
+          detailSource: of(structuredClone(M.allControls)),
+          draftDetail: M.allControls,
+          draftValues: { ...M.controlValues, [scenario.field]: scenario.value },
+        });
+        cy.get(S.orderTermsInput.continueButton).click();
+        cy.get(S.errorSummary).should('be.focused');
+        exactInlineError(scenario.field, scenario.error);
+        cy.get(S.errorSummaryLinks).should('have.length', 1).and('have.text', scenario.error).click();
+        cy.get(S.orderTermsInput.field(scenario.field)).should('be.focused');
+        cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
+          expect(store.orderTerms()).to.deep.equal([]),
+        );
+      },
+    );
+  }
+
+  for (const scenario of M.validation) {
+    it(
+      `AC3, EMAC1, EMAC1a. should link the exact ${scenario.field} error for '${scenario.value}'`,
+      { tags: buildTags() },
+      () => {
+        cy.clock(new Date(2026, 9, 1, 12).getTime(), ['Date']);
+        const child = scenario.field.startsWith('child_');
+        const detail = child ? M.child : M.requiredExpiry;
+        const valid = child ? M.completeChild : M.completeMat;
+        const values = { ...valid, [scenario.field]: scenario.value };
+        setupOrderTerms({
+          shell: true,
+          savedId: detail.result_id,
+          initialChild: inputPath(detail.result_id),
+          detailSource: of(structuredClone(detail)),
+          draftDetail: detail,
+          draftValues: values,
+        });
+        cy.get(S.orderTermsInput.continueButton).click();
+        cy.get<Router>('@angularRouter')
+          .its('url')
+          .should('eq', path(inputPath(detail.result_id)));
+        cy.get(S.errorSummary).should('be.focused').and('contain.text', ERROR_SUMMARY_TITLE);
+        exactInlineError(scenario.field, scenario.error);
+        cy.get(S.errorSummaryLinks).should('have.length', 1).and('have.text', scenario.error).focus();
+        cy.press(Cypress.Keyboard.Keys.ENTER);
+        cy.get(S.orderTermsInput.field(scenario.field)).should('be.focused').and('have.value', scenario.value);
+        const retained = scenario.field === 'amount' ? 'arrears' : 'amount';
+        cy.get(S.orderTermsInput.field(retained)).should('have.value', values[retained]);
+        cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+          expect(store.orderTerms()).to.deep.equal([]);
+          expect(store.orderTermDraft()?.values).to.include(values);
+        });
+      },
+    );
+  }
+
+  for (const scenario of M.unsupportedParameters) {
+    it(
+      `AC2. should reject ${scenario.name}, retain the draft and retry without generating controls`,
+      { tags: buildTags() },
+      () => {
+        let attempts = 0;
+        cy.intercept('GET', '**/opal-maintenance-service/results/MAT', (request) => {
+          attempts++;
+          const body = attempts === 1 ? { ...M.mat, result_parameters: scenario.parameters } : M.mat;
+          request.reply({ statusCode: 200, body });
+        }).as('detail');
+        setupOrderTerms({ shell: true, savedId: 'MAT', detailHttp: true, draftValues: structuredClone(M.completeMat) });
+        cy.get(S.orderTerms.continueButton).click();
+        cy.wait('@detail');
+        assertSelection();
+        cy.get(S.orderTermsInput.form).should('not.exist');
+        cy.get(S.orderTermsInput.controls).should('not.exist');
+        cy.get(S.globalErrorBanner).should('have.length', 1).and('contain.text', GENERIC_HTTP_ERROR_MESSAGE);
+        cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+          expect(store.orderTermDraft()?.values).to.deep.equal(M.completeMat);
+          expect(store.orderTerms()).to.deep.equal([]);
+        });
+        cy.get(S.orderTerms.continueButton).focus();
+        cy.press(Cypress.Keyboard.Keys.SPACE);
+        cy.wait('@detail');
+        cy.get(S.orderTermsInput.amount).should('have.value', M.completeMat.amount);
+        cy.get(S.orderTermsInput.expiry).should('have.value', M.completeMat.expiry_date);
+        cy.get(S.orderTermsInput.arrears).should('have.value', M.completeMat.arrears);
+        cy.get('@detail.all').should('have.length', 2);
+      },
+    );
+  }
+
+  it(
+    'AC2. should retain compatible values through HTTP failure and drop removed or changed controls on retry',
+    { tags: buildTags() },
+    () => {
+      let attempts = 0;
+      cy.intercept('GET', '**/opal-maintenance-service/results/MAT', (request) =>
+        request.reply(++attempts === 1 ? { statusCode: 503, body: M.problem } : { body: M.changedMetadata }),
+      ).as('detail');
+      setupOrderTerms({ shell: true, savedId: 'MAT', detailHttp: true, draftValues: structuredClone(M.completeMat) });
+      cy.get(S.orderTerms.continueButton).click();
+      cy.wait('@detail');
+      cy.get(S.globalErrorBanner).should('contain.text', M.problem.operation_id);
+      cy.get(S.orderTermsInput.form).should('not.exist');
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
+        expect(store.orderTermDraft()?.values).to.deep.equal(M.completeMat),
+      );
+      cy.get(S.orderTerms.continueButton).focus();
+      cy.press(Cypress.Keyboard.Keys.SPACE);
+      cy.wait('@detail');
+      cy.get(S.orderTermsInput.amount).should('have.value', M.completeMat.amount);
+      cy.get(S.orderTermsInput.arrears).should('have.value', '');
+      cy.get(S.orderTermsInput.expiry).should('not.exist');
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        expect(store.orderTermDraft()?.values).to.deep.equal({ amount: M.completeMat.amount });
+        expect(store.orderTerms()).to.deep.equal([]);
+      });
+    },
+  );
+
+  for (const frequency of ['', 'Every decade']) {
+    it(
+      `AC2. should refuse inherited frequency '${frequency}' without activating an editable frequency`,
+      { tags: buildTags() },
+      () => {
+        setupOrderTerms({ shell: true, savedId: 'MAT', draftValues: structuredClone(M.completeMat) });
+        cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
+          store.setOrderDetails({ ...store.orderDetails()!, paymentFrequency: frequency as 'Weekly' }),
+        );
+        cy.get(S.orderTerms.continueButton).click();
+        cy.get('@getResult').should('have.been.calledOnceWithExactly', 'MAT');
+        assertSelection();
+        cy.get(S.orderTermsInput.form).should('not.exist');
+        cy.get(S.globalErrorBanner).should('contain.text', GENERIC_HTTP_ERROR_MESSAGE);
+        cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
+          expect(store.orderTermDraft()?.values).to.deep.equal(M.completeMat),
+        );
+        cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
+          store.setOrderDetails({ ...store.orderDetails()!, paymentFrequency: 'Weekly' }),
+        );
+        cy.get(S.orderTerms.continueButton).click();
+        cy.get(S.orderTermsInput.frequency).should('contain.text', 'Weekly').find('input, select').should('not.exist');
+        cy.get(S.orderTermsInput.amount).should('have.value', M.completeMat.amount);
+      },
+    );
+  }
+
+  it('AC4. should accept canonical dates and money without any Draft Casefile write', { tags: buildTags() }, () => {
+    const write = cy.spy().as('draftWrite');
+    cy.intercept({ method: '+(POST|PUT|PATCH|DELETE)', url: /\/draft-casefiles(?:[/?#]|$)/ }, write);
+    setupOrderTerms({ savedId: 'MAT', initialChild: inputPath(), draftValues: structuredClone(M.completeMat) });
+    cy.get(S.orderTermsInput.amount).clear().type('25.1');
+    cy.get(S.orderTermsInput.continueButton).click();
+    cy.get<Router>('@angularRouter').its('url').should('eq', path(PATHS.children.orderTermCreditor));
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      expect(store.orderTerms()).to.deep.equal([
+        { resultId: 'MAT', parameters: { amount: '25.10', expiry_date: '2027-03-31', arrears: '4.50' } },
+      ]);
+      expect(store.orderTermDraft()).to.eq(null);
+    });
+    cy.get('@draftWrite').should('not.have.been.called');
+  });
+
+  it('AC5. should tab through every generated control and activate Continue by keyboard', { tags: buildTags() }, () => {
+    setupOrderTerms({
+      savedId: 'MAT',
+      initialChild: inputPath(),
+      detailSource: of(structuredClone(M.allControls)),
+      draftDetail: M.allControls,
+      draftValues: structuredClone(M.controlValues),
+      initialDraftDirty: false,
+    });
+    cy.get(S.orderTermsInput.shortText).focus();
+    for (const selector of [
+      S.orderTermsInput.longText,
+      S.orderTermsInput.integer,
+      S.orderTermsInput.radioOption,
+      S.orderTermsInput.select,
+      S.orderTermsInput.autocomplete,
+      S.orderTermsInput.checkbox,
+      S.orderTermsInput.continueButton,
+      S.orderTermsInput.cancel,
+    ]) {
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(selector).should('be.focused');
+    }
+    cy.get(S.orderTermsInput.cancel).should('have.css', 'outline-style', 'solid');
+    cy.get(S.orderTermsInput.continueButton).focus().type('{enter}');
+    cy.get<Router>('@angularRouter').its('url').should('eq', path(PATHS.children.orderTermCreditor));
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
+      expect(store.orderTerms()[0].parameters).to.include({
+        count: 3,
+        choice: 'a',
+        lookup: 'example_a',
+        confirm: true,
+      }),
+    );
+  });
+
+  it('AC4, RGAC1. should retain the entire draft after keyboard Cancel is declined', { tags: buildTags() }, () => {
+    setupOrderTerms({ savedId: 'MAT', initialChild: inputPath(), draftValues: structuredClone(M.completeMat) });
+    const confirmation = cy.stub().as('confirmation').returns(false);
+    cy.on('window:confirm', confirmation);
+    cy.get(S.orderTermsInput.cancel).focus();
+    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get('@confirmation').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
+    cy.get<Router>('@angularRouter').its('url').should('eq', path(inputPath()));
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      expect(store.orderTermDraft()?.values).to.deep.equal(M.completeMat);
+      expect(store.orderTerms()).to.deep.equal([]);
+    });
+  });
+
+  it('RGAC3. should cancel the real beforeunload event while retaining entered values', { tags: buildTags() }, () => {
+    setupOrderTerms({ savedId: 'MAT', initialChild: inputPath(), draftValues: structuredClone(M.completeMat) });
+    cy.window().then((window) => {
+      const event = new window.Event('beforeunload', { cancelable: true });
+      expect(window.dispatchEvent(event)).to.eq(false);
+      expect(event.defaultPrevented).to.eq(true);
+    });
+    cy.get(S.orderTermsInput.amount).should('have.value', M.completeMat.amount);
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
+      expect(store.orderTermDraft()?.values).to.deep.equal(M.completeMat),
+    );
+  });
 });
 
 describe('Order term input regressions', () => {

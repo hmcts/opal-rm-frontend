@@ -1,6 +1,20 @@
 import { OPAL_MAINTENANCE_ORDER_TERM_DATABASE_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-order-term-database.mock';
 import { OPAL_MAINTENANCE_RESULT_DETAILS_MOCK } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-result-details.mock';
 
+import { ORDER_TERMS_INPUT_COPY as COPY } from '../constants/order-terms-input-copy.constant';
+
+const requiredExpiry = {
+  ...OPAL_MAINTENANCE_RESULT_DETAILS_MOCK['MAT'],
+  result_parameters: JSON.stringify(
+    JSON.parse(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK['MAT'].result_parameters!).map(
+      (field: { name: string; mandatory: boolean }) => ({
+        ...field,
+        mandatory: field.name === 'expiry_date' || field.mandatory,
+      }),
+    ),
+  ),
+};
+
 const autocompleteLabels = ['synthetic A & B', "synthetic O'Brien"];
 
 export const ORDER_TERMS_INPUT_MOCK = {
@@ -169,6 +183,74 @@ export const ORDER_TERMS_INPUT_MOCK = {
         hint: 'Choose a synthetic option',
       },
       { name: 'confirm', prompt: 'Confirm', type: 'checkbox', mandatory: true, language_dependent: false },
+    ]),
+  },
+
+  requiredExpiry,
+  completeMat: { amount: '12.30', expiry_date: '31/03/2027', arrears: '4.50' },
+  completeChild: {
+    child_name: 'Synthetic child',
+    child_date_of_birth: '01/01/2000',
+    amount: '12.30',
+    expiry_date: '31/03/2027',
+    arrears: '4.50',
+  },
+  controlValues: {
+    short_text: 'Valid',
+    long_text: 'Synthetic text',
+    count: '3',
+    choice: 'a',
+    menu: 'x',
+    lookup: 'example_a',
+    confirm: true,
+  },
+  controlValidation: [
+    { field: 'short_text', value: 'x', error: COPY.shortTextMin },
+    { field: 'short_text', value: 'xxxxxx', error: COPY.shortTextMax },
+    { field: 'long_text', value: 'x'.repeat(101), error: COPY.longTextMax },
+    { field: 'count', value: '1.5', error: COPY.integerInvalid },
+    { field: 'count', value: '0', error: COPY.integerMin },
+    { field: 'count', value: '6', error: COPY.integerMax },
+  ],
+  validation: [
+    { field: 'amount', value: '', error: COPY.amountRequired },
+    { field: 'amount', value: 'abc', error: COPY.numeric },
+    { field: 'amount', value: '1.234', error: COPY.precision },
+    { field: 'amount', value: '-0.01', error: COPY.amountMin },
+    { field: 'amount', value: '10000000000', error: COPY.amountMax },
+    { field: 'arrears', value: 'abc', error: COPY.numeric },
+    { field: 'arrears', value: '1.234', error: COPY.precision },
+    { field: 'arrears', value: '-0.01', error: COPY.arrearsMin },
+    { field: 'arrears', value: '10000000000', error: COPY.arrearsMax },
+    { field: 'expiry_date', value: '', error: COPY.expiryRequired },
+    { field: 'expiry_date', value: '31/02/2026', error: COPY.expiryInvalid },
+    { field: 'expiry_date', value: '01/01/1899', error: COPY.expiryMin },
+    { field: 'expiry_date', value: '01/01/2101', error: COPY.expiryMax },
+    { field: 'child_name', value: '', error: COPY.childRequired },
+    { field: 'child_name', value: 'x'.repeat(61), error: COPY.childTooLong },
+    { field: 'child_date_of_birth', value: '', error: COPY.birthRequired },
+    { field: 'child_date_of_birth', value: '31/02/2000', error: COPY.birthInvalid },
+    { field: 'child_date_of_birth', value: '01/10/2026', error: COPY.birthPast },
+    { field: 'child_date_of_birth', value: '02/10/2026', error: COPY.birthPast },
+    { field: 'child_date_of_birth', value: '01/01/1899', error: COPY.birthMin },
+  ],
+  unsupportedParameters: [
+    { name: 'malformed JSON', parameters: '[' },
+    { name: 'unknown control type', parameters: '[{"name":"amount","prompt":"Amount","type":"unknown"}]' },
+    { name: 'empty field list', parameters: '[]' },
+    { name: 'absent metadata', parameters: null },
+    {
+      name: 'ungoverned metadata attribute',
+      parameters: JSON.stringify([
+        { name: 'amount', prompt: 'Amount', type: 'text', mandatory: true, language_dependent: false, invented: true },
+      ]),
+    },
+  ],
+  changedMetadata: {
+    ...OPAL_MAINTENANCE_RESULT_DETAILS_MOCK['MAT'],
+    result_parameters: JSON.stringify([
+      { name: 'amount', prompt: 'Amount', type: 'money', mandatory: true, language_dependent: false, min: 0, max: 100 },
+      { name: 'arrears', prompt: 'Arrears note', type: 'text', mandatory: false, language_dependent: false },
     ]),
   },
 };

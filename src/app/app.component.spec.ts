@@ -63,6 +63,7 @@ const createUserStateWithPermissions = (permissionIds: readonly number[]): IOpal
     },
     {
       ...secondBusinessUnit,
+      business_unit_id: 44,
       permissions: permissionIds.map((permissionId) => ({
         permission_id: permissionId,
         permission_name: `Permission ${permissionId}`,
@@ -367,7 +368,7 @@ describe('AppComponent - browser', () => {
 
   it('hides primary navigation while release flags are missing', () => {
     globalStore.setAuthenticated(true);
-    globalStore.setUserState(createUserStateWithPermissions([1]));
+    globalStore.setUserState(createUserStateWithPermissions([21]));
     globalStore.setFeatureFlags({});
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
@@ -376,7 +377,7 @@ describe('AppComponent - browser', () => {
 
   it('shows only Cases and removes the navigation wrapper when the release is disabled', () => {
     globalStore.setAuthenticated(true);
-    globalStore.setUserState(createUserStateWithPermissions([1, 6, 14, 15]));
+    globalStore.setUserState(createUserStateWithPermissions([21, 6, 14, 15]));
     globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
@@ -391,7 +392,7 @@ describe('AppComponent - browser', () => {
   it('should configure primary navigation to use path-driven mode', () => {
     globalStore.setAuthenticated(true);
     globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
-    globalStore.setUserState(createUserStateWithPermissions([1]));
+    globalStore.setUserState(createUserStateWithPermissions([21]));
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
 
@@ -404,7 +405,7 @@ describe('AppComponent - browser', () => {
   it('should hide primary navigation when the active route opts into hidden primary navigation', async () => {
     globalStore.setAuthenticated(true);
     globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
-    globalStore.setUserState(createUserStateWithPermissions([1]));
+    globalStore.setUserState(createUserStateWithPermissions([21]));
     const fixture = TestBed.createComponent(AppComponent);
     const router = TestBed.inject(Router);
 
@@ -418,7 +419,7 @@ describe('AppComponent - browser', () => {
   it('should hide primary navigation throughout Create Casefile and restore it after leaving', async () => {
     globalStore.setAuthenticated(true);
     globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
-    globalStore.setUserState(createUserStateWithPermissions([1]));
+    globalStore.setUserState(createUserStateWithPermissions([21]));
     const fixture = TestBed.createComponent(AppComponent);
     const router = TestBed.inject(Router);
 
@@ -435,7 +436,7 @@ describe('AppComponent - browser', () => {
   it('should show primary navigation on dashboard routes when the user is authenticated and active', async () => {
     globalStore.setAuthenticated(true);
     globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
-    globalStore.setUserState(createUserStateWithPermissions([1]));
+    globalStore.setUserState(createUserStateWithPermissions([21]));
     const fixture = TestBed.createComponent(AppComponent);
     const router = TestBed.inject(Router);
 
@@ -446,13 +447,13 @@ describe('AppComponent - browser', () => {
     expect(hasPrimaryNavigation(fixture)).toBe(true);
   });
 
-  it('shows only Cases for an active user with no permissions when its release is enabled', () => {
+  it('hides Cases for an active user without the RM permission', () => {
     globalStore.setAuthenticated(true);
     globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
     globalStore.setUserState(createUserStateWithPermissions([]));
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    expect(getPrimaryNavigationTexts(fixture)).toEqual(['Cases']);
+    expect(getPrimaryNavigationTexts(fixture)).toEqual([]);
   });
 
   it.each([

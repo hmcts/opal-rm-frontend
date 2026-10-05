@@ -36,7 +36,18 @@ describe('create-casefile feature access', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { checkAuthenticated: () => of(true) } },
-        { provide: OpalUserService, useValue: { getLoggedInUserState: () => of({ status: 'active' }) } },
+        {
+          provide: OpalUserService,
+          useValue: {
+            getLoggedInUserState: () =>
+              of({
+                status: 'active',
+                business_unit_users: [
+                  { business_unit_id: 44, permissions: [{ permission_id: 21, permission_name: 'Create casefiles' }] },
+                ],
+              }),
+          },
+        },
         { provide: GlobalStore, useValue: { featureFlags: flags } },
         {
           provide: LaunchDarklyService,

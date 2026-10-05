@@ -118,4 +118,60 @@ describe('Inputter dashboard accessibility', () => {
     cy.get(S.row(26)).find(S.column('respondentAccount')).should('be.focused');
     cy.get(S.row(26)).find('a,button').should('not.exist');
   });
+  (['success', 'failure'] as const).forEach((completion) => {
+    it(
+      'AC8. should retain native focus through a pending rejected count retry and ' + completion,
+      { tags: buildTags() },
+      () => {
+        setupInputterDashboard({ badgeError: true });
+        cy.get(S.heading).should('be.focused');
+        cy.get(S.badgeRetry).should('be.visible');
+        const pending = new Subject<{ count: number }>();
+        cy.get('@countRequest').then((request) => (request as unknown as sinon.SinonStub).returns(pending));
+        cy.get(S.tab('deleted')).focus();
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.get(S.badgeRetry).should('be.focused');
+        pressDashboardEnter();
+        cy.get(S.badgeLoading).should('contain.text', 'Loading rejected case count.').and('be.focused');
+        cy.get(S.badgeRetry).should('not.exist');
+        if (completion === 'success') {
+          cy.then(() => {
+            pending.next({ count: 7 });
+            pending.complete();
+          });
+          cy.get(S.selectedHeading).should('be.focused');
+          cy.get(S.tab('rejected')).should('contain.text', '7');
+        } else {
+          cy.then(() => pending.error(new HttpErrorResponse({ status: 500 })));
+          cy.get(S.badgeRetry).should('be.focused');
+          cy.get(S.badgeError).should('contain.text', 'The rejected case count could not be loaded. Try again.');
+        }
+        cy.get('@listRequest').should('have.been.calledOnce');
+        cy.get('@countRequest').should('have.been.calledTwice');
+        cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+        cy.checkA11y();
+      },
+    );
+  });
+  it(
+    'AC8. should keep chosen focus when the user moves on before count retry completion',
+    { tags: buildTags() },
+    () => {
+      setupInputterDashboard({ badgeError: true });
+      cy.get(S.heading).should('be.focused');
+      cy.get(S.badgeRetry).should('be.visible');
+      const pending = new Subject<{ count: number }>();
+      cy.get('@countRequest').then((request) => (request as unknown as sinon.SinonStub).returns(pending));
+      cy.get(S.badgeRetry).focus();
+      pressDashboardEnter();
+      cy.get(S.badgeLoading).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.sort('respondent')).should('be.focused');
+      cy.then(() => {
+        pending.next({ count: 7 });
+        pending.complete();
+      });
+      cy.get(S.sort('respondent')).should('be.focused');
+    },
+  );
 });

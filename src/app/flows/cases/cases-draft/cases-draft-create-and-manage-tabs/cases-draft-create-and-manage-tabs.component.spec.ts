@@ -265,4 +265,69 @@ describe('CasesDraftCreateAndManageTabsComponent', () => {
     expect(f.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
     expect(f.nativeElement.querySelectorAll('#cases-draft-tabs a')).toHaveLength(4);
   });
+  it.each(['ready', 'error'] as const)(
+    'keeps useful focus through an intentional pending badge retry and %s completion',
+    async (status) => {
+      const f = await render();
+      f.autoDetectChanges();
+      await f.whenStable();
+      const retry = f.nativeElement.querySelector('#cases-draft-badge-retry') as HTMLButtonElement;
+      retry.focus();
+      data.retryBadge.mockImplementationOnce(() =>
+        badge.set({ status: 'loading', count: null, label: null, correlationReference: null }),
+      );
+      retry.click();
+      await f.whenStable();
+      const loading = f.nativeElement.querySelector('#cases-draft-badge-loading');
+      expect(loading).not.toBeNull();
+      expect(document.activeElement).toBe(loading);
+      expect(f.nativeElement.querySelector('#cases-draft-badge-retry')).toBeNull();
+      badge.set({
+        status,
+        count: status === 'ready' ? 7 : null,
+        label: status === 'ready' ? '7' : null,
+        correlationReference: null,
+      });
+      await f.whenStable();
+      const target = status === 'error' ? '#cases-draft-badge-retry' : '#cases-draft-selected-heading';
+      expect(document.activeElement).toBe(f.nativeElement.querySelector(target));
+      expect(data.retryBadge).toHaveBeenCalledOnce();
+      expect(data.load).toHaveBeenCalledOnce();
+    },
+  );
+  it('keeps the users chosen focus when a pending badge retry completes after they move on', async () => {
+    const f = await render();
+    f.autoDetectChanges();
+    await f.whenStable();
+    data.retryBadge.mockImplementationOnce(() =>
+      badge.set({ status: 'loading', count: null, label: null, correlationReference: null }),
+    );
+    f.nativeElement.querySelector('#cases-draft-badge-retry').click();
+    await f.whenStable();
+    const create = f.nativeElement.querySelector('#cases-draft-create') as HTMLButtonElement;
+    create.focus();
+    badge.set({ status: 'ready', count: 7, label: '7', correlationReference: null });
+    await f.whenStable();
+    expect(document.activeElement).toBe(create);
+  });
+  it('does not steal focus during an ordinary rejected count loading and completion', async () => {
+    const f = await render();
+    f.autoDetectChanges();
+    await f.whenStable();
+    const create = f.nativeElement.querySelector('#cases-draft-create') as HTMLButtonElement;
+    create.focus();
+    badge.set({ status: 'loading', count: null, label: null, correlationReference: null });
+    await f.whenStable();
+    expect(document.activeElement).toBe(create);
+    badge.set({ status: 'ready', count: 7, label: '7', correlationReference: null });
+    await f.whenStable();
+    expect(document.activeElement).toBe(create);
+  });
+  it('ignores a badge Retry action once the count has already recovered', async () => {
+    badge.set({ status: 'ready', count: 7, label: '7', correlationReference: null });
+    const f = await render();
+    f.componentInstance.retryBadge();
+    expect(data.retryBadge).not.toHaveBeenCalled();
+    expect(f.componentInstance.badgeRetryPending()).toBe(false);
+  });
 });

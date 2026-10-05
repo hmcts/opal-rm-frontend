@@ -49,6 +49,8 @@ export class CasesDraftCreateAndManageTabsComponent {
   private readonly listError = viewChild<ElementRef<HTMLElement>>('listError');
   private readonly navigationError = viewChild<ElementRef<HTMLElement>>('navigationError');
   private readonly loading = viewChild<ElementRef<HTMLElement>>('loading');
+  private readonly badgeLoading = viewChild<ElementRef<HTMLElement>>('badgeLoading');
+  private readonly badgeRetryButton = viewChild('badgeRetryButton', { read: ElementRef<HTMLElement> });
   private readonly table = viewChild(CasesDraftTableComponent);
   private readonly retryPending = signal(false);
   private loadedTab: CasesDraftTab | null = null;
@@ -56,6 +58,7 @@ export class CasesDraftCreateAndManageTabsComponent {
   public readonly data = inject(CasesDraftDashboardService);
   public readonly navigation = inject(CasesDraftNavigationService);
   public readonly navigationFailed = signal(false);
+  public readonly badgeRetryPending = signal(false);
   public readonly tabs: readonly CasesDraftTab[] = ['in-review', 'rejected', 'approved', 'deleted'];
   public readonly tabLinks = computed(() =>
     this.tabs.map((tab) => ({
@@ -99,6 +102,24 @@ export class CasesDraftCreateAndManageTabsComponent {
           this.retryPending.set(false);
           this.focusAfterRender(() => (list.status === 'error' ? this.listError() : this.sectionHeading()));
         }
+      }
+    });
+    effect(() => {
+      const badge = this.data.badge();
+      if (!this.badgeRetryPending()) return;
+      if (badge.status === 'loading') {
+        this.focusAfterRender(() => this.badgeLoading());
+      } else {
+        this.badgeRetryPending.set(false);
+        afterNextRender(
+          () => {
+            const loading = this.badgeLoading()?.nativeElement;
+            if (!loading || loading.ownerDocument.activeElement !== loading) return;
+            const target = badge.status === 'error' ? this.badgeRetryButton() : this.sectionHeading();
+            target?.nativeElement.focus();
+          },
+          { injector: this.injector },
+        );
       }
     });
   }
@@ -152,6 +173,11 @@ export class CasesDraftCreateAndManageTabsComponent {
   public retryList(): void {
     this.retryPending.set(true);
     this.data.retryList();
+  }
+  public retryBadge(): void {
+    if (this.data.badge().status !== 'error') return;
+    this.badgeRetryPending.set(true);
+    this.data.retryBadge();
   }
   public async startNewCase(): Promise<void> {
     this.navigation.rememberCreateOrigin();

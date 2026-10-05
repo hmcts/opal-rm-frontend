@@ -11,6 +11,7 @@ export const CasesDraftSelectors = {
   allRejected: '#cases-draft-all-rejected',
   listRetry: '#cases-draft-list-retry',
   badgeRetry: '#cases-draft-badge-retry',
+  badgeLoading: '#cases-draft-badge-loading',
   navigationError: '#cases-draft-navigation-error',
   loading: '#cases-draft-loading',
   selectedHeading: '#cases-draft-selected-heading',

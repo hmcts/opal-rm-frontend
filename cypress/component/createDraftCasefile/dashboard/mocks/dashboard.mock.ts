@@ -24,3 +24,11 @@ export const dashboardFixtures = {
     }),
   ],
 };
+
+/** Synthetic narrow-screen rows preserve realistic readable column widths. */
+export const populatedReflowFixtures = {
+  'in-review': dashboardFixtures.review26,
+  rejected: dashboardFixtures.review26.map((row) => ({ ...row, casefile_status: 'REJECTED' as const })),
+  approved: dashboardFixtures.published,
+  deleted: dashboardFixtures.review26.map((row) => ({ ...row, casefile_status: 'DELETED' as const })),
+};

@@ -19,5 +19,6 @@ export const CasesDraftSelectors = {
   badgeError: '#cases-draft-badge-error',
   tabs: '#cases-draft-tabs',
   table: 'app-cases-draft-table',
+  scrollRegion: '#cases-draft-table-scroll',
   pageStatus: 'app-cases-draft-table output',
 };

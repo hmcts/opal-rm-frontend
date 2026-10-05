@@ -2,7 +2,7 @@ import { Subject, of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { setupInputterDashboard } from './setup/dashboard.setup';
 import { pressDashboardEnter } from '../../../support/utils/press-dashboard-enter';
-import { dashboardFixtures } from './mocks/dashboard.mock';
+import { dashboardFixtures, populatedReflowFixtures } from './mocks/dashboard.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
 const buildTags = (): string[] => [
   '@JIRA-STORY:PO-10605',
@@ -167,6 +167,8 @@ describe('Inputter dashboard accessibility', () => {
       pressDashboardEnter();
       cy.get(S.badgeLoading).should('be.focused');
       cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.scrollRegion).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
       cy.get(S.sort('respondent')).should('be.focused');
       cy.then(() => {
         pending.next({ count: 7 });
@@ -175,4 +177,47 @@ describe('Inputter dashboard accessibility', () => {
       cy.get(S.sort('respondent')).should('be.focused');
     },
   );
+  for (const tab of ['in-review', 'rejected', 'approved', 'deleted'] as const) {
+    it('AC8. should keep populated ' + tab + ' table scrolling inside the 320px page', { tags: buildTags() }, () => {
+      const rows = populatedReflowFixtures[tab];
+      const lastColumn = {
+        'in-review': 'created',
+        rejected: 'statusDate',
+        approved: 'approved',
+        deleted: 'statusDate',
+      }[tab];
+      cy.viewport(320, 900);
+      setupInputterDashboard({ tab, rows });
+      cy.get(S.heading).should('be.focused');
+      cy.document().then((document) => expect(document.documentElement.scrollWidth).to.be.at.most(320));
+      cy.get(S.scrollRegion).should('have.attr', 'role', 'region').and('have.attr', 'tabindex', '0');
+      cy.get(S.scrollRegion).should('have.attr', 'aria-label').and('include', 'cases');
+      cy.get(S.scrollRegion).focus().should('be.focused');
+      const columns = ['respondent', 'applicant', 'caseType', 'created'];
+      if (tab === 'approved')
+        columns.splice(
+          0,
+          columns.length,
+          'respondentAccount',
+          'applicantAccount',
+          'minorCreditorAccounts',
+          'caseType',
+          'approved',
+        );
+      else if (tab !== 'in-review') columns.push('statusDate');
+      for (const column of columns) {
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.get(S.sort(column)).should('be.focused');
+      }
+      cy.get(S.scrollRegion).should((region) => expect(region[0].scrollLeft).to.be.greaterThan(0));
+      cy.get(S.table).find('tbody tr').should('have.length', Math.min(rows.length, 25));
+      cy.get(S.scrollRegion).scrollTo('right');
+      cy.get(S.sort(lastColumn)).should('be.visible');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po10605-contained-' + tab + '-320');
+      cy.viewport(1440, 1000);
+      cy.document().then((document) => expect(document.documentElement.scrollWidth).to.be.at.most(1440));
+    });
+  }
 });

@@ -178,14 +178,14 @@ const structuralIdentifierAllowlist = new Set([
   structuralIdentifierKey(templatePaths.review, 'button', '[id]', "'review-term-change-' + card.termId"),
   structuralIdentifierKey(templatePaths.review, 'button', '[id]', "'review-term-remove-' + card.termId"),
   structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_review_submit'),
-  structuralIdentifierKey(templatePaths.review, 'button', 'id', 'create_casefile_review_cancel'),
+  structuralIdentifierKey(templatePaths.review, 'opal-lib-govuk-cancel-link', 'id', 'create_casefile_review_cancel'),
   structuralIdentifierKey(templatePaths.orderTermsRemove, 'button', 'id', 'create_casefile_order_terms_remove_confirm'),
   structuralIdentifierKey(templatePaths.receipt, 'h1', 'id', 'submission-confirmation-heading'),
   structuralIdentifierKey(templatePaths.receipt, 'h2', 'id', 'submission-confirmation-next-steps'),
   structuralIdentifierKey(templatePaths.receipt, 'div', 'id', 'submission-confirmation-error'),
   structuralIdentifierKey(templatePaths.receipt, 'h2', 'id', 'submission-confirmation-error-title'),
   structuralIdentifierKey(templatePaths.receipt, 'a', 'id', 'create_casefile_confirmation_create_new'),
-  structuralIdentifierKey(templatePaths.receipt, 'span', 'id', 'create_casefile_confirmation_in_review'),
+  structuralIdentifierKey(templatePaths.receipt, 'a', 'id', 'create_casefile_confirmation_in_review'),
   structuralIdentifierKey(templatePaths.reviewSection, 'div', '[id]', 'id()'),
   structuralIdentifierKey(templatePaths.reviewSection, 'button', '[id]', "id() + '-change'"),
   structuralIdentifierKey(templatePaths.reviewSection, 'opal-lib-govuk-summary-list', '[summaryListId]', 'listId()'),
@@ -308,6 +308,9 @@ const structuralIdentifierAllowlist = new Set([
     '[summaryListRowId]',
     'row.id',
   ),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'button', 'id', 'create_casefile_order_terms_return'),
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'button', 'id', 'create_casefile_order_terms_add'),
+  structuralIdentifierKey(templatePaths.orderTermsInput, 'p', '[id]', "field.id + '-hint'"),
   structuralIdentifierKey(templatePaths.orderTermsSummary, 'a', '[id]', "'order-term-' + card.termId + '-change'"),
   structuralIdentifierKey(templatePaths.orderTermsSummary, 'a', '[id]', "'order-term-' + card.termId + '-remove'"),
 
@@ -626,6 +629,15 @@ const isCanonicalIdentifier = (value, acceptedPrefixes) => {
 
 const fieldNameReference = /^fieldNames\.([A-Za-z][A-Za-z0-9]*)/;
 
+// First options retain the canonical error-summary target; later options add their index.
+const firstRadioFieldKey = (expression) =>
+  expression
+    .replace(/\s+/g, ' ')
+    .trim()
+    .match(/^\$first \? fieldNames\.([A-Za-z][A-Za-z0-9]*) : fieldNames\.\1 \+ '-' \+ \$index$/)?.[1];
+const firstCheckboxExpression = "$first ? field.id : field.id + '-option-' + $index";
+const hasDirective = (attributes, directive) => new RegExp(`(?:^|\\s)${directive}(?:\\s|$)`).test(attributes);
+
 const isCanonicalExpression = (expression, acceptedPrefixes, fieldNames) => {
   const compactExpression = expression.replace(/\s+/g, ' ').trim();
   if (/^fieldNames\.[A-Za-z][A-Za-z0-9]*(?: \+ (?:'[^']*'|"[^"]*"|option\.(?:key|value)))*$/.test(compactExpression)) {
@@ -647,6 +659,11 @@ const isCanonicalExpression = (expression, acceptedPrefixes, fieldNames) => {
 
 const resolveIdExpression = (expression, fieldNames) => {
   const compactExpression = expression.replace(/\s+/g, ' ').trim();
+  const firstRadioKey = firstRadioFieldKey(compactExpression);
+  if (firstRadioKey !== undefined && fieldNames?.has(firstRadioKey)) {
+    return `literal:${fieldNames.get(firstRadioKey)}`;
+  }
+  if (compactExpression === firstCheckboxExpression) return 'expression:field.id';
   const literalMatch = compactExpression.match(/^(['"])(.*)\1$/);
   if (literalMatch !== null) return `literal:${literalMatch[2]}`;
 
@@ -847,7 +864,7 @@ const acceptedPrefixesFor = (templatePath) => {
 
 // Only this metadata adapter's canonical ID may drive dynamic controls. Runtime
 // mapper tests separately enforce unique IDs for every field in the collection.
-const isOrderTermIdentifier = (attribute, expression) => {
+const isOrderTermIdentifier = (attribute, expression, tagName, attributes, rawAttributeName) => {
   const value = expression.replace(/\s+/g, ' ').trim();
   if (
     ['id', 'inputId', 'inputName', 'selectId', 'selectName', 'fieldSetId'].includes(attribute) &&
@@ -856,6 +873,11 @@ const isOrderTermIdentifier = (attribute, expression) => {
     return true;
   }
   return (
+    (attribute === 'inputId' &&
+      rawAttributeName === '[inputId]' &&
+      value === firstCheckboxExpression &&
+      tagName === 'div' &&
+      hasDirective(attributes, 'opal-lib-govuk-checkboxes-item')) ||
     (attribute === 'inputId' && value === "field.id + '-option-' + $index") ||
     (attribute === 'fieldSetId' && value === "field.id + '-fieldset'")
   );
@@ -941,7 +963,21 @@ for (const templatePath of await collectTemplates(createCasefileRoot)) {
           : isCanonicalIdentifier(value, acceptedPrefixes) || structurallyAllowed;
       }
 
-      if (dynamicOrderTerms && isBound && isOrderTermIdentifier(attributeName, value)) valid = true;
+      if (
+        dynamicOrderTerms &&
+        isBound &&
+        isOrderTermIdentifier(attributeName, value, tagName, attributes, rawAttributeName)
+      )
+        valid = true;
+      if (
+        isBound &&
+        rawAttributeName === '[inputId]' &&
+        tagName === 'div' &&
+        hasDirective(attributes, 'opal-lib-govuk-radios-item')
+      ) {
+        const key = firstRadioFieldKey(value);
+        if (key !== undefined && isCanonicalIdentifier(fieldNames?.get(key) ?? '', acceptedPrefixes)) valid = true;
+      }
       if (creditorForm && isBound && isCreditorIdentifier(attributeName, value)) valid = true;
       // The fixed identity metadata uses canonical field-name constants; the child
       // rendering tests verify every identity control's matching ID and name.

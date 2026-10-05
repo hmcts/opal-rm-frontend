@@ -90,6 +90,7 @@ export class CheckCaseDetailsActions {
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.review.createNew).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get(S.caseTypeHeading).should('be.focused');
   }
 
   /** Opens confirmation in a fresh document without a draft in the store. */

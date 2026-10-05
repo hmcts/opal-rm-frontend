@@ -36,6 +36,7 @@ describe('buildCasesDraftListParams', () => {
   it.each([
     ['2024-03-01T12:00:00Z', '2024-02-23', '2024-03-01'],
     ['2024-12-31T12:00:00Z', '2024-12-24', '2024-12-31'],
+    ['2025-01-03T12:00:00Z', '2024-12-27', '2025-01-03'],
     ['2026-03-29T12:00:00Z', '2026-03-22', '2026-03-29'],
   ])('uses DateService range across calendar boundaries at %s', (now, from, to) => {
     Settings.defaultZone = 'Europe/London';

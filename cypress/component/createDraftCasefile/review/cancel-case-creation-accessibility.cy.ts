@@ -6,7 +6,12 @@ import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefi
 import { setupCancellation, type CancelStore } from './setup/cancel-case-creation.setup';
 
 const S = CreateCasefileSelectors.cancellation;
-const buildTags = (): string[] => ['@JIRA-STORY:PO-9818', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
+const buildTags = (): string[] => [
+  '@JIRA-STORY:PO-10605',
+  '@JIRA-STORY:PO-9818',
+  '@JIRA-EPIC:PO-6506',
+  '@JIRA-LABEL:create-draft-casefile',
+];
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
 const axeTags = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'];
 const scan = (): void => {

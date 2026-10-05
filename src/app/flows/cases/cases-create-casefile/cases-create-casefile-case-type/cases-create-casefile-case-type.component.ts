@@ -1,8 +1,19 @@
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
-import { Router } from '@angular/router';
-import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import { Router, NavigationCancel, NavigationCancellationCode } from '@angular/router';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  inject,
+  Injector,
+  OnInit,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
-import { DASHBOARD_ROUTING_PATHS } from '@app/pages/dashboard/constants/dashboard-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
@@ -22,10 +33,31 @@ import { ICasesCreateCasefileCaseTypeForm } from './interfaces/cases-create-case
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBaseComponent implements OnInit {
-  private readonly arrivalNavigation = inject(Router).currentNavigation();
+  private readonly cancelRouter = inject(Router);
+  private readonly arrivalNavigation = this.cancelRouter.currentNavigation();
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
+  private readonly dashboardNavigation = inject(CasesDraftNavigationService);
+  private readonly injector = inject(Injector);
+  private readonly cancelError = viewChild<ElementRef<HTMLElement>>('cancelError');
+  private cancelRejectedByGuard = false;
+  public readonly cancelling = signal(false);
+  public readonly cancelNavigationFailed = signal(false);
+
   public readonly focusHeadingOnArrival = this.arrivalNavigation?.extras.state?.['focusCaseTypeHeading'] === true;
+
+  constructor() {
+    super();
+    this.cancelRouter.events.pipe(takeUntilDestroyed()).subscribe((event) => {
+      if (
+        this.cancelling() &&
+        event instanceof NavigationCancel &&
+        event.code === NavigationCancellationCode.GuardRejected
+      ) {
+        this.cancelRejectedByGuard = true;
+      }
+    });
+  }
 
   private isCaseType(value: unknown): value is CasesCreateCasefileCaseType {
     return Object.values(CASES_CREATE_CASEFILE_CASE_TYPES).includes(value as CasesCreateCasefileCaseType);
@@ -101,7 +133,21 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
     this.stateUnsavedChanges = unsavedChanges;
   }
 
-  public handleCancel(): void {
-    this.routerNavigate(`/${DASHBOARD_ROUTING_PATHS.root}/${DASHBOARD_ROUTING_PATHS.children.cases}`, true);
+  public async handleCancel(): Promise<void> {
+    if (this.cancelling()) return;
+    this.cancelling.set(true);
+    this.cancelNavigationFailed.set(false);
+    this.cancelRejectedByGuard = false;
+    try {
+      const success = await this.cancelRouter.navigateByUrl(this.dashboardNavigation.creationReturnUrl());
+      this.cancelNavigationFailed.set(!success && !this.cancelRejectedByGuard);
+    } catch {
+      this.cancelNavigationFailed.set(true);
+    } finally {
+      this.cancelling.set(false);
+      if (this.cancelNavigationFailed()) {
+        afterNextRender(() => this.cancelError()?.nativeElement.focus(), { injector: this.injector });
+      }
+    }
   }
 }

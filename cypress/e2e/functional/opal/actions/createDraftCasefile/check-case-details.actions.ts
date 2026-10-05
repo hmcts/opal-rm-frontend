@@ -1,3 +1,5 @@
+import { CasesDraftSelectors as Dashboard } from '../../../../../shared/selectors/cases-draft.selectors';
+import { CASES_DRAFT_ROUTING_PATHS as DRAFT_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { CHECK_CASE_DETAILS_SUBMISSION as SUBMISSION } from '../../mocks/createDraftCasefile/check-case-details.mock';
 import type { IOpalMaintenanceDraftCasefileRequest } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-request.interface';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
@@ -166,6 +168,18 @@ export class CheckCaseDetailsActions {
     cy.get(S.cancellation.confirm).click();
   }
 
+  /** Verifies cancellation returns to the dashboard without persisting the discarded case. */
+  public assertDashboard(): void {
+    cy.location('pathname').should('eq', '/' + DRAFT_PATHS.root + '/' + DRAFT_PATHS.children.tabs);
+    cy.get(Dashboard.heading).should('have.text', 'Create cases').and('be.focused');
+    cy.get('@cancelPersistence').should('not.have.been.called');
+  }
+
+  /** Starts a fresh local case from the returned dashboard. */
+  public createCase(): void {
+    cy.get(Dashboard.create).click();
+  }
+
   /** Checks that cancellation starts a fresh case without persistence. */
   public assertFreshCase(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
@@ -179,9 +193,13 @@ export class CheckCaseDetailsActions {
   /** Checks that Back and Forward cannot recover the discarded case. */
   public assertHistoryStaysEmpty(): void {
     cy.go('back');
+    this.assertDashboard();
+    cy.go('back');
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
     cy.get(S.caseTypeGroup).find('input[type="radio"]:checked').should('not.exist');
     cy.go('forward');
+    this.assertDashboard();
+    this.createCase();
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
     cy.get(S.caseTypeGroup).find('input[type="radio"]:checked').should('not.exist');
     cy.get('@cancelPersistence').should('not.have.been.called');

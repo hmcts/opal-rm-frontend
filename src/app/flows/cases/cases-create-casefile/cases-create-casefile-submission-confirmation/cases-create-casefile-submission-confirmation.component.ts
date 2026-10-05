@@ -9,21 +9,26 @@ import {
   viewChild,
 } from '@angular/core';
 
-import { Router } from '@angular/router';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import { defaultCasesDraftNavigation } from '../../cases-draft/utils/cases-draft-navigation';
+import { Router, RouterLink } from '@angular/router';
 import { GovukPanelComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-panel';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 
 @Component({
   selector: 'app-cases-create-casefile-submission-confirmation',
-  imports: [GovukPanelComponent],
+  imports: [GovukPanelComponent, RouterLink],
   templateUrl: './cases-create-casefile-submission-confirmation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileSubmissionConfirmationComponent {
+  private readonly dashboardNavigation = inject(CasesDraftNavigationService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   private readonly errorRegion = viewChild<ElementRef<HTMLElement>>('errorRegion');
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
+
+  public readonly inReviewUrl = this.dashboardNavigation.dashboardUrl(defaultCasesDraftNavigation());
 
   public readonly navigationError = signal(false);
   public readonly navigating = signal(false);
@@ -37,6 +42,7 @@ export class CasesCreateCasefileSubmissionConfirmationComponent {
   public async startNewCase(event: Event): Promise<void> {
     event.preventDefault();
     if (this.navigating()) return;
+    this.dashboardNavigation.clearCreateOrigin();
     this.navigating.set(true);
     this.navigationError.set(false);
     try {

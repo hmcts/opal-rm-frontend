@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import { ActivatedRoute, Router, UrlTree, NavigationCancel, NavigationCancellationCode } from '@angular/router';
 import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
@@ -19,17 +21,23 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileCaseTypeComponent>;
   let component: CasesCreateCasefileCaseTypeComponent;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
-  const router = createSpyObj(Router, ['navigate', 'currentNavigation']);
+  const router = createSpyObj(Router, ['navigate', 'currentNavigation', 'navigateByUrl']);
+
+  const events = new Subject<NavigationCancel>();
+  const returnUrl = new UrlTree();
+  Object.assign(router, { events: events.asObservable() });
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileCaseTypeComponent],
       providers: [
+        { provide: CasesDraftNavigationService, useValue: { creationReturnUrl: () => returnUrl } },
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: { parent: null } },
       ],
     }).compileComponents();
 
+    router['navigateByUrl'].mockReset().mockResolvedValue(true);
     router['navigate'].mockReset();
     router['currentNavigation'].mockReset();
     fixture = TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
@@ -211,9 +219,54 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     expect(store.stateChanges()).toBe(true);
   });
 
-  it('cancels to the Cases dashboard', () => {
-    component.handleCancel();
+  it('cancels to the inputter dashboard without resetting before the guard decides', async () => {
+    store.setCaseTypeSelection({ caseType: 'REMO Out' });
+    const before = structuredClone(getState(store));
+    await component.handleCancel();
+    expect(router['navigateByUrl']).toHaveBeenCalledWith(returnUrl);
+    expect(getState(store)).toEqual(before);
+  });
 
-    expect(router['navigate']).toHaveBeenCalledWith(['/dashboard/cases'], {});
+  it.each(['false', 'throw'])('shows a focused retryable error after %s cancellation failure', async (failure) => {
+    if (failure === 'false') router['navigateByUrl'].mockResolvedValueOnce(false);
+    else router['navigateByUrl'].mockRejectedValueOnce(new Error('Synthetic router failure'));
+    await component.handleCancel();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const error = fixture.nativeElement.querySelector('#create_casefile_case_type_cancel_error');
+    expect(error?.textContent).toContain('The page could not be opened. Try again.');
+    expect(document.activeElement).toBe(error);
+    await component.handleCancel();
+    expect(component.cancelNavigationFailed()).toBe(false);
+  });
+
+  it('retains all data without an error after a dismissed unsaved-change prompt', async () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const before = structuredClone(getState(store));
+    router['navigateByUrl'].mockImplementationOnce(async () => {
+      events.next(new NavigationCancel(1, '/dashboard', 'Guard rejected', NavigationCancellationCode.GuardRejected));
+      return false;
+    });
+    await component.handleCancel();
+    expect(component.cancelNavigationFailed()).toBe(false);
+    expect(getState(store)).toEqual(before);
+  });
+
+  it('ignores duplicate cancellation while navigation is pending', async () => {
+    let finish!: (value: boolean) => void;
+    router['navigateByUrl'].mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const action = component.handleCancel();
+    await component.handleCancel();
+    expect(router['navigateByUrl']).toHaveBeenCalledOnce();
+    finish(true);
+    await action;
+    expect(component.cancelling()).toBe(false);
   });
 });

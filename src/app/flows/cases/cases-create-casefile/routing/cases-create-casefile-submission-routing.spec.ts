@@ -1,3 +1,7 @@
+import { CasesDraftCreateAndManageTabsComponent } from '../../cases-draft/cases-draft-create-and-manage-tabs/cases-draft-create-and-manage-tabs.component';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import { CASES_DRAFT_ROUTING_PATHS } from '../../cases-draft/routing/constants/cases-draft-routing-paths.constant';
+import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { CasesCreateCasefileCheckDetailsComponent } from '../cases-create-casefile-check-details/cases-create-casefile-check-details.component';
@@ -53,6 +57,22 @@ describe('Submission route lifecycle', () => {
     }),
   );
   afterEach(() => TestBed.inject(HttpTestingController).verify());
+  function authoriseDashboard(): void {
+    const global = TestBed.inject(GlobalStore);
+    const user = structuredClone(OPAL_USER_STATE_MOCK);
+    user.status = 'active';
+    user.business_unit_users = [
+      {
+        business_unit_id: 44,
+        business_unit_user_id: 'BUU-SYNTHETIC',
+        permissions: [{ permission_id: 21, permission_name: 'Create and Manage Draft Casefiles' }],
+      },
+    ];
+    global.setUserState(user);
+    global.setAuthenticated(true);
+    global.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+  }
+
   it.each(['create_casefile_confirmation_create_new'])(
     'starts an empty case and focuses its heading through the actual %s link',
     async (linkId) => {
@@ -69,6 +89,10 @@ describe('Submission route lifecycle', () => {
           ]),
         ],
       });
+      authoriseDashboard();
+      const navigation = TestBed.inject(CasesDraftNavigationService);
+      navigation.setSelection({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
+      navigation.rememberCreateOrigin();
       const store = TestBed.inject(CasesCreateCasefileStore);
       patchState(
         store as unknown as WritableStateSource<ICasesCreateCasefileState>,
@@ -83,6 +107,8 @@ describe('Submission route lifecycle', () => {
       await harness.fixture.whenStable();
       harness.detectChanges();
       expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
+      const reviewContext = TestBed.inject(CasesCreateCasefileReviewNavigationService);
+      reviewContext.setContext({ origin: 'review', section: 'respondent' });
       const link = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('#' + linkId);
       expect(link).not.toBeNull();
       link!.focus();
@@ -97,8 +123,44 @@ describe('Submission route lifecycle', () => {
       expect(document.activeElement).toBe(heading);
       expect(harness.routeNativeElement!.querySelectorAll('input:checked')).toHaveLength(0);
       expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+      expect(reviewContext.context()).toBeNull();
+      expect(navigation.selection()).toEqual({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
+      expect(TestBed.inject(Router).serializeUrl(navigation.creationReturnUrl())).toBe(
+        '/cases/draft/create-and-manage/tabs?page=1&sort=created&direction=ascending#in-review',
+      );
     },
   );
+
+  it('the confirmation review link replaces rejected metadata and reloads In review', async () => {
+    const dashboardPath = '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.tabs;
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([
+          { path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children },
+          { path: dashboardPath.slice(1), component: CasesDraftCreateAndManageTabsComponent },
+        ]),
+      ],
+    });
+    authoriseDashboard();
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    navigation.setSelection({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
+    navigation.rememberCreateOrigin();
+    TestBed.inject(CasesCreateCasefileStore).setSubmissionSucceeded(true);
+    const harness = await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
+    harness.routeNativeElement!.querySelector<HTMLAnchorElement>('#create_casefile_confirmation_in_review')!.click();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(TestBed.inject(Router).url).toBe(dashboardPath + '?page=1&sort=created&direction=ascending#in-review');
+    await harness.fixture.whenStable();
+    expect(document.activeElement?.id).toBe('cases-draft-heading');
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 0 });
+    http
+      .expectOne((request) => request.params.get('casefile_status') === 'SUBMITTED,RESUBMITTED')
+      .flush({ count: 0, summaries: [] });
+    await harness.fixture.whenStable();
+    expect(navigation.selection()).toEqual({ tab: 'in-review', page: 1, sort: 'created', direction: 'ascending' });
+  });
 
   it('sets the document title through the production confirmation resolver', async () => {
     TestBed.configureTestingModule({

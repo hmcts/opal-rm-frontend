@@ -65,6 +65,15 @@ export class CheckCaseDetailsFlow {
   public discard(): void {
     this.review.discard();
   }
+  /** Verifies cancellation returns to the dashboard without persisting the discarded case. */
+  public assertDashboard(): void {
+    this.review.assertDashboard();
+  }
+  /** Starts a fresh local case from the returned dashboard. */
+  public createCase(): void {
+    this.review.createCase();
+  }
+
   /** Checks that cancellation starts a fresh case. */
   public assertFreshCase(): void {
     this.review.assertFreshCase();

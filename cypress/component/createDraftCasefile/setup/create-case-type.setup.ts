@@ -1,3 +1,6 @@
+import { EMPTY } from 'rxjs';
+import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
+import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { ActivatedRoute, Router } from '@angular/router';
 import { mount } from 'cypress/angular';
 import { CasesCreateCasefileCaseTypeComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/cases-create-casefile-case-type.component';
@@ -6,8 +9,20 @@ import { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-
 
 export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCasefileStore>;
 
-export const setupCreateCasefileCaseType = (initialSelection: CasesCreateCasefileCaseTypeSelection | null = null) => {
+export const setupCreateCasefileCaseType = (
+  initialSelection: CasesCreateCasefileCaseTypeSelection | null = null,
+  navigationFailure?: 'false' | 'throw',
+) => {
   const store = new CasesCreateCasefileStore();
+  const returnPath =
+    '/' +
+    CASES_DRAFT_ROUTING_PATHS.root +
+    '/' +
+    CASES_DRAFT_ROUTING_PATHS.children.tabs +
+    '?page=1&sort=created&direction=ascending#in-review';
+  const navigateByUrl = cy.stub().as('cancelRouterNavigate').resolves(true);
+  if (navigationFailure === 'false') navigateByUrl.resolves(false);
+  if (navigationFailure === 'throw') navigateByUrl.rejects(new Error('Synthetic router failure'));
   const navigate = cy.stub().as('routerNavigate').resolves(true);
 
   if (initialSelection) {
@@ -22,7 +37,8 @@ export const setupCreateCasefileCaseType = (initialSelection: CasesCreateCasefil
     return mount(CasesCreateCasefileCaseTypeComponent, {
       providers: [
         { provide: CasesCreateCasefileStore, useValue: store },
-        { provide: Router, useValue: { navigate, currentNavigation: () => null } },
+        { provide: CasesDraftNavigationService, useValue: { creationReturnUrl: () => returnPath } },
+        { provide: Router, useValue: { navigate, navigateByUrl, events: EMPTY, currentNavigation: () => null } },
         { provide: ActivatedRoute, useValue: { parent: null } },
       ],
     }).then(() => {

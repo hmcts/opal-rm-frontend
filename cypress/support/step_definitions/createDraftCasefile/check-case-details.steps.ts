@@ -13,6 +13,8 @@ When('I open case creation cancellation', () => flow.openCancellation());
 When('I confirm discarding the local case', () => flow.discard());
 Then('an empty new case journey is shown without submitting data', () => flow.assertRestartedJourney());
 Then('the accepted draft is retained without a submission', () => flow.assertRetainedDraft());
+Then('the Create cases dashboard is shown', () => flow.assertDashboard());
+When('I choose to create a case', () => flow.createCase());
 Then('case creation starts with no selected case or applicant type', () => flow.assertFreshCase());
 Then('browser history cannot recover the discarded case', () => flow.assertHistoryStaysEmpty());
 

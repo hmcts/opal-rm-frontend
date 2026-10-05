@@ -1,9 +1,14 @@
+import type { ICasesDraftIdentity } from '../../cases-draft/interfaces/cases-draft-identity.interface';
+import type { IOpalMaintenanceDraftCasefileListParams } from './interfaces/opal-maintenance-draft-casefile-list-params.interface';
+import type { IOpalMaintenanceDraftCasefileListResponse } from './interfaces/opal-maintenance-draft-casefile-list-response.interface';
+import type { IOpalMaintenanceDraftCasefileCountResponse } from './interfaces/opal-maintenance-draft-casefile-count-response.interface';
+import { decodeDraftCasefileCount, decodeDraftCasefileList } from './utils/opal-maintenance-draft-casefile-response';
 import type { IOpalMaintenanceDraftCasefileRequest } from './interfaces/opal-maintenance-draft-casefile-request.interface';
 import type { IOpalMaintenanceDraftCasefileResponse } from './interfaces/opal-maintenance-draft-casefile-response.interface';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
-import { defer, of, Observable, shareReplay, tap } from 'rxjs';
+import { defer, map, of, Observable, shareReplay, tap } from 'rxjs';
 import type { IOpalMaintenanceApplicationReferenceDataResponse } from './interfaces/opal-maintenance-application-reference-data-response.interface';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorParams } from './interfaces/opal-maintenance-major-creditor-params.interface';
@@ -57,6 +62,45 @@ export class OpalMaintenanceService {
       observe: 'response',
       context: withoutHttpRetry(),
     });
+  }
+
+  /** Retrieves the complete selected collection without caching or automatic retries. */
+  public getDraftCasefiles(
+    params: IOpalMaintenanceDraftCasefileListParams,
+  ): Observable<IOpalMaintenanceDraftCasefileListResponse> {
+    let query = new HttpParams()
+      .set('business_unit_id', params.business_unit_id)
+      .set('submitted_by', params.submitted_by)
+      .set('casefile_status', params.casefile_status);
+    if (params.casefile_status_from_date !== undefined) {
+      query = query.set('casefile_status_from_date', params.casefile_status_from_date);
+    }
+    if (params.casefile_status_to_date !== undefined) {
+      query = query.set('casefile_status_to_date', params.casefile_status_to_date);
+    }
+    return this.http
+      .get<unknown>('/opal-maintenance-service/draft-casefiles', {
+        params: query,
+        context: withoutHttpRetry(),
+      })
+      .pipe(map(decodeDraftCasefileList));
+  }
+
+  /** Retrieves only the rejected count for the authorised BU user scope. */
+  public getRejectedDraftCasefileCount(
+    identity: ICasesDraftIdentity,
+  ): Observable<IOpalMaintenanceDraftCasefileCountResponse> {
+    return this.http
+      .get<unknown>('/opal-maintenance-service/draft-casefiles', {
+        params: {
+          business_unit_id: identity.businessUnitId,
+          submitted_by: identity.submittedBy,
+          casefile_status: 'REJECTED',
+          restrict: 'counts',
+        },
+        context: withoutHttpRetry(),
+      })
+      .pipe(map(decodeDraftCasefileCount));
   }
 
   public getMaintenanceApplications(): Observable<IOpalMaintenanceApplicationReferenceDataResponse> {

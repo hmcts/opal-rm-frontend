@@ -1,3 +1,6 @@
+import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
+import { casesDraftAccessGuard } from '@app/flows/cases/cases-draft/routing/guards/cases-draft-access.guard';
+import { CASES_DRAFT_ROUTING_PATHS } from '@app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { inject } from '@angular/core';
 import { resolveCreateCaseFilesRelease } from '@app/flows/cases/utils/resolve-create-case-files-release.utils';
 import { PAGES_ROUTING_PATHS as COMMON_PAGES_ROUTING_PATHS } from '@hmcts/opal-frontend-common/pages/routing/constants';
@@ -35,6 +38,40 @@ export const routing: Routes = [
     path: `${DASHBOARD_ROUTING_PATHS.root}/:dashboardType`,
     loadComponent: () => import('../dashboard/dashboard.component').then((c) => c.DashboardComponent),
     canActivate: [authGuard, accountGuard, dashboardTypeGuard, dashboardSectionPermissionsGuard],
+  },
+  {
+    path: CASES_DRAFT_ROUTING_PATHS.root,
+    loadChildren: () =>
+      import('../../flows/cases/cases-draft/routing/cases-draft.routes').then((module) => module.routing),
+    canActivate: [authGuard, accountGuard, release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],
+    canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],
+    data: { sectionKey: 'cases' },
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.root,
+    canActivate: [authGuard, accountGuard, release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],
+    canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],
+    data: { ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, sectionKey: 'cases' },
+    children: [
+      {
+        path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.checkCaseDetails + '/:draftCasefileId',
+        loadComponent: () =>
+          import('../../flows/cases/cases-draft/cases-draft-placeholder/cases-draft-placeholder.component').then(
+            (module) => module.CasesDraftPlaceholderComponent,
+          ),
+        data: { title: 'Check case details', placeholderKind: 'details' },
+        resolve: { title: TitleResolver },
+      },
+      {
+        path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList + '/:draftCasefileId',
+        loadComponent: () =>
+          import('../../flows/cases/cases-draft/cases-draft-placeholder/cases-draft-placeholder.component').then(
+            (module) => module.CasesDraftPlaceholderComponent,
+          ),
+        data: { title: 'Amend case', placeholderKind: 'amendment' },
+        resolve: { title: TitleResolver },
+      },
+    ],
   },
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.root,

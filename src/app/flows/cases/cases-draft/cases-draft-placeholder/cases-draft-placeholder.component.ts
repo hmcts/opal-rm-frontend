@@ -1,0 +1,59 @@
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  viewChild,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
+import { parseCasesDraftNavigation } from '../utils/cases-draft-navigation';
+
+@Component({
+  selector: 'app-cases-draft-placeholder',
+  imports: [RouterLink],
+  templateUrl: './cases-draft-placeholder.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class CasesDraftPlaceholderComponent {
+  private readonly route = inject(ActivatedRoute);
+  private readonly navigation = inject(CasesDraftNavigationService);
+  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
+  private readonly data = toSignal(this.route.data, { initialValue: this.route.snapshot.data });
+  private readonly params = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap });
+  private readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap });
+  private readonly kind = computed(() => this.data()['placeholderKind']);
+  private readonly validId = computed(() => {
+    const id = this.params().get('draftCasefileId');
+    return id !== null && /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id));
+  });
+  public readonly backUrl = computed(() =>
+    this.navigation.dashboardUrl(parseCasesDraftNavigation(this.query().get('tab'), this.query())),
+  );
+  public readonly gridClass = computed(() =>
+    this.kind() === 'rejections' ? 'govuk-grid-column-full' : 'govuk-grid-column-two-thirds',
+  );
+  public readonly headingText = computed(() => {
+    switch (this.kind()) {
+      case 'rejections':
+        return 'View all rejected cases';
+      case 'amendment':
+        return 'Amend case';
+      default:
+        return 'Check case details';
+    }
+  });
+  public readonly bodyText = computed(() => {
+    if (this.kind() === 'rejections') return 'The complete list of rejected cases will be available here.';
+    if (!this.validId()) return 'This case could not be opened. Return to Create cases.';
+    return this.kind() === 'amendment'
+      ? 'Case amendment will be available here.'
+      : 'Case details will be available here.';
+  });
+  constructor() {
+    afterNextRender(() => this.heading()?.nativeElement.focus());
+  }
+}

@@ -28,6 +28,7 @@ describe('dashboard release routing', () => {
     initializeFlags.mockReset().mockResolvedValue(undefined);
     const user = structuredClone(OPAL_USER_STATE_MOCK);
     user.status = 'active';
+    user.business_unit_users[0].business_unit_id = 44;
     user.business_unit_users[0].permissions = Object.values(DASHBOARD_SECTION_PERMISSIONS)
       .flat()
       .map((id) => ({
@@ -118,17 +119,18 @@ describe('dashboard release routing', () => {
     expect(TestBed.inject(Router).url).toBe('/dashboard/cases');
   });
 
-  it.each(['/dashboard', '/dashboard/cases'])('allows an active user with no permissions at %s', async (url) => {
+  it.each(['/dashboard', '/dashboard/cases'])('denies an active user with no permissions at %s', async (url) => {
     flags.set({ [key]: true });
     const user = structuredClone(OPAL_USER_STATE_MOCK);
     user.status = 'active';
+    user.business_unit_users[0].business_unit_id = 44;
     user.business_unit_users.forEach((unit) => {
       unit.permissions = [];
     });
     getUserState.mockReturnValue(of(user));
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl(url);
-    expect(TestBed.inject(Router).url).toBe('/dashboard/cases');
+    expect(TestBed.inject(Router).url).toBe('/access-denied');
   });
 
   it('still blocks an unauthenticated user when the release is enabled', async () => {

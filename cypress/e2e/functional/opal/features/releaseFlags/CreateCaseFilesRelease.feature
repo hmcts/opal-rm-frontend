@@ -39,6 +39,10 @@ Feature: Create case files release access
       | path                                            |
       | /dashboard                                      |
       | /dashboard/cases                                |
+      | /cases/draft/create-and-manage/tabs              |
+      | /cases/draft/create-and-manage/rejections        |
+      | /cases/create-casefile/check-case-details/123    |
+      | /cases/create-casefile/task-list/123             |
       | /cases/create-casefile                          |
       | /cases/create-casefile/case-type                 |
       | /cases/create-casefile/task-list                 |

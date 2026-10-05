@@ -193,6 +193,21 @@ describe('Inputter dashboard accessibility', () => {
       cy.get(S.scrollRegion).should('have.attr', 'role', 'region').and('have.attr', 'tabindex', '0');
       cy.get(S.scrollRegion).should('have.attr', 'aria-label').and('include', 'cases');
       cy.get(S.scrollRegion).focus().should('be.focused');
+      cy.then(async () => {
+        for (const type of ['keyDown', 'keyUp']) {
+          await Cypress.automation('remote:debugger:protocol', {
+            command: 'Input.dispatchKeyEvent',
+            params: {
+              type,
+              key: 'ArrowRight',
+              code: 'ArrowRight',
+              windowsVirtualKeyCode: 39,
+              nativeVirtualKeyCode: 39,
+            },
+          });
+        }
+      });
+      cy.get(S.scrollRegion).should((region) => expect(region[0].scrollLeft).to.be.greaterThan(0));
       const columns = ['respondent', 'applicant', 'caseType', 'created'];
       if (tab === 'approved')
         columns.splice(

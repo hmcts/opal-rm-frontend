@@ -33,6 +33,17 @@ describe('checker consultation owner', () => {
       providers: [CasesDraftCheckerLoadService, { provide: CasesDraftDashboardService, useValue: boundary }],
     });
   });
+  it('refreshes every component arrival but deduplicates same-instance metadata changes', () => {
+    const owner = TestBed.inject(CasesDraftCheckerLoadService);
+    owner.refreshArrival(identity, 'to-review');
+    lists[0].stream.next({ count: 0, summaries: [] });
+    owner.activate(identity, 'to-review');
+    expect(lists).toHaveLength(1);
+    owner.refreshArrival(identity, 'to-review');
+    expect(lists).toHaveLength(2);
+    expect(counts).toHaveLength(4);
+    expect(lists[0].stream.observed).toBe(false);
+  });
   it('recovers first-entry failure only on explicit retry and hides stale rows', () => {
     const owner = TestBed.inject(CasesDraftCheckerLoadService);
     owner.activate(identity, 'to-review');

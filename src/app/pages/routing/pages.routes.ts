@@ -1,3 +1,9 @@
+import { casesDraftCheckerAccessGuard } from '@app/flows/cases/cases-draft/routing/guards/cases-draft-checker-access.guard';
+import { CASES_DRAFT_CHECKER_ROUTING_PATHS } from '@app/flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
+import { CASES_DRAFT_DASHBOARD_MODE } from '@app/flows/cases/cases-draft/constants/cases-draft-dashboard-mode.token';
+import { CasesDraftDashboardService } from '@app/flows/cases/cases-draft/services/cases-draft-dashboard.service';
+import { CasesDraftNavigationService } from '@app/flows/cases/cases-draft/services/cases-draft-navigation.service';
+import { CasesDraftCheckerLoadService } from '@app/flows/cases/cases-draft/services/cases-draft-checker-load.service';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
 import { casesDraftAccessGuard } from '@app/flows/cases/cases-draft/routing/guards/cases-draft-access.guard';
 import { CASES_DRAFT_ROUTING_PATHS } from '@app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
@@ -40,6 +46,20 @@ export const routing: Routes = [
     canActivate: [authGuard, accountGuard, dashboardTypeGuard, dashboardSectionPermissionsGuard],
   },
   {
+    path: CASES_DRAFT_CHECKER_ROUTING_PATHS.root,
+    providers: [
+      { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'checker' },
+      CasesDraftDashboardService,
+      CasesDraftNavigationService,
+      CasesDraftCheckerLoadService,
+    ],
+    loadChildren: () =>
+      import('../../flows/cases/cases-draft/routing/cases-draft-checker.routes').then((module) => module.routing),
+    canActivate: [authGuard, accountGuard, release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftCheckerAccessGuard],
+    canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftCheckerAccessGuard],
+    data: { sectionKey: 'cases' },
+  },
+  {
     path: CASES_DRAFT_ROUTING_PATHS.root,
     loadChildren: () =>
       import('../../flows/cases/cases-draft/routing/cases-draft.routes').then((module) => module.routing),
@@ -80,13 +100,8 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileComponent,
       ),
     children: casesCreateCasefileRouting,
-    canActivate: [
-      authGuard,
-      accountGuard,
-      release1cRmCreateCaseFilesFeatureFlagGuard,
-      dashboardSectionPermissionsGuard,
-    ],
-    canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard, dashboardSectionPermissionsGuard],
+    canActivate: [authGuard, accountGuard, release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],
+    canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],
     canDeactivate: [canDeactivateGuard],
     data: {
       ...PRIMARY_NAV_HIDDEN_ROUTE_DATA,

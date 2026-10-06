@@ -78,6 +78,13 @@ describe('dashboard-section-permissions.utils', () => {
     },
   );
 
+  it('allows Cases section for checker-only permission in BU44', () => {
+    expect(
+      getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, createUserStateWithPermissions([22]), {
+        [createFlag]: true,
+      }),
+    ).toEqual([{ key: 'cases', value: 'Cases' }]);
+  });
   it('hides Cases without its RM permission even when released', () => {
     const user = createUserStateWithPermissions([]);
     expect(getAccessiblePrimaryNavigationItems(NAVIGATION_BAR_CONFIGURATION, user, { [createFlag]: true })).toEqual([]);

@@ -1,3 +1,9 @@
+import { DashboardComponent } from './dashboard.component';
+import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
+import { signal } from '@angular/core';
+import { RouterTestingHarness } from '@angular/router/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { CASES_CREATE_CASEFILE_DASHBOARD_LINKS } from '../../flows/cases/cases-create-casefile/constants/cases-create-casefile-dashboard-links.constant';
 import { CASES_PERMISSIONS } from '../../flows/cases/constants/cases-permissions.constant';
 import { Component } from '@angular/core';
@@ -152,4 +158,38 @@ describe('DashboardPage integration', () => {
     expect(sectionHeadings).toHaveLength(0);
     expect(links).toHaveLength(0);
   });
+});
+
+describe('production Cases entry identity filtering', () => {
+  it.each([{ permissions: [21] }, { permissions: [22] }, { permissions: [21, 22] }, { permissions: [] }])(
+    'renders independent entry links for permissions %j',
+    async ({ permissions }) => {
+      const user = structuredClone(OPAL_USER_STATE_MOCK);
+      user.status = 'active';
+      user.business_unit_users = [
+        {
+          business_unit_id: 44,
+          business_unit_user_id: 'BUU-SYNTHETIC',
+          permissions: permissions.map((id) => ({ permission_id: id, permission_name: 'Synthetic' })),
+        },
+      ];
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([{ path: 'dashboard/:dashboardType', component: DashboardComponent }]),
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          {
+            provide: GlobalStore,
+            useValue: { userState: signal(user), featureFlags: signal({ 'release-1c-rm-create-case-files': true }) },
+          },
+        ],
+      });
+      const harness = await RouterTestingHarness.create('/dashboard/cases');
+      const create = harness.routeNativeElement?.querySelector('#casesCreateCasefileLink');
+      const review = harness.routeNativeElement?.querySelector('#casesReviewCasefilesLink');
+      expect(create !== null).toBe(permissions.includes(21));
+      expect(review !== null).toBe(permissions.includes(22));
+      if (review) expect(review.getAttribute('href')).toBe('/cases/draft/check-and-validate/tabs#to-review');
+    },
+  );
 });

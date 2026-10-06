@@ -1,4 +1,4 @@
-import type { CasesDraftTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
+import type { CasesDraftTab, CasesDraftOutcomeTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 export const CasesDraftSelectors = {
   heading: '#cases-draft-heading',
   tab: (tab: CasesDraftTab) => '#cases-draft-' + tab + '-tab',
@@ -13,6 +13,11 @@ export const CasesDraftSelectors = {
     '#cases-draft-list-retry, #cases-draft-badge-retry, #cases-draft-list-error, #cases-draft-badge-error, #cases-draft-navigation-error',
   rejectedCount: '#cases-draft-rejected-count',
   loading: '#cases-draft-loading',
+  failure: '#cases-draft-failure',
+  retryList: '#cases-draft-retry-list',
+  countLoading: (tab: CasesDraftOutcomeTab) => '#cases-draft-' + tab + '-count-loading',
+  countFailure: (tab: CasesDraftOutcomeTab) => '#cases-draft-' + tab + '-count-failure',
+  countRetry: (tab: CasesDraftOutcomeTab) => '#cases-draft-' + tab + '-count-retry',
   selectedHeading: '#cases-draft-selected-heading',
   tabs: '#cases-draft-tabs',
   table: 'app-cases-draft-table',

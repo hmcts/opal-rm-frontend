@@ -1,3 +1,8 @@
+import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
+import { CasesDraftCheckerLoadService } from '../services/cases-draft-checker-load.service';
+import { CasesDraftDashboardService } from '../services/cases-draft-dashboard.service';
+import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
+import { CASES_DRAFT_CHECKER_TABS } from '../constants/cases-draft-checker-tabs.constant';
 import { signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { CasesDraftTableComponent } from '../cases-draft-table/cases-draft-table.component';
@@ -512,5 +517,248 @@ describe('resolver-backed dashboard', () => {
       '/cases/create-casefile/check-case-details/123#in-review',
     );
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
+  });
+});
+
+describe('checker dashboard presentation', () => {
+  const userState = signal(permittedUser());
+  const authenticated = signal(true);
+  const featureFlags = signal({ 'release-1c-rm-create-case-files': true });
+  const api = { getDraftCasefiles: vi.fn(), getDraftCasefileCount: vi.fn() };
+  let fragment: BehaviorSubject<string | null>;
+  let query: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const user = permittedUser();
+    user.business_unit_users[0].permissions = [
+      { permission_id: 22, permission_name: 'Check and Validate Draft Casefiles' },
+    ];
+    userState.set(user);
+    authenticated.set(true);
+    featureFlags.set({ 'release-1c-rm-create-case-files': true });
+    fragment = new BehaviorSubject<string | null>('to-review');
+    query = new BehaviorSubject(convertToParamMap({}));
+    api.getDraftCasefiles.mockReturnValue(of({ count: 0, summaries: [] }));
+    api.getDraftCasefileCount.mockReturnValue(of({ count: 0 }));
+    TestBed.configureTestingModule({
+      imports: [CasesDraftCreateAndManageTabsComponent],
+      providers: [
+        provideRouter([]),
+        { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'checker' },
+        CasesDraftCheckerLoadService,
+        CasesDraftDashboardService,
+        CasesDraftNavigationService,
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            fragment,
+            queryParamMap: query,
+            snapshot: { fragment: 'to-review', queryParamMap: convertToParamMap({}), data: {} },
+          },
+        },
+        { provide: GlobalStore, useValue: { userState, authenticated, featureFlags, setBannerError: vi.fn() } },
+        { provide: OpalMaintenanceService, useValue: api },
+        {
+          provide: DateService,
+          useValue: { getDateRange: () => ({ from: '2026-09-29', to: '2026-10-06' }), getDaysAgo: () => 1 },
+        },
+      ],
+    });
+  });
+  async function render() {
+    const fixture = TestBed.createComponent(CasesDraftCreateAndManageTabsComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture;
+  }
+  it.each(['to-review', 'rejected', 'deleted', 'failed'] as const)(
+    'renders Review cases and exact %s empty copy without creation controls',
+    async (tab) => {
+      fragment.next(tab);
+      const fixture = await render();
+      expect(fixture.nativeElement.querySelector('h1').textContent.trim()).toBe('Review cases');
+      expect(fixture.nativeElement.querySelector('#cases-draft-create')).toBeNull();
+      expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected')).toBeNull();
+      expect(fixture.nativeElement.querySelectorAll('#cases-draft-tabs a')).toHaveLength(4);
+      expect(fixture.nativeElement.querySelector('#cases-draft-empty').textContent.trim()).toBe(
+        CASES_DRAFT_CHECKER_TABS[tab].empty,
+      );
+    },
+  );
+  it('announces pending cases and counts without claiming zero', async () => {
+    api.getDraftCasefiles.mockReturnValue(new Subject());
+    api.getDraftCasefileCount.mockReturnValue(new Subject());
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelector('#cases-draft-loading')?.getAttribute('role')).toBe('status');
+    expect(fixture.nativeElement.querySelector('#cases-draft-loading')?.textContent).toContain(
+      'Loading To review cases.',
+    );
+    expect(fixture.nativeElement.querySelector('#cases-draft-rejected-count-loading')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-failed-count-loading')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
+  });
+  it('recovers a list failure using local Retry and a bounded generic reference', async () => {
+    api.getDraftCasefiles.mockReturnValueOnce(
+      throwError(
+        () => new HttpErrorResponse({ status: 500, error: { operation_id: 'REF-123', message: 'private detail' } }),
+      ),
+    );
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelectorAll('#cases-draft-tabs a')).toHaveLength(4);
+    expect(fixture.nativeElement.querySelector('#cases-draft-failure')?.textContent).toContain(
+      'We could not load these cases. Try again.',
+    );
+    expect(fixture.nativeElement.querySelector('#cases-draft-failure')?.textContent).toContain('REF-123');
+    expect(fixture.nativeElement.textContent).not.toContain('private detail');
+    expect(fixture.nativeElement.querySelector('#cases-draft-loading')).toBeNull();
+    fixture.nativeElement.querySelector('#cases-draft-retry-list').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#cases-draft-empty')).not.toBeNull();
+    expect(api.getDraftCasefiles).toHaveBeenCalledTimes(2);
+  });
+  it('keeps populated rows usable during independent count failure and retries outside anchors', async () => {
+    api.getDraftCasefiles.mockReturnValue(
+      of({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] }),
+    );
+    api.getDraftCasefileCount
+      .mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 500 })))
+      .mockReturnValueOnce(of({ count: 102 }));
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-failed-count')?.textContent).toContain('99+');
+    expect(fixture.nativeElement.querySelector('#cases-draft-rejected-count-failure')?.textContent).toContain(
+      'We could not load the Rejected count. Try again.',
+    );
+    const retry = fixture.nativeElement.querySelector('#cases-draft-rejected-count-retry');
+    expect(retry.textContent.trim()).toBe('Retry loading Rejected count');
+    expect(retry.closest('a')).toBeNull();
+    api.getDraftCasefileCount.mockReturnValue(of({ count: 3 }));
+    retry.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#cases-draft-rejected-count')?.textContent).toContain('3');
+    expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
+  });
+  it('immediately hides rows and badges when the checker identity is replaced', async () => {
+    api.getDraftCasefiles.mockReturnValue(
+      of({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] }),
+    );
+    api.getDraftCasefileCount.mockReturnValue(of({ count: 3 }));
+    const fixture = await render();
+    const replacement = structuredClone(userState());
+    replacement.business_unit_users[0].business_unit_user_id = 'BUU-NEW';
+    api.getDraftCasefiles.mockReturnValue(new Subject());
+    api.getDraftCasefileCount.mockReturnValue(new Subject());
+    userState.set(replacement);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
+    expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
+    await fixture.whenStable();
+    expect(api.getDraftCasefiles).toHaveBeenLastCalledWith(expect.objectContaining({ not_submitted_by: 'BUU-NEW' }));
+  });
+  it('changes page/sort metadata without consulting again and opens the selected checker destination', async () => {
+    const fixture = await render();
+    query.next(convertToParamMap({ sort: 'submittedByName', direction: 'descending' }));
+    await fixture.whenStable();
+    expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    await fixture.componentInstance.openRow(123);
+    expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toContain('/check-and-validate/review/123');
+    fragment.next('failed');
+    await fixture.whenStable();
+    await fixture.componentInstance.openRow(123);
+    expect(router.serializeUrl(navigate.mock.calls[1][0] as UrlTree)).toContain('/check-and-validate/view/123');
+  });
+  it.each([401, 403])('redirects and hides cases after checker HTTP %s denial', async (status) => {
+    api.getDraftCasefiles.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
+    expect(navigate).toHaveBeenCalledWith('/access-denied', { replaceUrl: false });
+  });
+  it.each(['authentication', 'flag', 'permission'] as const)(
+    'hides checker summaries and counts immediately on %s loss',
+    async (reason) => {
+      api.getDraftCasefiles.mockReturnValue(
+        of({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] }),
+      );
+      api.getDraftCasefileCount.mockReturnValue(of({ count: 3 }));
+      const fixture = await render();
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+      if (reason === 'authentication') authenticated.set(false);
+      if (reason === 'flag') featureFlags.set({ 'release-1c-rm-create-case-files': false });
+      if (reason === 'permission') userState.set({ ...userState(), business_unit_users: [] });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
+      expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
+      await fixture.whenStable();
+      expect(navigate).toHaveBeenCalledWith('/access-denied', { replaceUrl: false });
+      expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
+    },
+  );
+  it('clamps a retained checker page without reloading and restores cancelled sort/page changes', async () => {
+    query.next(convertToParamMap({ page: '8' }));
+    api.getDraftCasefiles.mockReturnValue(
+      of({
+        count: 26,
+        summaries: Array.from({ length: 26 }, (_, index) =>
+          createCasesDraftSummary({ draft_casefile_id: index + 1, submitted_by: 'BUU-OTHER' }),
+        ),
+      }),
+    );
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    const fixture = await render();
+    expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toContain('page=2');
+    expect(navigate.mock.calls[0][1]).toEqual({ replaceUrl: true });
+    query.next(convertToParamMap({ page: '2' }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    navigate.mockResolvedValue(false);
+    fixture.nativeElement.querySelector('th[columnKey="submittedByName"] button').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('tbody tr').getAttribute('data-draft-id')).toBe('26');
+    expect(fixture.nativeElement.querySelector('th[columnKey="created"]').getAttribute('aria-sort')).toBe('ascending');
+    const table = fixture.debugElement.query(By.directive(CasesDraftTableComponent))
+      .componentInstance as CasesDraftTableComponent;
+    table.onPageChange(1);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(table.currentPageSignal()).toBe(2);
+    expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
+  });
+  it('recovers the Failed count independently and omits unavailable failure references', async () => {
+    api.getDraftCasefileCount
+      .mockReturnValueOnce(of({ count: 0 }))
+      .mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 500 })));
+    api.getDraftCasefiles.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 500, error: { operation_id: '<private detail>' } })),
+    );
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelector('#cases-draft-failure').textContent).not.toContain('Error code:');
+    expect(fixture.nativeElement.querySelector('#cases-draft-rejected-count')).toBeNull();
+    const retry = fixture.nativeElement.querySelector('#cases-draft-failed-count-retry');
+    expect(retry.textContent.trim()).toBe('Retry loading Failed count');
+    api.getDraftCasefileCount.mockReturnValue(of({ count: 9 }));
+    retry.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#cases-draft-failed-count').textContent).toContain('9');
+    expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
+  });
+  it('does not consult or show counts for missing checker identity on first entry', async () => {
+    authenticated.set(false);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelectorAll('#cases-draft-tabs a')).toHaveLength(4);
+    expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
+    expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
+    expect(api.getDraftCasefiles).not.toHaveBeenCalled();
+    expect(api.getDraftCasefileCount).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith('/access-denied', { replaceUrl: false });
   });
 });

@@ -37,21 +37,28 @@ import { sortCasesDraftRows } from '../utils/cases-draft-sort';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesDraftTableComponent extends AbstractSortableTablePaginationComponent {
-  private readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
   private readonly router = inject(Router);
   private readonly navigation = inject(CasesDraftNavigationService);
   private readonly rowsById = computed(() => new Map(this.rows().map((row) => [row.id, row])));
+  private readonly rowDestination = computed(() => {
+    if (this.mode === 'inputter') return 'details';
+    return this.selection().tab === 'to-review' ? 'review' : 'view';
+  });
+  public readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
   public readonly dates = inject(DateService);
   public readonly rows = input.required<readonly ICasesDraftRow[]>();
   public readonly selection = input.required<ICasesDraftNavigation>();
   public readonly sortChanged = output<{ key: CasesDraftSortColumn; direction: ICasesDraftNavigation['direction'] }>();
   public readonly pageChanged = output<number>();
   public readonly rowOpened = output<number>();
-  public override paginationPageTitle = 'Create cases';
+  public override paginationPageTitle = this.mode === 'checker' ? 'Review cases' : 'Create cases';
   public readonly displayRows = computed(() =>
     this.paginatedTableDataComputed().map((item) => {
       const row = this.rowsById().get(Number(item['id']))!;
-      return { ...row, detailHref: this.router.serializeUrl(this.navigation.placeholderUrl('details', row.id)) };
+      return {
+        ...row,
+        detailHref: this.router.serializeUrl(this.navigation.placeholderUrl(this.rowDestination(), row.id)),
+      };
     }),
   );
   public readonly tableCaption = computed(
@@ -65,12 +72,21 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
         caseType: 'Case type',
         submittedByName: 'Submitted by',
         created: 'Created',
-        statusDate: this.selection().tab === 'rejected' ? 'Rejected' : 'Deleted',
+        statusDate: this.statusDateLabel() ?? '',
         respondentAccount: 'Respondent Account',
         applicantAccount: 'Applicant Account',
         minorCreditorAccounts: 'Minor Creditor Account',
         approved: 'Approved',
       })[this.selection().sort],
+  );
+  public readonly statusDateLabel = computed(() => {
+    const tab = this.selection().tab;
+    if (this.mode === 'checker') return getCasesDraftTabMetadata(tab, this.mode).statusDateLabel;
+    if (tab === 'rejected') return 'Rejected';
+    return tab === 'deleted' ? 'Deleted' : undefined;
+  });
+  public readonly rowActionLabel = computed(() =>
+    this.mode === 'checker' && this.selection().tab === 'to-review' ? 'Review case for ' : 'View case details for ',
   );
   public readonly pageAnnouncement = computed(() => {
     const count = this.sortedTableDataSignal().length;

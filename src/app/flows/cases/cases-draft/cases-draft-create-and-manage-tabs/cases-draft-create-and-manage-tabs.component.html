@@ -1,68 +1,128 @@
-<div class="govuk-grid-column-full">
-  <opal-lib-custom-page-header
-    ><ng-container pageHeaderHeading
-      ><h1 #heading id="cases-draft-heading" tabindex="-1" class="govuk-heading-l">Create cases</h1></ng-container
-    ><ng-container pageHeaderButtons
-      ><button type="button" opalLibGovukButton buttonId="cases-draft-create" (click)="startNewCase()">
-        Create a case
-      </button></ng-container
-    ></opal-lib-custom-page-header
-  >
-  @let rejected = rejectedCount$ | async;
-  <opal-lib-moj-sub-navigation subNavId="cases-draft-tabs">
-    @for (item of tabLinks(); track item.tab) {
-      <li class="moj-sub-navigation__item">
-        <a
-          [id]="'cases-draft-' + item.tab + '-tab'"
-          class="moj-sub-navigation__link"
-          [href]="item.href"
-          [attr.aria-current]="navigation.selection().tab === item.tab ? 'page' : null"
-          (click)="activateTab($event, item.tab)"
-        >
-          {{ item.label }}
-          @if (
-            item.tab === 'rejected' &&
-            rejected &&
-            isCurrentIdentity(rejected.identity) &&
-            formatRejectedCount(rejected.count)
-          ) {
-            <opal-lib-moj-notification-badge badge badgeId="cases-draft-rejected-count">{{
-              formatRejectedCount(rejected.count)
-            }}</opal-lib-moj-notification-badge>
-          }
-        </a>
-      </li>
-    }
-  </opal-lib-moj-sub-navigation>
-  <h2 id="cases-draft-selected-heading" tabindex="-1" class="govuk-heading-m">{{ selectedTabLabel() }}</h2>
-  @if (tabData$ | async; as result) {
-    @if (isCurrentData(result)) {
-      @if (result.rows === null) {
-        <p id="cases-draft-loading" role="status" aria-live="polite" aria-atomic="true" class="govuk-body">
-          Loading {{ selectedTabLabel() }} cases.
-        </p>
-      } @else if (result.rows.length === 0) {
-        <p id="cases-draft-empty" class="govuk-body">{{ emptyMessage() }}</p>
-      } @else {
-        <app-cases-draft-table
-          [rows]="result.rows"
-          [selection]="navigation.selection()"
-          (sortChanged)="changeSort($event)"
-          (pageChanged)="changePage($event)"
-          (rowOpened)="openRow($event)"
-        />
-      }
-      @if (result.tab === 'rejected' && result.rows !== null) {
-        <p class="govuk-body">
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <opal-lib-custom-page-header
+      ><ng-container pageHeaderHeading
+        ><h1 #heading id="cases-draft-heading" tabindex="-1" class="govuk-heading-l">
+          {{ dashboardTitle }}
+        </h1></ng-container
+      ><ng-container pageHeaderButtons>
+        @if (mode === 'inputter') {
+          <button type="button" opalLibGovukButton buttonId="cases-draft-create" (click)="startNewCase()">
+            Create a case
+          </button>
+        }
+      </ng-container></opal-lib-custom-page-header
+    >
+    @let rejected = rejectedCount$ | async;
+    <opal-lib-moj-sub-navigation subNavId="cases-draft-tabs">
+      @for (item of tabLinks(); track item.tab) {
+        <li class="moj-sub-navigation__item">
           <a
-            id="cases-draft-all-rejected"
-            class="govuk-link"
-            [href]="allRejectedUrl()"
-            (click)="openAllRejected($event)"
-            >View all rejected cases</a
+            [id]="'cases-draft-' + item.tab + '-tab'"
+            class="moj-sub-navigation__link"
+            [href]="item.href"
+            [attr.aria-current]="navigation.selection().tab === item.tab ? 'page' : null"
+            (click)="activateTab($event, item.tab)"
           >
-        </p>
+            {{ item.label }}
+            @if (checkerCount(item.tab); as countState) {
+              @if (countState.status === 'success' && formatRejectedCount(countState.count)) {
+                <opal-lib-moj-notification-badge badge [badgeId]="'cases-draft-' + item.tab + '-count'">{{
+                  formatRejectedCount(countState.count)
+                }}</opal-lib-moj-notification-badge>
+              }
+            }
+            @if (
+              mode === 'inputter' &&
+              item.tab === 'rejected' &&
+              rejected &&
+              isCurrentIdentity(rejected.identity) &&
+              formatRejectedCount(rejected.count)
+            ) {
+              <opal-lib-moj-notification-badge badge badgeId="cases-draft-rejected-count">{{
+                formatRejectedCount(rejected.count)
+              }}</opal-lib-moj-notification-badge>
+            }
+          </a>
+        </li>
+      }
+    </opal-lib-moj-sub-navigation>
+    @if (mode === 'checker') {
+      @for (tab of outcomeTabs; track tab) {
+        @if (checkerCount(tab); as countState) {
+          @let label = tab === 'rejected' ? 'Rejected' : 'Failed';
+          @if (countState.status === 'idle' || countState.status === 'loading') {
+            <p
+              [id]="'cases-draft-' + tab + '-count-loading'"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              class="govuk-body"
+            >
+              Loading {{ label }} count.
+            </p>
+          } @else if (countState.status === 'failure') {
+            <p
+              [id]="'cases-draft-' + tab + '-count-failure'"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              class="govuk-body"
+            >
+              We could not load the {{ label }} count. Try again.
+            </p>
+            <button
+              type="button"
+              opalLibGovukButton
+              [buttonId]="'cases-draft-' + tab + '-count-retry'"
+              (click)="checker?.retryCount(tab)"
+            >
+              Retry loading {{ label }} count
+            </button>
+          }
+        }
       }
     }
-  }
+    <h2 id="cases-draft-selected-heading" tabindex="-1" class="govuk-heading-m">{{ selectedTabLabel() }}</h2>
+    @if (tabData$ | async; as result) {
+      @if (isCurrentData(result)) {
+        @if (result.failure) {
+          <div id="cases-draft-failure" role="status" aria-live="polite" aria-atomic="true">
+            <p class="govuk-body">We could not load these cases. Try again.</p>
+            @if (result.failure.correlationReference) {
+              <p class="govuk-body">Error code: {{ result.failure.correlationReference }}</p>
+            }
+          </div>
+          <button type="button" opalLibGovukButton buttonId="cases-draft-retry-list" (click)="checker?.retryList()">
+            Retry loading cases
+          </button>
+        } @else if (result.rows === null) {
+          <p id="cases-draft-loading" role="status" aria-live="polite" aria-atomic="true" class="govuk-body">
+            Loading {{ selectedTabLabel() }} cases.
+          </p>
+        } @else if (result.rows.length === 0) {
+          <p id="cases-draft-empty" class="govuk-body">{{ emptyMessage() }}</p>
+        } @else {
+          <app-cases-draft-table
+            [rows]="result.rows"
+            [selection]="navigation.selection()"
+            (sortChanged)="changeSort($event)"
+            (pageChanged)="changePage($event)"
+            (rowOpened)="openRow($event)"
+          />
+        }
+        @if (mode === 'inputter' && result.tab === 'rejected' && result.rows !== null) {
+          <p class="govuk-body">
+            <a
+              id="cases-draft-all-rejected"
+              class="govuk-link"
+              [href]="allRejectedUrl()"
+              (click)="openAllRejected($event)"
+              >View all rejected cases</a
+            >
+          </p>
+        }
+      }
+    }
+  </div>
 </div>

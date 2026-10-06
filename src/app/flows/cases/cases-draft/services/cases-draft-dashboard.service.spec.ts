@@ -1,7 +1,8 @@
+import { CASES_DRAFT_CHECKER_HTTP_ERROR } from '../constants/cases-draft-checker-http-error.token';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
@@ -79,14 +80,18 @@ describe('stateless dashboard data', () => {
     ] as const)('consults scoped checker %s', async (tab, status) => {
       await firstValueFrom(service.getList(identity, tab));
       expect(dates.getDateRange).toHaveBeenCalledWith(7, 0);
-      expect(api.getDraftCasefiles).toHaveBeenCalledWith({
-        business_unit_id: 44,
-        not_submitted_by: identity.submittedBy,
-        casefile_status: status,
-        ...(tab === 'deleted'
-          ? { casefile_status_from_date: '2026-09-29', casefile_status_to_date: '2026-10-06' }
-          : {}),
-      });
+      expect(api.getDraftCasefiles).toHaveBeenCalledWith(
+        {
+          business_unit_id: 44,
+          not_submitted_by: identity.submittedBy,
+          casefile_status: status,
+          ...(tab === 'deleted'
+            ? { casefile_status_from_date: '2026-09-29', casefile_status_to_date: '2026-10-06' }
+            : {}),
+        },
+        expect.any(HttpContext),
+      );
+      expect(api.getDraftCasefiles.mock.calls[0][1].get(CASES_DRAFT_CHECKER_HTTP_ERROR)).toBe(true);
     });
     it.each([
       ['rejected', 'REJECTED'],
@@ -97,11 +102,15 @@ describe('stateless dashboard data', () => {
       expect(await firstValueFrom(source)).toBe(101);
       expect(await firstValueFrom(source)).toBe(101);
       expect(api.getDraftCasefileCount).toHaveBeenCalledTimes(2);
-      expect(api.getDraftCasefileCount).toHaveBeenCalledWith({
-        business_unit_id: 44,
-        not_submitted_by: identity.submittedBy,
-        casefile_status: status,
-      });
+      expect(api.getDraftCasefileCount).toHaveBeenCalledWith(
+        {
+          business_unit_id: 44,
+          not_submitted_by: identity.submittedBy,
+          casefile_status: status,
+        },
+        expect.any(HttpContext),
+      );
+      expect(api.getDraftCasefileCount.mock.calls[0][1].get(CASES_DRAFT_CHECKER_HTTP_ERROR)).toBe(true);
       expect(dates.getDateRange).not.toHaveBeenCalled();
     });
     it('cancels an outcome request when checker access is lost', () => {
@@ -129,11 +138,14 @@ describe('stateless dashboard data', () => {
     expect((await firstValueFrom(request)).count).toBe(1);
     await firstValueFrom(request);
     expect(api.getDraftCasefiles).toHaveBeenCalledTimes(2);
-    expect(api.getDraftCasefiles).toHaveBeenCalledWith({
-      business_unit_id: 44,
-      submitted_by: identity.submittedBy,
-      casefile_status: 'SUBMITTED,RESUBMITTED',
-    });
+    expect(api.getDraftCasefiles).toHaveBeenCalledWith(
+      {
+        business_unit_id: 44,
+        submitted_by: identity.submittedBy,
+        casefile_status: 'SUBMITTED,RESUBMITTED',
+      },
+      undefined,
+    );
   });
   it.each(['approved', 'deleted'] as const)('uses seven calendar days for %s', async (tab) => {
     await firstValueFrom(service.getList(identity, tab));
@@ -142,15 +154,19 @@ describe('stateless dashboard data', () => {
         casefile_status_from_date: '2026-09-29',
         casefile_status_to_date: '2026-10-06',
       }),
+      undefined,
     );
   });
   it('keeps inputter outcome counts in inclusion scope', async () => {
     expect(await firstValueFrom(service.getOutcomeCount(identity, 'rejected'))).toBe(101);
-    expect(api.getDraftCasefileCount).toHaveBeenCalledWith({
-      business_unit_id: 44,
-      submitted_by: identity.submittedBy,
-      casefile_status: 'REJECTED',
-    });
+    expect(api.getDraftCasefileCount).toHaveBeenCalledWith(
+      {
+        business_unit_id: 44,
+        submitted_by: identity.submittedBy,
+        casefile_status: 'REJECTED',
+      },
+      undefined,
+    );
   });
   it('returns the independent rejected count', async () => {
     expect(await firstValueFrom(service.getRejectedCount(identity))).toBe(7);

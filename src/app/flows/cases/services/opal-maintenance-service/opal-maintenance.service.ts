@@ -5,7 +5,7 @@ import type { IOpalMaintenanceDraftCasefileCountResponse } from './interfaces/op
 import { decodeDraftCasefileCount, decodeDraftCasefileList } from './utils/opal-maintenance-draft-casefile-response';
 import type { IOpalMaintenanceDraftCasefileRequest } from './interfaces/opal-maintenance-draft-casefile-request.interface';
 import type { IOpalMaintenanceDraftCasefileResponse } from './interfaces/opal-maintenance-draft-casefile-response.interface';
-import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
 import { defer, map, of, Observable, shareReplay, tap } from 'rxjs';
@@ -82,11 +82,12 @@ export class OpalMaintenanceService {
   /** Retrieves the complete selected collection without caching or automatic retries. */
   public getDraftCasefiles(
     params: IOpalMaintenanceDraftCasefileListParams,
+    context?: HttpContext,
   ): Observable<IOpalMaintenanceDraftCasefileListResponse> {
     return this.http
       .get<unknown>('/opal-maintenance-service/draft-casefiles', {
         params: this.draftQuery(params),
-        context: withoutHttpRetry(),
+        context: withoutHttpRetry(context),
       })
       .pipe(map(decodeDraftCasefileList));
   }
@@ -94,11 +95,12 @@ export class OpalMaintenanceService {
   /** Counts a scoped collection without fetching its summaries or retrying automatically. */
   public getDraftCasefileCount(
     params: IOpalMaintenanceDraftCasefileListParams,
+    context?: HttpContext,
   ): Observable<IOpalMaintenanceDraftCasefileCountResponse> {
     return this.http
       .get<unknown>('/opal-maintenance-service/draft-casefiles', {
         params: this.draftQuery(params).set('restrict', 'counts'),
-        context: withoutHttpRetry(),
+        context: withoutHttpRetry(context),
       })
       .pipe(map(decodeDraftCasefileCount));
   }

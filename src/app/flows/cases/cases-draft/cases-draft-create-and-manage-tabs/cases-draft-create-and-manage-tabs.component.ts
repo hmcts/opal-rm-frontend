@@ -39,7 +39,8 @@ import { CustomPageHeaderComponent } from '@hmcts/opal-frontend-common/component
 import { GovukButtonDirective } from '@hmcts/opal-frontend-common/directives/govuk-button';
 import { MojSubNavigationComponent } from '@hmcts/opal-frontend-common/components/moj/moj-sub-navigation';
 import { MojNotificationBadgeComponent } from '@hmcts/opal-frontend-common/components/moj/moj-notification-badge';
-import { CASES_DRAFT_TABS } from '../constants/cases-draft-tabs.constant';
+import { getCasesDraftTabMetadata } from '../utils/cases-draft-tab-metadata';
+import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import { CasesDraftDashboardService } from '../services/cases-draft-dashboard.service';
 import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
 import { CasesDraftTableComponent } from '../cases-draft-table/cases-draft-table.component';
@@ -70,6 +71,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../../cases-create-casefile
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
+  private readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
   private readonly dashboardRouter = inject(Router);
   private readonly destroy$ = new Subject<void>();
   private readonly injector = inject(Injector);
@@ -82,12 +84,16 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
   public readonly tabLinks = computed(() =>
     this.tabs.map((tab) => ({
       tab,
-      label: CASES_DRAFT_TABS[tab].label,
+      label: getCasesDraftTabMetadata(tab, this.mode).label,
       href: this.dashboardRouter.serializeUrl(this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab))),
     })),
   );
-  public readonly selectedTabLabel = computed(() => CASES_DRAFT_TABS[this.navigation.selection().tab].label);
-  public readonly emptyMessage = computed(() => CASES_DRAFT_TABS[this.navigation.selection().tab].empty);
+  public readonly selectedTabLabel = computed(
+    () => getCasesDraftTabMetadata(this.navigation.selection().tab, this.mode).label,
+  );
+  public readonly emptyMessage = computed(
+    () => getCasesDraftTabMetadata(this.navigation.selection().tab, this.mode).empty,
+  );
   public readonly allRejectedUrl = computed(() =>
     this.dashboardRouter.serializeUrl(this.navigation.placeholderUrl('rejections')),
   );

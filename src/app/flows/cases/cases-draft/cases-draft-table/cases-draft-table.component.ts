@@ -1,15 +1,4 @@
-import {
-  afterNextRender,
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  ElementRef,
-  inject,
-  Injector,
-  input,
-  output,
-  viewChildren,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   MojSortableTableComponent,
@@ -18,6 +7,9 @@ import {
   MojSortableTableRowDataComponent,
   MojSortableTableStatusComponent,
 } from '@hmcts/opal-frontend-common/components/moj/moj-sortable-table';
+import { AbstractSortableTablePaginationComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table-pagination';
+import type { IAbstractTableData } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/interfaces';
+import type { SortableValuesType } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
 import { MojPaginationComponent } from '@hmcts/opal-frontend-common/components/moj/moj-pagination';
 import { DaysAgoPipe } from '@hmcts/opal-frontend-common/pipes/days-ago';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
@@ -25,7 +17,7 @@ import { CASES_DRAFT_TABS } from '../constants/cases-draft-tabs.constant';
 import type { ICasesDraftRow } from '../interfaces/cases-draft-row.interface';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
-import type { CasesDraftSortDirection } from '../types/cases-draft-sort-direction.type';
+import type { SortDirectionType } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
 import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
 import { sortCasesDraftRows } from '../utils/cases-draft-sort';
 
@@ -43,48 +35,24 @@ import { sortCasesDraftRows } from '../utils/cases-draft-sort';
   templateUrl: './cases-draft-table.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CasesDraftTableComponent {
+export class CasesDraftTableComponent extends AbstractSortableTablePaginationComponent {
   private readonly router = inject(Router);
   private readonly navigation = inject(CasesDraftNavigationService);
-  private readonly injector = inject(Injector);
-  private readonly firstCells = viewChildren('pageFocus', { read: ElementRef<HTMLElement> });
+  private readonly rowsById = computed(() => new Map(this.rows().map((row) => [row.id, row])));
   public readonly dates = inject(DateService);
   public readonly rows = input.required<readonly ICasesDraftRow[]>();
   public readonly selection = input.required<ICasesDraftNavigation>();
-  public readonly sortChanged = output<{ key: CasesDraftSortColumn; direction: CasesDraftSortDirection }>();
+  public readonly sortChanged = output<{ key: CasesDraftSortColumn; direction: ICasesDraftNavigation['direction'] }>();
   public readonly pageChanged = output<number>();
   public readonly rowOpened = output<number>();
-  public readonly sortedRows = computed(() =>
-    sortCasesDraftRows(this.rows(), this.selection().sort, this.selection().direction),
-  );
-  public readonly clampedPage = computed(() =>
-    Math.max(1, Math.min(this.selection().page, Math.ceil(this.rows().length / 25))),
-  );
-  public readonly visibleRows = computed(() =>
-    this.sortedRows().slice((this.clampedPage() - 1) * 25, this.clampedPage() * 25),
-  );
+  public override paginationPageTitle = 'Create cases';
   public readonly displayRows = computed(() =>
-    this.visibleRows().map((row) => ({
-      ...row,
-      detailHref: this.router.serializeUrl(this.navigation.placeholderUrl('details', row.id)),
-    })),
+    this.paginatedTableDataComputed().map((item) => {
+      const row = this.rowsById().get(Number(item['id']))!;
+      return { ...row, detailHref: this.router.serializeUrl(this.navigation.placeholderUrl('details', row.id)) };
+    }),
   );
   public readonly tableCaption = computed(() => CASES_DRAFT_TABS[this.selection().tab].label + ' cases');
-  public readonly sortState = computed(
-    () =>
-      ({
-        respondent: 'none',
-        applicant: 'none',
-        caseType: 'none',
-        created: 'none',
-        statusDate: 'none',
-        respondentAccount: 'none',
-        applicantAccount: 'none',
-        minorCreditorAccounts: 'none',
-        approved: 'none',
-        [this.selection().sort]: this.selection().direction,
-      }) as Record<CasesDraftSortColumn, CasesDraftSortDirection | 'none'>,
-  );
   public readonly sortTitle = computed(
     () =>
       ({
@@ -99,22 +67,70 @@ export class CasesDraftTableComponent {
         approved: 'Approved',
       })[this.selection().sort],
   );
-  public readonly pageAnnouncement = computed(
-    () =>
-      `Page ${this.clampedPage()} of ${Math.max(1, Math.ceil(this.rows().length / 25))}, showing cases ${this.rows().length ? (this.clampedPage() - 1) * 25 + 1 : 0} to ${Math.min(this.clampedPage() * 25, this.rows().length)} of ${this.rows().length}`,
-  );
-  public onSort(event: { key: string; sortType: CasesDraftSortDirection }): void {
-    const columns: readonly string[] = CASES_DRAFT_TABS[this.selection().tab].columns;
-    if (columns.includes(event.key))
-      this.sortChanged.emit({ key: event.key as CasesDraftSortColumn, direction: event.sortType });
+  public readonly pageAnnouncement = computed(() => {
+    const count = this.sortedTableDataSignal().length;
+    return `Page ${this.currentPageSignal()} of ${Math.max(1, Math.ceil(count / this.itemsPerPageSignal()))}, showing cases ${count ? this.startIndexComputed() : 0} to ${this.endIndexComputed()} of ${count}`;
+  });
+
+  constructor() {
+    super();
+    effect(() => {
+      const rows = this.rows();
+      const selection = this.selection();
+      untracked(() => this.applySelection(rows, selection));
+    });
   }
+
+  private applySelection(rows: readonly ICasesDraftRow[], selection: ICasesDraftNavigation): void {
+    this.itemsPerPageSignal.set(25);
+    this.setTableData(this.tableData(rows));
+    this.applyFilterState();
+    this.sortStateSignal.set(
+      Object.fromEntries(CASES_DRAFT_TABS[selection.tab].columns.map((column) => [column, 'none'])),
+    );
+    if (selection.direction === 'none') {
+      this.sortedTableDataSignal.set(this.tableData(rows));
+      this.sortedColumnTitleSignal.set('');
+      this.sortedColumnDirectionSignal.set('none');
+    } else {
+      this.applySort(selection.sort, selection.direction);
+    }
+    this.currentPageSignal.set(Math.max(1, Math.min(selection.page, Math.ceil(rows.length / 25))));
+  }
+
+  /** Shared scalar table data keeps the original creditor sequence available for display and RM comparison. */
+  private tableData(rows: readonly ICasesDraftRow[]): IAbstractTableData<SortableValuesType>[] {
+    return rows.map((row) => ({ ...row, minorCreditorAccounts: row.minorCreditorAccounts.join(', ') }));
+  }
+
+  /** The base owns sort state/page reset; RM additionally requires missing-last, numeric and sequence ordering. */
+  private applySort(column: CasesDraftSortColumn, direction: 'ascending' | 'descending'): void {
+    super.onSortChange({ key: column, sortType: direction });
+    this.sortedTableDataSignal.set(this.tableData(sortCasesDraftRows(this.rows(), column, direction)));
+  }
+
+  /** Restore the controlled URL selection when a sort or page navigation is cancelled. */
+  public restoreSelection(): void {
+    this.applySelection(this.rows(), this.selection());
+  }
+
+  public override onSortChange(event: { key: string; sortType: SortDirectionType }): void {
+    const columns: readonly string[] = CASES_DRAFT_TABS[this.selection().tab].columns;
+    if (!columns.includes(event.key) || event.sortType === 'none') return;
+    const column = event.key as CasesDraftSortColumn;
+    this.applySort(column, event.sortType);
+    this.sortChanged.emit({ key: column, direction: event.sortType });
+  }
+
+  public override onPageChange(page: number): void {
+    const previous = this.currentPageSignal();
+    super.onPageChange(page);
+    if (this.currentPageSignal() !== previous) this.pageChanged.emit(this.currentPageSignal());
+  }
+
   public openRespondent(event: MouseEvent, id: number): void {
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     this.rowOpened.emit(id);
-  }
-  /** Called only after accepted user paging; background refreshes never move focus. */
-  public focusFirstRow(): void {
-    afterNextRender(() => this.firstCells()[0]?.nativeElement.focus(), { injector: this.injector });
   }
 }

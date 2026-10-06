@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
+import { casesDraftTabResolver } from './resolvers/cases-draft-tab.resolver';
+import { casesDraftCountResolver } from './resolvers/cases-draft-count.resolver';
 import { CASES_DRAFT_ROUTING_PATHS } from './constants/cases-draft-routing-paths.constant';
 
 export const routing: Routes = [
@@ -11,7 +13,7 @@ export const routing: Routes = [
         (module) => module.CasesDraftCreateAndManageTabsComponent,
       ),
     data: { title: 'Create cases' },
-    resolve: { title: TitleResolver },
+    resolve: { title: TitleResolver, draftCasefiles: casesDraftTabResolver, rejectedCount: casesDraftCountResolver },
   },
   {
     path: CASES_DRAFT_ROUTING_PATHS.children.rejections,

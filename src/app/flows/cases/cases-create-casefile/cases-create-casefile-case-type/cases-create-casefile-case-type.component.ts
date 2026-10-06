@@ -1,18 +1,14 @@
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
-import { Router, NavigationCancel, NavigationCancellationCode } from '@angular/router';
+import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
 import {
-  afterNextRender,
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  inject,
-  Injector,
-  OnInit,
-  signal,
-  viewChild,
-} from '@angular/core';
+  GENERIC_HTTP_ERROR_MESSAGE,
+  GENERIC_HTTP_ERROR_TITLE,
+} from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
@@ -44,28 +40,12 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly dashboardNavigation = inject(CasesDraftNavigationService);
-  private readonly injector = inject(Injector);
-  private readonly cancelError = viewChild<ElementRef<HTMLElement>>('cancelError');
-  private cancelRejectedByGuard = false;
+  private readonly globalStore = inject(GlobalStore);
   public readonly cancelling = signal(false);
-  public readonly cancelNavigationFailed = signal(false);
 
   public readonly focusHeadingOnArrival =
     this.arrivalNavigation?.trigger === 'imperative' &&
     this.arrivalNavigation.extras.state?.['focusCaseTypeHeading'] === true;
-
-  constructor() {
-    super();
-    this.cancelRouter.events.pipe(takeUntilDestroyed()).subscribe((event) => {
-      if (
-        this.cancelling() &&
-        event instanceof NavigationCancel &&
-        event.code === NavigationCancellationCode.GuardRejected
-      ) {
-        this.cancelRejectedByGuard = true;
-      }
-    });
-  }
 
   private isCaseType(value: unknown): value is CasesCreateCasefileCaseType {
     return Object.values(CASES_CREATE_CASEFILE_CASE_TYPES).includes(value as CasesCreateCasefileCaseType);
@@ -144,18 +124,19 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
   public async handleCancel(): Promise<void> {
     if (this.cancelling()) return;
     this.cancelling.set(true);
-    this.cancelNavigationFailed.set(false);
-    this.cancelRejectedByGuard = false;
     try {
-      const success = await this.cancelRouter.navigateByUrl(this.dashboardNavigation.creationReturnUrl());
-      this.cancelNavigationFailed.set(!success && !this.cancelRejectedByGuard);
-    } catch {
-      this.cancelNavigationFailed.set(true);
+      await this.cancelRouter.navigateByUrl(this.dashboardNavigation.creationReturnUrl());
+    } catch (error: unknown) {
+      if (!(error instanceof HttpErrorResponse)) {
+        this.globalStore.setBannerError({
+          ...GLOBAL_ERROR_STATE,
+          error: true,
+          title: GENERIC_HTTP_ERROR_TITLE,
+          message: GENERIC_HTTP_ERROR_MESSAGE,
+        });
+      }
     } finally {
       this.cancelling.set(false);
-      if (this.cancelNavigationFailed()) {
-        afterNextRender(() => this.cancelError()?.nativeElement.focus(), { injector: this.injector });
-      }
     }
   }
 }

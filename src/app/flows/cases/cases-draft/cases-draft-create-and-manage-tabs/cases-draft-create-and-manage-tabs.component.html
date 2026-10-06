@@ -9,6 +9,7 @@
         </button></ng-container
       ></opal-lib-custom-page-header
     >
+    @let rejected = rejectedCount$ | async;
     <opal-lib-moj-sub-navigation subNavId="cases-draft-tabs">
       @for (item of tabLinks(); track item.tab) {
         <li class="moj-sub-navigation__item">
@@ -18,112 +19,52 @@
             [href]="item.href"
             [attr.aria-current]="navigation.selection().tab === item.tab ? 'page' : null"
             (click)="activateTab($event, item.tab)"
-            >{{ item.label }}
-            @if (item.tab === 'rejected' && data.badge().status === 'ready' && data.badge().label) {
+          >
+            {{ item.label }}
+            @if (
+              item.tab === 'rejected' &&
+              rejected &&
+              isCurrentIdentity(rejected.identity) &&
+              formatRejectedCount(rejected.count)
+            ) {
               <opal-lib-moj-notification-badge badge badgeId="cases-draft-rejected-count">{{
-                data.badge().label
+                formatRejectedCount(rejected.count)
               }}</opal-lib-moj-notification-badge>
             }
           </a>
         </li>
       }
     </opal-lib-moj-sub-navigation>
-    <h2 #sectionHeading id="cases-draft-selected-heading" tabindex="-1" class="govuk-heading-m">
-      {{ selectedTabLabel() }}
-    </h2>
-    @if (navigationFailed()) {
-      <div
-        #navigationError
-        id="cases-draft-navigation-error"
-        class="govuk-error-summary"
-        role="alert"
-        tabindex="-1"
-        aria-labelledby="cases-draft-navigation-error-title"
-      >
-        <h2 id="cases-draft-navigation-error-title" class="govuk-error-summary__title">There is a problem</h2>
-        <p class="govuk-body">The page could not be opened. Try again.</p>
-      </div>
-    }
-    <p
-      #badgeLoading
-      id="cases-draft-badge-loading"
-      tabindex="-1"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      class="govuk-body"
-    >
-      @if (badgeRetryPending() && data.badge().status === 'loading') {
-        Loading rejected case count.
-      }
-    </p>
-    @if (navigation.selection().tab !== 'rejected' && data.badge().status === 'error') {
-      <div id="cases-draft-badge-error">
-        <p class="govuk-body">The rejected case count could not be loaded. Try again.</p>
-        @if (data.badge().correlationReference) {
-          <p class="govuk-body">Reference: {{ data.badge().correlationReference }}</p>
+    <h2 id="cases-draft-selected-heading" tabindex="-1" class="govuk-heading-m">{{ selectedTabLabel() }}</h2>
+    @if (tabData$ | async; as result) {
+      @if (isCurrentData(result)) {
+        @if (result.rows === null) {
+          <p id="cases-draft-loading" role="status" aria-live="polite" aria-atomic="true" class="govuk-body">
+            Loading {{ selectedTabLabel() }} cases.
+          </p>
+        } @else if (result.rows.length === 0) {
+          <p id="cases-draft-empty" class="govuk-body">{{ emptyMessage() }}</p>
+        } @else {
+          <app-cases-draft-table
+            [rows]="result.rows"
+            [selection]="navigation.selection()"
+            (sortChanged)="changeSort($event)"
+            (pageChanged)="changePage($event)"
+            (rowOpened)="openRow($event)"
+          />
         }
-        <button
-          type="button"
-          opalLibGovukButton
-          buttonId="cases-draft-badge-retry"
-          #badgeRetryButton
-          (click)="retryBadge()"
-        >
-          Retry rejected case count
-        </button>
-      </div>
-    }
-    <p
-      #loading
-      id="cases-draft-loading"
-      tabindex="-1"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      class="govuk-body"
-    >
-      @if (data.list().status === 'loading') {
-        Loading {{ selectedTabLabel() }} cases.
-      }
-    </p>
-    @if (data.list().status === 'error') {
-      <div
-        #listError
-        id="cases-draft-list-error"
-        class="govuk-error-summary"
-        role="alert"
-        tabindex="-1"
-        aria-labelledby="cases-draft-list-error-title"
-      >
-        <h2 id="cases-draft-list-error-title" class="govuk-error-summary__title">There is a problem</h2>
-        <p class="govuk-body">Your cases could not be loaded. Try again.</p>
-        @if (data.list().correlationReference) {
-          <p class="govuk-body">Reference: {{ data.list().correlationReference }}</p>
+        @if (result.tab === 'rejected' && result.rows !== null) {
+          <p class="govuk-body">
+            <a
+              id="cases-draft-all-rejected"
+              class="govuk-link"
+              [href]="allRejectedUrl()"
+              (click)="openAllRejected($event)"
+              >View all rejected cases</a
+            >
+          </p>
         }
-        <button type="button" opalLibGovukButton buttonId="cases-draft-list-retry" (click)="retryList()">Retry</button>
-      </div>
-    }
-    @if (data.list().status === 'empty') {
-      <p id="cases-draft-empty" class="govuk-body">{{ emptyMessage() }}</p>
-    }
-    @if (data.list().status === 'ready') {
-      <app-cases-draft-table
-        [rows]="data.list().rows"
-        [selection]="navigation.selection()"
-        (sortChanged)="changeSort($event)"
-        (pageChanged)="changePage($event)"
-        (rowOpened)="openRow($event)"
-      />
-    }
-    @if (
-      navigation.selection().tab === 'rejected' && (data.list().status === 'ready' || data.list().status === 'empty')
-    ) {
-      <p class="govuk-body">
-        <a id="cases-draft-all-rejected" class="govuk-link" [href]="allRejectedUrl()" (click)="openAllRejected($event)"
-          >View all rejected cases</a
-        >
-      </p>
+      }
     }
   </div>
 </div>

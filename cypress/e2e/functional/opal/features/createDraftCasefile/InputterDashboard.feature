@@ -47,14 +47,28 @@ Feature: Inputter casefile dashboard
       | dismiss  | retained |
 
   @JIRA-STORY:PO-10605
-  Scenario: Retry collection and rejected count independently
-    Given my inputter list and rejected count temporarily fail
+  Scenario: Initial list resolver failure preserves the current page and later arrival succeeds
+    Given my initial inputter list consultation fails once
+    When I enter the inputter dashboard from the current Cases page
+    Then dashboard arrival is cancelled and the application error banner is shown
+    When I enter the inputter dashboard from the current Cases page
+    Then a later navigation shows all inputter tabs and the rejected count
+
+  @JIRA-STORY:PO-10605
+  Scenario: Initial rejected count failure preserves the resolved list and every lifecycle tab
+    Given my initial rejected count consultation fails once
+    When I enter the inputter dashboard from the current Cases page
+    Then the resolved list remains available without a rejected count badge
+
+  @JIRA-STORY:PO-10605
+  Scenario: A later failed tab hides stale cases and another tab recovers
+    Given my inputter casefile collection is available
     When I open the inputter dashboard
-    Then the list error is announced and both retries are available
-    When I retry the inputter list using the keyboard
-    Then my inputter list is restored while the count error remains
-    When I retry the rejected count using the keyboard
-    Then the rejected count is restored without reloading the list
+    Given the next inputter tab consultation will fail
+    When I select Approved using the keyboard
+    Then the failed tab hides previous cases and reports through the application banner
+    When I select Deleted using the keyboard
+    Then the Deleted cases are shown after the failed consultation
 
   @JIRA-STORY:PO-10605
   Scenario Outline: Persisted destinations expose a protected shell without fetching case data

@@ -1,4 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { HttpErrorResponse } from '@angular/common/http';
+import {
+  GENERIC_HTTP_ERROR_MESSAGE,
+  GENERIC_HTTP_ERROR_TITLE,
+} from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { Subject } from 'rxjs';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
 import {
@@ -28,6 +34,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileCaseTypeComponent>;
   let component: CasesCreateCasefileCaseTypeComponent;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
+  let globalStore: InstanceType<typeof GlobalStore>;
   const router = createSpyObj(Router, ['navigate', 'currentNavigation', 'lastSuccessfulNavigation', 'navigateByUrl']);
 
   const events = new Subject<NavigationCancel>();
@@ -52,7 +59,8 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     component = fixture.componentInstance;
     store = TestBed.inject(CasesCreateCasefileStore);
     store.resetStore();
-    fixture.detectChanges();
+    globalStore = TestBed.inject(GlobalStore);
+    globalStore.resetBannerError();
   });
 
   it.each(['imperative', 'popstate', 'ordinary'])('resets only for an intentional new-case arrival: %s', (trigger) => {
@@ -294,17 +302,39 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     expect(getState(store)).toEqual(before);
   });
 
-  it.each(['false', 'throw'])('shows a focused retryable error after %s cancellation failure', async (failure) => {
-    if (failure === 'false') router['navigateByUrl'].mockResolvedValueOnce(false);
-    else router['navigateByUrl'].mockRejectedValueOnce(new Error('Synthetic router failure'));
+  it('reports an unexpected cancellation navigation error through the global banner', async () => {
+    router['navigateByUrl'].mockRejectedValueOnce(new Error('Synthetic router failure'));
     await component.handleCancel();
     fixture.detectChanges();
-    await fixture.whenStable();
-    const error = fixture.nativeElement.querySelector('#create_casefile_case_type_cancel_error');
-    expect(error?.textContent).toContain('The page could not be opened. Try again.');
-    expect(document.activeElement).toBe(error);
+    expect(globalStore.bannerError()).toMatchObject({
+      error: true,
+      title: GENERIC_HTTP_ERROR_TITLE,
+      message: GENERIC_HTTP_ERROR_MESSAGE,
+    });
+    expect(fixture.nativeElement.querySelector('#create_casefile_case_type_cancel_error')).toBeNull();
+    expect(component.cancelling()).toBe(false);
+  });
+
+  it('does not display an error when cancellation navigation is cancelled', async () => {
+    router['navigateByUrl'].mockResolvedValueOnce(false);
     await component.handleCancel();
-    expect(component.cancelNavigationFailed()).toBe(false);
+    fixture.detectChanges();
+    expect(globalStore.bannerError().error).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('#create_casefile_case_type_cancel_error')).toBeNull();
+    expect(component.cancelling()).toBe(false);
+  });
+
+  it('preserves a resolver HTTP error already handled by the application', async () => {
+    globalStore.setBannerError({
+      error: true,
+      title: GENERIC_HTTP_ERROR_TITLE,
+      message: GENERIC_HTTP_ERROR_MESSAGE,
+      operationId: 'SYNTHETIC-REFERENCE',
+    });
+    router['navigateByUrl'].mockRejectedValueOnce(new HttpErrorResponse({ status: 500 }));
+    await component.handleCancel();
+    expect(globalStore.bannerError().operationId).toBe('SYNTHETIC-REFERENCE');
+    expect(component.cancelling()).toBe(false);
   });
 
   it('retains all data without an error after a dismissed unsaved-change prompt', async () => {
@@ -318,7 +348,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
       return false;
     });
     await component.handleCancel();
-    expect(component.cancelNavigationFailed()).toBe(false);
+    expect(globalStore.bannerError().error).toBeFalsy();
     expect(getState(store)).toEqual(before);
   });
 

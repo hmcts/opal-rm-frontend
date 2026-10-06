@@ -23,3 +23,16 @@ export function resolveCasesDraftIdentity(
     submittedBy: unit.business_unit_user_id,
   };
 }
+
+/** Compares the user and BU-user request scope without retaining personal casefile data. */
+export function sameCasesDraftIdentity(
+  current: ICasesDraftIdentity | null,
+  previous: ICasesDraftIdentity | null,
+): boolean {
+  if (!current || !previous) return current === previous;
+  return (
+    current.userId === previous.userId &&
+    current.businessUnitId === previous.businessUnitId &&
+    current.submittedBy === previous.submittedBy
+  );
+}

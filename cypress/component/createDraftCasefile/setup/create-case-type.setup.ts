@@ -1,4 +1,5 @@
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { EMPTY } from 'rxjs';
 import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
@@ -39,6 +40,7 @@ export const setupCreateCasefileCaseType = (
     return mount(CasesCreateCasefileCaseTypeComponent, {
       providers: [
         { provide: CasesCreateCasefileStore, useValue: store },
+        { provide: GlobalStore, useValue: { setBannerError: cy.stub().as('caseTypeGlobalBannerError') } },
         { provide: CasesDraftNavigationService, useValue: { creationReturnUrl: () => returnPath } },
         {
           provide: Router,

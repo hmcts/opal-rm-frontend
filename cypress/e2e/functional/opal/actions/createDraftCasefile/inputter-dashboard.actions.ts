@@ -150,7 +150,7 @@ export class InputterDashboardActions {
     cy.get('th[columnKey="applicant"]').should('have.attr', 'aria-sort', 'descending');
     cy.get(S.pagination).contains('a', '2').focus();
     pressDashboardEnter();
-    cy.get(S.pageStatus).should('contain.text', 'Page 2 of 2');
+    cy.get(S.pageStatus).should('contain.text', 'Create cases, page 2 of 2');
     cy.get(S.row(1)).should('be.visible');
     cy.get('@inputterCollection.all').should('have.length', 1);
   }
@@ -300,40 +300,75 @@ export class InputterDashboardActions {
     }
   }
 
-  /** Fails list and counts independently once before successful retry. */
-  public temporaryFailures(): void {
+  /** Fails the next initial list resolver while retaining the current Cases route. */
+  public initialListFailure(): void {
     this.available();
     this.listFailures = 1;
+    cy.visit('/dashboard/cases');
+  }
+  /** Fails the next rejected count resolver independently of the successful list. */
+  public initialCountFailure(): void {
+    this.available();
     this.badgeFailures = 1;
+    cy.visit('/dashboard/cases');
   }
-  /** Checks focused list error and independently available Retry actions. */
-  public expectErrors(): void {
-    cy.get(S.heading).should('be.focused');
-    cy.get(S.listError).should('contain.text', 'SYNTHETIC-RETRY').and('have.attr', 'role', 'alert');
-    cy.get(S.badgeRetry).should('be.visible');
-    cy.get(S.listRetry).should('be.visible');
-  }
-  /** Activates list Retry through native keyboard events. */
-  public retryList(): void {
-    cy.get(S.listRetry).focus();
+  /** Opens the dashboard from the already loaded Cases page. */
+  public openFromCases(): void {
+    cy.get(RELEASE.createCaseLink).focus();
     pressDashboardEnter();
   }
-  /** Checks list Retry leaves count failure untouched. */
-  public expectListRecovered(): void {
+  /** Checks a rejected resolver leaves the current route and reports through the app banner. */
+  public expectResolverFailure(): void {
+    cy.location('pathname').should('eq', '/dashboard/cases');
+    cy.get(CREATE.globalErrorBanner).should('be.visible');
+    cy.get(S.heading).should('not.exist');
+    cy.get(S.table).should('not.exist');
+    cy.get(S.obsoleteLocalControls).should('not.exist');
+  }
+  /** Checks independent count failure leaves the successful list and every lifecycle tab available. */
+  public expectCountFailure(): void {
+    this.expectDashboard('in-review');
     cy.get(S.table).should('be.visible');
-    cy.get(S.badgeError).should('be.visible');
-    cy.get(S.listError).should('not.exist');
-    cy.get('@inputterCollection.all').should('have.length', 3);
+    cy.get(CREATE.globalErrorBanner).should('be.visible');
+    cy.get(S.tabs).find('a').should('have.length', 4);
+    cy.get(S.tab('rejected')).should((element) => expect(element.text().trim()).to.equal('Rejected'));
+    cy.get(S.rejectedCount).should('not.exist');
+    cy.get(S.obsoleteLocalControls).should('not.exist');
   }
-  /** Activates rejected-count Retry through native keyboard events. */
-  public retryBadge(): void {
-    cy.get(S.badgeRetry).focus();
+  /** Checks a later accepted resolver navigation renders the real dashboard with all permanent tabs. */
+  public expectResolverRecovery(): void {
+    this.expectDashboard('in-review');
+    cy.get(S.table).should('be.visible');
+    for (const tab of Object.keys(CASES_DRAFT_TABS) as CasesDraftTab[])
+      cy.get(S.tab(tab)).should('be.visible').and('contain.text', CASES_DRAFT_TABS[tab].label);
+    cy.get(S.rejectedCount).should('contain.text', '26');
+    cy.get(S.obsoleteLocalControls).should('not.exist');
+  }
+  /** Rejects one subsequent fragment consultation after successful resolver entry. */
+  public failNextTab(): void {
+    this.listFailures = 1;
+  }
+  /** Selects a lifecycle tab using native keyboard events.
+   * @param tab Lifecycle fragment to activate. */
+  public selectTab(tab: CasesDraftTab): void {
+    cy.get(S.tab(tab)).focus();
     pressDashboardEnter();
   }
-  /** Checks count Retry does not reload the ready list. */
-  public expectBadgeRecovered(): void {
-    cy.get(S.badgeError).should('not.exist');
-    cy.get('#cases-draft-rejected-count').should('contain.text', '26');
+  /** Checks failed tab data cannot expose the prior table or a fabricated empty result. */
+  public expectFailedTab(): void {
+    this.expectDashboard('approved');
+    cy.get(CREATE.globalErrorBanner).should('be.visible');
+    cy.get(S.table).should('not.exist');
+    cy.get(S.empty).should('not.exist');
+    cy.get(S.tabs).find('a').should('have.length', 4);
+    cy.get(S.obsoleteLocalControls).should('not.exist');
+  }
+  /** Checks another tab recovers after an inner request error without reloading the dashboard. */
+  public expectRecoveredTab(): void {
+    this.expectDashboard('deleted');
+    cy.get(S.table).should('be.visible');
+    cy.get(S.row(1)).should('exist');
+    cy.get(S.obsoleteLocalControls).should('not.exist');
     cy.get('@inputterCollection.all').should('have.length', 4);
   }
 
@@ -409,21 +444,28 @@ export class InputterDashboardActions {
   }
 
   /** Supplies a representative dashboard accessibility state.
-   * @param state Loading, empty, populated, error or published data. */
+   * @param state Loading, empty, populated, global error or published data. */
   public state(state: string): void {
     this.available();
     if (state === 'empty') this.stubCollection('in-review', []);
-    if (state === 'error') {
-      this.listFailures = 1;
-      this.badgeFailures = 1;
-    }
-    if (state === 'loading') this.listDelay = 2000;
     if (state === 'published') this.stubCollection('approved', PUBLISHED_ROWS);
     this.open(state === 'published' ? 'approved' : 'in-review');
-    const stateSelectors: Record<string, string> = { empty: S.empty, error: S.listError, loading: S.loading };
-    cy.get(stateSelectors[state] ?? S.table).should('be.visible');
-    if (state === 'loading')
-      cy.get(S.loading).should('contain.text', 'Loading In review cases.').and('have.attr', 'aria-live', 'polite');
+    if (state === 'error') {
+      cy.get(S.table).should('be.visible');
+      cy.then(() => {
+        this.listFailures = 1;
+      });
+      this.selectTab('approved');
+      cy.get(CREATE.globalErrorBanner).should('be.visible');
+      cy.get(S.table).should('not.exist');
+    } else if (state === 'loading') {
+      cy.get(S.table).should('be.visible');
+      cy.then(() => {
+        this.listDelay = 2000;
+      });
+      this.selectTab('rejected');
+      cy.get(S.loading).should('contain.text', 'Loading Rejected cases.').and('have.attr', 'aria-live', 'polite');
+    } else cy.get(state === 'empty' ? S.empty : S.table).should('be.visible');
   }
   /** Captures every populated lifecycle table using native tab activation. */
   public screenshotTables(): void {

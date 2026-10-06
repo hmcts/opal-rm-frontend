@@ -21,6 +21,7 @@ describe('draft dashboard navigation parsing', () => {
     ['approved', { page: '-2', sort: 'approved', direction: 'ascending' }],
     ['approved', { page: '2', sort: 'respondent', direction: 'ascending' }],
     ['deleted', { page: '2', sort: 'statusDate', direction: 'sideways' }],
+    ['deleted', { page: '2', sort: 'statusDate', direction: 'none' }],
     ['rejected', { page: '1.5', sort: 'created', direction: 'ascending' }],
     ['', {}],
     ['toString', {}],

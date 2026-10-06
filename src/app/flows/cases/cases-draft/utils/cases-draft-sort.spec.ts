@@ -8,6 +8,12 @@ const row = (id: number, overrides: Partial<ReturnType<typeof mapCasesDraftRows>
 });
 
 describe('sortCasesDraftRows', () => {
+  it('preserves snapshot order when no column is sorted', () => {
+    const rows = [row(2), row(1)];
+    const sorted = sortCasesDraftRows(rows, 'created', 'none');
+    expect(sorted.map(({ id }) => id)).toEqual([2, 1]);
+    expect(sorted).not.toBe(rows);
+  });
   it.each([
     ['respondent', 'respondent', 'Zed', 'Amy'],
     ['applicant', 'applicant', 'Zed', 'Amy'],

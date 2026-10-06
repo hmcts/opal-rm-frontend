@@ -1,5 +1,5 @@
-import { Subject, of } from 'rxjs';
-import { setupInputterDashboard } from './setup/dashboard.setup';
+import { Subject, of, throwError } from 'rxjs';
+import { setupInputterDashboard, setupResolvedInputterDashboard } from './setup/dashboard.setup';
 import { dashboardFixtures } from './mocks/dashboard.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
@@ -26,7 +26,7 @@ describe('Inputter casefile dashboard', () => {
     }),
   );
   it('AC1. should render header button and permanent tabs in order', { tags: buildTags() }, () => {
-    setupInputterDashboard({ badgeError: true });
+    setupInputterDashboard({ rejectedCount: null });
     cy.get(S.heading).should('have.text', 'Create cases');
     cy.get(S.create).should((element) => expect(element.text().trim()).to.equal('Create a case'));
     cy.get(S.tabs)
@@ -50,13 +50,21 @@ describe('Inputter casefile dashboard', () => {
     cy.get(S.row(123)).find('a, button').should('not.exist');
   });
   it('AC3. should sort and paginate without another consultation', { tags: buildTags() }, () => {
-    setupInputterDashboard();
+    setupResolvedInputterDashboard();
     cy.get('@listRequest').should('have.been.calledOnce');
+    cy.get(S.sort('created')).closest('th').should('have.attr', 'aria-sort', 'ascending');
+    cy.get(S.sort('respondent')).closest('th').should('have.attr', 'aria-sort', 'none');
+    cy.get(S.sort('respondent')).click();
+    cy.get(S.sort('respondent')).closest('th').should('have.attr', 'aria-sort', 'ascending');
+    cy.get(S.sort('created')).closest('th').should('have.attr', 'aria-sort', 'none');
+    cy.get(S.sort('respondent')).click();
+    cy.get(S.sort('respondent')).closest('th').should('have.attr', 'aria-sort', 'descending');
+    cy.get(S.table).find('tbody tr').first().should('have.attr', 'data-draft-id', '26');
     cy.get(S.sort('respondent')).click();
     cy.get(S.sort('respondent')).closest('th').should('have.attr', 'aria-sort', 'ascending');
     cy.get(S.pagination).contains('a', 'Next').click();
     cy.get(S.row(26)).should('be.visible');
-    cy.get(S.pageStatus).should('contain.text', 'Page 2 of 2, showing cases 26 to 26 of 26');
+    cy.get(S.pageStatus).should('contain.text', 'Create cases, page 2 of 2');
     cy.get('@listRequest').should('have.been.calledOnce');
   });
   it('AC2. should exclude queued publishing rows', { tags: buildTags() }, () => {
@@ -76,28 +84,88 @@ describe('Inputter casefile dashboard', () => {
     cy.get('@routerNavigate').should('have.been.calledOnce');
     cy.get('@countRequest').should('not.have.been.called');
   });
-  it('AC7. should retry list and badge independently and retain tabs', { tags: buildTags() }, () => {
-    setupInputterDashboard({ listError: true, badgeError: true });
-    cy.get(S.listError).should('contain.text', 'SYNTHETIC-REFERENCE');
-    cy.get('@listRequest').then((request) =>
-      (request as unknown as sinon.SinonStub).returns(of({ count: 0, summaries: [] })),
-    );
-    cy.get(S.listRetry).click();
-    cy.get(S.empty).should('be.visible');
-    cy.get('@countRequest').should('have.been.calledOnce');
-    cy.get(S.badgeRetry).click();
-    cy.get('@countRequest').should('have.been.calledTwice');
-    cy.get('@listRequest').should('have.been.calledTwice');
+  it(
+    'AC2. should render initially resolved Approved data without a duplicate consultation',
+    { tags: buildTags() },
+    () => {
+      setupResolvedInputterDashboard({ tab: 'approved', rows: dashboardFixtures.published });
+      cy.get(S.row(123)).should('be.visible');
+      cy.get(S.tab('approved')).should('have.attr', 'aria-current', 'page');
+      cy.get('@listRequest').should('have.been.calledOnce');
+      cy.get('@countRequest').should('have.been.calledOnce');
+    },
+  );
+  it('AC4. should obtain the initial Rejected badge from its resolved list', { tags: buildTags() }, () => {
+    setupResolvedInputterDashboard({ tab: 'rejected' });
+    cy.get(S.table).should('be.visible');
+    cy.get(S.tab('rejected')).should('contain.text', '26');
+    cy.get('@listRequest').should('have.been.calledOnce');
+    cy.get('@countRequest').should('not.have.been.called');
   });
-  it('AC7. should hide stale rows and empty messages during consultation', { tags: buildTags() }, () => {
-    setupInputterDashboard({ listError: true });
-    cy.get(S.listError).should('be.visible');
+  it(
+    'AC7. should render resolved cases and retain Rejected after an independent count failure',
+    { tags: buildTags() },
+    () => {
+      setupResolvedInputterDashboard({ countError: true });
+      cy.get(S.table).should('be.visible');
+      cy.get(S.tabs).find('a').should('have.length', 4);
+      cy.get(S.tab('rejected')).should((element) => expect(element.text().trim()).to.equal('Rejected'));
+      cy.get(S.rejectedCount).should('not.exist');
+      cy.get('@globalBannerError').should('have.been.calledOnce');
+      cy.get(S.obsoleteLocalControls).should('not.exist');
+      cy.get('@listRequest').should('have.been.calledOnce');
+      cy.get('@countRequest').should('have.been.calledOnce');
+    },
+  );
+  it(
+    'AC7. should clear a failed tab and recover through another tab using the global error boundary',
+    { tags: buildTags() },
+    () => {
+      setupInputterDashboard();
+      cy.get(S.table).should('be.visible');
+      cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) =>
+        request.returns(throwError(() => new Error('Synthetic decoding failure'))),
+      );
+      cy.get(S.tab('approved')).click();
+      cy.get('@globalBannerError').should('have.been.calledOnce');
+      cy.get(S.table).should('not.exist');
+      cy.get(S.empty).should('not.exist');
+      cy.get(S.tabs).find('a').should('have.length', 4);
+      cy.get(S.obsoleteLocalControls).should('not.exist');
+      cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) =>
+        request.returns(of({ count: 0, summaries: [] })),
+      );
+      cy.get(S.tab('deleted')).click();
+      cy.get(S.empty).should('have.text', messages.deleted);
+      cy.get('@listRequest').should('have.been.calledTwice');
+    },
+  );
+  it('AC7. should hide stale rows and empty messages during a pending tab consultation', { tags: buildTags() }, () => {
+    setupInputterDashboard();
+    cy.get(S.table).should('be.visible');
     const pending = new Subject();
-    cy.get('@listRequest').then((request) => (request as unknown as sinon.SinonStub).returns(pending));
-    cy.get(S.listRetry).click();
-    cy.get(S.loading).should('contain.text', 'Loading In review cases.');
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) => request.returns(pending));
+    cy.get(S.tab('approved')).click();
+    cy.get(S.loading).should('contain.text', 'Loading Approved cases.');
     cy.get(S.empty).should('not.exist');
     cy.get(S.table).should('not.exist');
+  });
+  it('AC7. should cancel a superseded request and ignore its late rows', { tags: buildTags() }, () => {
+    setupInputterDashboard();
+    const pending = new Subject<{ count: number; summaries: typeof dashboardFixtures.published }>();
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) => request.onFirstCall().returns(pending));
+    cy.get(S.tab('approved')).click();
+    cy.get(S.loading).should('be.visible');
+    cy.get(S.tab('rejected')).click();
+    cy.get(S.table).should('be.visible');
+    cy.then(() => {
+      expect(pending.observed, 'superseded tab consultation unsubscribed').to.equal(false);
+      pending.next({ count: 1, summaries: dashboardFixtures.published });
+      pending.complete();
+    });
+    cy.get(S.tab('rejected')).should('have.attr', 'aria-current', 'page');
+    cy.get(S.row(123)).should('not.exist');
+    cy.get(S.row(1)).should('exist');
   });
   it('AC1. should retain Rejected without an empty badge when its known count is zero', { tags: buildTags() }, () => {
     setupInputterDashboard({ rejectedCount: 0 });

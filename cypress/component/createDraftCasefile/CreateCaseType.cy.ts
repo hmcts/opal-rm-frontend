@@ -222,22 +222,21 @@ describe('Create Casefile Case Type', () => {
 
   for (const failure of ['false', 'throw'] as const) {
     it(
-      `PO-10605. retries ${failure} cancellation failure with a focused accessible error`,
+      `PO-10605. retains form state after ${failure} cancellation and allows another attempt`,
       { tags: buildTags() },
       () => {
         setupCreateCasefileCaseType(null, failure);
         cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).check();
         cy.get(Page.applicantType).select(CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL);
         cy.get(Page.cancelLink).click();
-        cy.get(Page.caseTypeCancelError)
-          .should('be.focused')
-          .and('have.attr', 'role', 'alert')
-          .and('contain.text', 'The page could not be opened. Try again.');
+        cy.get(Page.caseTypeCancelError).should('not.exist');
+        if (failure === 'throw') cy.get('@caseTypeGlobalBannerError').should('have.been.calledOnce');
+        else cy.get('@caseTypeGlobalBannerError').should('not.have.been.called');
         cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).should('be.checked');
         cy.get(Page.applicantTypeSelectedOption).should('have.text', CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL);
         cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
         cy.checkA11y(undefined, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] } });
-        cy.screenshot(`po-10605-case-type-cancel-${failure}-error`);
+        cy.screenshot(`po-10605-case-type-cancel-${failure}-global-error`);
         cy.get<Cypress.Agent<sinon.SinonStub>>('@cancelRouterNavigate').then((navigate) => navigate.resolves(true));
         cy.get(Page.cancelLink).focus();
         pressDashboardEnter();

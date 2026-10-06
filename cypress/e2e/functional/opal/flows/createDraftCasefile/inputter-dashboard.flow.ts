@@ -1,3 +1,4 @@
+import type { CasesDraftTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import { InputterDashboardActions } from '../../actions/createDraftCasefile/inputter-dashboard.actions';
 
 /** Exposes business journeys; HTTP and page details remain in the actions. */
@@ -82,33 +83,50 @@ export class InputterDashboardFlow {
   public expectCaseTypeCancellation(outcome: string): void {
     this.actions.expectCaseTypeCancellation(outcome);
   }
-  /** Fails list and counts independently once before successful retry. */
-  public temporaryFailures(): void {
-    this.actions.temporaryFailures();
+  /** Fails the next initial list resolver while retaining the current Cases route. */
+  public initialListFailure(): void {
+    this.actions.initialListFailure();
   }
-  /** Opens a canonical dashboard fragment. */
+  /** Fails the next rejected count resolver independently of the successful list. */
+  public initialCountFailure(): void {
+    this.actions.initialCountFailure();
+  }
+  /** Opens the canonical default dashboard directly. */
   public open(): void {
     this.actions.open();
   }
-  /** Checks focused list error and independently available Retry actions. */
-  public expectErrors(): void {
-    this.actions.expectErrors();
+  /** Enters the dashboard through its current landing link. */
+  public openFromCases(): void {
+    this.actions.openFromCases();
   }
-  /** Activates list Retry through native keyboard events. */
-  public retryList(): void {
-    this.actions.retryList();
+  /** Checks resolver failure reports through the global app banner without route arrival. */
+  public expectResolverFailure(): void {
+    this.actions.expectResolverFailure();
   }
-  /** Checks list Retry leaves count failure untouched. */
-  public expectListRecovered(): void {
-    this.actions.expectListRecovered();
+  /** Checks rejected count failure leaves the successful cases and all lifecycle tabs available. */
+  public expectCountFailure(): void {
+    this.actions.expectCountFailure();
   }
-  /** Activates rejected-count Retry through native keyboard events. */
-  public retryBadge(): void {
-    this.actions.retryBadge();
+  /** Checks a later accepted navigation can render the real dashboard after resolver failure. */
+  public expectResolverRecovery(): void {
+    this.actions.expectResolverRecovery();
   }
-  /** Checks count Retry does not reload the ready list. */
-  public expectBadgeRecovered(): void {
-    this.actions.expectBadgeRecovered();
+  /** Rejects one subsequent fragment consultation. */
+  public failNextTab(): void {
+    this.actions.failNextTab();
+  }
+  /** Activates a lifecycle tab using the keyboard.
+   * @param tab Lifecycle fragment to activate. */
+  public selectTab(tab: CasesDraftTab): void {
+    this.actions.selectTab(tab);
+  }
+  /** Checks failed tab data cannot expose stale rows or local recovery panels. */
+  public expectFailedTab(): void {
+    this.actions.expectFailedTab();
+  }
+  /** Checks the outer fragment stream recovers on another tab. */
+  public expectRecoveredTab(): void {
+    this.actions.expectRecoveredTab();
   }
   /** Opens a canonical persisted destination without a local creation draft.
    * @param kind Details or amendment destination.

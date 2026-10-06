@@ -2,7 +2,6 @@ import type { ParamMap } from '@angular/router';
 import { CASES_DRAFT_TABS } from '../constants/cases-draft-tabs.constant';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
-import type { CasesDraftSortDirection } from '../types/cases-draft-sort-direction.type';
 import type { CasesDraftTab } from '../types/cases-draft-tab.type';
 
 export function defaultCasesDraftNavigation(tab: CasesDraftTab = 'in-review'): ICasesDraftNavigation {
@@ -31,6 +30,6 @@ export function parseCasesDraftNavigation(fragment: string | null, query: ParamM
     tab,
     page: Number(pageText),
     sort: sort as CasesDraftSortColumn,
-    direction: direction as CasesDraftSortDirection,
+    direction: direction as ICasesDraftNavigation['direction'],
   };
 }

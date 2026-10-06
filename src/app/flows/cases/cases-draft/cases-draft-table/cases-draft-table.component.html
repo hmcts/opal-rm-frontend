@@ -14,8 +14,8 @@
           opal-lib-moj-sortable-table-header
           columnKey="respondentAccount"
           [dataIndex]="0"
-          [sortDirection]="sortState().respondentAccount"
-          (sortChange)="onSort($event)"
+          [sortDirection]="sortStateSignal()['respondentAccount']"
+          (sortChange)="onSortChange($event)"
         >
           Respondent Account
         </th>
@@ -23,8 +23,8 @@
           opal-lib-moj-sortable-table-header
           columnKey="applicantAccount"
           [dataIndex]="1"
-          [sortDirection]="sortState().applicantAccount"
-          (sortChange)="onSort($event)"
+          [sortDirection]="sortStateSignal()['applicantAccount']"
+          (sortChange)="onSortChange($event)"
         >
           Applicant Account
         </th>
@@ -32,8 +32,8 @@
           opal-lib-moj-sortable-table-header
           columnKey="minorCreditorAccounts"
           [dataIndex]="2"
-          [sortDirection]="sortState().minorCreditorAccounts"
-          (sortChange)="onSort($event)"
+          [sortDirection]="sortStateSignal()['minorCreditorAccounts']"
+          (sortChange)="onSortChange($event)"
         >
           Minor Creditor Account
         </th>
@@ -41,8 +41,8 @@
           opal-lib-moj-sortable-table-header
           columnKey="caseType"
           [dataIndex]="3"
-          [sortDirection]="sortState().caseType"
-          (sortChange)="onSort($event)"
+          [sortDirection]="sortStateSignal()['caseType']"
+          (sortChange)="onSortChange($event)"
         >
           Case type
         </th>
@@ -50,8 +50,8 @@
           opal-lib-moj-sortable-table-header
           columnKey="approved"
           [dataIndex]="4"
-          [sortDirection]="sortState().approved"
-          (sortChange)="onSort($event)"
+          [sortDirection]="sortStateSignal()['approved']"
+          (sortChange)="onSortChange($event)"
         >
           Approved
         </th>
@@ -60,8 +60,8 @@
           opal-lib-moj-sortable-table-header
           columnKey="respondent"
           [dataIndex]="0"
-          [sortDirection]="sortState().respondent"
-          (sortChange)="onSort($event)"
+          [sortDirection]="sortStateSignal()['respondent']"
+          (sortChange)="onSortChange($event)"
         >
           Respondent
         </th>
@@ -69,8 +69,8 @@
           opal-lib-moj-sortable-table-header
           columnKey="applicant"
           [dataIndex]="1"
-          [sortDirection]="sortState().applicant"
-          (sortChange)="onSort($event)"
+          [sortDirection]="sortStateSignal()['applicant']"
+          (sortChange)="onSortChange($event)"
         >
           Applicant
         </th>
@@ -78,8 +78,8 @@
           opal-lib-moj-sortable-table-header
           columnKey="caseType"
           [dataIndex]="2"
-          [sortDirection]="sortState().caseType"
-          (sortChange)="onSort($event)"
+          [sortDirection]="sortStateSignal()['caseType']"
+          (sortChange)="onSortChange($event)"
         >
           Case type
         </th>
@@ -87,8 +87,8 @@
           opal-lib-moj-sortable-table-header
           columnKey="created"
           [dataIndex]="3"
-          [sortDirection]="sortState().created"
-          (sortChange)="onSort($event)"
+          [sortDirection]="sortStateSignal()['created']"
+          (sortChange)="onSortChange($event)"
         >
           Created
         </th>
@@ -97,8 +97,8 @@
             opal-lib-moj-sortable-table-header
             columnKey="statusDate"
             [dataIndex]="4"
-            [sortDirection]="sortState().statusDate"
-            (sortChange)="onSort($event)"
+            [sortDirection]="sortStateSignal()['statusDate']"
+            (sortChange)="onSortChange($event)"
           >
             {{ selection().tab === 'rejected' ? 'Rejected' : 'Deleted' }}
           </th>
@@ -112,7 +112,7 @@
               opal-lib-moj-sortable-table-row-data
               [id]="'draft-' + row.id + '-respondentAccount'"
               data-column="respondentAccount"
-              #pageFocus
+              #paginationFocusTarget
               tabindex="-1"
             >
               {{ row.respondentAccount ?? '—' }}
@@ -152,7 +152,7 @@
           } @else {
             <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-respondent'" data-column="respondent">
               <a
-                #pageFocus
+                #paginationFocusTarget
                 class="govuk-link"
                 [href]="row.detailHref"
                 [attr.aria-label]="'View case details for ' + (row.respondent ?? 'this respondent')"
@@ -182,18 +182,20 @@
         </tr>
       }</ng-container
     ><ng-container status
-      ><output aria-atomic="true" class="govuk-visually-hidden">{{ pageAnnouncement() }}</output
+      ><output aria-atomic="true" class="govuk-visually-hidden">{{
+        pageChangeAnnouncement() || pageAnnouncement()
+      }}</output
       ><opal-lib-moj-sortable-table-status
-        [columnTitle]="sortTitle()"
-        [sortDirection]="selection().direction" /></ng-container
+        [columnTitle]="sortedColumnTitleSignal() ? sortTitle() : ''"
+        [sortDirection]="sortedColumnDirectionSignal()" /></ng-container
   ></opal-lib-moj-sortable-table>
 </div>
 @if (rows().length > 25) {
   <opal-lib-moj-pagination
     id="cases-draft-pagination"
-    [currentPage]="clampedPage()"
-    [limit]="25"
+    [currentPage]="currentPageSignal()"
+    [limit]="itemsPerPageSignal()"
     [total]="rows().length"
-    (changePage)="pageChanged.emit($event)"
+    (changePage)="onPageChange($event)"
   />
 }

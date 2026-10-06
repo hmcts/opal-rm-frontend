@@ -9,9 +9,11 @@ describe('draft child routes', () => {
       { title: 'Create cases' },
       { title: 'View all rejected cases', placeholderKind: 'rejections' },
     ]);
+    expect(routing[1].resolve?.['draftCasefiles']).toEqual(expect.any(Function));
+    expect(routing[1].resolve?.['rejectedCount']).toEqual(expect.any(Function));
     for (const route of routing.slice(1)) {
       expect(route.loadComponent).toEqual(expect.any(Function));
-      expect(route.resolve).toEqual({ title: TitleResolver });
+      expect(route.resolve?.['title']).toBe(TitleResolver);
     }
   });
 });

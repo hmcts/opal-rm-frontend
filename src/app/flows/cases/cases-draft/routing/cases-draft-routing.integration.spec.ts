@@ -17,6 +17,8 @@ import { CasesCreateCasefileStore } from '../../cases-create-casefile/stores/cas
 import { CASES_CREATE_CASEFILE_STATE } from '../../cases-create-casefile/constants/cases-create-casefile-state.constant';
 import { CasesCreateCasefileComponent } from '../../cases-create-casefile/cases-create-casefile.component';
 import { CasesDraftCreateAndManageTabsComponent } from '../cases-draft-create-and-manage-tabs/cases-draft-create-and-manage-tabs.component';
+import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
+import { CASES_DRAFT_TABS } from '../constants/cases-draft-tabs.constant';
 import { createCasesDraftSummary } from '../mocks/cases-draft-summary.mock';
 
 @Component({ template: '<p>Denied</p>' })
@@ -60,7 +62,7 @@ describe('draft production route boundaries', () => {
         provideHttpClientTesting(),
         { provide: AuthService, useValue: { checkAuthenticated: () => of(authenticated()) } },
         { provide: OpalUserService, useValue: { getLoggedInUserState: () => of(userState()) } },
-        { provide: GlobalStore, useValue: { userState, featureFlags, authenticated } },
+        { provide: GlobalStore, useValue: { userState, featureFlags, authenticated, setBannerError: vi.fn() } },
         { provide: LaunchDarklyService, useValue: { initializeLaunchDarklyFlags: initializeFlags } },
       ],
     });
@@ -155,7 +157,7 @@ describe('draft production route boundaries', () => {
           { provide: PLATFORM_ID, useValue: 'server' },
           { provide: AuthService, useValue: { checkAuthenticated: () => of(true) } },
           { provide: OpalUserService, useValue: { getLoggedInUserState: () => of(userState()) } },
-          { provide: GlobalStore, useValue: { userState, featureFlags, authenticated } },
+          { provide: GlobalStore, useValue: { userState, featureFlags, authenticated, setBannerError: vi.fn() } },
           { provide: LaunchDarklyService, useValue: { initializeLaunchDarklyFlags: initializeFlags } },
         ],
       });
@@ -180,33 +182,38 @@ describe('draft production route boundaries', () => {
     expect(harness.routeNativeElement?.querySelector('app-cases-draft-placeholder')).toBeNull();
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
   });
-  it('returns through a fresh dashboard owner, retaining sort and clamping a shrinking list', async () => {
-    const harness = await RouterTestingHarness.create(
-      dashboard + '?page=2&sort=respondent&direction=descending#rejected',
-    );
+  async function flushList(status: string, count: number) {
+    await vi.waitFor(() => {
+      http
+        .expectOne(
+          (request) => request.params.get('casefile_status') === status && request.params.get('restrict') !== 'counts',
+        )
+        .flush({
+          count,
+          summaries: Array.from({ length: count }, (_, index) =>
+            createCasesDraftSummary({
+              draft_casefile_id: index + 1,
+              casefile_status: status as 'REJECTED' | 'PUBLISHED' | 'SUBMITTED',
+            }),
+          ),
+        });
+    });
+  }
+  it('returns through fresh resolver data, retaining sort and clamping a shrinking list', async () => {
+    const harness = await RouterTestingHarness.create();
+    const arrival = harness.navigateByUrl(dashboard + '?page=2&sort=respondent&direction=descending#rejected');
+    await flushList('REJECTED', 26);
+    await arrival;
     const original = harness.routeDebugElement?.componentInstance as CasesDraftCreateAndManageTabsComponent;
-    http
-      .expectOne((request) => request.params.get('casefile_status') === 'REJECTED')
-      .flush({
-        count: 26,
-        summaries: Array.from({ length: 26 }, (_, index) =>
-          createCasesDraftSummary({ draft_casefile_id: index + 1, casefile_status: 'REJECTED' }),
-        ),
-      });
-    await harness.fixture.whenStable();
     expect(original.navigation.selection().page).toBe(2);
     await harness.navigateByUrl(details + '?tab=rejected&page=2&sort=respondent&direction=descending');
-    expect(original.data.list().status).toBe('idle');
     harness.routeNativeElement!.querySelector('a')!.click();
-    await harness.fixture.whenStable();
-    http
-      .expectOne((request) => request.params.get('casefile_status') === 'REJECTED')
-      .flush({ count: 1, summaries: [createCasesDraftSummary({ casefile_status: 'REJECTED' })] });
+    await flushList('REJECTED', 1);
     harness.detectChanges();
     await harness.fixture.whenStable();
+    harness.detectChanges();
     const current = harness.routeDebugElement?.componentInstance as CasesDraftCreateAndManageTabsComponent;
     expect(current).not.toBe(original);
-    expect(current.data).not.toBe(original.data);
     expect(current.navigation.selection()).toEqual({
       tab: 'rejected',
       page: 1,
@@ -214,6 +221,142 @@ describe('draft production route boundaries', () => {
       direction: 'descending',
     });
     expect(TestBed.inject(Router).url).toBe(dashboard + '?page=1&sort=respondent&direction=descending#rejected');
+  });
+  it('resolves a non-default initial fragment once and changes query without another consultation', async () => {
+    const harness = await RouterTestingHarness.create();
+    const arrival = harness.navigateByUrl(dashboard + '#approved');
+    await vi.waitFor(() =>
+      http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 7 }),
+    );
+    await flushList('PUBLISHED', 1);
+    await arrival;
+    expect(harness.routeNativeElement?.querySelector('tbody')).not.toBeNull();
+    await harness.navigateByUrl(dashboard + '?page=1&sort=respondentAccount&direction=descending#approved');
+    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+  });
+  it('arrives with successful rows and a global banner after independent count decoding fails', async () => {
+    const harness = await RouterTestingHarness.create();
+    const banner = TestBed.inject(GlobalStore).setBannerError;
+    const arrival = harness.navigateByUrl(dashboard + '#approved');
+    await vi.waitFor(() =>
+      http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 'invalid' }),
+    );
+    await flushList('PUBLISHED', 1);
+    await arrival;
+    expect(harness.routeNativeElement?.querySelector('tbody')).not.toBeNull();
+    expect(harness.routeNativeElement?.querySelectorAll('#cases-draft-tabs a')).toHaveLength(4);
+    expect(harness.routeNativeElement?.querySelector('opal-lib-moj-notification-badge')).toBeNull();
+    expect(banner).toHaveBeenCalledWith(expect.objectContaining({ error: true }));
+  });
+  it.each([
+    ['approved', 'PUBLISHED'],
+    ['rejected', 'REJECTED'],
+    ['deleted', 'DELETED'],
+  ] as const)(
+    'keeps URL, heading and fresh rows aligned after authorised identity replacement on %s',
+    async (tab, status) => {
+      const harness = await RouterTestingHarness.create();
+      const router = TestBed.inject(Router);
+      const url = dashboard + '#' + tab;
+      const arrival = harness.navigateByUrl(url);
+      if (tab !== 'rejected')
+        await vi.waitFor(() =>
+          http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 7 }),
+        );
+      await vi.waitFor(() =>
+        http
+          .expectOne(
+            (request) =>
+              request.params.get('casefile_status') === status && request.params.get('restrict') !== 'counts',
+          )
+          .flush({
+            count: 1,
+            summaries: [createCasesDraftSummary({ casefile_status: status })],
+          }),
+      );
+      await arrival;
+      expect(harness.routeNativeElement?.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('123');
+      const navigation = TestBed.inject(CasesDraftNavigationService);
+      navigation.rememberCreateOrigin();
+      const replacement = permittedUser();
+      replacement.user_id += 1;
+      replacement.business_unit_users[0].business_unit_user_id = 'BUU-REPLACEMENT';
+      userState.set(replacement);
+      harness.detectChanges();
+      expect(harness.routeNativeElement?.querySelector('tbody')).toBeNull();
+      await vi.waitFor(() =>
+        http
+          .expectOne(
+            (request) =>
+              request.params.get('submitted_by') === 'BUU-REPLACEMENT' &&
+              request.params.get('casefile_status') === status &&
+              request.params.get('restrict') !== 'counts',
+          )
+          .flush({
+            count: 2,
+            summaries: [
+              createCasesDraftSummary({
+                draft_casefile_id: 456,
+                casefile_status: status,
+                submitted_by: 'BUU-REPLACEMENT',
+              }),
+              createCasesDraftSummary({ casefile_status: status }),
+            ],
+          }),
+      );
+      if (tab !== 'rejected')
+        http
+          .expectOne(
+            (request) =>
+              request.params.get('restrict') === 'counts' && request.params.get('submitted_by') === 'BUU-REPLACEMENT',
+          )
+          .flush({ count: 3 });
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      expect(router.url).toBe(url);
+      expect(navigation.selection().tab).toBe(tab);
+      expect(harness.routeNativeElement?.querySelector('#cases-draft-selected-heading')?.textContent?.trim()).toBe(
+        CASES_DRAFT_TABS[tab].label,
+      );
+      expect(harness.routeNativeElement?.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('456');
+      expect(harness.routeNativeElement?.querySelector('[data-draft-id="123"]')).toBeNull();
+      expect(router.serializeUrl(navigation.creationReturnUrl())).toBe(
+        dashboard + '?page=1&sort=created&direction=ascending#in-review',
+      );
+    },
+  );
+  it('cancels a pending replacement consultation when its authorisation is removed', async () => {
+    const harness = await RouterTestingHarness.create();
+    const arrival = harness.navigateByUrl(dashboard + '#rejected');
+    await flushList('REJECTED', 1);
+    await arrival;
+    const replacement = permittedUser();
+    replacement.user_id += 1;
+    replacement.business_unit_users[0].business_unit_user_id = 'BUU-REPLACEMENT';
+    userState.set(replacement);
+    harness.detectChanges();
+    const pending = http.expectOne((request) => request.params.get('submitted_by') === 'BUU-REPLACEMENT');
+    expect(harness.routeNativeElement?.querySelector('tbody')).toBeNull();
+    replacement.business_unit_users[0].permissions = [];
+    userState.set({ ...replacement });
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(pending.cancelled).toBe(true);
+    expect(TestBed.inject(Router).url).toBe('/access-denied');
+    expect(harness.routeNativeElement?.querySelector('tbody')).toBeNull();
+  });
+  it('cancels resolver arrival on failed list without rendering a successful empty table', async () => {
+    const harness = await RouterTestingHarness.create(details);
+    const arrival = harness.navigateByUrl(dashboard + '#rejected');
+    await vi.waitFor(() =>
+      http
+        .expectOne((request) => request.params.get('casefile_status') === 'REJECTED')
+        .flush({ message: 'Synthetic failure' }, { status: 500, statusText: 'Failure' }),
+    );
+    await expect(arrival).rejects.toBeTruthy();
+    expect(TestBed.inject(Router).url).toBe(details);
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-empty')).toBeNull();
   });
   it('denies Back after permission is removed without consulting a collection', async () => {
     const harness = await RouterTestingHarness.create(details);
@@ -225,15 +368,19 @@ describe('draft production route boundaries', () => {
     expect(TestBed.inject(Router).url).toBe('/access-denied');
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
   });
-  it('redirects only the empty dashboard root and loads the real dashboard provider', async () => {
-    const harness = await RouterTestingHarness.create('/cases/draft/create-and-manage');
+  it('redirects only the empty dashboard root and resolves before dashboard arrival', async () => {
+    const harness = await RouterTestingHarness.create();
+    const arrival = harness.navigateByUrl('/cases/draft/create-and-manage');
+    await vi.waitFor(() =>
+      http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 0 }),
+    );
+    await vi.waitFor(() =>
+      http
+        .expectOne((request) => request.params.get('casefile_status') === 'SUBMITTED,RESUBMITTED')
+        .flush({ count: 0, summaries: [] }),
+    );
+    await arrival;
     expect(TestBed.inject(Router).url).toBe(dashboard);
-    http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 0 });
-    http
-      .expectOne((request) => request.params.get('casefile_status') === 'SUBMITTED,RESUBMITTED')
-      .flush({ count: 0, summaries: [] });
-    harness.detectChanges();
-    await harness.fixture.whenStable();
     expect(harness.routeNativeElement?.textContent).toContain('You have no cases in review.');
   });
 });

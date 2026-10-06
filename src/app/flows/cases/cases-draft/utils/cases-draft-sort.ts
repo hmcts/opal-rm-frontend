@@ -1,6 +1,6 @@
 import type { ICasesDraftRow } from '../interfaces/cases-draft-row.interface';
 import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
-import type { CasesDraftSortDirection } from '../types/cases-draft-sort-direction.type';
+import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 
 const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
@@ -19,8 +19,9 @@ function missing(value: string | readonly string[] | null): boolean {
 export function sortCasesDraftRows(
   rows: readonly ICasesDraftRow[],
   column: CasesDraftSortColumn,
-  direction: CasesDraftSortDirection,
+  direction: ICasesDraftNavigation['direction'],
 ): ICasesDraftRow[] {
+  if (direction === 'none') return [...rows];
   const multiplier = direction === 'ascending' ? 1 : -1;
   return [...rows].sort((left, right) => {
     const a = left[column];

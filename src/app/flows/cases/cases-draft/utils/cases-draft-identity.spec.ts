@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
-import { resolveCasesDraftIdentity } from './cases-draft-identity';
+import { resolveCasesDraftIdentity, sameCasesDraftIdentity } from './cases-draft-identity';
 
 const permittedUser = (): IOpalUserState => ({
   ...structuredClone(OPAL_USER_STATE_MOCK),
@@ -43,5 +43,18 @@ describe('resolveCasesDraftIdentity', () => {
     const user = permittedUser();
     user.business_unit_users[0].business_unit_user_id = business_unit_user_id;
     expect(resolveCasesDraftIdentity(user, true)).toBeNull();
+  });
+});
+
+describe('sameCasesDraftIdentity', () => {
+  const scope = { userId: 100, businessUnitId: 44 as const, submittedBy: 'BUU-SYNTHETIC' };
+  it('compares equivalent scopes and absent scopes', () => {
+    expect(sameCasesDraftIdentity(scope, { ...scope })).toBe(true);
+    expect(sameCasesDraftIdentity(null, null)).toBe(true);
+    expect(sameCasesDraftIdentity(scope, null)).toBe(false);
+    expect(sameCasesDraftIdentity(null, scope)).toBe(false);
+  });
+  it.each([{ userId: 101 }, { submittedBy: 'BUU-NEW' }])('detects changed scope %j', (change) => {
+    expect(sameCasesDraftIdentity(scope, { ...scope, ...change })).toBe(false);
   });
 });

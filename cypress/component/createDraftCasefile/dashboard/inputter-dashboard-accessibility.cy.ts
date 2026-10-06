@@ -1,5 +1,4 @@
-import { Subject, of } from 'rxjs';
-import { HttpErrorResponse } from '@angular/common/http';
+import { Subject, of, throwError } from 'rxjs';
 import { setupInputterDashboard } from './setup/dashboard.setup';
 import { pressDashboardEnter } from '../../../support/utils/press-dashboard-enter';
 import { dashboardFixtures, populatedReflowFixtures } from './mocks/dashboard.mock';
@@ -13,8 +12,7 @@ describe('Inputter dashboard accessibility', () => {
   [
     { name: 'ready', options: {} },
     { name: 'empty', options: { rows: dashboardFixtures.empty } },
-    { name: 'list error', options: { listError: true } },
-    { name: 'badge error', options: { badgeError: true } },
+    { name: 'missing rejected count', options: { rejectedCount: null } },
     { name: 'published', options: { tab: 'approved' as const, rows: dashboardFixtures.published } },
   ].forEach(({ name, options }) =>
     it('AC8. should have no detected Axe violations for ' + name, { tags: buildTags() }, () => {
@@ -36,7 +34,7 @@ describe('Inputter dashboard accessibility', () => {
     cy.get(S.tab('rejected')).should('be.focused');
     pressDashboardEnter();
     cy.get(S.tab('rejected')).should('have.attr', 'aria-current', 'page');
-    cy.get('@listRequest').should('have.been.calledTwice');
+    cy.get('@listRequest').should('have.been.calledOnce');
     cy.get('@routerNavigate').should('have.been.calledOnce');
   });
   it(
@@ -54,35 +52,41 @@ describe('Inputter dashboard accessibility', () => {
       cy.get(S.pagination).contains('a', 'Next').focus();
       pressDashboardEnter();
       cy.get(S.row(26)).find('a').should('be.focused');
-      cy.get(S.pageStatus).should('contain.text', 'Page 2 of 2');
-      cy.get('@listRequest').should('have.been.calledOnce');
+      cy.get(S.pageStatus).should('contain.text', 'Create cases, page 2 of 2');
+      cy.get('@listRequest').should('not.have.been.called');
     },
   );
-  it('AC8. should restore useful focus when Retry removes and reinserts controls', { tags: buildTags() }, () => {
-    setupInputterDashboard({ listError: true });
-    cy.get(S.listError).should('be.visible');
-    const pending = new Subject();
-    cy.get('@listRequest').then((request) => (request as unknown as sinon.SinonStub).returns(pending));
-    cy.get(S.listRetry).focus().should('be.focused');
-    pressDashboardEnter();
-    cy.get(S.loading).should('contain.text', 'Loading In review cases.').and('be.focused');
-    cy.then(() => pending.error(new HttpErrorResponse({ status: 500 })));
-    cy.get(S.listError).should('be.focused');
-    cy.get(S.listRetry).should('exist');
-    cy.get('@listRequest').then((request) =>
-      (request as unknown as sinon.SinonStub).returns(of({ count: 0, summaries: [] })),
-    );
-    cy.get(S.listRetry).focus().should('be.focused');
-    pressDashboardEnter();
-    cy.get(S.selectedHeading).should('be.focused');
-  });
-  it('AC8. should retain selection and focus an error when navigation fails', { tags: buildTags() }, () => {
+  it('AC8. should keep native tab access after a globally reported tab failure', { tags: buildTags() }, () => {
     setupInputterDashboard();
-    cy.get('@routerNavigate').then((navigate) => (navigate as unknown as sinon.SinonStub).resolves(false));
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) =>
+      request.returns(throwError(() => new Error('Synthetic decoding failure'))),
+    );
     cy.get(S.tab('approved')).focus();
     pressDashboardEnter();
-    cy.get(S.navigationError).should('be.focused').and('contain.text', 'The page could not be opened. Try again.');
+    cy.get(S.tab('approved')).should('be.focused').and('have.attr', 'aria-current', 'page');
+    cy.get('@globalBannerError').should('have.been.calledOnce');
+    cy.get(S.table).should('not.exist');
+    cy.get(S.empty).should('not.exist');
+    cy.get(S.obsoleteLocalControls).should('not.exist');
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) =>
+      request.returns(of({ count: 0, summaries: [] })),
+    );
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.tab('deleted')).should('be.focused');
+    pressDashboardEnter();
+    cy.get(S.empty).should('contain.text', 'No cases have been deleted in the past 7 days.');
+  });
+  it('AC8. should keep selection and native focus when navigation is cancelled', { tags: buildTags() }, () => {
+    setupInputterDashboard();
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) => navigate.resolves(false));
+    cy.get(S.tab('approved')).focus();
+    pressDashboardEnter();
+    cy.get(S.tab('approved')).should('be.focused');
     cy.get(S.tab('in-review')).should('have.attr', 'aria-current', 'page');
+    cy.get(S.obsoleteLocalControls).should('not.exist');
+    cy.get('@globalBannerError').should('not.have.been.called');
     cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
     cy.checkA11y();
   });
@@ -119,64 +123,24 @@ describe('Inputter dashboard accessibility', () => {
     cy.get(S.row(26)).find(S.column('respondentAccount')).should('be.focused');
     cy.get(S.row(26)).find('a,button').should('not.exist');
   });
-  (['success', 'failure'] as const).forEach((completion) => {
-    it(
-      'AC8. should retain native focus through a pending rejected count retry and ' + completion,
-      { tags: buildTags() },
-      () => {
-        setupInputterDashboard({ badgeError: true });
-        cy.get(S.heading).should('be.focused');
-        cy.get(S.badgeRetry).should('be.visible');
-        const pending = new Subject<{ count: number }>();
-        cy.get('@countRequest').then((request) => (request as unknown as sinon.SinonStub).returns(pending));
-        cy.get(S.tab('deleted')).focus();
-        cy.press(Cypress.Keyboard.Keys.TAB);
-        cy.get(S.badgeRetry).should('be.focused');
-        pressDashboardEnter();
-        cy.get(S.badgeLoading).should('contain.text', 'Loading rejected case count.').and('be.focused');
-        cy.get(S.badgeRetry).should('not.exist');
-        if (completion === 'success') {
-          cy.then(() => {
-            pending.next({ count: 7 });
-            pending.complete();
-          });
-          cy.get(S.selectedHeading).should('be.focused');
-          cy.get(S.tab('rejected')).should('contain.text', '7');
-        } else {
-          cy.then(() => pending.error(new HttpErrorResponse({ status: 500 })));
-          cy.get(S.badgeRetry).should('be.focused');
-          cy.get(S.badgeError).should('contain.text', 'The rejected case count could not be loaded. Try again.');
-        }
-        cy.get('@listRequest').should('have.been.calledOnce');
-        cy.get('@countRequest').should('have.been.calledTwice');
-        cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-        cy.checkA11y();
-      },
-    );
+  it('AC8. should keep chosen focus while a tab request completes', { tags: buildTags() }, () => {
+    setupInputterDashboard();
+    const pending = new Subject<{ count: number; summaries: never[] }>();
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) => request.returns(pending));
+    cy.get(S.tab('approved')).focus();
+    pressDashboardEnter();
+    cy.get(S.loading).should('be.visible');
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.tab('deleted')).should('be.focused');
+    cy.then(() => {
+      pending.next({ count: 0, summaries: [] });
+      pending.complete();
+    });
+    cy.get(S.empty).should('be.visible');
+    cy.get(S.tab('deleted')).should('be.focused');
   });
-  it(
-    'AC8. should keep chosen focus when the user moves on before count retry completion',
-    { tags: buildTags() },
-    () => {
-      setupInputterDashboard({ badgeError: true });
-      cy.get(S.heading).should('be.focused');
-      cy.get(S.badgeRetry).should('be.visible');
-      const pending = new Subject<{ count: number }>();
-      cy.get('@countRequest').then((request) => (request as unknown as sinon.SinonStub).returns(pending));
-      cy.get(S.badgeRetry).focus();
-      pressDashboardEnter();
-      cy.get(S.badgeLoading).should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.scrollRegion).should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.sort('respondent')).should('be.focused');
-      cy.then(() => {
-        pending.next({ count: 7 });
-        pending.complete();
-      });
-      cy.get(S.sort('respondent')).should('be.focused');
-    },
-  );
   for (const tab of ['in-review', 'rejected', 'approved', 'deleted'] as const) {
     it('AC8. should keep populated ' + tab + ' table scrolling inside the 320px page', { tags: buildTags() }, () => {
       const rows = populatedReflowFixtures[tab];

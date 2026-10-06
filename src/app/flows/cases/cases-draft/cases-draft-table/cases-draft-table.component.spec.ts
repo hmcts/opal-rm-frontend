@@ -87,9 +87,64 @@ describe('CasesDraftTableComponent rendered table', () => {
     expect(button.closest('th')?.getAttribute('aria-sort')).toBe('ascending');
     button.click();
     expect(emit).toHaveBeenLastCalledWith({ key: 'respondent', direction: 'descending' });
-    fixture.componentInstance.onSort({ key: 'approved', sortType: 'ascending' });
+    fixture.componentInstance.onSortChange({ key: 'approved', sortType: 'ascending' });
     expect(emit).toHaveBeenCalledTimes(2);
   });
+  it('keeps inactive column state as none and allows an entirely unsorted table', () => {
+    const fixture = render();
+    const element: HTMLElement = fixture.nativeElement;
+    expect(element.querySelector('th[columnKey="created"]')?.getAttribute('aria-sort')).toBe('ascending');
+    expect(element.querySelector('th[columnKey="respondent"]')?.getAttribute('aria-sort')).toBe('none');
+    expect(element.querySelectorAll('th[aria-sort="ascending"], th[aria-sort="descending"]')).toHaveLength(1);
+    fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(), direction: 'none' });
+    fixture.detectChanges();
+    expect(element.querySelectorAll('th[aria-sort="none"]')).toHaveLength(4);
+    expect(fixture.componentInstance.sortedColumnDirectionSignal()).toBe('none');
+  });
+
+  it('retains numeric, missing-last and stable-ID ordering through shared table sorting', () => {
+    const fixture = render('approved', 0);
+    fixture.componentRef.setInput(
+      'rows',
+      mapCasesDraftRows(
+        [
+          createCasesDraftSummary({
+            draft_casefile_id: 3,
+            casefile_status: 'PUBLISHED',
+            casefile_snapshot: { respondent_account: { account_number: 'A10' } },
+          }),
+          createCasesDraftSummary({
+            draft_casefile_id: 2,
+            casefile_status: 'PUBLISHED',
+            casefile_snapshot: { respondent_account: { account_number: 'A2' } },
+          }),
+          createCasesDraftSummary({
+            draft_casefile_id: 1,
+            casefile_status: 'PUBLISHED',
+            casefile_snapshot: { respondent_account: { account_number: 'A2' } },
+          }),
+          createCasesDraftSummary({
+            draft_casefile_id: 4,
+            casefile_status: 'PUBLISHED',
+            casefile_snapshot: { respondent_account: { account_number: null } },
+          }),
+        ],
+        'approved',
+      ),
+    );
+    fixture.componentRef.setInput('selection', {
+      ...defaultCasesDraftNavigation('approved'),
+      sort: 'respondentAccount',
+      direction: 'descending',
+    });
+    fixture.detectChanges();
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll('tbody tr')).map(
+        (element) => (element as HTMLElement).dataset['draftId'],
+      ),
+    ).toEqual(['3', '1', '2', '4']);
+  });
+
   it('paginates 26 rows and clamps shrinking results', () => {
     const fixture = render('in-review', 26, 2);
     const el: HTMLElement = fixture.nativeElement;
@@ -99,6 +154,12 @@ describe('CasesDraftTableComponent rendered table', () => {
     fixture.detectChanges();
     expect(el.querySelector('output')?.textContent).toContain('Page 1 of 1');
     expect(el.querySelector('opal-lib-moj-pagination')).toBeNull();
+  });
+  it('ignores an unsorted event from the shared table', () => {
+    const fixture = render();
+    const emit = vi.spyOn(fixture.componentInstance.sortChanged, 'emit');
+    fixture.componentInstance.onSortChange({ key: 'respondent', sortType: 'none' });
+    expect(emit).not.toHaveBeenCalled();
   });
   it('omits pagination at 25 rows and opens only respondent links', () => {
     const fixture = render('in-review', 25);
@@ -151,11 +212,22 @@ describe('CasesDraftTableComponent rendered table', () => {
     expect(f.nativeElement.querySelectorAll('tbody tr')).toHaveLength(0);
     expect(f.nativeElement.querySelector('output').textContent).toContain('Page 1 of 1, showing cases 0 to 0 of 0');
   });
-  it('focuses the first read-only account cell after accepted paging', async () => {
-    const f = render('approved', 26, 2);
-    f.componentInstance.focusFirstRow();
-    TestBed.tick();
+  it('announces paging and focuses the first read-only account cell through shared pagination', async () => {
+    const f = render('approved', 26);
+    f.componentInstance.onPageChange(2);
+    f.detectChanges();
     await f.whenStable();
+    expect(f.componentInstance.currentPageSignal()).toBe(2);
+    expect(f.componentInstance.pageChangeAnnouncement()).toBe('Create cases, page 2 of 2');
+    expect(f.nativeElement.querySelector('[data-draft-id="26"]')).not.toBeNull();
     expect(document.activeElement).toBe(f.nativeElement.querySelector('[data-column="respondentAccount"]'));
+  });
+  it('does not navigate again when shared pagination keeps the current page', () => {
+    const fixture = render('in-review', 26);
+    const emit = vi.spyOn(fixture.componentInstance.pageChanged, 'emit');
+    fixture.componentInstance.onPageChange(1);
+    expect(fixture.componentInstance.currentPageSignal()).toBe(1);
+    expect(emit).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelectorAll('tbody tr')).toHaveLength(25);
   });
 });

@@ -1,8 +1,7 @@
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { OpalMaintenanceService } from 'src/app/flows/cases/services/opal-maintenance-service/opal-maintenance.service';
-import type { Observable } from 'rxjs';
-import type { IOpalMaintenanceCasefileSubmissionResult } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-casefile-submission-result.interface';
+import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
@@ -12,27 +11,22 @@ import { CasesCreateCasefileSubmissionConfirmationComponent } from 'src/app/flow
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import { CasesCreateCasefileReviewNavigationService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-review-navigation.service';
 import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-state.interface';
-import {
-  createCompleteReviewState,
-  createSubmittedReviewState,
-  REVIEW_APPLICATIONS,
-  REVIEW_COUNTRIES,
-} from '../mocks/review.mock';
+import { createCompleteReviewState, REVIEW_APPLICATIONS, REVIEW_COUNTRIES } from '../mocks/review.mock';
 
 export type ReviewStore = InstanceType<typeof CasesCreateCasefileStore>;
 interface ReviewSetupOptions {
   state?: Partial<ICasesCreateCasefileState>;
   failNavigation?: boolean;
   confirmation?: boolean;
-  submission?: Observable<IOpalMaintenanceCasefileSubmissionResult>;
 }
 
 export function setupReview(options: ReviewSetupOptions = {}) {
   const store = new CasesCreateCasefileStore();
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-    ...(options.confirmation ? createSubmittedReviewState() : createCompleteReviewState()),
+    ...createCompleteReviewState(),
     ...structuredClone(options.state ?? {}),
   });
+  if (options.confirmation) store.setSubmissionSucceeded(true);
   return cy.document().then((document) => {
     document.documentElement.lang = 'en';
     document.body.classList.add('govuk-template__body');
@@ -44,34 +38,27 @@ export function setupReview(options: ReviewSetupOptions = {}) {
       {
         providers: [
           provideRouter([]),
-          provideHttpClient(),
-          provideHttpClientTesting(),
+          provideHttpClient(withInterceptors([httpErrorInterceptor])),
+          { provide: GlobalStore, useValue: new GlobalStore() },
+          { provide: AppInsightsService, useValue: { logException: () => undefined } },
           { provide: CasesCreateCasefileStore, useValue: store },
-          ...(options.confirmation
-            ? []
-            : [
-                {
-                  provide: ActivatedRoute,
-                  useValue: {
-                    snapshot: {
-                      data: {
-                        countries: { refData: structuredClone(REVIEW_COUNTRIES) },
-                        applications: { refData: structuredClone(REVIEW_APPLICATIONS) },
-                      },
-                    },
-                  },
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              snapshot: {
+                data: {
+                  countries: { refData: structuredClone(REVIEW_COUNTRIES) },
+                  applications: { refData: structuredClone(REVIEW_APPLICATIONS) },
                 },
-              ]),
+              },
+            },
+          },
         ],
       },
     ).then(({ fixture }) => {
       cy.stub(TestBed.inject(Router), 'navigateByUrl').as('routerNavigate').resolves(!options.failNavigation);
-      if (options.submission) {
-        cy.stub(TestBed.inject(OpalMaintenanceService), 'submitCasefile').as('submitMock').returns(options.submission);
-      } else {
-        cy.spy(TestBed.inject(OpalMaintenanceService), 'submitCasefile').as('submitMock');
-      }
       cy.wrap(store, { log: false }).as('reviewStore');
+      cy.wrap(TestBed.inject(GlobalStore), { log: false }).as('globalStore');
       cy.wrap(TestBed.inject(CasesCreateCasefileReviewNavigationService), { log: false }).as('reviewNavigation');
       fixture.detectChanges();
     });

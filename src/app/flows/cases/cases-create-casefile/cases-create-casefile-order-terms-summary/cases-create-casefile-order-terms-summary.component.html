@@ -1,5 +1,8 @@
 <div class="govuk-grid-column-full">
-  <h1 class="govuk-heading-l">Order terms</h1>
+  @if (removalOutcome() === 'removed') {
+    <app-cases-create-casefile-removal-notification (dismissed)="handleDismissRemovalOutcome()" />
+  }
+  <h1 #heading id="create_casefile_order_terms_heading" tabindex="-1" class="govuk-heading-l">Order terms</h1>
   @if (cards().length === 0) {
     <p class="govuk-body">There are currently no order terms.</p>
   } @else {
@@ -22,8 +25,9 @@
               <a
                 class="govuk-link govuk-link--no-visited-state"
                 [id]="'order-term-' + card.termId + '-remove'"
+                #removeLink
                 [href]="card.removePath"
-                (click)="$event.preventDefault(); handleRemove(card.removePath)"
+                (click)="handleRemove($event, card.termId)"
               >
                 <strong>Remove</strong>
                 <span class="govuk-visually-hidden">{{ card.title }}</span>

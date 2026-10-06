@@ -236,12 +236,12 @@ export class OrderTermsActions {
   public openSecondRemoval(): void {
     cy.get(S.orderTermsSummary.remove(this.secondTermId)).click();
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermsRemove + '/1');
-    cy.get(S.heading).should('have.text', 'Remove order term');
+    cy.get(S.heading).should('have.text', 'Are you sure you want to remove these order terms?');
   }
 
-  /** Returns from the removal placeholder. */
+  /** Cancels removal and returns to the unchanged summary. */
   public returnFromRemoval(): void {
-    cy.get(S.orderTermsSummary.removeReturn).click();
+    cy.get(S.orderTermsRemoval.cancel).click();
     this.assertSummary();
   }
 

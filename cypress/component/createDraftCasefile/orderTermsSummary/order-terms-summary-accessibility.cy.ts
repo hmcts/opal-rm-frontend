@@ -4,6 +4,7 @@ import { setupOrderTerms } from '../orderTerms/setup/order-terms.setup';
 import { SUMMARY_CREDITORS, SUMMARY_TERMS } from './mocks/order-terms-summary.mock';
 
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9811', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
+const removalTags = (): string[] => ['@JIRA-STORY:PO-9812', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
 const setupSummary = (populated = true, longNonUk = false) =>
   setupOrderTerms({
     initialChild: PATHS.children.orderTermsSummary,
@@ -45,10 +46,10 @@ describe('Order terms summary accessibility', () => {
     cy.checkA11y();
   });
 
-  it('AC5. should have no detected Axe violations on the removal placeholder', { tags: buildTags() }, () => {
+  it('AC5. should have no detected Axe violations on the removal confirmation', { tags: removalTags() }, () => {
     setupSummary();
     cy.get(S.orderTermsSummary.remove(2)).click();
-    cy.get(S.orderTerms.heading).should('have.text', 'Remove order term');
+    cy.get(S.orderTerms.heading).should('have.text', 'Are you sure you want to remove these order terms?');
     cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
     cy.checkA11y();
   });
@@ -71,14 +72,14 @@ describe('Order terms summary accessibility', () => {
     cy.screenshot('po-9811-order-terms-summary-expanded-320px');
   });
 
-  it('AC5. should reflow on the removal placeholder at 320 CSS pixels', { tags: buildTags() }, () => {
+  it('AC5. should reflow on the removal confirmation at 320 CSS pixels', { tags: removalTags() }, () => {
     cy.viewport(320, 900);
     setupSummary();
     cy.get(S.orderTermsSummary.remove(2)).click();
-    cy.get(S.orderTerms.heading).should('have.text', 'Remove order term');
+    cy.get(S.orderTerms.heading).should('have.text', 'Are you sure you want to remove these order terms?');
     cy.document().should((document) => {
       expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth);
     });
-    cy.screenshot('po-9811-order-terms-remove-320px');
+    cy.screenshot('po-9812-order-terms-remove-320px');
   });
 });

@@ -9,7 +9,7 @@ import { setupOrderTermCard } from './setup/order-term-card.setup';
 
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9812', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
 
-// Presentation coverage only: the removal confirmation route is not implemented yet.
+// Presentation coverage for the shared card; routed removal is covered in orderTermsSummary.
 describe('Order term read-only card', () => {
   it('AC1. should display the supplied second term without editable actions', { tags: buildTags() }, () => {
     setupOrderTermCard();

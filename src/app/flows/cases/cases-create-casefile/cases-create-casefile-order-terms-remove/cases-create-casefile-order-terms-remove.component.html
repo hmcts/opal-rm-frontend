@@ -1,10 +1,23 @@
 <div class="govuk-grid-column-two-thirds">
   <span class="govuk-caption-l">Order terms</span>
-  <h1 class="govuk-heading-l">Remove order term</h1>
-  <opal-lib-govuk-button
-    buttonId="create_casefile_order_terms_remove_return"
-    type="button"
-    (buttonClickEvent)="handleReturn()"
-    >Return to order terms</opal-lib-govuk-button
-  >
+  <h1 class="govuk-heading-l">Are you sure you want to remove these order terms?</h1>
+  @if (card; as selectedCard) {
+    <app-cases-create-casefile-order-term-card [card]="selectedCard" />
+  }
+  <div class="govuk-button-group">
+    <button
+      id="create_casefile_order_terms_remove_confirm"
+      class="govuk-button govuk-button--warning"
+      type="button"
+      [disabled]="busy()"
+      (click)="handleConfirm()"
+    >
+      Yes - remove order terms
+    </button>
+    <opal-lib-govuk-cancel-link
+      id="create_casefile_order_terms_remove_cancel"
+      cancelLinkText="No - cancel"
+      (linkClickEvent)="handleCancel()"
+    />
+  </div>
 </div>

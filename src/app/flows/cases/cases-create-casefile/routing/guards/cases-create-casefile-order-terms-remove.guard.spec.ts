@@ -40,12 +40,54 @@ describe('Order terms removal guard', () => {
     );
   };
 
-  it.each(['0', '1'])('allows accepted order term array index %s without changing journey state', (index) => {
+  it('allows only the captured index and live selection', () => {
+    store.beginOrderTermRemoval(7);
     const before = structuredClone(getState(store));
-
-    expect(runGuard(index)).toBe(true);
+    expect(runGuard('0')).toBe(true);
     expect(getState(store)).toEqual(before);
   });
+
+  it('redirects a bare valid URL and marks the term unavailable', () => {
+    expect(runGuard('0')).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/order-terms/summary'));
+    expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+  });
+
+  it('redirects a route with no index parameter', () => {
+    const route = new ActivatedRouteSnapshot();
+    Object.defineProperty(route, 'paramMap', { value: convertToParamMap({}) });
+
+    const result = TestBed.runInInjectionContext(() =>
+      casesCreateCasefileOrderTermsRemoveGuard(route, {} as RouterStateSnapshot),
+    );
+
+    expect(result).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/order-terms/summary'));
+    expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+  });
+
+  it('redirects an index that no longer identifies the captured term', () => {
+    store.beginOrderTermRemoval(7);
+    expect(runGuard('1')).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/order-terms/summary'));
+    expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+  });
+
+  it('does not replay a prior success when browser history revisits the removal URL', () => {
+    const selection = store.beginOrderTermRemoval(7)!;
+    expect(store.confirmOrderTermRemoval(selection)).toBe(true);
+    expect(store.orderTermRemovalOutcome()).toBe('removed');
+
+    expect(runGuard('0')).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/order-terms/summary'));
+    expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+    expect(store.orderTerms().map((term) => term.termId)).toEqual([12]);
+  });
+
+  it.each(['01', '1.0', '1e0', ' 1', 'NaN', '9007199254740992'])(
+    'rejects noncanonical index %s even with a selected term',
+    (index) => {
+      store.beginOrderTermRemoval(12);
+      expect(runGuard(index)).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/order-terms/summary'));
+      expect(store.orderTermRemovalOutcome()).toBe('unavailable');
+    },
+  );
 
   it.each(['-1', '1.5', 'x', '', '99'])('redirects invalid order term array index %j to Summary', (index) => {
     expect(runGuard(index)).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/order-terms/summary'));

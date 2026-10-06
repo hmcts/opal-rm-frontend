@@ -15,7 +15,10 @@ import {
   APPLICANT_ORGANISATION_ERROR_MESSAGES,
   APPLICANT_ORGANISATION_REQUIRED_ERROR_SUMMARY,
 } from './constants/applicant-organisation-errors.constant';
-import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from './constants/create-casefile-test-copy.constant';
+import {
+  ERROR_SUMMARY_TITLE,
+  UNSAVED_CHANGES_WARNING,
+} from '../../shared/constants/create-casefile-test-copy.constant';
 import {
   SAVED_APPLICANT_ORGANISATION,
   VALID_NONE_APPLICANT_ORGANISATION,

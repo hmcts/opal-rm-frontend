@@ -14,7 +14,10 @@ import {
   APPLICANT_INDIVIDUAL_ERROR_MESSAGES,
   APPLICANT_INDIVIDUAL_REQUIRED_ERROR_SUMMARY,
 } from './constants/applicant-individual-errors.constant';
-import { ERROR_SUMMARY_TITLE, UNSAVED_CHANGES_WARNING } from './constants/create-casefile-test-copy.constant';
+import {
+  ERROR_SUMMARY_TITLE,
+  UNSAVED_CHANGES_WARNING,
+} from '../../shared/constants/create-casefile-test-copy.constant';
 import {
   SAVED_APPLICANT_INDIVIDUAL,
   VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL,

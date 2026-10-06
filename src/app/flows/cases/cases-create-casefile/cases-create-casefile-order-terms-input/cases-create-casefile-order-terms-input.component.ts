@@ -33,7 +33,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
   private readonly dates = inject(DateService);
   private readonly title = inject(Title);
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
-  private acceptedTermIndex: number | null = null;
+  private acceptedTermId: number | null = null;
   private retryDraft: ICasesCreateCasefileOrderTermDraftChange | null = null;
   public readonly pages = signal<OrderTermPageEntry[]>([]);
   public readonly frequency = computed(() => this.store.orderDetails()?.paymentFrequency ?? '');
@@ -44,7 +44,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
       const page = data['orderTerm'] as ICasesCreateCasefileOrderTermPage;
       this.store.prepareOrderTermDraft(page);
       const draft = this.store.orderTermDraft();
-      this.acceptedTermIndex = null;
+      this.acceptedTermId = null;
       this.retryDraft = null;
       this.stateUnsavedChanges = draft?.dirty ?? false;
       this.store.setUnsavedChanges(this.stateUnsavedChanges);
@@ -59,9 +59,17 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
     });
   }
 
+  private async navigateToCreditor(): Promise<void> {
+    try {
+      await this.navigationRouter.navigateByUrl('/' + this.paths.root + '/' + this.paths.children.orderTermCreditor);
+    } catch {
+      // Keep the accepted term identity available so a safe retry can update the same record.
+    }
+  }
+
   public handleDraftChange(change: ICasesCreateCasefileOrderTermDraftChange): void {
     this.stateUnsavedChanges = change.dirty;
-    if (this.acceptedTermIndex !== null) {
+    if (this.acceptedTermId !== null) {
       this.retryDraft = change;
       this.store.setUnsavedChanges(change.dirty);
       return;
@@ -78,7 +86,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
     formData: Record<string, CasesCreateCasefileOrderTermRawValue>;
     nestedFlow: boolean;
   }): void {
-    if (this.acceptedTermIndex === null) {
+    if (this.acceptedTermId === null) {
       const current = this.pages()[0];
       if (!current) return;
       let term: ICasesCreateCasefileOrderTerm;
@@ -88,7 +96,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
         return;
       }
       if (!this.store.acceptOrderTerm(term)) return;
-      this.acceptedTermIndex = this.store.orderTerms().length - 1;
+      this.acceptedTermId = this.store.currentOrderTermId();
     } else if (this.retryDraft) {
       const current = this.pages()[0];
       if (!current) return;
@@ -98,11 +106,11 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
       } catch {
         return;
       }
-      if (!this.store.replaceAcceptedOrderTerm(this.acceptedTermIndex, term)) return;
+      if (!this.store.replaceAcceptedOrderTerm(this.acceptedTermId, term)) return;
       this.retryDraft = null;
     }
     this.handleUnsavedChanges(false);
-    void this.navigationRouter.navigateByUrl('/' + this.paths.root + '/' + this.paths.children.orderTermCreditor);
+    void this.navigateToCreditor();
   }
 
   public async handleCancel(): Promise<void> {

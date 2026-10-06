@@ -255,7 +255,7 @@ describe('Submission route lifecycle', () => {
     harness.detectChanges();
     const removal = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileOrderTermsRemoveComponent))
       .componentInstance as CasesCreateCasefileOrderTermsRemoveComponent;
-    await removal.handleRemove();
+    await removal.handleConfirm();
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(router.url).toBe('/cases/create-casefile/task-list');

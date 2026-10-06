@@ -48,7 +48,7 @@ export class CasesCreateCasefileOrderTermsRemoveComponent implements OnInit, OnD
     this.busy.set(true);
     try {
       return await this.router.navigateByUrl(
-        this.outcome() === 'removed' ? this.reviewNavigation.returnPath(this.summaryPath) : this.summaryPath,
+        this.outcome() ? this.reviewNavigation.returnPath(this.summaryPath) : this.summaryPath,
       );
     } catch {
       return false;

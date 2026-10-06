@@ -78,7 +78,6 @@ export class CasesCreateCasefileOrderTermsSummaryComponent implements OnInit, On
     });
   }
 
-
   public ngOnInit(): void {
     afterRenderEffect(
       () => {

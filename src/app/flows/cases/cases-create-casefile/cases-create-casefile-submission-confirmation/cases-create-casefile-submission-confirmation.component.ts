@@ -39,6 +39,12 @@ export class CasesCreateCasefileSubmissionConfirmationComponent {
     afterNextRender(() => this.heading()?.nativeElement.focus());
   }
 
+  public resetInReviewSelection(event: MouseEvent): void {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    this.dashboardNavigation.setSelection(defaultCasesDraftNavigation());
+    this.dashboardNavigation.clearCreateOrigin();
+  }
+
   public async startNewCase(event: Event): Promise<void> {
     event.preventDefault();
     if (this.navigating()) return;

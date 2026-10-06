@@ -24,15 +24,13 @@ export class CasesDraftPlaceholderComponent {
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   private readonly data = toSignal(this.route.data, { initialValue: this.route.snapshot.data });
   private readonly params = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap });
-  private readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap });
+  private readonly fragment = toSignal(this.route.fragment, { initialValue: this.route.snapshot.fragment });
   private readonly kind = computed(() => this.data()['placeholderKind']);
   private readonly validId = computed(() => {
     const id = this.params().get('draftCasefileId');
     return id !== null && /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id));
   });
-  public readonly backUrl = computed(() =>
-    this.navigation.dashboardUrl(parseCasesDraftNavigation(this.query().get('tab'), this.query())),
-  );
+  public readonly backUrl = computed(() => this.navigation.dashboardUrl(parseCasesDraftNavigation(this.fragment())));
   public readonly gridClass = computed(() =>
     this.kind() === 'rejections' ? 'govuk-grid-column-full' : 'govuk-grid-column-two-thirds',
   );

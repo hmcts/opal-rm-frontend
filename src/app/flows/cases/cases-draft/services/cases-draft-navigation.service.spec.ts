@@ -1,13 +1,13 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter, convertToParamMap } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CasesCreateCasefileStore } from '../../cases-create-casefile/stores/cases-create-casefile.store';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
-import { defaultCasesDraftNavigation, parseCasesDraftNavigation } from '../utils/cases-draft-navigation';
+import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { CasesDraftNavigationService } from './cases-draft-navigation.service';
 
 const permittedUser = (): IOpalUserState => ({
@@ -38,9 +38,7 @@ describe('CasesDraftNavigationService', () => {
   };
   const expectCleared = () => {
     expect(service.selection()).toEqual(defaultCasesDraftNavigation());
-    expect(router.serializeUrl(service.creationReturnUrl())).toBe(
-      '/cases/draft/create-and-manage/tabs?page=1&sort=created&direction=ascending#in-review',
-    );
+    expect(router.serializeUrl(service.creationReturnUrl())).toBe('/cases/draft/create-and-manage/tabs#in-review');
   };
   beforeEach(() => {
     authenticated.set(true);
@@ -57,7 +55,7 @@ describe('CasesDraftNavigationService', () => {
     expectCleared();
   });
   it('retains initial valid incoming metadata through the first lifecycle effect', () => {
-    service.setSelection(parseCasesDraftNavigation('approved', convertToParamMap({ page: '2' })));
+    service.setSelection({ ...defaultCasesDraftNavigation('approved'), page: 2 });
     flush();
     expect(service.selection()).toEqual({ ...defaultCasesDraftNavigation('approved'), page: 2 });
   });
@@ -69,16 +67,12 @@ describe('CasesDraftNavigationService', () => {
     service.setSelection(defaultCasesDraftNavigation('rejected'));
     flush();
     expect(service.selection()).toEqual(defaultCasesDraftNavigation('rejected'));
-    expect(router.serializeUrl(service.creationReturnUrl())).toBe(
-      '/cases/draft/create-and-manage/tabs?page=2&sort=approved&direction=descending#approved',
-    );
+    expect(router.serializeUrl(service.creationReturnUrl())).toBe('/cases/draft/create-and-manage/tabs#approved');
   });
   it('clears old create origins for a direct new creation', () => {
     remember();
     service.clearCreateOrigin();
-    expect(router.serializeUrl(service.creationReturnUrl())).toContain(
-      'page=1&sort=created&direction=ascending#in-review',
-    );
+    expect(router.serializeUrl(service.creationReturnUrl())).toContain('#in-review');
     expect(service.selection()).toEqual(selected);
   });
   it('keeps dashboard metadata independent of real creation-store resets', () => {
@@ -89,9 +83,7 @@ describe('CasesDraftNavigationService', () => {
     flush();
     expect(creation.submissionSucceeded()).toBe(false);
     expect(service.selection()).toEqual(selected);
-    expect(router.serializeUrl(service.creationReturnUrl())).toContain(
-      'page=2&sort=approved&direction=descending#approved',
-    );
+    expect(router.serializeUrl(service.creationReturnUrl())).toContain('#approved');
   });
   it.each([
     'global user',
@@ -141,44 +133,37 @@ describe('CasesDraftNavigationService', () => {
     flush();
     expectCleared();
   });
-  it('creates a closed dashboard URL from only validated metadata', () => {
-    service.setSelection(
-      parseCasesDraftNavigation(
-        'rejected',
-        convertToParamMap({
-          page: '3',
-          sort: 'applicant',
-          direction: 'descending',
-          returnUrl: 'https://example.invalid',
-        }),
-      ),
-    );
-    expect(router.serializeUrl(service.dashboardUrl())).toBe(
-      '/cases/draft/create-and-manage/tabs?page=3&sort=applicant&direction=descending#rejected',
-    );
-    expect(router.serializeUrl(service.dashboardUrl(defaultCasesDraftNavigation()))).toContain(
-      'page=1&sort=created&direction=ascending#in-review',
+  it('creates a fragment-only dashboard URL while retaining local table state', () => {
+    const selection = {
+      ...defaultCasesDraftNavigation('rejected'),
+      page: 3,
+      sort: 'applicant' as const,
+      direction: 'descending' as const,
+    };
+    service.setSelection(selection);
+    const tree = service.dashboardUrl();
+    expect(router.serializeUrl(tree)).toBe('/cases/draft/create-and-manage/tabs#rejected');
+    expect(tree.queryParams).toEqual({});
+    expect(service.selection()).toEqual(selection);
+    expect(router.serializeUrl(service.dashboardUrl(defaultCasesDraftNavigation()))).toBe(
+      '/cases/draft/create-and-manage/tabs#in-review',
     );
   });
   it.each([
     ['details', '/cases/create-casefile/check-case-details/12'],
     ['amendment', '/cases/create-casefile/task-list/12'],
     ['rejections', '/cases/draft/create-and-manage/rejections'],
-  ] as const)('creates the fixed %s destination with restorable metadata', (kind, path) => {
-    service.setSelection(
-      parseCasesDraftNavigation(
-        'rejected',
-        convertToParamMap({
-          page: '3',
-          sort: 'applicant',
-          direction: 'descending',
-          returnUrl: 'https://example.invalid',
-        }),
-      ),
-    );
+  ] as const)('creates the fixed %s destination with only the source fragment', (kind, path) => {
+    service.setSelection({
+      ...defaultCasesDraftNavigation('rejected'),
+      page: 3,
+      sort: 'applicant',
+      direction: 'descending',
+    });
     const tree = service.placeholderUrl(kind, 12);
-    expect(router.serializeUrl(tree)).toBe(path + '?tab=rejected&page=3&sort=applicant&direction=descending');
-    expect(parseCasesDraftNavigation(tree.queryParamMap.get('tab'), tree.queryParamMap)).toEqual(service.selection());
+    expect(router.serializeUrl(tree)).toBe(path + '#rejected');
+    expect(tree.queryParams).toEqual({});
+    expect(service.selection()).toEqual({ tab: 'rejected', page: 3, sort: 'applicant', direction: 'descending' });
   });
   it.each(['details', 'amendment'] as const)('rejects invalid identifiers for %s', (kind) => {
     for (const id of [undefined, 0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])
@@ -186,7 +171,7 @@ describe('CasesDraftNavigationService', () => {
   });
   it('does not require an identifier for all rejections', () => {
     expect(router.serializeUrl(service.placeholderUrl('rejections'))).toBe(
-      '/cases/draft/create-and-manage/rejections?tab=in-review&page=1&sort=created&direction=ascending',
+      '/cases/draft/create-and-manage/rejections#in-review',
     );
   });
 });

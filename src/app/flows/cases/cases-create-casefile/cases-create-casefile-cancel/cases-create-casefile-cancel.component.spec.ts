@@ -244,7 +244,7 @@ describe('Confirmed cancellation dashboard metadata', () => {
       expect(reset).toHaveBeenCalledOnce();
       expect(navigate).toHaveBeenLastCalledWith(navigation.creationReturnUrl());
       expect(router.serializeUrl(navigate.mock.lastCall![0] as UrlTree)).toBe(
-        '/cases/draft/create-and-manage/tabs?page=2&sort=created&direction=descending#rejected',
+        '/cases/draft/create-and-manage/tabs#rejected',
       );
       expect(navigation.selection()).toEqual({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
       expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);

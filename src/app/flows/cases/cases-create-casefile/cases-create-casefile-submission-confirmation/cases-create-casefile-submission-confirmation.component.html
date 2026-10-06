@@ -31,7 +31,11 @@
       </a>
     </li>
     <li>
-      <a id="create_casefile_confirmation_in_review" class="govuk-link" [routerLink]="inReviewUrl"
+      <a
+        id="create_casefile_confirmation_in_review"
+        class="govuk-link"
+        [routerLink]="inReviewUrl"
+        (click)="resetInReviewSelection($event)"
         >See your cases in review</a
       >
     </li>

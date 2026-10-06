@@ -16,7 +16,7 @@ export class CasesDraftNavigationService {
   private readonly globalStore = inject(GlobalStore);
   private readonly current = signal<ICasesDraftNavigation>(defaultCasesDraftNavigation());
   private readonly createOrigin = signal<ICasesDraftNavigation | null>(null);
-  // Seed from the live identity so the first effect preserves valid direct-entry URL metadata.
+  // Seed from the live identity so the first effect preserves valid local table state.
   private previousIdentity = this.authorisedIdentity();
 
   public readonly selection = this.current.asReadonly();
@@ -59,7 +59,6 @@ export class CasesDraftNavigationService {
       ['/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.tabs],
       {
         fragment: selection.tab,
-        queryParams: { page: selection.page, sort: selection.sort, direction: selection.direction },
       },
     );
   }
@@ -79,7 +78,7 @@ export class CasesDraftNavigationService {
       path = '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + child + '/' + id;
     }
     return this.router.createUrlTree([path], {
-      queryParams: { tab: selection.tab, page: selection.page, sort: selection.sort, direction: selection.direction },
+      fragment: selection.tab,
     });
   }
 

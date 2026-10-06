@@ -18,11 +18,7 @@ export const setupCreateCasefileCaseType = (
 ) => {
   const store = new CasesCreateCasefileStore();
   const returnPath =
-    '/' +
-    CASES_DRAFT_ROUTING_PATHS.root +
-    '/' +
-    CASES_DRAFT_ROUTING_PATHS.children.tabs +
-    '?page=1&sort=created&direction=ascending#in-review';
+    '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.tabs + '#in-review';
   const navigateByUrl = cy.stub().as('cancelRouterNavigate').resolves(true);
   if (navigationFailure === 'false') navigateByUrl.resolves(false);
   if (navigationFailure === 'throw') navigateByUrl.rejects(new Error('Synthetic router failure'));

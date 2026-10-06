@@ -95,6 +95,7 @@ export class InputterDashboardActions {
   public expectDashboard(tab: CasesDraftTab): void {
     cy.location('pathname').should('eq', DASHBOARD);
     cy.location('hash').should('eq', '#' + tab);
+    cy.location('search').should('eq', '');
     cy.get(S.heading).should('have.text', 'Create cases');
     cy.get(S.tab(tab)).should('have.attr', 'aria-current', 'page');
   }
@@ -186,10 +187,7 @@ export class InputterDashboardActions {
    * @param fresh Whether persisted navigation refreshed the synthetic content. */
   public expectRestored(fresh = true): void {
     this.expectDashboard('rejected');
-    cy.location('search')
-      .should('include', 'page=2')
-      .and('include', 'sort=applicant')
-      .and('include', 'direction=descending');
+    cy.location('search').should('eq', '');
     cy.get(S.pageStatus).should('contain.text', 'Page 2 of 2');
     cy.get('th[columnKey="applicant"]').should('have.attr', 'aria-sort', 'descending');
     cy.get(S.row(1)).should('contain.text', fresh ? 'Refreshed synthetic respondent 1' : 'Synthetic respondent 01');
@@ -428,10 +426,7 @@ export class InputterDashboardActions {
   /** Checks confirmation resets In review to first page and Created ascending. */
   public expectDefaultReview(): void {
     this.expectDashboard('in-review');
-    cy.location('search')
-      .should('include', 'page=1')
-      .and('include', 'sort=created')
-      .and('include', 'direction=ascending');
+    cy.location('search').should('eq', '');
     cy.get('th[columnKey="created"]').should('have.attr', 'aria-sort', 'ascending');
     cy.get(S.pageStatus).should('contain.text', 'Page 1 of 2');
   }

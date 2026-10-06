@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter, Router, RouterOutlet, UrlTree } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router, RouterOutlet, UrlTree } from '@angular/router';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import { BehaviorSubject, defer, of, throwError } from 'rxjs';
@@ -90,13 +90,6 @@ function prepareDocument(document: Document): void {
 export function setupInputterDashboard(options: IDashboardSetupOptions = {}) {
   const boundary = dashboardBoundary(options);
   const fragment = new BehaviorSubject<string | null>(boundary.selection.tab);
-  const query = new BehaviorSubject(
-    convertToParamMap({
-      page: String(boundary.selection.page),
-      sort: boundary.selection.sort,
-      direction: boundary.selection.direction,
-    }),
-  );
   return cy.document().then((document) => {
     prepareDocument(document);
     return mount(CasesDraftCreateAndManageTabsComponent, {
@@ -108,9 +101,8 @@ export function setupInputterDashboard(options: IDashboardSetupOptions = {}) {
           provide: ActivatedRoute,
           useValue: {
             fragment: fragment.asObservable(),
-            queryParamMap: query.asObservable(),
             data: of(boundary.resolved),
-            snapshot: { fragment: boundary.selection.tab, queryParamMap: query.value, data: boundary.resolved },
+            snapshot: { fragment: boundary.selection.tab, data: boundary.resolved },
           },
         },
       ],
@@ -124,7 +116,6 @@ export function setupInputterDashboard(options: IDashboardSetupOptions = {}) {
               .serializeUrl(tree)
               .startsWith('/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.tabs)
           ) {
-            query.next(tree.queryParamMap);
             fragment.next(tree.fragment);
           }
           return Promise.resolve(true);

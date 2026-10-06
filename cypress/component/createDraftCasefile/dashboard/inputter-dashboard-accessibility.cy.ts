@@ -46,7 +46,7 @@ describe('Inputter dashboard accessibility', () => {
       cy.get(S.heading).should('be.focused');
       cy.get(S.sort('respondent')).focus().should('be.focused');
       pressDashboardEnter();
-      cy.get('@routerNavigate').should('have.been.calledOnce');
+      cy.get('@routerNavigate').should('not.have.been.called');
       cy.get(S.sort('respondent')).closest('th').should('have.attr', 'aria-sort', 'ascending');
       cy.get('opal-lib-moj-sortable-table-status').should('contain.text', 'Respondent');
       cy.get(S.sort('respondent')).should('be.focused');

@@ -6,7 +6,7 @@ import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefi
 import { setupReview, type ReviewStore } from './setup/review.setup';
 
 const S = CreateCasefileSelectors.review;
-const IN_REVIEW_URL = '/cases/draft/create-and-manage/tabs?page=1&sort=created&direction=ascending#in-review';
+const IN_REVIEW_URL = '/cases/draft/create-and-manage/tabs#in-review';
 const buildTags = (story = 'PO-9817'): string[] => [
   '@JIRA-STORY:' + story,
   '@JIRA-EPIC:PO-6506',

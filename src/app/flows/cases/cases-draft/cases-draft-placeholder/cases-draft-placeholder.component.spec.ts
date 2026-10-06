@@ -27,12 +27,12 @@ describe('draft placeholder metadata', () => {
   });
   it('takes mode only from trusted route data and validates a safe internal Back destination', async () => {
     const harness = await RouterTestingHarness.create(
-      '/123?placeholderKind=rejections&tab=deleted&page=3&sort=statusDate&direction=descending&returnUrl=https://example.test',
+      '/123?placeholderKind=rejections&tab=approved&page=3&sort=statusDate&direction=descending&returnUrl=https://example.test#deleted',
     );
     expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toBe('Amend case');
     expect(harness.routeNativeElement?.textContent).toContain('Case amendment will be available here.');
     expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toBe(
-      '/cases/draft/create-and-manage/tabs?page=3&sort=statusDate&direction=descending#deleted',
+      '/cases/draft/create-and-manage/tabs#deleted',
     );
   });
   it('keeps a missing ID safe when rendering an incomplete details route', async () => {

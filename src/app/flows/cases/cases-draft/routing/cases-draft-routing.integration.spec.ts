@@ -79,7 +79,9 @@ describe('draft production route boundaries', () => {
       'govuk-grid-column-full',
     ],
   ])('allows %s with no local create state or API request', async (url, heading, body, grid) => {
-    const harness = await RouterTestingHarness.create(url + '?tab=rejected&page=2&sort=created&direction=descending');
+    const harness = await RouterTestingHarness.create(
+      url + '?tab=approved&page=2&sort=created&direction=descending#rejected',
+    );
     const element = harness.routeNativeElement!;
     expect(element.querySelector('h1')?.textContent?.trim()).toBe(heading);
     expect(document.title).toBe('OPAL - ' + heading);
@@ -87,9 +89,7 @@ describe('draft production route boundaries', () => {
     expect(element.querySelector(':scope > div')?.className).toBe(grid);
     expect(element.querySelector('h1')?.getAttribute('tabindex')).toBe('-1');
     expect(document.activeElement).toBe(element.querySelector('h1'));
-    expect(element.querySelector('a')?.getAttribute('href')).toBe(
-      dashboard + '?page=2&sort=created&direction=descending#rejected',
-    );
+    expect(element.querySelector('a')?.getAttribute('href')).toBe(dashboard + '#rejected');
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
     expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
     const parent = TestBed.inject(Router).routerState.snapshot.root.firstChild!;
@@ -111,20 +111,16 @@ describe('draft production route boundaries', () => {
     const harness = await RouterTestingHarness.create(details);
     const first = harness.routeDebugElement?.componentInstance;
     await harness.navigateByUrl(
-      '/cases/create-casefile/check-case-details/0?tab=approved&page=3&sort=approved&direction=descending',
+      '/cases/create-casefile/check-case-details/0?tab=rejected&page=3&sort=approved&direction=descending#approved',
     );
     expect(harness.routeDebugElement?.componentInstance).toBe(first);
     expect(harness.routeNativeElement?.textContent).toContain('This case could not be opened.');
-    expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toContain(
-      'page=3&sort=approved&direction=descending#approved',
-    );
+    expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toContain('#approved');
     await harness.navigateByUrl(
-      '/cases/create-casefile/check-case-details/9007199254740991?tab=wrong&page=0&returnUrl=https://example.test',
+      '/cases/create-casefile/check-case-details/9007199254740991?tab=approved&page=0&returnUrl=https://example.test#wrong',
     );
     expect(harness.routeNativeElement?.textContent).toContain('Case details will be available here.');
-    expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toBe(
-      dashboard + '?page=1&sort=created&direction=ascending#in-review',
-    );
+    expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toBe(dashboard + '#in-review');
   });
   it.each([dashboard, rejections, details, amendment])(
     'denies %s before any maintenance request when permission is absent',
@@ -201,12 +197,15 @@ describe('draft production route boundaries', () => {
   }
   it('returns through fresh resolver data, retaining sort and clamping a shrinking list', async () => {
     const harness = await RouterTestingHarness.create();
-    const arrival = harness.navigateByUrl(dashboard + '?page=2&sort=respondent&direction=descending#rejected');
+    const arrival = harness.navigateByUrl(dashboard + '#rejected');
     await flushList('REJECTED', 26);
     await arrival;
     const original = harness.routeDebugElement?.componentInstance as CasesDraftCreateAndManageTabsComponent;
+    original.changeSort({ key: 'respondent', direction: 'descending' });
+    original.changePage(2);
     expect(original.navigation.selection().page).toBe(2);
-    await harness.navigateByUrl(details + '?tab=rejected&page=2&sort=respondent&direction=descending');
+    expect(TestBed.inject(Router).url).toBe(dashboard + '#rejected');
+    await harness.navigateByUrl(details + '#rejected');
     harness.routeNativeElement!.querySelector('a')!.click();
     await flushList('REJECTED', 1);
     harness.detectChanges();
@@ -220,9 +219,9 @@ describe('draft production route boundaries', () => {
       sort: 'respondent',
       direction: 'descending',
     });
-    expect(TestBed.inject(Router).url).toBe(dashboard + '?page=1&sort=respondent&direction=descending#rejected');
+    expect(TestBed.inject(Router).url).toBe(dashboard + '#rejected');
   });
-  it('resolves a non-default initial fragment once and changes query without another consultation', async () => {
+  it('resolves a non-default initial fragment once and ignores added query state', async () => {
     const harness = await RouterTestingHarness.create();
     const arrival = harness.navigateByUrl(dashboard + '#approved');
     await vi.waitFor(() =>
@@ -231,7 +230,15 @@ describe('draft production route boundaries', () => {
     await flushList('PUBLISHED', 1);
     await arrival;
     expect(harness.routeNativeElement?.querySelector('tbody')).not.toBeNull();
-    await harness.navigateByUrl(dashboard + '?page=1&sort=respondentAccount&direction=descending#approved');
+    await harness.navigateByUrl(dashboard + '?page=8&sort=respondentAccount&direction=descending#approved');
+    expect(
+      (harness.routeDebugElement?.componentInstance as CasesDraftCreateAndManageTabsComponent).navigation.selection(),
+    ).toEqual({
+      tab: 'approved',
+      page: 1,
+      sort: 'approved',
+      direction: 'ascending',
+    });
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
   });
   it('arrives with successful rows and a global banner after independent count decoding fails', async () => {
@@ -320,9 +327,7 @@ describe('draft production route boundaries', () => {
       );
       expect(harness.routeNativeElement?.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('456');
       expect(harness.routeNativeElement?.querySelector('[data-draft-id="123"]')).toBeNull();
-      expect(router.serializeUrl(navigation.creationReturnUrl())).toBe(
-        dashboard + '?page=1&sort=created&direction=ascending#in-review',
-      );
+      expect(router.serializeUrl(navigation.creationReturnUrl())).toBe(dashboard + '#in-review');
     },
   );
   it('cancels a pending replacement consultation when its authorisation is removed', async () => {

@@ -126,41 +126,44 @@ describe('Submission route lifecycle', () => {
       expect(reviewContext.context()).toBeNull();
       expect(navigation.selection()).toEqual({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
       expect(TestBed.inject(Router).serializeUrl(navigation.creationReturnUrl())).toBe(
-        '/cases/draft/create-and-manage/tabs?page=1&sort=created&direction=ascending#in-review',
+        '/cases/draft/create-and-manage/tabs#in-review',
       );
     },
   );
 
-  it('the confirmation review link replaces rejected metadata and reloads In review', async () => {
-    const dashboardPath = '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.tabs;
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([
-          { path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children },
-          { path: dashboardPath.slice(1), component: CasesDraftCreateAndManageTabsComponent },
-        ]),
-      ],
-    });
-    authoriseDashboard();
-    const navigation = TestBed.inject(CasesDraftNavigationService);
-    navigation.setSelection({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
-    navigation.rememberCreateOrigin();
-    TestBed.inject(CasesCreateCasefileStore).setSubmissionSucceeded(true);
-    const harness = await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
-    harness.routeNativeElement!.querySelector<HTMLAnchorElement>('#create_casefile_confirmation_in_review')!.click();
-    await harness.fixture.whenStable();
-    harness.detectChanges();
-    expect(TestBed.inject(Router).url).toBe(dashboardPath + '?page=1&sort=created&direction=ascending#in-review');
-    await harness.fixture.whenStable();
-    expect(document.activeElement?.id).toBe('cases-draft-heading');
-    const http = TestBed.inject(HttpTestingController);
-    http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 0 });
-    http
-      .expectOne((request) => request.params.get('casefile_status') === 'SUBMITTED,RESUBMITTED')
-      .flush({ count: 0, summaries: [] });
-    await harness.fixture.whenStable();
-    expect(navigation.selection()).toEqual({ tab: 'in-review', page: 1, sort: 'created', direction: 'ascending' });
-  });
+  it.each(['rejected', 'in-review'] as const)(
+    'the confirmation review link resets local %s table state and reloads In review',
+    async (tab) => {
+      const dashboardPath = '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.tabs;
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([
+            { path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children },
+            { path: dashboardPath.slice(1), component: CasesDraftCreateAndManageTabsComponent },
+          ]),
+        ],
+      });
+      authoriseDashboard();
+      const navigation = TestBed.inject(CasesDraftNavigationService);
+      navigation.setSelection({ tab, page: 2, sort: 'respondent', direction: 'descending' });
+      navigation.rememberCreateOrigin();
+      TestBed.inject(CasesCreateCasefileStore).setSubmissionSucceeded(true);
+      const harness = await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
+      harness.routeNativeElement!.querySelector<HTMLAnchorElement>('#create_casefile_confirmation_in_review')!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      expect(TestBed.inject(Router).url).toBe(dashboardPath + '#in-review');
+      await harness.fixture.whenStable();
+      expect(document.activeElement?.id).toBe('cases-draft-heading');
+      const http = TestBed.inject(HttpTestingController);
+      http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 0 });
+      http
+        .expectOne((request) => request.params.get('casefile_status') === 'SUBMITTED,RESUBMITTED')
+        .flush({ count: 0, summaries: [] });
+      await harness.fixture.whenStable();
+      expect(navigation.selection()).toEqual({ tab: 'in-review', page: 1, sort: 'created', direction: 'ascending' });
+    },
+  );
 
   it('sets the document title through the production confirmation resolver', async () => {
     TestBed.configureTestingModule({

@@ -10,7 +10,7 @@ export const casesDraftCountResolver: ResolveFn<number | null> = (route) => {
   const identity = data.getIdentity();
   if (!identity) return EMPTY;
   // The selected Rejected list already provides the exact count on this arrival.
-  if (parseCasesDraftNavigation(route.fragment, route.queryParamMap).tab === 'rejected') return of(null);
+  if (parseCasesDraftNavigation(route.fragment).tab === 'rejected') return of(null);
   return data.getRejectedCount(identity).pipe(
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) return throwError(() => error);

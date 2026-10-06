@@ -109,11 +109,6 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
     this.sortedTableDataSignal.set(this.tableData(sortCasesDraftRows(this.rows(), column, direction)));
   }
 
-  /** Restore the controlled URL selection when a sort or page navigation is cancelled. */
-  public restoreSelection(): void {
-    this.applySelection(this.rows(), this.selection());
-  }
-
   public override onSortChange(event: { key: string; sortType: SortDirectionType }): void {
     const columns: readonly string[] = CASES_DRAFT_TABS[this.selection().tab].columns;
     if (!columns.includes(event.key) || event.sortType === 'none') return;

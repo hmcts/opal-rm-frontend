@@ -63,6 +63,8 @@ Severity reflects impact, not the category of the repository rule involved.
 - Flag expensive template expressions or change-detection work only when the changed rendering path can create a
   material performance or stability problem.
 - Check response caching for defined freshness and invalidation behaviour and for correct user or session isolation.
+- Check added URL parameters against the agreed route contract and comparable maintained flows. Keep local table
+  sorting and pagination out of fragment-only tab URLs unless an explicit requirement justifies changing that contract.
 - Check changed SSR paths for unguarded browser globals or browser-only APIs.
 
 ### Security and privacy

@@ -10,6 +10,8 @@ import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import { AbstractTabData } from '@hmcts/opal-frontend-common/components/abstract/abstract-tab-data';
+import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
+import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { CasesDraftCreateAndManageTabsComponent } from './cases-draft-create-and-manage-tabs.component';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { CASES_DRAFT_TABS } from '../constants/cases-draft-tabs.constant';
@@ -171,8 +173,6 @@ describe('resolver-backed dashboard', () => {
   );
   it('ignores a scheduled stale response clamp after an authorised identity replacement', async () => {
     const fixture = await render();
-    query.next(convertToParamMap({ page: '8' }));
-    await fixture.whenStable();
     const pending = new Subject<IOpalMaintenanceDraftCasefileListResponse>();
     api.getDraftCasefiles.mockReturnValueOnce(pending).mockReturnValue(new Subject());
     api.getRejectedDraftCasefileCount.mockReturnValue(new Subject());
@@ -180,6 +180,7 @@ describe('resolver-backed dashboard', () => {
     fragment.next('approved');
     await fixture.whenStable();
     fixture.detectChanges();
+    fixture.componentInstance.changePage(8);
     pending.next(response('approved'));
     const replacement = permittedUser();
     replacement.user_id += 1;
@@ -200,7 +201,7 @@ describe('resolver-backed dashboard', () => {
     expect(format).toHaveBeenCalledWith(102, 99);
     format.mockRestore();
   });
-  it('handles an initially empty fragment and subsequent query metadata', async () => {
+  it('ignores query table state after an initially empty fragment', async () => {
     snapshot.fragment = '';
     fragment.next('');
     const fixture = TestBed.createComponent(CasesDraftCreateAndManageTabsComponent);
@@ -208,7 +209,7 @@ describe('resolver-backed dashboard', () => {
     await fixture.whenStable();
     query.next(convertToParamMap({ sort: 'respondent', direction: 'descending' }));
     await fixture.whenStable();
-    expect(fixture.componentInstance.navigation.selection().sort).toBe('respondent');
+    expect(fixture.componentInstance.navigation.selection().sort).toBe('created');
     expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
   });
   it('ignores shared inactive sort direction without navigation', async () => {
@@ -251,25 +252,21 @@ describe('resolver-backed dashboard', () => {
       expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
     },
   );
-  it('updates local metadata without reloading for query-only changes', async () => {
+  it('ignores query-only table changes without reloading', async () => {
     const fixture = await render();
     query.next(convertToParamMap({ page: '1', sort: 'respondent', direction: 'descending' }));
     await fixture.whenStable();
-    expect(fixture.componentInstance.navigation.selection().sort).toBe('respondent');
+    expect(fixture.componentInstance.navigation.selection().sort).toBe('created');
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
   });
-  it('reloads the safe default after query-only invalid metadata normalises the whole selection', async () => {
+  it('does not change the fragment-selected tab when table query values are invalid', async () => {
     const fixture = await render('approved', response('approved'));
-    query.next(convertToParamMap({ sort: 'respondent' }));
+    query.next(convertToParamMap({ page: '-2', sort: 'respondent', direction: 'sideways' }));
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(fixture.componentInstance.navigation.selection().tab).toBe('in-review');
-    expect(api.getDraftCasefiles).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ casefile_status: 'SUBMITTED,RESUBMITTED' }),
-    );
-    expect(fixture.nativeElement.querySelector('#cases-draft-empty')?.textContent).toContain(
-      'You have no cases in review.',
-    );
+    expect(fixture.componentInstance.navigation.selection()).toEqual(defaultCasesDraftNavigation('approved'));
+    expect(api.getDraftCasefiles).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
   });
   it('clears rows immediately, cancels stale requests, and requests only the next tab', async () => {
     const pending = new Subject<IOpalMaintenanceDraftCasefileListResponse>();
@@ -387,8 +384,8 @@ describe('resolver-backed dashboard', () => {
     expect(setBannerError).toHaveBeenCalledOnce();
     expect(JSON.stringify(setBannerError.mock.calls)).not.toContain('private detail');
   });
-  it('restores rendered header, sort and page after a cancelled header navigation', async () => {
-    query.next(convertToParamMap({ page: '2' }));
+  it('sorts loaded rows locally without navigating or consulting the API', async () => {
+    TestBed.inject(CasesDraftNavigationService).setSelection({ ...defaultCasesDraftNavigation(), page: 2 });
     const fixture = await render('in-review', {
       count: 26,
       summaries: Array.from({ length: 26 }, (_, index) => createCasesDraftSummary({ draft_casefile_id: index + 1 })),
@@ -399,30 +396,31 @@ describe('resolver-backed dashboard', () => {
     (element.querySelector('th button') as HTMLButtonElement).click();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(navigate).toHaveBeenCalledOnce();
-    expect(element.querySelectorAll('th')[0].getAttribute('aria-sort')).toBe('none');
-    expect(element.querySelectorAll('th')[3].getAttribute('aria-sort')).toBe('ascending');
-    expect(element.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('26');
-    expect(element.querySelector('output')?.textContent).toContain('Page 2 of 2');
+    expect(navigate).not.toHaveBeenCalled();
+    expect(api.getDraftCasefiles).not.toHaveBeenCalled();
+    expect(element.querySelectorAll('th')[0].getAttribute('aria-sort')).toBe('ascending');
+    expect(element.querySelectorAll('th')[3].getAttribute('aria-sort')).toBe('none');
+    expect(element.querySelector('output')?.textContent).toContain('Page 1 of 2');
     expect(fixture.componentInstance.navigation.selection()).toEqual({
       tab: 'in-review',
-      page: 2,
-      sort: 'created',
+      page: 1,
+      sort: 'respondent',
       direction: 'ascending',
     });
   });
-  it('restores inherited table page state when navigation is cancelled', async () => {
+  it('updates local page selection without navigating even when a route guard would cancel', async () => {
     const fixture = await render('in-review', {
       count: 26,
       summaries: Array.from({ length: 26 }, (_, index) => createCasesDraftSummary({ draft_casefile_id: index + 1 })),
     });
     const table = fixture.debugElement.query(By.directive(CasesDraftTableComponent))
       .componentInstance as CasesDraftTableComponent;
-    table.currentPageSignal.set(2);
-    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
-    await fixture.componentInstance.changePage(2);
-    expect(table.currentPageSignal()).toBe(1);
-    expect(fixture.componentInstance.navigation.selection().page).toBe(1);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
+    table.onPageChange(2);
+    await fixture.whenStable();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(table.currentPageSignal()).toBe(2);
+    expect(fixture.componentInstance.navigation.selection().page).toBe(2);
   });
   it('starts accepted fresh creation with return metadata', async () => {
     const fixture = await render();
@@ -446,7 +444,7 @@ describe('resolver-backed dashboard', () => {
         '#approved',
       );
       expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected').getAttribute('href')).toContain(
-        '/rejections?tab=rejected',
+        '/rejections#rejected',
       );
     },
   );
@@ -460,7 +458,7 @@ describe('resolver-backed dashboard', () => {
     expect(click.defaultPrevented).toBe(true);
     expect(navigate).toHaveBeenCalledOnce();
     expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toBe(
-      '/cases/draft/create-and-manage/tabs?page=1&sort=approved&direction=ascending#approved',
+      '/cases/draft/create-and-manage/tabs#approved',
     );
   });
   it('handles an ordinary native rejected-link click retaining return selection', async () => {
@@ -473,10 +471,10 @@ describe('resolver-backed dashboard', () => {
     expect(click.defaultPrevented).toBe(true);
     expect(navigate).toHaveBeenCalledOnce();
     expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toBe(
-      '/cases/draft/create-and-manage/rejections?tab=rejected&page=1&sort=statusDate&direction=ascending',
+      '/cases/draft/create-and-manage/rejections#rejected',
     );
   });
-  it('preserves inherited page state and visible rows after accepted paging navigation', async () => {
+  it('preserves inherited page state and visible rows without paging navigation', async () => {
     const fixture = await render('in-review', {
       count: 26,
       summaries: Array.from({ length: 26 }, (_, index) => createCasesDraftSummary({ draft_casefile_id: index + 1 })),
@@ -488,25 +486,30 @@ describe('resolver-backed dashboard', () => {
     table.onPageChange(2);
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(navigate).toHaveBeenCalledOnce();
-    expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toBe(
-      '/cases/draft/create-and-manage/tabs?page=2&sort=created&direction=ascending#in-review',
+    expect(navigate).not.toHaveBeenCalled();
+    expect(router.serializeUrl(fixture.componentInstance.navigation.dashboardUrl())).toBe(
+      '/cases/draft/create-and-manage/tabs#in-review',
     );
     expect(table.currentPageSignal()).toBe(2);
     expect(fixture.nativeElement.querySelector('tbody tr').getAttribute('data-draft-id')).toBe('26');
     expect(fixture.nativeElement.querySelector('output').textContent.trim()).toBe('Create cases, page 2 of 2');
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
   });
-  it('sorts using metadata and keeps details origin', async () => {
+  it('sorts locally and opens details with only the source fragment', async () => {
     const fixture = await render();
-    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     await fixture.componentInstance.changeSort({ key: 'respondent', direction: 'descending' });
-    expect(TestBed.inject(Router).serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toContain(
-      'page=1&sort=respondent&direction=descending',
-    );
+    expect(navigate).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.navigation.selection()).toEqual({
+      tab: 'in-review',
+      page: 1,
+      sort: 'respondent',
+      direction: 'descending',
+    });
     await fixture.componentInstance.openRow(123);
-    expect(TestBed.inject(Router).serializeUrl(navigate.mock.calls[1][0] as UrlTree)).toContain(
-      '/check-case-details/123?tab=in-review',
+    expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toBe(
+      '/cases/create-casefile/check-case-details/123#in-review',
     );
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
   });

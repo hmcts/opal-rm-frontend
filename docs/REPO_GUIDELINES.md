@@ -99,6 +99,9 @@ mapping, follow [SONAR.md](SONAR.md#form-identifiers).
   scoped.
 - Keep strict typing. Avoid `any`; use a precise type or `unknown` with narrowing.
 - Use `inject()` and component or directive `host` metadata where consistent with nearby code.
+- Keep transient table sorting and pagination in local UI state. For fragment-based tab navigation, use the fragment
+  for the active tab. Add URL query parameters only when an agreed requirement or established route contract calls for
+  them; preserving client-side table state alone does not justify expanding the URL contract.
 - Preserve SSR safety: do not access browser-only globals without the repository's established platform guards.
 
 ## RxJS and asynchronous state

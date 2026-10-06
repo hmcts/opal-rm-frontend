@@ -47,6 +47,7 @@ import type { CasesDraftTab } from '../types/cases-draft-tab.type';
 import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
 import type { ICasesDraftIdentity } from '../interfaces/cases-draft-identity.interface';
 import type { ICasesDraftResolvedList } from '../interfaces/cases-draft-resolved-list.interface';
+import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 import type { ICasesDraftTabData } from '../interfaces/cases-draft-tab-data.interface';
 import { defaultCasesDraftNavigation, parseCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { sameCasesDraftIdentity } from '../utils/cases-draft-identity';
@@ -73,10 +74,8 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
   private readonly destroy$ = new Subject<void>();
   private readonly injector = inject(Injector);
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
-  private readonly table = viewChild(CasesDraftTableComponent);
   private readonly httpDenied = signal(false);
   private readonly identity = computed(() => (this.httpDenied() ? null : this.data.getIdentity()));
-  private clampingPage: number | null = null;
   public readonly data = inject(CasesDraftDashboardService);
   public readonly navigation = inject(CasesDraftNavigationService);
   public readonly tabs: readonly CasesDraftTab[] = ['in-review', 'rejected', 'approved', 'deleted'];
@@ -102,10 +101,7 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
       this.destroy$.complete();
     });
     afterNextRender(() => this.heading()?.nativeElement.focus());
-    const initialSelection = parseCasesDraftNavigation(
-      this.activatedRoute.snapshot.fragment,
-      this.activatedRoute.snapshot.queryParamMap,
-    );
+    const initialSelection = this.selectionForFragment(this.activatedRoute.snapshot.fragment);
     // AbstractTabData filters empty fragments. Add their transitions, including re-entry to the preceding tab.
     const fragment$ = merge(
       this.getFragmentStream('in-review', this.destroy$),
@@ -125,11 +121,9 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
       shareReplay({ bufferSize: 1, refCount: true }),
     );
     // Reapply the current route after the navigation service clears metadata for a replacement identity.
-    const selection$ = combineLatest([fragment$, this.activatedRoute.queryParamMap, identity$]).pipe(
+    const selection$ = combineLatest([fragment$, identity$]).pipe(
       auditTime(0, asapScheduler),
-      map(([fragment, query, identity]) =>
-        identity ? parseCasesDraftNavigation(fragment, query) : defaultCasesDraftNavigation(),
-      ),
+      map(([fragment, identity]) => (identity ? this.selectionForFragment(fragment) : defaultCasesDraftNavigation())),
       startWith(initialSelection),
       tap((selection) => {
         this.navigation.setSelection(selection);
@@ -209,15 +203,17 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     );
   }
 
+  private selectionForFragment(fragment: string | null): ICasesDraftNavigation {
+    const defaults = parseCasesDraftNavigation(fragment);
+    const current = this.navigation.selection();
+    return current.tab === defaults.tab ? current : defaults;
+  }
+
   private clampPage(result: ICasesDraftTabData): void {
     const selection = this.navigation.selection();
     if (!this.isCurrentData(result) || !result.rows) return;
     const page = Math.max(1, Math.min(selection.page, Math.ceil(result.rows.length / 25)));
-    if (page === selection.page || page === this.clampingPage) return;
-    this.clampingPage = page;
-    void this.navigate(this.navigation.dashboardUrl({ ...selection, page }), true).finally(() => {
-      this.clampingPage = null;
-    });
+    if (page !== selection.page) this.navigation.setSelection({ ...selection, page });
   }
   private handleRequestError(error: unknown): void {
     if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) {
@@ -251,24 +247,17 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
   public async selectTab(tab: CasesDraftTab): Promise<void> {
     await this.navigate(this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab)));
   }
-  public async changeSort(change: { key: CasesDraftSortColumn; direction: SortDirectionType }): Promise<void> {
+  public changeSort(change: { key: CasesDraftSortColumn; direction: SortDirectionType }): void {
     if (change.direction === 'none') return;
-    if (
-      !(await this.navigate(
-        this.navigation.dashboardUrl({
-          ...this.navigation.selection(),
-          page: 1,
-          sort: change.key,
-          direction: change.direction,
-        }),
-      ))
-    )
-      this.table()?.restoreSelection();
+    this.navigation.setSelection({
+      ...this.navigation.selection(),
+      page: 1,
+      sort: change.key,
+      direction: change.direction,
+    });
   }
-  public async changePage(page: number): Promise<void> {
-    if (!(await this.navigate(this.navigation.dashboardUrl({ ...this.navigation.selection(), page })))) {
-      this.table()?.restoreSelection();
-    }
+  public changePage(page: number): void {
+    this.navigation.setSelection({ ...this.navigation.selection(), page });
   }
   public async openRow(id: number): Promise<void> {
     await this.navigate(this.navigation.placeholderUrl('details', id));

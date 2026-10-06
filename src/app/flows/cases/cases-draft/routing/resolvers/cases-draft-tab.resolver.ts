@@ -9,6 +9,6 @@ export const casesDraftTabResolver: ResolveFn<ICasesDraftResolvedList> = (route)
   const data = inject(CasesDraftDashboardService);
   const identity = data.getIdentity();
   if (!identity) return EMPTY;
-  const { tab } = parseCasesDraftNavigation(route.fragment, route.queryParamMap);
+  const { tab } = parseCasesDraftNavigation(route.fragment);
   return data.getList(identity, tab).pipe(map((response) => ({ identity, tab, response })));
 };

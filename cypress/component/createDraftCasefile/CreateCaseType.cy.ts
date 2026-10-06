@@ -17,7 +17,7 @@ const buildTags = (...tags: string[]): string[] => [
   '@JIRA-STORY:PO-10605',
 ];
 const taskListPath = `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList}`;
-const casesDashboardPath = `/${CASES_DRAFT_ROUTING_PATHS.root}/${CASES_DRAFT_ROUTING_PATHS.children.tabs}?page=1&sort=created&direction=ascending#in-review`;
+const casesDashboardPath = `/${CASES_DRAFT_ROUTING_PATHS.root}/${CASES_DRAFT_ROUTING_PATHS.children.tabs}#in-review`;
 
 const assertStoredSelection = (
   expectedSelection: ReturnType<CasesCreateCasefileStoreInstance['caseTypeSelection']>,

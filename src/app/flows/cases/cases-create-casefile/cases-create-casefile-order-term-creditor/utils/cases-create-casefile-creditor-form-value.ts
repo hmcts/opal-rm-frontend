@@ -7,12 +7,17 @@ export function creditorFormValue(
   assignment: CasesCreateCasefileCreditorAssignment | null,
   pendingNew: boolean,
 ): ICasesCreateCasefileOrderTermCreditorFormData {
+  let choice: string | null;
+  if (pendingNew) {
+    choice = 'add-new';
+  } else if (assignment?.type === 'minor') {
+    choice = `minor:${assignment.sequenceNumber}`;
+  } else {
+    choice = assignment?.type ?? null;
+  }
+
   return {
-    create_casefile_order_term_creditor_choice: pendingNew
-      ? 'add-new'
-      : assignment?.type === 'minor'
-        ? `minor:${assignment.sequenceNumber}`
-        : (assignment?.type ?? null),
+    create_casefile_order_term_creditor_choice: choice,
     create_casefile_order_term_creditor_major_creditor_id:
       !pendingNew && assignment?.type === 'major' ? assignment.majorCreditorId : null,
   };

@@ -62,7 +62,7 @@ export class CasesCreateCasefileOrderTermCreditorComponent
   });
 
   private async navigateAccepted(path: string): Promise<void> {
-    if (this.navigationInFlight) return;
+    // handleFormSubmit guards entry before accepting state and calls this helper synchronously.
     this.navigationInFlight = true;
     this.navigationFailed.set(false);
     try {

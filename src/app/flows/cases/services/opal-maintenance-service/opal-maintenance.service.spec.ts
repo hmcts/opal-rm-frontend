@@ -243,9 +243,12 @@ describe('OpalMaintenanceService', () => {
 
   it('serializes false Major Creditor filters explicitly', () => {
     service.getMajorCreditors({ business_unit_id: 44, central_authority: false, active: false }).subscribe();
-    http
-      .expectOne('/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=false&active=false')
-      .flush(majorCreditors);
+    const request = http.expectOne(
+      '/opal-maintenance-service/major-creditors?business_unit_id=44&central_authority=false&active=false',
+    );
+    expect(request.request.params.get('central_authority')).toBe('false');
+    expect(request.request.params.get('active')).toBe('false');
+    request.flush(majorCreditors);
   });
 
   it('omits undefined optional Major Creditor filters', () => {

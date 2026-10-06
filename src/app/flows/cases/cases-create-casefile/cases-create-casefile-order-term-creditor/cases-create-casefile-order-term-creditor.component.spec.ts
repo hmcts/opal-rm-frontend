@@ -279,6 +279,55 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     expect(store.unsavedChanges()).toBe(true);
   });
 
+  it('retains dirty edits without navigating when the accepted term has been removed', async () => {
+    const { component, store, router } = await setup();
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    component.handleUnsavedChanges(true);
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, { orderTerms: [] });
+
+    component.handleFormSubmit({
+      formData: {
+        create_casefile_order_term_creditor_choice: 'add-new',
+        create_casefile_order_term_creditor_major_creditor_id: null,
+      },
+      nestedFlow: false,
+    });
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(store.creditorDraft()).toBeNull();
+    expect(store.unsavedChanges()).toBe(true);
+    expect(store.nextMinorCreditorSequence()).toBe(1);
+  });
+
+  it('ignores Cancel while submission navigation is pending and allows it after failure', async () => {
+    const { component, store, router } = await setup();
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)))
+      .mockResolvedValue(true);
+    component.handleFormSubmit({
+      formData: {
+        create_casefile_order_term_creditor_choice: 'add-new',
+        create_casefile_order_term_creditor_major_creditor_id: null,
+      },
+      nestedFlow: false,
+    });
+    component.handleUnsavedChanges(true);
+
+    await component.handleCancel();
+
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.creditorDraft()).toEqual({ termId: 1, branch: 'add-new' });
+    expect(store.unsavedChanges()).toBe(true);
+    finish(false);
+    await vi.waitFor(() => expect(component.navigationFailed()).toBe(true));
+    await component.handleCancel();
+    expect(navigate).toHaveBeenCalledTimes(2);
+    expect(store.creditorDraft()).toBeNull();
+    expect(store.unsavedChanges()).toBe(false);
+  });
+
   it('preserves a final Minor reference and edits when Cancel is declined or fails', async () => {
     const { component, store, router } = await setup();
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {

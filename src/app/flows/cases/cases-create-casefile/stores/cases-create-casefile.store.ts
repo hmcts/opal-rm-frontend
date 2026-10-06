@@ -79,29 +79,29 @@ export const CasesCreateCasefileStore = signalStore(
   }),
   withMethods((store) => ({
     setCaseTypeSelection: (caseTypeSelection: CasesCreateCasefileCaseTypeSelection): void => {
-      const selectionUnchanged = areCaseTypeSelectionsEqual(store.caseTypeSelection(), caseTypeSelection);
-      const taskStatuses = selectionUnchanged
-        ? store.taskStatuses()
-        : { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES };
+      if (areCaseTypeSelectionsEqual(store.caseTypeSelection(), caseTypeSelection)) {
+        patchState(store, { caseTypeSelection, stateChanges: true, unsavedChanges: false });
+        return;
+      }
 
       patchState(store, {
         caseTypeSelection,
-        applicantDetails: selectionUnchanged ? store.applicantDetails() : null,
-        respondentDetails: selectionUnchanged ? store.respondentDetails() : null,
-        orderDetails: selectionUnchanged ? store.orderDetails() : null,
-        interestAndIndexation: selectionUnchanged ? store.interestAndIndexation() : null,
-        centralAuthorityDetails: selectionUnchanged ? store.centralAuthorityDetails() : null,
-        paymentArrangement: selectionUnchanged ? store.paymentArrangement() : null,
-        orderTerms: selectionUnchanged ? store.orderTerms() : [],
-        currentOrderTermId: selectionUnchanged ? store.currentOrderTermId() : null,
-        nextOrderTermId: selectionUnchanged ? store.nextOrderTermId() : 1,
-        minorCreditors: selectionUnchanged ? store.minorCreditors() : [],
-        nextMinorCreditorSequence: selectionUnchanged ? store.nextMinorCreditorSequence() : 1,
-        creditorDraft: selectionUnchanged ? store.creditorDraft() : null,
-        orderTermDraft: selectionUnchanged ? store.orderTermDraft() : null,
-        commentsAndNotes: selectionUnchanged ? store.commentsAndNotes() : null,
-        pendingOrderTermResultId: selectionUnchanged ? store.pendingOrderTermResultId() : null,
-        taskStatuses,
+        applicantDetails: null,
+        respondentDetails: null,
+        orderDetails: null,
+        interestAndIndexation: null,
+        centralAuthorityDetails: null,
+        paymentArrangement: null,
+        orderTerms: [],
+        currentOrderTermId: null,
+        nextOrderTermId: 1,
+        minorCreditors: [],
+        nextMinorCreditorSequence: 1,
+        creditorDraft: null,
+        orderTermDraft: null,
+        commentsAndNotes: null,
+        pendingOrderTermResultId: null,
+        taskStatuses: { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES },
         stateChanges: true,
         unsavedChanges: false,
       });

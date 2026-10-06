@@ -161,6 +161,38 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     });
   });
 
+  it('rejects a minor creditor that is no longer available', () => {
+    create({ [FIELD.choice]: 'minor:2', [FIELD.majorCreditorId]: null });
+    const emitted = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('minorCreditors', [minors[0]]);
+    fixture.detectChanges();
+    submit();
+
+    expect(component.form.controls[FIELD.choice].hasError('invalidSelection')).toBe(true);
+    expect(component.formErrorSummaryMessage).toEqual([{ fieldId: FIELD.choice, message: 'Select a creditor' }]);
+    expect(emitted).not.toHaveBeenCalled();
+  });
+
+  it('preserves dirty edits and the accepted snapshot when reference data changes', () => {
+    create({ [FIELD.choice]: 'applicant', [FIELD.majorCreditorId]: null });
+    const dirty = vi.spyOn(component['unsavedChanges'], 'emit');
+    fixture.detectChanges();
+    component.form.controls[FIELD.choice].setValue('major');
+    component.form.controls[FIELD.majorCreditorId].setValue(901);
+
+    fixture.componentRef.setInput('majorCreditors', []);
+    fixture.detectChanges();
+
+    expect(component.form.controls[FIELD.majorCreditorId].value).toBe(901);
+    expect(component.form.invalid).toBe(true);
+    expect(dirty).toHaveBeenLastCalledWith(true);
+    expect(component.majorOptions).toEqual([{ name: 'Select a major creditor', value: '' }]);
+    component.form.controls[FIELD.choice].setValue('applicant');
+    expect(dirty).toHaveBeenLastCalledWith(false);
+  });
+
   it('renders resolved options in response order and normalizes a DOM value to the numeric ID', () => {
     const second = { ...major, major_creditor_id: 902, major_creditor_code: 'MC902', name: 'Second' };
     create({ [FIELD.choice]: 'major', [FIELD.majorCreditorId]: null }, [second, major]);

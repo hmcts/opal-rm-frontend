@@ -5,6 +5,25 @@ This document is the authoritative source for implementation standards in `opal-
 Apply these standards to new and materially changed code. Improve nearby legacy code when it is necessary to deliver
 the ticket safely, but do not expand a change into unrelated remediation.
 
+## Established patterns and shared capabilities
+
+- Before designing a new flow or materially changing an existing one, inspect comparable maintained code in this
+  repository and the relevant installed shared-library APIs. Use their established patterns unless a concrete
+  requirement or technical constraint justifies a departure.
+- When a task supplies a reference implementation, identify the patterns to reuse across architecture, data loading,
+  state ownership, navigation, and error handling. Explain material deviations during planning and keep that record
+  current when decisions change.
+- Reuse applicable shared components, base classes, utilities, and public types before introducing custom equivalents.
+  Keep feature-specific extensions limited to behaviour the existing implementation does not support.
+- Preserve the supported contracts and states of shared APIs. Justify intentional restrictions at the relevant domain
+  boundary; do not narrow or duplicate a shared contract solely to fit one consumer's current implementation.
+- Give each piece of state a clear owner. Avoid custom state or orchestration that duplicates behaviour already
+  provided by routing, shared infrastructure, or existing components.
+- Use established application mechanisms for operational errors. Keep validation feedback associated with the relevant
+  controls, and add feature-specific error or recovery UI only when an agreed user requirement calls for it.
+- Check designs and implementation plans against user requirements and these standards before implementation. Resolve
+  material contradictions and record the decision; a written plan does not itself justify a departure.
+
 ## Project structure
 
 - Keep Angular features, shared services, and colocated unit specs under `src/app`.
@@ -120,7 +139,6 @@ mapping, follow [SONAR.md](SONAR.md#form-identifiers).
   grown difficult to understand or test together.
 - Do not introduce broad shared providers or shared state when a standalone or feature-scoped provider is sufficient.
 - Keep routes modular and integration boundaries explicit.
-- Prefer existing shared components and utilities over bespoke replacements.
 - Add brief inline documentation when introducing a pattern that other contributors are expected to copy.
 - Explain any unavoidable increase in complexity, dependency footprint, or public API surface in the PR.
 

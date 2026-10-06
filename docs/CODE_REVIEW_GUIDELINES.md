@@ -14,6 +14,7 @@ configured review tooling.
 - Do not report pre-existing issues unless the change makes them materially worse.
 - Do not report formatting, lint, naming, or stylistic preferences that deterministic checks can enforce.
 - Do not treat a preferred implementation pattern as a defect without explaining the resulting failure or risk.
+- Check architectural conformance as described below, and distinguish conformance gaps from defect findings.
 
 ## Severity
 
@@ -29,6 +30,21 @@ configured review tooling.
 Severity reflects impact, not the category of the repository rule involved.
 
 ## OPAL-specific review checks
+
+### Architecture and conformance
+
+- Compare the final implementation with user requirements, the agreed design, and the established-pattern guidance in
+  [REPO_GUIDELINES.md](REPO_GUIDELINES.md#established-patterns-and-shared-capabilities). Use comparable maintained code
+  in this repository and installed shared-library contracts as the default references.
+- Check that applicable shared components, base classes, utilities, and public types are reused and their supported
+  contracts and states are preserved. Check custom state, orchestration, and error handling for duplicated behaviour.
+- Verify that material deviations from the agreed patterns have a concrete requirement or technical justification.
+  Check that the recorded design or plan reflects the final decisions.
+- Check plans against user requirements and repository standards. Identify unresolved contradictions even when the
+  implementation follows the plan.
+- Record a material conformance gap separately when no concrete defect is established, stating the expected pattern,
+  the deviation, and the missing justification. Apply the existing finding and severity rules when there is a concrete
+  correctness, security, accessibility, operational, or delivery risk.
 
 ### Angular, RxJS, and state
 
@@ -109,3 +125,6 @@ Order findings by severity. For each finding, include:
 
 If no qualifying findings exist, say so explicitly. Keep unverified assumptions and checks that were not run separate
 from findings.
+
+Include material architectural conformance gaps in a separate part of the review output. Keep optional preferences
+subject to the advisory-feedback rule above; do not turn them into conformance gaps.

@@ -129,6 +129,61 @@ describe('OpalMaintenanceService', () => {
       await pending;
     });
 
+    it.each(['REJECTED', 'PUBLISHING_FAILED'])(
+      'consults checker count %s with no dates and no automatic retry',
+      async (status) => {
+        const pending = firstValueFrom(
+          service.getDraftCasefileCount({
+            business_unit_id: 44,
+            not_submitted_by: 'BUU-CHECKER',
+            casefile_status: status,
+          }),
+        );
+        const get = expectCollection();
+        expect(get.request.method).toBe('GET');
+        expect(get.request.params.keys().sort()).toEqual([
+          'business_unit_id',
+          'casefile_status',
+          'not_submitted_by',
+          'restrict',
+        ]);
+        expect(get.request.params.get('business_unit_id')).toBe('44');
+        expect(get.request.params.get('not_submitted_by')).toBe('BUU-CHECKER');
+        expect(get.request.params.get('casefile_status')).toBe(status);
+        expect(get.request.params.get('restrict')).toBe('counts');
+        expectManualRetry(get.request.context);
+        get.flush({ count: 101 });
+        expect(await pending).toEqual({ count: 101 });
+      },
+    );
+    it('consults a checker list with exclusion and inclusive date filters', async () => {
+      const pending = firstValueFrom(
+        service.getDraftCasefiles({
+          business_unit_id: 44,
+          not_submitted_by: 'BUU-CHECKER',
+          casefile_status: 'DELETED',
+          casefile_status_from_date: '2026-09-30',
+          casefile_status_to_date: '2026-10-06',
+        }),
+      );
+      const get = expectCollection();
+      expect(get.request.params.keys().sort()).toEqual([
+        'business_unit_id',
+        'casefile_status',
+        'casefile_status_from_date',
+        'casefile_status_to_date',
+        'not_submitted_by',
+      ]);
+      expect(get.request.params.get('not_submitted_by')).toBe('BUU-CHECKER');
+      expect(get.request.params.get('business_unit_id')).toBe('44');
+      expect(get.request.params.get('casefile_status')).toBe('DELETED');
+      expect(get.request.params.get('casefile_status_from_date')).toBe('2026-09-30');
+      expect(get.request.params.get('casefile_status_to_date')).toBe('2026-10-06');
+      expectManualRetry(get.request.context);
+      get.flush({ count: 0, summaries: [] });
+      expect(await pending).toEqual({ count: 0, summaries: [] });
+    });
+
     it('counts rejected work without retrieving summaries', async () => {
       const pending = firstValueFrom(service.getRejectedDraftCasefileCount(identity));
       const get = expectCollection();

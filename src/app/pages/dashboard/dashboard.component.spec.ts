@@ -1,3 +1,4 @@
+import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard.component';
@@ -38,7 +39,23 @@ describe('DashboardComponent', () => {
           },
         },
         { provide: PermissionsService, useValue: permissionsServiceMock },
-        { provide: GlobalStore, useValue: { userState: () => null, featureFlags } },
+        {
+          provide: GlobalStore,
+          useValue: {
+            userState: () => ({
+              ...structuredClone(OPAL_USER_STATE_MOCK),
+              status: 'active',
+              business_unit_users: [
+                {
+                  business_unit_id: 44,
+                  business_unit_user_id: 'BUU-SYNTHETIC',
+                  permissions: [{ permission_id: 21, permission_name: 'Create' }],
+                },
+              ],
+            }),
+            featureFlags,
+          },
+        },
       ],
     }).compileComponents();
 

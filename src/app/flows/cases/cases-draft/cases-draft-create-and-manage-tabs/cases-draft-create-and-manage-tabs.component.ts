@@ -230,6 +230,7 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
 
   /** The checker owner orchestrates requests; this subscription supplies only current route/scope metadata. */
   private initializeChecker(checker: CasesDraftCheckerLoadService): Observable<ICasesDraftTabData | null> {
+    let arriving = true;
     combineLatest([
       this.activatedRoute.fragment,
       this.activatedRoute.queryParamMap,
@@ -246,7 +247,10 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
             selection.tab === 'deleted' ||
             selection.tab === 'failed'
           ) {
-            checker.activate(identity, selection.tab);
+            if (arriving) {
+              arriving = false;
+              checker.refreshArrival(identity, selection.tab);
+            } else checker.activate(identity, selection.tab);
           }
           if (!identity) void this.navigate('/access-denied');
         }),

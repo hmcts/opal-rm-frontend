@@ -101,6 +101,48 @@ LaunchDarkly separately. Do not run enabled and disabled functional selections a
 CNP supports the existing `run_tag:@R1CRmCreateCaseFiles` and `run_tag:@R1CRmCreateCaseFilesOff` labels. Nightly supports
 the equivalent `TAGS` parameter. No new release selector or automatic flag mutation is introduced.
 
-Release-specific functional and accessibility scenarios live under `features/releaseFlags`. Their Jira story, epic and
-test identifiers are intentionally unassigned pending confirmed ticket metadata. A Cucumber dry run proves scenario
-selection and step binding only; it is not evidence of a completed browser journey or deployed authentication.
+Release-specific functional and accessibility scenarios live under `features/releaseFlags`. The maintained create-casefile
+release scenarios carry confirmed `@JIRA-STORY:PO-10606` and `@JIRA-EPIC:PO-10817` metadata; test identifiers remain unassigned.
+A Cucumber dry run proves scenario selection and step binding only; it is not evidence of a completed browser journey
+or deployed authentication.
+
+## RM checker dashboard journeys
+
+`CheckerDashboard.feature` and `CheckerDashboardAccessibility.feature` cover Review cases entry, permission-22/BU-44
+scope, own-work exclusion for checker and dual roles, queue filters, fresh return and page clamping, explicit list/count
+recovery, protected review/view shells, pending response ordering and accessible states. `CheckerDashboardFlagOff.feature`
+checks direct URLs for checker and dual roles when the release is disabled. These scenarios use PO-10606/PO-10817 metadata.
+The HTTP user-state and case summaries are synthetic; authentication uses the maintained non-personal test account.
+The tests do not establish backend permission-22 enforcement or deployed provider compatibility. Inactive users follow
+the maintained account guard to `User account created` before checker guards; the journey asserts no checker consultation
+or persisted-case traffic. Other missing checker identities/permissions are denied through Access Denied.
+
+For local authenticated journeys, build the SSR application with the declared Node runtime and Corepack Yarn, then start
+its Node server with the matching release override. Complete component tests before this SSR build: the Angular
+component builder can emit development bundles into the shared `dist` path. Run no build or component emission while
+SSR journeys are running; if bundles change, rebuild browser and server together and restart your owned SSR process.
+`yarn start` runs the browser development server and does not provide
+the authentication/proxy routes required here. The direct built-server form allows an explicit local port:
+
+```bash
+corepack yarn build:ssr
+FEATURE_FLAGS_OVERRIDE=true RELEASE_1C_RM_CREATE_CASE_FILES_ENABLED=true PORT=5200 node dist/opal-rm-frontend/server/main.js
+```
+
+With compatible local User and Maintenance services and the maintained test account configured, run in a separate shell:
+
+```bash
+TEST_URL=http://localhost:5200 TAGS='@JIRA-STORY:PO-10606 and @R1CRmCreateCaseFiles and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10606 and @R1CRmCreateCaseFiles and not @skip' corepack yarn test:functional:tags --browser chrome --serial --reset
+```
+
+Stop only the application process you started, restart it with `RELEASE_1C_RM_CREATE_CASE_FILES_ENABLED=false`, then run:
+
+```bash
+TEST_URL=http://localhost:5200 TAGS='@JIRA-STORY:PO-10606 and @R1CRmCreateCaseFilesOff and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10606 and @R1CRmCreateCaseFilesOff and not @skip' corepack yarn test:functional:tags --browser chrome --serial --reset
+```
+
+Run the package release regression scripts above against their matching process states. The enabled regression includes
+`InputterDashboard.feature` and `InputterDashboardAccessibility.feature`, which protect the shared table/navigation flow.
+Functional runs preserve prior outputs by default. Use `--reset` for a fresh report, and preserve screenshot/report copies
+before resetting `functional-output`; otherwise historical XML can be merged into a later report.
+Native Enter evidence uses the maintained Chromium helper, so these dashboard keyboard journeys require `--browser chrome`. No action/flow changes flags.

@@ -13,7 +13,7 @@ export function defaultCasesDraftNavigation(
   return { tab: selected, page: 1, sort: getCasesDraftTabMetadata(selected, mode).defaultSort, direction: 'ascending' };
 }
 
-/** Invalid supplied metadata discards the complete selection; unknown query fields are ignored. */
+/** Invalid checker metadata resets the selected queue; inputter metadata resets the complete selection. */
 export function parseCasesDraftNavigation(
   fragment: string | null,
   query: ParamMap,
@@ -34,7 +34,7 @@ export function parseCasesDraftNavigation(
     !columns.includes(sort) ||
     !['ascending', 'descending'].includes(direction)
   )
-    return fallback;
+    return mode === 'checker' ? defaults : fallback;
   return {
     tab,
     page: Number(pageText),

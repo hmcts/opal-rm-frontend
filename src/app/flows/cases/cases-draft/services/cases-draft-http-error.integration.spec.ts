@@ -112,6 +112,9 @@ describe('checker HTTP boundary through production interceptors and application 
       expect(text).not.toContain('Synthetic provider');
       expect(text).toContain('There was a problem');
       expect(text.includes(operationId)).toBe(operationId === 'safe-reference_42');
+      const monitored = JSON.stringify(logException.mock.lastCall);
+      expect(monitored).not.toContain('Synthetic provider');
+      expect(monitored.includes(operationId)).toBe(operationId === 'safe-reference_42');
       expect(owner.listState()?.status).toBe('failure');
       expect(router.url).toBe(dashboard + '#deleted');
     },
@@ -180,5 +183,23 @@ describe('checker HTTP boundary through production interceptors and application 
       );
     await settle();
     expect(fixture.nativeElement.textContent).toContain('Existing inputter detail');
+  });
+  it('preserves common non-retriable navigation for unmarked inputter requests', async () => {
+    TestBed.inject(HttpClient)
+      .get('/inputter-request')
+      .subscribe({ error: () => undefined });
+    http.expectOne('/inputter-request').flush({ retriable: false }, { status: 500, statusText: 'Failure' });
+    await settle();
+    expect(router.url).toBe('/error/internal-server');
+  });
+  it('preserves common retriable conflict completion for unmarked inputter requests', async () => {
+    const error = vi.fn();
+    const complete = vi.fn();
+    TestBed.inject(HttpClient).get('/inputter-request').subscribe({ error, complete });
+    http.expectOne('/inputter-request').flush({ retriable: true }, { status: 409, statusText: 'Conflict' });
+    await settle();
+    expect(error).not.toHaveBeenCalled();
+    expect(complete).toHaveBeenCalledOnce();
+    expect(router.url).toBe(dashboard);
   });
 });

@@ -42,8 +42,13 @@ describe('create-casefile feature access', () => {
             getLoggedInUserState: () =>
               of({
                 status: 'active',
+                user_id: 100,
                 business_unit_users: [
-                  { business_unit_id: 44, permissions: [{ permission_id: 21, permission_name: 'Create casefiles' }] },
+                  {
+                    business_unit_id: 44,
+                    business_unit_user_id: 'BUU-SYNTHETIC',
+                    permissions: [{ permission_id: 21, permission_name: 'Create casefiles' }],
+                  },
                 ],
               }),
           },

@@ -125,6 +125,24 @@ export class CasesDraftCheckerLoadService {
     return true;
   }
 
+  /** A new component arrival fetches fresh summaries even when the route injector is reused. */
+  public refreshArrival(identity: ICasesDraftIdentity | null, tab: CasesDraftCheckerTab): void {
+    this.listVersion++;
+    this.listRequest?.unsubscribe();
+    this.listRequest = null;
+    this.cancelCount('rejected');
+    this.cancelCount('failed');
+    this.currentList.set(null);
+    this.currentCounts.set({ rejected: { status: 'idle', count: null }, failed: { status: 'idle', count: null } });
+    if (identity) this.accessDenied.set(false);
+    if (!identity || !sameCasesDraftIdentity(identity, this.identity) || tab !== this.tab) {
+      this.activate(identity, tab);
+      return;
+    }
+    this.startList();
+    this.ensureUnselectedCounts();
+  }
+
   /** Select a consultation; repeated activation of the same identity and tab is inert. */
   public activate(identity: ICasesDraftIdentity | null, tab: CasesDraftCheckerTab): void {
     if (identity && sameCasesDraftIdentity(identity, this.identity) && tab === this.tab) return;

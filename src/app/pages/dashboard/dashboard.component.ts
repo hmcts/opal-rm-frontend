@@ -42,6 +42,7 @@ export class DashboardComponent {
     return filterCreateCasefileDashboardConfig(
       config,
       featureFlags?.[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] === true,
+      this.globalStore.userState(),
     );
   });
 }

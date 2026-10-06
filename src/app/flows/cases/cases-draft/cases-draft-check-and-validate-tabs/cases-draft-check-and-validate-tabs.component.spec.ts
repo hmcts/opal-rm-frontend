@@ -6,7 +6,7 @@ import { By } from '@angular/platform-browser';
 import { CasesDraftTableComponent } from '../cases-draft-table/cases-draft-table.component';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router, UrlTree } from '@angular/router';
-import { BehaviorSubject, of, Subject } from 'rxjs';
+import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
@@ -191,5 +191,77 @@ describe('checker dashboard presentation', () => {
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
     expect(api.getDraftCasefileCount).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('/access-denied', { replaceUrl: false });
+  });
+  it('omits a failed independent count while showing successful rows and the other count', async () => {
+    api.getDraftCasefiles.mockReturnValue(
+      of({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] }),
+    );
+    api.getDraftCasefileCount
+      .mockReturnValueOnce(throwError(() => new Error('Synthetic count failure')))
+      .mockReturnValueOnce(of({ count: 102 }));
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-rejected-count')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-failed-count').textContent).toContain('99+');
+    expect(fixture.nativeElement.querySelector('button[id$="retry"]')).toBeNull();
+  });
+  it('activates a queue link with fragment-only navigation', async () => {
+    const fixture = await render();
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    fixture.nativeElement.querySelector('#cases-draft-deleted-tab').click();
+    await fixture.whenStable();
+    expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toBe(
+      '/cases/draft/check-and-validate/tabs#deleted',
+    );
+    expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
+  });
+  it.each([{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }])(
+    'preserves modified queue-link activation %j',
+    async (options) => {
+      const fixture = await render();
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+      const event = new MouseEvent('click', { cancelable: true, ...options });
+      fixture.componentInstance.activateTab(event, 'deleted');
+      expect(event.defaultPrevented).toBe(false);
+      expect(navigate).not.toHaveBeenCalled();
+    },
+  );
+  it('reports rejected navigation through the existing generic banner boundary', async () => {
+    const fixture = await render();
+    const error = new Error('Synthetic navigation error');
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockRejectedValue(error);
+    await fixture.componentInstance.openRow(123);
+    expect(TestBed.inject(GlobalStore).setBannerError).toHaveBeenCalledWith(expect.objectContaining({ error: true }));
+  });
+  it('retains selection when a sort request has no direction', async () => {
+    const fixture = await render();
+    const selection = fixture.componentInstance.navigation.selection();
+    fixture.componentInstance.changeSort({ key: 'respondent', direction: 'none' });
+    expect(fixture.componentInstance.navigation.selection()).toEqual(selection);
+    expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
+  });
+  it('reuses initial Failed list and Rejected badge resolution without duplicate requests', async () => {
+    fragment.next('failed');
+    const route = TestBed.inject(ActivatedRoute);
+    route.snapshot.fragment = 'failed';
+    route.snapshot.data = {
+      draftCasefiles: {
+        identity: { userId: userState().user_id, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+        tab: 'failed',
+        response: {
+          count: 3,
+          summaries: [createCasesDraftSummary({ casefile_status: 'PUBLISHING_FAILED', submitted_by: 'BUU-OTHER' })],
+        },
+      },
+      rejectedCount: 2,
+      failedCount: null,
+    };
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelector('#cases-draft-failed-count').textContent).toBe('3');
+    expect(fixture.nativeElement.querySelector('#cases-draft-rejected-count').textContent).toBe('2');
+    expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
+    expect(api.getDraftCasefiles).not.toHaveBeenCalled();
+    expect(api.getDraftCasefileCount).not.toHaveBeenCalled();
   });
 });

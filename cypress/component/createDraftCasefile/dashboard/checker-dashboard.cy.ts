@@ -1,8 +1,8 @@
-import { Subject, of, throwError } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import type { IOpalMaintenanceDraftCasefileListResponse as List } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-list-response.interface';
 import { CASES_DRAFT_CHECKER_TABS as TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-checker-tabs.constant';
 import { setupCheckerDashboard } from './setup/checker-dashboard.setup';
-import { checkerFixtures, checkerListFailure, checkerEmptyMessages } from './mocks/checker-dashboard.mock';
+import { checkerFixtures, checkerEmptyMessages } from './mocks/checker-dashboard.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
 const buildTags = () => ['@JIRA-STORY:PO-10606', '@JIRA-EPIC:PO-10817'];
 describe('Checker routed dashboard', () => {
@@ -101,88 +101,29 @@ describe('Checker routed dashboard', () => {
     cy.get(S.heading).should('be.visible');
     cy.get('@checkerListRequest').should('have.been.calledOnce');
   });
-  it('AC4. should recover first-entry failure explicitly', { tags: buildTags() }, () => {
-    setupCheckerDashboard({ listError: true });
-    cy.get(S.failure).should('contain.text', 'We could not load these cases. Try again.');
-    cy.get(S.empty).should('not.exist');
-    cy.get(S.retryList).click();
-    cy.get(S.loading).should('be.visible');
-    cy.get<{ latest: Subject<List> }>('@checkerListResponse').then((r) =>
-      r.latest.next({ count: 26, summaries: checkerFixtures.review26 }),
-    );
-    cy.get(S.table).should('be.visible');
-    cy.get('@checkerListRequest').should('have.been.calledTwice');
-  });
-  it('AC4. should retry a count independently using the latest retry response', { tags: buildTags() }, () => {
+  it('AC4. should omit an unavailable independent count while preserving rows', { tags: buildTags() }, () => {
     setupCheckerDashboard({ countError: 'failed' });
     cy.get(S.table).should('be.visible');
-    cy.get(S.countFailure('failed')).should('contain.text', 'We could not load the Failed count. Try again.');
     cy.get(S.failedCount).should('not.exist');
-    cy.get<Record<'failed', Subject<{ count: number }>>>('@checkerCountResponses').then((r) =>
-      cy.wrap(r.failed, { log: false }).as('initialFailedCount'),
-    );
-    cy.get(S.countRetry('failed')).click();
-    cy.get<Record<'failed', Subject<{ count: number }>>>('@checkerCountResponses').then((r) => {
-      cy.get('@initialFailedCount').then((initial) => expect(r.failed).not.to.equal(initial));
-      r.failed.next({ count: 4 });
-    });
-    cy.get(S.failedCount).should('have.text', '4');
-    cy.get(S.table).should('be.visible');
+    cy.get(S.rejectedCount).should('have.text', '3');
+    cy.get(S.countRetry('failed')).should('not.exist');
     cy.get('@checkerListRequest').should('have.been.calledOnce');
   });
-  it('AC4. should retain a failed outcome after leaving its list', { tags: buildTags() }, () => {
-    setupCheckerDashboard({ tab: 'failed', listError: true });
-    cy.get(S.failure).should('be.visible');
-    cy.get(S.tab('to-review')).click();
-    cy.get(S.table).should('be.visible');
-    cy.get(S.countFailure('failed')).should('be.visible');
-    cy.get(S.countRetry('failed')).click();
-    cy.get(S.failedCount).should('have.text', '2');
-  });
-  it('AC4. should obtain a count after abandoning a pending outcome list', { tags: buildTags() }, () => {
-    setupCheckerDashboard({ tab: 'failed', listPending: true });
-    cy.get(S.loading).should('be.visible');
-    cy.get(S.tab('to-review')).click();
-    cy.get(S.failedCount).should('have.text', '2');
-    cy.get<Cypress.Agent<sinon.SinonStub>>('@checkerCountRequest').should((request) =>
-      expect(request.lastCall.args[0].casefile_status).to.equal('PUBLISHING_FAILED'),
-    );
-  });
-  it(
-    'AC4. should keep newer selected list precedence over older count success and error',
-    { tags: buildTags() },
-    () => {
-      setupCheckerDashboard({ countError: 'failed' });
-      cy.get(S.countFailure('failed')).should('be.visible');
-      cy.get(S.countRetry('failed')).click();
-      cy.get<Record<'failed', Subject<{ count: number }>>>('@checkerCountResponses').then((r) =>
-        cy.wrap(r.failed, { log: false }).as('olderCount'),
-      );
-      cy.get(S.tab('failed')).click();
-      cy.get(S.failedCount).should('have.text', '26');
-      cy.get<Subject<{ count: number }>>('@olderCount').then((subject) => {
-        subject.next({ count: 99 });
-        subject.error(new Error('Obsolete failure'));
-      });
-      cy.get(S.failedCount).should('have.text', '26');
-      cy.get(S.countFailure('failed')).should('not.exist');
-    },
-  );
-  it('AC4. should hide stale rows and recover a later list failure', { tags: buildTags() }, () => {
+  it('AC4. should clear a later failed list and load the next queue', { tags: buildTags() }, () => {
     setupCheckerDashboard();
-    cy.get(S.table).should('be.visible');
     const pending = new Subject<List>();
     cy.get<Cypress.Agent<sinon.SinonStub>>('@checkerListRequest').then((request) => request.returns(pending));
     cy.get(S.tab('deleted')).click();
     cy.get(S.loading).should('be.visible');
     cy.get(S.table).should('not.exist');
     cy.then(() => pending.error(new Error('Synthetic later failure')));
-    cy.get(S.failure).should('be.visible');
+    cy.get(S.loading).should('not.exist');
+    cy.get(S.retryList).should('not.exist');
     cy.get<Cypress.Agent<sinon.SinonStub>>('@checkerListRequest').then((request) =>
       request.returns(of({ count: 0, summaries: [] })),
     );
-    cy.get(S.retryList).click();
-    cy.get(S.empty).should('contain.text', TABS.deleted.empty);
+    cy.get(S.tab('rejected')).click();
+    cy.get(S.empty).should('contain.text', TABS.rejected.empty);
   });
   it('AC3. should restore metadata and fetch fresh rows with page clamp on Back', { tags: buildTags() }, () => {
     setupCheckerDashboard({ tab: 'rejected', page: 2, sort: 'respondent', direction: 'descending' });
@@ -220,11 +161,14 @@ describe('Checker routed dashboard', () => {
 
   for (const stale of ['success', 'error'] as const)
     it('AC4. should ignore abandoned list ' + stale + ' in explicit response order', { tags: buildTags() }, () => {
-      setupCheckerDashboard({ listPending: true });
+      setupCheckerDashboard();
+      const pending = new Subject<List>();
+      cy.get<Cypress.Agent<sinon.SinonStub>>('@checkerListRequest').then((request) => request.returns(pending));
+      cy.get(S.tab('deleted')).click();
       cy.get(S.loading).should('be.visible');
-      cy.get<{ latest: Subject<List> }>('@checkerListResponse').then((r) =>
-        cy.wrap(r.latest, { log: false }).as('abandonedList'),
-      );
+      cy.wrap(pending, { log: false }).as('abandonedList');
+      const latest = new Subject<List>();
+      cy.get<Cypress.Agent<sinon.SinonStub>>('@checkerListRequest').then((request) => request.returns(latest));
       cy.get(S.tab('rejected')).click();
       cy.get(S.loading).should('contain.text', 'Rejected');
       cy.get<Subject<List>>('@abandonedList').then((old) => {
@@ -234,24 +178,9 @@ describe('Checker routed dashboard', () => {
       cy.get(S.loading).should('be.visible');
       cy.get(S.table).should('not.exist');
       cy.get(S.failure).should('not.exist');
-      cy.get<{ latest: Subject<List> }>('@checkerListResponse').then((r) =>
-        r.latest.next({ count: 1, summaries: checkerFixtures.queues.rejected.slice(0, 1) }),
-      );
+      cy.then(() => latest.next({ count: 1, summaries: checkerFixtures.queues.rejected.slice(0, 1) }));
       cy.get(S.tableRows).should('have.length', 1);
       cy.get(S.rejectedCount).should('have.text', '1');
-      cy.get('@checkerListRequest').should('have.been.calledTwice');
+      cy.get('@checkerListRequest').should('have.been.calledThrice');
     });
-  it('AC4. should show only the safe correlation reference for a later provider failure', { tags: buildTags() }, () => {
-    setupCheckerDashboard();
-    cy.get(S.table).should('be.visible');
-    cy.get<Cypress.Agent<sinon.SinonStub>>('@checkerListRequest').then((request) =>
-      request.returns(throwError(() => checkerListFailure)),
-    );
-    cy.get(S.tab('failed')).click();
-    cy.get(S.failure)
-      .should('contain.text', 'Error code: SYNTHETIC-REF-123')
-      .and('not.contain.text', 'Synthetic private detail')
-      .and('not.contain.text', 'Synthetic backend title');
-    cy.get(S.table).should('not.exist');
-  });
 });

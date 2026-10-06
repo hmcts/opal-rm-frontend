@@ -29,6 +29,9 @@ export class CheckerDashboardActions {
   private heldTab: CasesDraftCheckerTab | null = null;
   private release: ((denied?: boolean) => void) | null = null;
   private listCountBeforeRetry = 0;
+  private failureStatus = 503;
+  private failureReference = 'SYNTHETIC-RETRY';
+  private failureRetriable = true;
 
   /** Resets the controlled user/collection boundaries without modifying application flags.
    * @param role Synthetic role at the HTTP boundary. */
@@ -40,6 +43,9 @@ export class CheckerDashboardActions {
     this.heldTab = null;
     this.release = null;
     this.listCountBeforeRetry = 0;
+    this.failureStatus = 503;
+    this.failureReference = 'SYNTHETIC-RETRY';
+    this.failureRetriable = true;
     this.collections = Object.fromEntries(QUEUES.map((tab) => [tab, checkerRows(tab)])) as Record<
       CasesDraftCheckerTab,
       Summary[]
@@ -78,7 +84,10 @@ export class CheckerDashboardActions {
       }
       const failure = countOnly && tab === 'failed' ? this.countFailures-- > 0 : !countOnly && this.listFailures-- > 0;
       if (failure) {
-        request.reply({ statusCode: 503, body: CHECKER_FAILURE });
+        request.reply({
+          statusCode: this.failureStatus,
+          body: { ...CHECKER_FAILURE, operation_id: this.failureReference, retriable: this.failureRetriable },
+        });
         return;
       }
       const summaries = structuredClone(this.collections[tab]);
@@ -192,10 +201,7 @@ export class CheckerDashboardActions {
   public expectFreshClampedReturn(): void {
     cy.get(S.row(1)).should('contain.text', 'Refreshed synthetic respondent');
     cy.location('hash').should('eq', '#rejected');
-    cy.location('search')
-      .should('include', 'page=1')
-      .and('include', 'sort=applicant')
-      .and('include', 'direction=descending');
+    cy.location('search').should('eq', '');
     cy.get('th[columnKey="applicant"]').should('have.attr', 'aria-sort', 'descending');
     cy.then(() =>
       expect(
@@ -336,7 +342,7 @@ export class CheckerDashboardActions {
         kind +
         '/' +
         encodeURIComponent(id) +
-        '?mode=inputter&tab=rejected&page=2&sort=applicant&direction=descending',
+        '?mode=inputter&tab=failed&page=2&sort=applicant&direction=descending#rejected',
     );
     cy.get(S.placeholderHeading)
       .should('have.text', kind === 'review' ? 'Review case' : 'View case details')
@@ -393,34 +399,74 @@ export class CheckerDashboardActions {
     cy.then(() => expect(this.requests.filter((request) => !request['restrict'])).to.have.length(1));
     this.assertNoPersistence();
   }
-  /** Proves actual inputter and checker placeholder URLs carry independent Back metadata. */
+  /** Proves separate in-memory return state and fragment-only shell links for dual roles. */
   public independentReturns(): void {
-    cy.visit('/cases/draft/create-and-manage/tabs?page=2&sort=applicant&direction=descending#rejected');
+    cy.visit('/cases/draft/create-and-manage/tabs#rejected');
+    cy.get(S.table).should('be.visible');
+    for (const direction of ['ascending', 'descending']) {
+      cy.get(S.sort('applicant')).click();
+      cy.get('th[columnKey="applicant"]').should('have.attr', 'aria-sort', direction);
+    }
+    cy.get(S.pagination).contains('a', '2').click();
+    cy.get(S.pageStatus).should('contain.text', 'Create cases, page 2 of 2');
     cy.get(S.row(1)).find('a').click();
     cy.get(S.placeholderHeading).should('have.text', 'Check case details');
-    cy.location('href').as('inputterPlaceholderUrl');
-    cy.get(S.placeholderBack)
-      .should('have.attr', 'href')
-      .and('include', 'page=2')
-      .and('include', 'sort=applicant')
-      .and('include', 'direction=descending')
-      .and('include', '#rejected');
+    cy.location('search').should('eq', '');
+    cy.get(S.placeholderBack).should('have.attr', 'href', '/cases/draft/create-and-manage/tabs#rejected');
     cy.get(S.placeholderBack).click();
+    cy.get(S.pageStatus).should('contain.text', 'Page 2 of 2, showing cases 26 to 26 of 26');
+    cy.get(S.tableRows).should('have.length', 1);
+    cy.get(S.row(1)).should('be.visible');
+    cy.get('th[columnKey="applicant"]').should('have.attr', 'aria-sort', 'descending');
+    cy.location('search').should('eq', '');
     cy.get(S.primaryNavigation).contains('a', 'Cases').click();
     cy.get(S.checkerEntry).click();
     this.selectTab('deleted');
     cy.get(S.row(1)).find('a').click();
+    cy.get(S.placeholderBack).should('have.attr', 'href', DASHBOARD + '#deleted');
     cy.get(S.placeholderBack).click();
     cy.location('hash').should('eq', '#deleted');
-    cy.get<string>('@inputterPlaceholderUrl').then((url) => cy.visit(url));
-    cy.get(S.placeholderHeading).should('have.text', 'Check case details');
-    cy.get(S.placeholderBack).focus();
-    pressDashboardEnter();
-    cy.location('hash').should('eq', '#rejected');
-    cy.location('search')
-      .should('include', 'page=2')
-      .and('include', 'sort=applicant')
-      .and('include', 'direction=descending');
+    cy.location('search').should('eq', '');
+    this.assertNoPersistence();
+  }
+
+  /** Exercises later failures after all other consultations settle through the production shell.
+   * @param kind List or independent count retry.
+   * @param status Provider status.
+   * @param reference Safe or rejected operation reference. */
+  public laterFailure(kind: string, status: number, reference: string): void {
+    if (kind === 'count') this.failFirstFailedCount();
+    this.enterFromCases();
+    cy.get(S.table).should('be.visible');
+    cy.get(S.rejectedCount).should('contain.text', '26');
+    if (kind === 'count') this.expectCountFailureWithTable();
+    else cy.get(S.failedCount).should('contain.text', '26');
+    cy.then(() => {
+      this.failureStatus = status;
+      this.failureRetriable = false;
+      this.failureReference = reference === 'oversized' ? 'x'.repeat(101) : reference;
+      if (kind === 'count') this.countFailures = 1;
+      else this.listFailures = 1;
+    });
+    if (kind === 'count') this.retryFailedCountWithKeyboard();
+    else cy.get(S.tab('deleted')).click();
+    if (status === 401 || status === 403) {
+      cy.location('pathname').should('eq', '/access-denied');
+      cy.contains('h1', 'Access Denied').should('be.visible');
+      cy.get(S.retryList).should('not.exist');
+    } else {
+      cy.get(kind === 'count' ? S.countFailure('failed') : S.failure).should('be.visible');
+      cy.get(kind === 'count' ? S.countRetry('failed') : S.retryList).should('be.visible');
+      cy.location('pathname').should('eq', DASHBOARD);
+      cy.contains('There was a problem').should('be.visible');
+      if (reference === 'safe-reference_42') cy.contains('Error code: ' + reference).should('be.visible');
+      else cy.get('body').should('not.contain.text', reference === 'oversized' ? 'x'.repeat(101) : reference);
+    }
+    cy.get('body')
+      .should('not.contain.text', 'Synthetic private detail')
+      .and('not.contain.text', 'Synthetic backend title');
+    cy.location('search').should('eq', '');
+    cy.screenshot('po10606-final-boundary-' + kind + '-' + status + '-' + reference.replace(/[^\w-]/g, ''));
     this.assertNoPersistence();
   }
   /** Supplies explicit accessible dashboard states with controlled loading completion.

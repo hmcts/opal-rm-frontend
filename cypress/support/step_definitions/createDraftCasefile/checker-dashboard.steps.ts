@@ -15,14 +15,8 @@ When('I view a rejected case and return after the collection shrinks', () => flo
 Then('the fresh rejected collection retains sorting and clamps to page 1', () => flow.expectFreshClampedReturn());
 Given('the first checker list request fails once', () => flow.failFirstList());
 Given('the first Failed count request fails once', () => flow.failFirstFailedCount());
-Then('I can retry the announced list failure without leaving Review cases', () => flow.expectRetryableList());
-When('I retry loading cases using the keyboard', () => flow.retryListWithKeyboard());
-Then('the current checker table is loaded once with the retained selection', () => flow.expectLoadedSelection());
-Then('the checker table remains usable with an announced Failed count failure', () =>
-  flow.expectCountFailureWithTable(),
-);
-When('I retry loading the Failed count using the keyboard', () => flow.retryFailedCountWithKeyboard());
-Then('the Failed badge is refreshed without a replacement list request', () => flow.expectCountOnlyRecovery());
+Then('the existing error page handles the initial checker failure', () => flow.expectInitialError());
+Then('the checker table remains usable without the unavailable Failed badge', () => flow.expectCountFailureWithTable());
 When('I open the protected checker destination {string}', (destination: string) =>
   flow.openProtected(checkerDestination(destination)),
 );
@@ -43,3 +37,8 @@ Then('I capture the checker {string} state', (state: string) => flow.captureStat
 When('I inspect Cases entry and each populated checker table', () => flow.screenshotTables());
 Then('the checker dashboard reflows with a keyboard reachable scroll region', () => flow.reflow());
 Then('I capture the {string} checker shell', (kind: string) => flow.captureShell(kind));
+
+Then(
+  'a later checker {string} failure with status {int} and reference {string} uses the existing error route',
+  (kind: string, status: number, reference: string) => flow.laterFailure(kind, status, reference),
+);

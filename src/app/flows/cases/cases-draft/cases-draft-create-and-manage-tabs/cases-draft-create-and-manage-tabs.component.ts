@@ -7,7 +7,6 @@ import {
   computed,
   DestroyRef,
   ElementRef,
-  effect,
   inject,
   Injector,
   signal,
@@ -40,10 +39,7 @@ import { CustomPageHeaderComponent } from '@hmcts/opal-frontend-common/component
 import { GovukButtonDirective } from '@hmcts/opal-frontend-common/directives/govuk-button';
 import { MojSubNavigationComponent } from '@hmcts/opal-frontend-common/components/moj/moj-sub-navigation';
 import { MojNotificationBadgeComponent } from '@hmcts/opal-frontend-common/components/moj/moj-notification-badge';
-import { CasesDraftCheckerLoadService } from '../services/cases-draft-checker-load.service';
-import type { CasesDraftCheckerCountState } from '../types/cases-draft-checker-load-state.type';
-import { getCasesDraftTabs, getCasesDraftTabMetadata } from '../utils/cases-draft-tab-metadata';
-import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
+import { getCasesDraftTabMetadata } from '../utils/cases-draft-tab-metadata';
 import { CasesDraftDashboardService } from '../services/cases-draft-dashboard.service';
 import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
 import { CasesDraftTableComponent } from '../cases-draft-table/cases-draft-table.component';
@@ -51,6 +47,7 @@ import type { CasesDraftTab } from '../types/cases-draft-tab.type';
 import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
 import type { ICasesDraftIdentity } from '../interfaces/cases-draft-identity.interface';
 import type { ICasesDraftResolvedList } from '../interfaces/cases-draft-resolved-list.interface';
+import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 import type { ICasesDraftTabData } from '../interfaces/cases-draft-tab-data.interface';
 import { defaultCasesDraftNavigation, parseCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { sameCasesDraftIdentity } from '../utils/cases-draft-identity';
@@ -77,37 +74,29 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
   private readonly destroy$ = new Subject<void>();
   private readonly injector = inject(Injector);
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
-  private readonly table = viewChild(CasesDraftTableComponent);
   private readonly httpDenied = signal(false);
   private readonly identity = computed(() => (this.httpDenied() ? null : this.data.getIdentity()));
-  private clampingPage: number | null = null;
-  public readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
-  public readonly checker = inject(CasesDraftCheckerLoadService, { optional: true });
-  public readonly dashboardTitle = this.mode === 'checker' ? 'Review cases' : 'Create cases';
   public readonly data = inject(CasesDraftDashboardService);
   public readonly navigation = inject(CasesDraftNavigationService);
-  public readonly tabs = getCasesDraftTabs(this.mode);
-  public readonly outcomeTabs = ['rejected', 'failed'] as const;
+  public readonly tabs: readonly CasesDraftTab[] = ['in-review', 'rejected', 'approved', 'deleted'];
   public readonly tabLinks = computed(() =>
     this.tabs.map((tab) => ({
       tab,
-      label: getCasesDraftTabMetadata(tab, this.mode).label,
-      href: this.dashboardRouter.serializeUrl(
-        this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab, this.mode)),
-      ),
+      label: getCasesDraftTabMetadata(tab, 'inputter').label,
+      href: this.dashboardRouter.serializeUrl(this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab))),
     })),
   );
   public readonly selectedTabLabel = computed(
-    () => getCasesDraftTabMetadata(this.navigation.selection().tab, this.mode).label,
+    () => getCasesDraftTabMetadata(this.navigation.selection().tab, 'inputter').label,
   );
   public readonly emptyMessage = computed(
-    () => getCasesDraftTabMetadata(this.navigation.selection().tab, this.mode).empty,
+    () => getCasesDraftTabMetadata(this.navigation.selection().tab, 'inputter').empty,
   );
   public readonly allRejectedUrl = computed(() =>
     this.dashboardRouter.serializeUrl(this.navigation.placeholderUrl('rejections')),
   );
   public readonly tabData$: Observable<ICasesDraftTabData | null>;
-  public readonly rejectedCount$: Observable<{ identity: ICasesDraftIdentity; count: number | null } | null>;
+  public readonly rejectedCount$: Observable<{ identity: ICasesDraftIdentity; count: number | null }>;
 
   constructor() {
     super();
@@ -116,15 +105,7 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
       this.destroy$.complete();
     });
     afterNextRender(() => this.heading()?.nativeElement.focus());
-    if (this.mode === 'checker' && this.checker) {
-      this.tabData$ = this.initializeChecker(this.checker);
-      this.rejectedCount$ = of(null);
-      return;
-    }
-    const initialSelection = parseCasesDraftNavigation(
-      this.activatedRoute.snapshot.fragment,
-      this.activatedRoute.snapshot.queryParamMap,
-    );
+    const initialSelection = this.selectionForFragment(this.activatedRoute.snapshot.fragment);
     // AbstractTabData filters empty fragments. Add their transitions, including re-entry to the preceding tab.
     const fragment$ = merge(
       this.getFragmentStream('in-review', this.destroy$),
@@ -144,11 +125,9 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
       shareReplay({ bufferSize: 1, refCount: true }),
     );
     // Reapply the current route after the navigation service clears metadata for a replacement identity.
-    const selection$ = combineLatest([fragment$, this.activatedRoute.queryParamMap, identity$]).pipe(
+    const selection$ = combineLatest([fragment$, identity$]).pipe(
       auditTime(0, asapScheduler),
-      map(([fragment, query, identity]) =>
-        identity ? parseCasesDraftNavigation(fragment, query) : defaultCasesDraftNavigation(),
-      ),
+      map(([fragment, identity]) => (identity ? this.selectionForFragment(fragment) : defaultCasesDraftNavigation())),
       startWith(initialSelection),
       tap((selection) => {
         this.navigation.setSelection(selection);
@@ -228,68 +207,17 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     );
   }
 
-  /** The checker owner orchestrates requests; this subscription supplies only current route/scope metadata. */
-  private initializeChecker(checker: CasesDraftCheckerLoadService): Observable<ICasesDraftTabData | null> {
-    let arriving = true;
-    combineLatest([
-      this.activatedRoute.fragment,
-      this.activatedRoute.queryParamMap,
-      toObservable(this.identity).pipe(startWith(this.identity()), distinctUntilChanged(sameCasesDraftIdentity)),
-    ])
-      .pipe(
-        tap(([fragment, query, identity]) => {
-          const selection = parseCasesDraftNavigation(fragment, query, 'checker');
-          this.navigation.setSelection(selection);
-          this.activeTab = selection.tab;
-          if (
-            selection.tab === 'to-review' ||
-            selection.tab === 'rejected' ||
-            selection.tab === 'deleted' ||
-            selection.tab === 'failed'
-          ) {
-            if (arriving) {
-              arriving = false;
-              checker.refreshArrival(identity, selection.tab);
-            } else checker.activate(identity, selection.tab);
-          }
-          if (!identity) void this.navigate('/access-denied');
-        }),
-        takeUntilDestroyed(),
-      )
-      .subscribe();
-    const tabData$ = toObservable(checker.listState).pipe(
-      map((state): ICasesDraftTabData | null =>
-        state
-          ? {
-              identity: state.identity,
-              tab: state.tab,
-              rows: state.rows,
-              count: state.count,
-              ...(state.status === 'failure' ? { failure: { correlationReference: state.correlationReference } } : {}),
-            }
-          : null,
-      ),
-      tap((result) => {
-        if (result?.rows) afterNextRender(() => this.clampPage(result), { injector: this.injector });
-      }),
-      takeUntilDestroyed(),
-      shareReplay({ bufferSize: 1, refCount: true }),
-    );
-    effect(() => {
-      if (checker.denied()) void this.navigate('/access-denied');
-    });
-    return tabData$;
+  private selectionForFragment(fragment: string | null): ICasesDraftNavigation {
+    const defaults = parseCasesDraftNavigation(fragment);
+    const current = this.navigation.selection();
+    return current.tab === defaults.tab ? current : defaults;
   }
 
   private clampPage(result: ICasesDraftTabData): void {
     const selection = this.navigation.selection();
     if (!this.isCurrentData(result) || !result.rows) return;
     const page = Math.max(1, Math.min(selection.page, Math.ceil(result.rows.length / 25)));
-    if (page === selection.page || page === this.clampingPage) return;
-    this.clampingPage = page;
-    void this.navigate(this.navigation.dashboardUrl({ ...selection, page }), true).finally(() => {
-      this.clampingPage = null;
-    });
+    if (page !== selection.page) this.navigation.setSelection({ ...selection, page });
   }
   private handleRequestError(error: unknown): void {
     if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) {
@@ -313,15 +241,7 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     return this.isCurrentIdentity(result.identity) && result.tab === this.navigation.selection().tab;
   }
   public isCurrentIdentity(identity: ICasesDraftIdentity): boolean {
-    return !this.checker?.denied() && sameCasesDraftIdentity(identity, this.identity());
-  }
-  /** Counts share the list owner's scope; never display them after a live identity change. */
-  public checkerCount(tab: CasesDraftTab): CasesDraftCheckerCountState | null {
-    const checker = this.checker;
-    if (!checker) return null;
-    const state = checker.listState();
-    if (!state || !this.isCurrentIdentity(state.identity) || (tab !== 'rejected' && tab !== 'failed')) return null;
-    return checker.counts()[tab];
+    return sameCasesDraftIdentity(identity, this.identity());
   }
   public activateTab(event: MouseEvent, tab: CasesDraftTab): void {
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
@@ -329,30 +249,22 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     void this.selectTab(tab);
   }
   public async selectTab(tab: CasesDraftTab): Promise<void> {
-    await this.navigate(this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab, this.mode)));
+    await this.navigate(this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab)));
   }
-  public async changeSort(change: { key: CasesDraftSortColumn; direction: SortDirectionType }): Promise<void> {
+  public changeSort(change: { key: CasesDraftSortColumn; direction: SortDirectionType }): void {
     if (change.direction === 'none') return;
-    if (
-      !(await this.navigate(
-        this.navigation.dashboardUrl({
-          ...this.navigation.selection(),
-          page: 1,
-          sort: change.key,
-          direction: change.direction,
-        }),
-      ))
-    )
-      this.table()?.restoreSelection();
+    this.navigation.setSelection({
+      ...this.navigation.selection(),
+      page: 1,
+      sort: change.key,
+      direction: change.direction,
+    });
   }
-  public async changePage(page: number): Promise<void> {
-    if (!(await this.navigate(this.navigation.dashboardUrl({ ...this.navigation.selection(), page })))) {
-      this.table()?.restoreSelection();
-    }
+  public changePage(page: number): void {
+    this.navigation.setSelection({ ...this.navigation.selection(), page });
   }
   public async openRow(id: number): Promise<void> {
-    const destination = this.navigation.selection().tab === 'to-review' ? 'review' : 'view';
-    await this.navigate(this.navigation.placeholderUrl(this.mode === 'checker' ? destination : 'details', id));
+    await this.navigate(this.navigation.placeholderUrl('details', id));
   }
   public async openAllRejected(event: MouseEvent): Promise<void> {
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;

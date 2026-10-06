@@ -45,25 +45,28 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
       cy.screenshot('po10606-checker-' + tab + '-320px');
     });
   }
-  for (const state of ['empty', 'loading', 'list-failure', 'count-failure'] as const)
+  for (const state of ['empty', 'count-failure'] as const)
     it('AC4. should have no detected Axe violations for ' + state, { tags: buildTags() }, () => {
       setupCheckerDashboard({
         rows: state === 'empty' ? checkerFixtures.empty : undefined,
-        listPending: state === 'loading',
-        listError: state === 'list-failure',
         countError: state === 'count-failure' ? 'failed' : undefined,
       });
-      const selector = {
-        empty: S.empty,
-        loading: S.loading,
-        'list-failure': S.failure,
-        'count-failure': S.countFailure('failed'),
-      }[state];
-      cy.get(selector).should('be.visible');
+      cy.get(state === 'empty' ? S.empty : S.table).should('be.visible');
       cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
       cy.checkA11y();
       cy.screenshot('po10606-checker-' + state);
     });
+  it('AC4. should announce an accessible pending queue after arrival', { tags: buildTags() }, () => {
+    setupCheckerDashboard();
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@checkerListRequest').then((request) =>
+      request.returns(new Subject<List>()),
+    );
+    cy.get(S.tab('deleted')).click();
+    cy.get(S.loading).should('be.visible').and('have.attr', 'aria-live', 'polite');
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+    cy.screenshot('po10606-checker-loading');
+  });
   for (const kind of ['review', 'view'] as const)
     for (const valid of [true, false])
       it(
@@ -114,27 +117,6 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
     cy.get(S.row(1)).find('a').should('be.focused');
     cy.get(S.pageStatus).should('contain.text', 'page 1 of 2');
     cy.get('@checkerListRequest').should('have.been.calledOnce');
-  });
-  it('AC4. should reach list Retry through native Tab and activate Enter', { tags: buildTags() }, () => {
-    setupCheckerDashboard({ listError: true });
-    cy.get(S.failure).should('be.visible');
-    for (let i = 0; i < 5; i++) cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(S.retryList).should('be.focused');
-    pressDashboardEnter();
-    cy.get(S.loading).should('be.visible');
-    cy.get<{ latest: Subject<List> }>('@checkerListResponse').then((r) => r.latest.next({ count: 0, summaries: [] }));
-    cy.get(S.empty).should('be.visible');
-  });
-  it('AC4. should reach count Retry through native Tab and activate Enter', { tags: buildTags() }, () => {
-    setupCheckerDashboard({ countError: 'failed' });
-    cy.get(S.countFailure('failed')).should('be.visible');
-    for (let i = 0; i < 5; i++) cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(S.countRetry('failed')).should('be.focused');
-    pressDashboardEnter();
-    cy.get<Record<'failed', Subject<{ count: number }>>>('@checkerCountResponses').then((r) =>
-      r.failed.next({ count: 4 }),
-    );
-    cy.get(S.failedCount).should('have.text', '4');
   });
   it('AC3. should reach respondent and Back through native keyboard', { tags: buildTags() }, () => {
     setupCheckerDashboard();

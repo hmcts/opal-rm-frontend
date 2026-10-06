@@ -25,6 +25,7 @@ describe('mapCasesDraftRows', () => {
     expect(rows[0]).toMatchObject({
       respondentAccount: '000123A',
       applicantAccount: null,
+      submittedByName: null,
       minorCreditorAccounts: ['M10', 'M2', 'M10'],
       approved: '2026-09-01T10:00:00Z',
       created: published.created_date,
@@ -40,6 +41,7 @@ describe('mapCasesDraftRows', () => {
       applicant: null,
       respondentAccount: null,
       applicantAccount: null,
+      submittedByName: null,
       minorCreditorAccounts: [],
       created: summary.created_date,
     });

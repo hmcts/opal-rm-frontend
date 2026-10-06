@@ -3,7 +3,7 @@ import { setupInputterDashboard, setupResolvedInputterDashboard } from './setup/
 import { dashboardFixtures } from './mocks/dashboard.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
-import type { CasesDraftTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
+import type { CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 const buildTags = (): string[] => [
   '@JIRA-STORY:PO-10605',
   '@JIRA-EPIC:PO-10817',
@@ -11,13 +11,13 @@ const buildTags = (): string[] => [
   '@JIRA-LABEL:release-1c-rm-create-case-files',
 ];
 describe('Inputter casefile dashboard', () => {
-  const messages: Record<CasesDraftTab, string> = {
+  const messages: Record<CasesDraftInputterTab, string> = {
     'in-review': 'You have no cases in review.',
     rejected: 'You have no rejected cases.',
     approved: 'No cases have been approved in the past 7 days.',
     deleted: 'No cases have been deleted in the past 7 days.',
   };
-  (Object.keys(messages) as CasesDraftTab[]).forEach((tab) =>
+  (Object.keys(messages) as CasesDraftInputterTab[]).forEach((tab) =>
     it('AC2. should show the exact ' + tab + ' empty message', { tags: buildTags() }, () => {
       setupInputterDashboard({ tab, rows: dashboardFixtures.empty });
       cy.get(S.empty).should('have.text', messages[tab]);

@@ -13,7 +13,8 @@ import type { SortableValuesType } from '@hmcts/opal-frontend-common/components/
 import { MojPaginationComponent } from '@hmcts/opal-frontend-common/components/moj/moj-pagination';
 import { DaysAgoPipe } from '@hmcts/opal-frontend-common/pipes/days-ago';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
-import { CASES_DRAFT_TABS } from '../constants/cases-draft-tabs.constant';
+import { getCasesDraftTabMetadata } from '../utils/cases-draft-tab-metadata';
+import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import type { ICasesDraftRow } from '../interfaces/cases-draft-row.interface';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
@@ -36,6 +37,7 @@ import { sortCasesDraftRows } from '../utils/cases-draft-sort';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesDraftTableComponent extends AbstractSortableTablePaginationComponent {
+  private readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
   private readonly router = inject(Router);
   private readonly navigation = inject(CasesDraftNavigationService);
   private readonly rowsById = computed(() => new Map(this.rows().map((row) => [row.id, row])));
@@ -52,13 +54,16 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
       return { ...row, detailHref: this.router.serializeUrl(this.navigation.placeholderUrl('details', row.id)) };
     }),
   );
-  public readonly tableCaption = computed(() => CASES_DRAFT_TABS[this.selection().tab].label + ' cases');
+  public readonly tableCaption = computed(
+    () => getCasesDraftTabMetadata(this.selection().tab, this.mode).label + ' cases',
+  );
   public readonly sortTitle = computed(
     () =>
       ({
         respondent: 'Respondent',
         applicant: 'Applicant',
         caseType: 'Case type',
+        submittedByName: 'Submitted by',
         created: 'Created',
         statusDate: this.selection().tab === 'rejected' ? 'Rejected' : 'Deleted',
         respondentAccount: 'Respondent Account',
@@ -86,7 +91,7 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
     this.setTableData(this.tableData(rows));
     this.applyFilterState();
     this.sortStateSignal.set(
-      Object.fromEntries(CASES_DRAFT_TABS[selection.tab].columns.map((column) => [column, 'none'])),
+      Object.fromEntries(getCasesDraftTabMetadata(selection.tab, this.mode).columns.map((column) => [column, 'none'])),
     );
     if (selection.direction === 'none') {
       this.sortedTableDataSignal.set(this.tableData(rows));
@@ -110,7 +115,7 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
   }
 
   public override onSortChange(event: { key: string; sortType: SortDirectionType }): void {
-    const columns: readonly string[] = CASES_DRAFT_TABS[this.selection().tab].columns;
+    const columns: readonly string[] = getCasesDraftTabMetadata(this.selection().tab, this.mode).columns;
     if (!columns.includes(event.key) || event.sortType === 'none') return;
     const column = event.key as CasesDraftSortColumn;
     this.applySort(column, event.sortType);

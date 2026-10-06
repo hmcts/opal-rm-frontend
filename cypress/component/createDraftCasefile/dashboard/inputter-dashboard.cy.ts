@@ -6,6 +6,7 @@ import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/c
 import type { CasesDraftTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 const buildTags = (): string[] => [
   '@JIRA-STORY:PO-10605',
+  '@JIRA-EPIC:PO-10817',
   '@JIRA-LABEL:create-draft-casefile',
   '@JIRA-LABEL:release-1c-rm-create-case-files',
 ];

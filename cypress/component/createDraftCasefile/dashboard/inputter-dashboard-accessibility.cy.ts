@@ -5,6 +5,7 @@ import { dashboardFixtures, populatedReflowFixtures } from './mocks/dashboard.mo
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
 const buildTags = (): string[] => [
   '@JIRA-STORY:PO-10605',
+  '@JIRA-EPIC:PO-10817',
   '@JIRA-LABEL:create-draft-casefile',
   '@JIRA-LABEL:release-1c-rm-create-case-files',
 ];

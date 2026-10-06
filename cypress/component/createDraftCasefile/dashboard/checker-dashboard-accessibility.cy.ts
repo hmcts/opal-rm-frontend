@@ -1,0 +1,178 @@
+import { DASHBOARD_ROUTING_PATHS } from 'src/app/pages/dashboard/constants/dashboard-routing-paths.constant';
+import { Subject } from 'rxjs';
+import type { IOpalMaintenanceDraftCasefileListResponse as List } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-list-response.interface';
+import { setupCheckerDashboard } from './setup/checker-dashboard.setup';
+import { checkerFixtures } from './mocks/checker-dashboard.mock';
+import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
+import { pressDashboardEnter } from '../../../support/utils/press-dashboard-enter';
+import { CASES_DRAFT_CHECKER_TABS as TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-checker-tabs.constant';
+import { CASES_DRAFT_CHECKER_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
+const buildTags = () => ['@JIRA-STORY:PO-10606', '@JIRA-EPIC:PO-10817'];
+describe('Checker dashboard keyboard and partial accessibility', () => {
+  for (const tab of ['to-review', 'rejected', 'deleted', 'failed'] as const) {
+    it('AC4. should have no detected Axe violations for populated ' + tab, { tags: buildTags() }, () => {
+      setupCheckerDashboard({ tab });
+      cy.get(S.table).should('be.visible');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po10606-checker-' + tab + '-desktop');
+    });
+    it('AC4. should contain populated ' + tab + ' reflow at 320 CSS pixels', { tags: buildTags() }, () => {
+      cy.viewport(320, 900);
+      setupCheckerDashboard({ tab });
+      cy.get(S.tableRows).should('have.length', 25);
+      cy.document().should((doc) => expect(doc.documentElement.scrollWidth).to.be.at.most(320));
+      cy.get(S.scrollRegion)
+        .should('have.attr', 'role', 'region')
+        .and('have.attr', 'tabindex', '0')
+        .and('have.attr', 'aria-label')
+        .and('equal', TABS[tab].label + ' cases');
+      cy.get(S.heading).should('be.focused');
+      for (let i = 0; i < 5; i++) cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.scrollRegion).should('be.focused');
+      for (const col of TABS[tab].columns) {
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.get(S.sort(col)).should('be.focused');
+      }
+      cy.get(S.scrollRegion).should((region) => {
+        expect(region[0].scrollWidth).to.be.greaterThan(region[0].clientWidth);
+        expect(region[0].scrollLeft).to.be.greaterThan(0);
+      });
+      cy.get(S.scrollRegion).scrollTo('right');
+      cy.get(S.sort(TABS[tab].columns.at(-1)!)).should('be.visible');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po10606-checker-' + tab + '-320px');
+    });
+  }
+  for (const state of ['empty', 'loading', 'list-failure', 'count-failure'] as const)
+    it('AC4. should have no detected Axe violations for ' + state, { tags: buildTags() }, () => {
+      setupCheckerDashboard({
+        rows: state === 'empty' ? checkerFixtures.empty : undefined,
+        listPending: state === 'loading',
+        listError: state === 'list-failure',
+        countError: state === 'count-failure' ? 'failed' : undefined,
+      });
+      const selector = {
+        empty: S.empty,
+        loading: S.loading,
+        'list-failure': S.failure,
+        'count-failure': S.countFailure('failed'),
+      }[state];
+      cy.get(selector).should('be.visible');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po10606-checker-' + state);
+    });
+  for (const kind of ['review', 'view'] as const)
+    for (const valid of [true, false])
+      it(
+        'AC3. should safely render ' + kind + ' ' + (valid ? 'valid' : 'invalid') + ' placeholder',
+        { tags: buildTags() },
+        () => {
+          setupCheckerDashboard({
+            targetUrl: '/' + PATHS.root + '/' + PATHS.children[kind] + '/' + (valid ? '101' : 'invalid'),
+          });
+          cy.get(S.placeholderHeading)
+            .should('have.text', kind === 'review' ? 'Review case' : 'View case details')
+            .and('be.focused');
+          if (!valid)
+            cy.get(S.placeholder).should('contain.text', 'This case could not be opened. Return to Review cases.');
+          cy.get('@checkerListRequest').should('not.have.been.called');
+          cy.get('@checkerCountRequest').should('not.have.been.called');
+          cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+          cy.checkA11y();
+          cy.screenshot('po10606-' + kind + '-' + (valid ? 'valid' : 'invalid'));
+        },
+      );
+  it('AC3. should activate queue links through native Tab and Enter', { tags: buildTags() }, () => {
+    setupCheckerDashboard();
+    cy.get(S.heading).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.tab('to-review')).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.tab('rejected')).should('be.focused');
+    pressDashboardEnter();
+    cy.get(S.tab('rejected')).should('have.attr', 'aria-current', 'page');
+  });
+  it('AC3. should reach sorting through native Tab and activate Enter', { tags: buildTags() }, () => {
+    setupCheckerDashboard();
+    cy.get(S.heading).should('be.focused');
+    for (let i = 0; i < 6; i++) cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.sort('respondent')).should('be.focused');
+    pressDashboardEnter();
+    cy.get(S.sort('respondent')).closest('th').should('have.attr', 'aria-sort', 'ascending');
+    cy.get(S.sortStatus).should('contain.text', 'Respondent');
+    cy.get('@checkerListRequest').should('have.been.calledOnce');
+  });
+  it('AC3. should reach pagination through native Tab and activate Enter', { tags: buildTags() }, () => {
+    setupCheckerDashboard({ page: 2 });
+    cy.get(S.heading).should('be.focused');
+    for (let i = 0; i < 12; i++) cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.pagination).contains('a', 'Previous').should('be.focused');
+    pressDashboardEnter();
+    cy.get(S.row(1)).find('a').should('be.focused');
+    cy.get(S.pageStatus).should('contain.text', 'page 1 of 2');
+    cy.get('@checkerListRequest').should('have.been.calledOnce');
+  });
+  it('AC4. should reach list Retry through native Tab and activate Enter', { tags: buildTags() }, () => {
+    setupCheckerDashboard({ listError: true });
+    cy.get(S.failure).should('be.visible');
+    for (let i = 0; i < 5; i++) cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.retryList).should('be.focused');
+    pressDashboardEnter();
+    cy.get(S.loading).should('be.visible');
+    cy.get<{ latest: Subject<List> }>('@checkerListResponse').then((r) => r.latest.next({ count: 0, summaries: [] }));
+    cy.get(S.empty).should('be.visible');
+  });
+  it('AC4. should reach count Retry through native Tab and activate Enter', { tags: buildTags() }, () => {
+    setupCheckerDashboard({ countError: 'failed' });
+    cy.get(S.countFailure('failed')).should('be.visible');
+    for (let i = 0; i < 5; i++) cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.countRetry('failed')).should('be.focused');
+    pressDashboardEnter();
+    cy.get<Record<'failed', Subject<{ count: number }>>>('@checkerCountResponses').then((r) =>
+      r.failed.next({ count: 4 }),
+    );
+    cy.get(S.failedCount).should('have.text', '4');
+  });
+  it('AC3. should reach respondent and Back through native keyboard', { tags: buildTags() }, () => {
+    setupCheckerDashboard();
+    cy.get(S.heading).should('be.focused');
+    for (let i = 0; i < 11; i++) cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.row(1)).find('a').should('be.focused');
+    pressDashboardEnter();
+    cy.get(S.placeholderHeading).should('have.text', 'Review case').and('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.placeholderBack).should('be.focused');
+    pressDashboardEnter();
+    cy.get(S.heading).should('be.focused');
+    cy.get('@checkerListRequest').should('have.been.calledTwice');
+  });
+  for (const role of ['checker', 'dual'] as const)
+    it('AC1, AC3. should show real Cases landing and shell for ' + role, { tags: buildTags() }, () => {
+      setupCheckerDashboard({
+        role,
+        shell: true,
+        targetUrl: '/' + DASHBOARD_ROUTING_PATHS.root + '/' + DASHBOARD_ROUTING_PATHS.children.cases,
+      });
+      cy.get(S.checkerEntry).should('be.visible');
+      cy.get(S.primaryNavigation).should('be.visible');
+      if (role === 'checker') cy.get(S.inputterEntry).should('not.exist');
+      else cy.get(S.inputterEntry).should('be.visible');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po10606-cases-' + role + '-after');
+      cy.get(S.checkerEntry).click();
+      cy.get(S.heading).should('be.focused');
+      cy.get(S.primaryNavigation).should('be.visible');
+      cy.screenshot('po10606-shell-checker-' + role);
+      cy.get(S.row(1)).find('a').click();
+      cy.get(S.placeholderHeading).should('be.focused');
+      cy.get(S.primaryNavigation).should('not.exist');
+      cy.screenshot('po10606-shell-review-' + role);
+      cy.get(S.placeholderBack).click();
+      cy.get(S.heading).should('be.focused');
+      cy.get(S.primaryNavigation).should('be.visible');
+    });
+});

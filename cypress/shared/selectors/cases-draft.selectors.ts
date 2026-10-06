@@ -1,5 +1,14 @@
 import type { CasesDraftTab, CasesDraftOutcomeTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 export const CasesDraftSelectors = {
+  failedCount: '#cases-draft-failed-count',
+  placeholderHeading: '#cases-draft-placeholder-heading',
+  placeholderBack: '#cases-draft-placeholder-back',
+  placeholder: 'app-cases-draft-placeholder',
+  tableRows: 'app-cases-draft-table tbody tr',
+  sortStatus: 'opal-lib-moj-sortable-table-status',
+  primaryNavigation: '#primaryNavigation',
+  checkerEntry: '#casesReviewCasefilesLink',
+  inputterEntry: '#casesCreateCasefileLink',
   heading: '#cases-draft-heading',
   tab: (tab: CasesDraftTab) => '#cases-draft-' + tab + '-tab',
   empty: '#cases-draft-empty',

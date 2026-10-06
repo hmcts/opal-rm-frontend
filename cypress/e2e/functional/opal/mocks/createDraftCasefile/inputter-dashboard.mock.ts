@@ -1,6 +1,6 @@
 import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
-import type { CasesDraftTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
+import type { CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import type { IOpalMaintenanceDraftCasefileSummary } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-summary.interface';
 
 /** Synthetic HTTP identity; never contains authentication credentials or live user data. */
@@ -24,7 +24,7 @@ export const INPUTTER_USER: IOpalUserStateResponse = {
   },
 };
 
-export function inputterRows(tab: CasesDraftTab, count = 26): IOpalMaintenanceDraftCasefileSummary[] {
+export function inputterRows(tab: CasesDraftInputterTab, count = 26): IOpalMaintenanceDraftCasefileSummary[] {
   const status = { 'in-review': 'SUBMITTED', rejected: 'REJECTED', approved: 'PUBLISHED', deleted: 'DELETED' } as const;
   return Array.from({ length: count }, (_, index) =>
     createCasesDraftSummary({

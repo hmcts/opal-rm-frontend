@@ -50,7 +50,7 @@ describe('Submission confirmation', () => {
     );
     const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
     review.setContext({ origin: 'review', section: 'respondent' });
-    const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'submitCasefile');
+    const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'createDraftCasefile');
     const before = structuredClone(getState(store));
     const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
     expect(getState(store)).toEqual(before);
@@ -59,7 +59,7 @@ describe('Submission confirmation', () => {
     await fixture.whenStable();
     expect(submit).not.toHaveBeenCalled();
   });
-  it('invalidates confirmation access on departure without clearing submitted data', () => {
+  it('retains successful submission on departure to prevent another POST', () => {
     const store = TestBed.inject(CasesCreateCasefileStore);
     patchState(
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
@@ -69,7 +69,7 @@ describe('Submission confirmation', () => {
     const before = structuredClone(getState(store));
     const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
     fixture.destroy();
-    expect(getState(store)).toEqual({ ...before, submissionSucceeded: false });
+    expect(getState(store)).toEqual(before);
   });
 
   it.each(['success', 'false', 'rejected'])(

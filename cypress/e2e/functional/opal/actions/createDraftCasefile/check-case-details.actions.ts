@@ -172,7 +172,7 @@ export class CheckCaseDetailsActions {
     cy.get(S.caseTypeHeading).should('have.text', 'Create a case').and('be.focused');
     cy.get(S.caseTypeGroup).find('input[type="radio"]:checked').should('not.exist');
     cy.get(S.applicantTypeSelectedOption).should('have.text', 'Select');
-    cy.get('@draftSubmission.all').should('have.length', 0);
+    cy.get('@draftCreation').should('not.have.been.called');
     cy.get('@cancelPersistence').should('not.have.been.called');
   }
 

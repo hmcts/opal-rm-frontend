@@ -1,3 +1,5 @@
+import { CasesDraftCheckAndValidateTabsComponent } from 'src/app/flows/cases/cases-draft/cases-draft-check-and-validate-tabs/cases-draft-check-and-validate-tabs.component';
+import type { CasesDraftSortColumn } from 'src/app/flows/cases/cases-draft/types/cases-draft-sort-column.type';
 import { AppComponent } from 'src/app/app.component';
 import { SessionService } from '@hmcts/opal-frontend-common/services/session-service';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
@@ -132,21 +134,22 @@ export function setupCheckerDashboard(options: ICheckerDashboardSetupOptions = {
     }).then(({ fixture }) => {
       const router = TestBed.inject(Router);
       cy.wrap(router, { log: false }).as('checkerRouter');
-      const url =
-        options.targetUrl ??
-        '/' +
-          PATHS.root +
-          '/' +
-          PATHS.children.tabs +
-          '?page=' +
-          (options.page ?? 1) +
-          '&sort=' +
-          (options.sort ?? CASES_DRAFT_CHECKER_TABS[tab].defaultSort) +
-          '&direction=' +
-          (options.direction ?? 'ascending') +
-          '#' +
-          tab;
-      return router.navigateByUrl(url).then(() => fixture.detectChanges());
+      const url = options.targetUrl ?? '/' + PATHS.root + '/' + PATHS.children.tabs + '#' + tab;
+      return router.navigateByUrl(url).then(async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        const dashboard = fixture.debugElement.queryAll(
+          (element) => element.componentInstance instanceof CasesDraftCheckAndValidateTabsComponent,
+        )[0]?.componentInstance as CasesDraftCheckAndValidateTabsComponent | undefined;
+        if (dashboard) {
+          dashboard.changeSort({
+            key: (options.sort ?? CASES_DRAFT_CHECKER_TABS[tab].defaultSort) as CasesDraftSortColumn,
+            direction: options.direction ?? 'ascending',
+          });
+          dashboard.changePage(options.page ?? 1);
+          fixture.detectChanges();
+        }
+      });
     });
   });
 }

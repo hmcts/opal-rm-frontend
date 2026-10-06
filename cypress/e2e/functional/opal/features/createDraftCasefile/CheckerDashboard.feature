@@ -22,22 +22,18 @@ Feature: Checker casefile dashboard
     Then the fresh rejected collection retains sorting and clamps to page 1
 
   @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
-  Scenario: Recover a failure on the first dashboard entry
+  Scenario: Initial dashboard failure uses the existing error page
     Given my checker dashboard session has role "checker"
     And the first checker list request fails once
     When I open Review cases from the Cases page
-    Then I can retry the announced list failure without leaving Review cases
-    When I retry loading cases using the keyboard
-    Then the current checker table is loaded once with the retained selection
+    Then the existing error page handles the initial checker failure
 
   @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
-  Scenario: Recover an independent failed count
+  Scenario: Omit an unavailable independent count
     Given my checker dashboard session has role "checker"
     And the first Failed count request fails once
     When I open Review cases from the Cases page
-    Then the checker table remains usable with an announced Failed count failure
-    When I retry loading the Failed count using the keyboard
-    Then the Failed badge is refreshed without a replacement list request
+    Then the checker table remains usable without the unavailable Failed badge
 
   @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
   Scenario Outline: Deny direct checker URLs before consultations
@@ -84,7 +80,7 @@ Feature: Checker casefile dashboard
     Then leaving the pending outcome recovers its count and a newer list wins
 
   @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
-  Scenario: Permission loss closes a pending checker route
+  Scenario: A non-retriable permission error follows the existing error route
     Given my checker dashboard session has role "checker"
     And a Failed list response is pending
     When I lose checker permission while a consultation is pending
@@ -93,3 +89,18 @@ Feature: Checker casefile dashboard
   Scenario: Dual role return metadata remains independent
     Given my checker dashboard session has role "dual"
     Then the two dashboard journeys retain independent return selections
+
+  @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
+  Scenario Outline: Later consultation failures use the existing error routes
+    Given my checker dashboard session has role "checker"
+    Then a later checker "<kind>" failure with status <status> and reference "<reference>" uses the existing error route
+    Examples:
+      | kind  | status | reference         |
+      | list  | 503    | <unsafe-reference> |
+      | list  | 500    | oversized         |
+      | list  | 409    | safe-reference_42 |
+      | count | 500    | <unsafe-reference> |
+      | count | 503    | oversized         |
+      | count | 500    | safe-reference_42 |
+      | list  | 401    | <unsafe-reference> |
+      | list  | 403    | <unsafe-reference> |

@@ -1,5 +1,4 @@
 import { AsyncPipe } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -9,7 +8,6 @@ import {
   ElementRef,
   inject,
   Injector,
-  signal,
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
@@ -27,16 +25,12 @@ import {
   of,
   pairwise,
   shareReplay,
-  skip,
   startWith,
   Subject,
   switchMap,
-  takeUntil,
   tap,
-  withLatestFrom,
 } from 'rxjs';
 import { CustomPageHeaderComponent } from '@hmcts/opal-frontend-common/components/custom/custom-page-header';
-import { GovukButtonDirective } from '@hmcts/opal-frontend-common/directives/govuk-button';
 import { MojSubNavigationComponent } from '@hmcts/opal-frontend-common/components/moj/moj-sub-navigation';
 import { MojNotificationBadgeComponent } from '@hmcts/opal-frontend-common/components/moj/moj-notification-badge';
 import { getCasesDraftTabMetadata } from '../utils/cases-draft-tab-metadata';
@@ -54,49 +48,49 @@ import { sameCasesDraftIdentity } from '../utils/cases-draft-identity';
 import { mapCasesDraftRows } from '../utils/cases-draft-summary';
 import { AbstractTabData } from '@hmcts/opal-frontend-common/components/abstract/abstract-tab-data';
 import type { SortDirectionType } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
-import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../../cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 
 @Component({
-  selector: 'app-cases-draft-create-and-manage-tabs',
+  selector: 'app-cases-draft-check-and-validate-tabs',
   imports: [
     AsyncPipe,
     CustomPageHeaderComponent,
-    GovukButtonDirective,
     MojSubNavigationComponent,
     MojNotificationBadgeComponent,
     CasesDraftTableComponent,
   ],
-  templateUrl: './cases-draft-create-and-manage-tabs.component.html',
+  templateUrl: './cases-draft-check-and-validate-tabs.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
+export class CasesDraftCheckAndValidateTabsComponent extends AbstractTabData {
   private readonly dashboardRouter = inject(Router);
   private readonly destroy$ = new Subject<void>();
   private readonly injector = inject(Injector);
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
-  private readonly httpDenied = signal(false);
-  private readonly identity = computed(() => (this.httpDenied() ? null : this.data.getIdentity()));
+  private readonly identity = computed(() => this.data.getIdentity());
   public readonly data = inject(CasesDraftDashboardService);
   public readonly navigation = inject(CasesDraftNavigationService);
-  public readonly tabs: readonly CasesDraftTab[] = ['in-review', 'rejected', 'approved', 'deleted'];
+  public readonly tabs: readonly CasesDraftTab[] = ['to-review', 'rejected', 'deleted', 'failed'];
   public readonly tabLinks = computed(() =>
     this.tabs.map((tab) => ({
       tab,
-      label: getCasesDraftTabMetadata(tab, 'inputter').label,
-      href: this.dashboardRouter.serializeUrl(this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab))),
+      label: getCasesDraftTabMetadata(tab, 'checker').label,
+      href: this.dashboardRouter.serializeUrl(
+        this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab, 'checker')),
+      ),
     })),
   );
   public readonly selectedTabLabel = computed(
-    () => getCasesDraftTabMetadata(this.navigation.selection().tab, 'inputter').label,
+    () => getCasesDraftTabMetadata(this.navigation.selection().tab, 'checker').label,
   );
   public readonly emptyMessage = computed(
-    () => getCasesDraftTabMetadata(this.navigation.selection().tab, 'inputter').empty,
-  );
-  public readonly allRejectedUrl = computed(() =>
-    this.dashboardRouter.serializeUrl(this.navigation.placeholderUrl('rejections')),
+    () => getCasesDraftTabMetadata(this.navigation.selection().tab, 'checker').empty,
   );
   public readonly tabData$: Observable<ICasesDraftTabData | null>;
-  public readonly rejectedCount$: Observable<{ identity: ICasesDraftIdentity; count: number | null }>;
+  public readonly outcomeCounts$: Observable<{
+    identity: ICasesDraftIdentity;
+    rejected: number | null;
+    failed: number | null;
+  } | null>;
 
   constructor() {
     super();
@@ -108,12 +102,12 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     const initialSelection = this.selectionForFragment(this.activatedRoute.snapshot.fragment);
     // AbstractTabData filters empty fragments. Add their transitions, including re-entry to the preceding tab.
     const fragment$ = merge(
-      this.getFragmentStream('in-review', this.destroy$),
+      this.getFragmentStream('to-review', this.destroy$),
       this.activatedRoute.fragment.pipe(
         startWith(null),
         pairwise(),
         filter(([previous, current]) => !previous || !current),
-        map(([, fragment]) => fragment || 'in-review'),
+        map(([, fragment]) => fragment || 'to-review'),
       ),
     ).pipe(distinctUntilChanged());
     const identity$ = toObservable(this.identity).pipe(
@@ -127,7 +121,9 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     // Reapply the current route after the navigation service clears metadata for a replacement identity.
     const selection$ = combineLatest([fragment$, identity$]).pipe(
       auditTime(0, asapScheduler),
-      map(([fragment, identity]) => (identity ? this.selectionForFragment(fragment) : defaultCasesDraftNavigation())),
+      map(([fragment, identity]) =>
+        identity ? this.selectionForFragment(fragment) : defaultCasesDraftNavigation('to-review', 'checker'),
+      ),
       startWith(initialSelection),
       tap((selection) => {
         this.navigation.setSelection(selection);
@@ -143,7 +139,12 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     );
     let pendingResolved = this.activatedRoute.snapshot.data['draftCasefiles'] as ICasesDraftResolvedList | undefined;
     const resolvedIdentity = pendingResolved?.identity ?? null;
-    const resolvedCount = this.activatedRoute.snapshot.data['rejectedCount'] as number | null | undefined;
+    let pendingCounts: { rejected: number | null; failed: number | null } | undefined = pendingResolved
+      ? {
+          rejected: this.activatedRoute.snapshot.data['rejectedCount'] ?? null,
+          failed: this.activatedRoute.snapshot.data['failedCount'] ?? null,
+        }
+      : undefined;
     this.tabData$ = combineLatest([identity$, tab$]).pipe(
       switchMap(([identity, tab]) => {
         const resolved = pendingResolved;
@@ -161,54 +162,47 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
             rows: mapCasesDraftRows(
               response.summaries.filter(
                 (summary) =>
-                  summary.business_unit_id === identity.businessUnitId && summary.submitted_by === identity.submittedBy,
+                  summary.business_unit_id === identity.businessUnitId && summary.submitted_by !== identity.submittedBy,
               ),
               tab,
+              'checker',
             ),
           })),
           tap((result) => afterNextRender(() => this.clampPage(result), { injector: this.injector })),
           startWith<ICasesDraftTabData>({ identity, tab, rows: null, count: null }),
-          catchError((error: unknown) => {
-            this.handleRequestError(error);
-            return of(null);
-          }),
+          catchError(() => of(null)),
         );
       }),
       takeUntilDestroyed(),
       shareReplay({ bufferSize: 1, refCount: true }),
     );
-    const initialCount$ = identity$.pipe(
-      withLatestFrom(tab$),
+    this.outcomeCounts$ = combineLatest([identity$, tab$]).pipe(
       switchMap(([identity, tab]) => {
         if (!identity) return of(null);
-        // Without resolver data, Rejected still supplies its own badge count from the selected list.
-        if (tab === 'rejected') return of({ identity, count: null });
-        if (sameCasesDraftIdentity(identity, resolvedIdentity)) return of({ identity, count: resolvedCount ?? null });
-        return this.data.getRejectedCount(identity).pipe(
-          map((count) => ({ identity, count })),
-          startWith({ identity, count: null }),
-          takeUntil(tab$.pipe(skip(1))),
-          catchError((error: unknown) => {
-            this.handleRequestError(error);
-            return of({ identity, count: null });
+        const resolved = pendingCounts;
+        pendingCounts = undefined;
+        return combineLatest(
+          (['rejected', 'failed'] as const).map((outcome) => {
+            if (tab === outcome)
+              return this.tabData$.pipe(
+                filter((result) => result?.tab === outcome && sameCasesDraftIdentity(result.identity, identity)),
+                map((result) => result?.count ?? null),
+              );
+            if (resolved && sameCasesDraftIdentity(identity, resolvedIdentity)) return of(resolved[outcome]);
+            return this.data.getOutcomeCount(identity, outcome).pipe(
+              startWith<number | null>(null),
+              catchError(() => of(null)),
+            );
           }),
-        );
+        ).pipe(map(([rejected, failed]) => ({ identity, rejected, failed })));
       }),
-    );
-    this.rejectedCount$ = merge(
-      initialCount$,
-      this.tabData$.pipe(
-        filter((result): result is ICasesDraftTabData => result?.tab === 'rejected' && result.count !== null),
-        map(({ identity, count }) => ({ identity, count })),
-      ),
-    ).pipe(
-      filter((result) => result !== null),
       takeUntilDestroyed(),
+      shareReplay({ bufferSize: 1, refCount: true }),
     );
   }
 
   private selectionForFragment(fragment: string | null): ICasesDraftNavigation {
-    const defaults = parseCasesDraftNavigation(fragment);
+    const defaults = parseCasesDraftNavigation(fragment, 'checker');
     const current = this.navigation.selection();
     return current.tab === defaults.tab ? current : defaults;
   }
@@ -218,11 +212,6 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     if (!this.isCurrentData(result) || !result.rows) return;
     const page = Math.max(1, Math.min(selection.page, Math.ceil(result.rows.length / 25)));
     if (page !== selection.page) this.navigation.setSelection({ ...selection, page });
-  }
-  private handleRequestError(error: unknown): void {
-    if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) {
-      this.httpDenied.set(true);
-    }
   }
   private async navigate(url: string | UrlTree, replaceUrl = false, state?: Record<string, boolean>): Promise<boolean> {
     try {
@@ -249,7 +238,7 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     void this.selectTab(tab);
   }
   public async selectTab(tab: CasesDraftTab): Promise<void> {
-    await this.navigate(this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab)));
+    await this.navigate(this.navigation.dashboardUrl(defaultCasesDraftNavigation(tab, 'checker')));
   }
   public changeSort(change: { key: CasesDraftSortColumn; direction: SortDirectionType }): void {
     if (change.direction === 'none') return;
@@ -264,19 +253,8 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
     this.navigation.setSelection({ ...this.navigation.selection(), page });
   }
   public async openRow(id: number): Promise<void> {
-    await this.navigate(this.navigation.placeholderUrl('details', id));
-  }
-  public async openAllRejected(event: MouseEvent): Promise<void> {
-    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    await this.navigate(this.navigation.placeholderUrl('rejections'));
-  }
-  public async startNewCase(): Promise<void> {
-    this.navigation.rememberCreateOrigin();
     await this.navigate(
-      '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType,
-      false,
-      { startNewCase: true, focusCaseTypeHeading: true },
+      this.navigation.placeholderUrl(this.navigation.selection().tab === 'to-review' ? 'review' : 'view', id),
     );
   }
 }

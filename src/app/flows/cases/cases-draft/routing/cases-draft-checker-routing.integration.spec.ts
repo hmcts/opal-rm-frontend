@@ -1,4 +1,3 @@
-import { CasesDraftDashboardService } from '../services/cases-draft-dashboard.service';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -17,7 +16,7 @@ import { LaunchDarklyService } from '@hmcts/opal-frontend-common/services/launch
 import { routing } from '@app/pages/routing/pages.routes';
 import { CasesCreateCasefileStore } from '../../cases-create-casefile/stores/cases-create-casefile.store';
 import { CASES_CREATE_CASEFILE_STATE } from '../../cases-create-casefile/constants/cases-create-casefile-state.constant';
-import { CasesDraftCreateAndManageTabsComponent } from '../cases-draft-create-and-manage-tabs/cases-draft-create-and-manage-tabs.component';
+import { CasesDraftCheckAndValidateTabsComponent } from '../cases-draft-check-and-validate-tabs/cases-draft-check-and-validate-tabs.component';
 import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
 import { createCasesDraftSummary } from '../mocks/cases-draft-summary.mock';
 
@@ -80,6 +79,22 @@ describe('checker production route boundaries', () => {
       http.expectNone((request) => request.url.includes('/draft-casefiles'));
     },
   );
+  it.each([dashboard, '/cases/draft/check-and-validate/review/123', '/cases/draft/check-and-validate/view/123'])(
+    'does not aggregate permission 22 from another BU for %s',
+    async (url) => {
+      const user = permittedUser();
+      user.business_unit_users[0].permissions = [{ permission_id: 21, permission_name: 'Create' }];
+      user.business_unit_users.push({
+        business_unit_id: 45,
+        business_unit_user_id: 'BUU-OTHER',
+        permissions: [{ permission_id: 22, permission_name: 'Check' }],
+      });
+      userState.set(user);
+      await RouterTestingHarness.create(url);
+      expect(TestBed.inject(Router).url).toBe('/access-denied');
+      http.expectNone((request) => request.url.includes('/draft-casefiles'));
+    },
+  );
   it.each(['/cases/create-casefile/case-type', details, amendment])('denies checker-only creation %s', async (url) => {
     await RouterTestingHarness.create(url);
     expect(TestBed.inject(Router).url).toBe('/access-denied');
@@ -93,14 +108,12 @@ describe('checker production route boundaries', () => {
     const harness = await RouterTestingHarness.create(
       '/cases/draft/check-and-validate/' +
         kind +
-        '/123?tab=rejected&page=2&sort=applicant&direction=descending&mode=inputter&placeholderKind=amendment&returnUrl=https://example.test',
+        '/123?tab=rejected&page=2&sort=applicant&direction=descending&mode=inputter&placeholderKind=amendment&returnUrl=https://example.test#rejected',
     );
     expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe(heading);
     expect(document.title).toBe('OPAL - ' + heading);
     expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
-    expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toBe(
-      dashboard + '?page=2&sort=applicant&direction=descending#rejected',
-    );
+    expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toBe(dashboard + '#rejected');
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
     expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
   });
@@ -164,10 +177,14 @@ describe('checker production route boundaries', () => {
     const dualUser = permittedUser();
     dualUser.business_unit_users[0].permissions.push({ permission_id: 21, permission_name: 'Create' });
     userState.set(dualUser);
-    const harness = await RouterTestingHarness.create(dashboard + '?page=2&sort=applicant&direction=descending#' + tab);
-    flushList(status, 26);
+    const pending = RouterTestingHarness.create(dashboard + '#' + tab);
+    await vi.waitFor(() => flushList(status, 26));
+    const harness = await pending;
     await settle(harness);
-    const original = harness.routeDebugElement?.componentInstance as CasesDraftCreateAndManageTabsComponent;
+    const original = harness.routeDebugElement?.componentInstance as CasesDraftCheckAndValidateTabsComponent;
+    original.changeSort({ key: 'applicant', direction: 'descending' });
+    original.changePage(2);
+    await settle(harness);
     expect(original.navigation.selection().page).toBe(2);
     const rootNavigation = TestBed.inject(CasesDraftNavigationService);
     rootNavigation.setSelection({ tab: 'rejected', page: 3, sort: 'applicant', direction: 'descending' });
@@ -183,11 +200,11 @@ describe('checker production route boundaries', () => {
       flushList(status, 1);
     });
     await settle(harness);
-    const current = harness.routeDebugElement?.componentInstance as CasesDraftCreateAndManageTabsComponent;
+    const current = harness.routeDebugElement?.componentInstance as CasesDraftCheckAndValidateTabsComponent;
     expect(current).not.toBe(original);
     expect(current.navigation).toBe(original.navigation);
     expect(current.navigation.selection()).toEqual({ tab, page: 1, sort: 'applicant', direction: 'descending' });
-    expect(TestBed.inject(Router).url).toBe(dashboard + '?page=1&sort=applicant&direction=descending#' + tab);
+    expect(TestBed.inject(Router).url).toBe(dashboard + '#' + tab);
     expect(harness.routeNativeElement?.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
     expect(rootNavigation.selection()).toEqual(rootSelection);
@@ -196,31 +213,60 @@ describe('checker production route boundaries', () => {
     await harness.navigateByUrl(dashboard + '?page=1&sort=respondent&direction=ascending#' + tab);
     http.expectNone((request) => request.url.includes('/draft-casefiles'));
   });
-  it('recovers first arrival failure on explicit Retry without replacing the route', async () => {
-    const harness = await RouterTestingHarness.create(dashboard + '?mode=inputter');
-    const scopedData = harness.routeDebugElement!.injector.get(CasesDraftDashboardService);
-    expect(scopedData).not.toBe(TestBed.inject(CasesDraftDashboardService));
-    expect(scopedData.getIdentity()).toMatchObject({ businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' });
-    expect(TestBed.inject(CasesDraftDashboardService).getIdentity()).toBeNull();
-    http
-      .expectOne((request) => request.params.get('restrict') !== 'counts')
-      .flush({ operation_id: 'synthetic-ref' }, { status: 500, statusText: 'Failure' });
-    flushCounts();
+  it('ignores injected table query metadata and generates only fragment links', async () => {
+    const pending = RouterTestingHarness.create(dashboard + '?page=9&sort=applicant&direction=descending#rejected');
+    await vi.waitFor(() => flushList('REJECTED', 26));
+    const harness = await pending;
     await settle(harness);
-    expect(TestBed.inject(Router).url).toBe(dashboard + '?mode=inputter');
-    expect(harness.routeNativeElement?.querySelector('#cases-draft-failure')?.textContent).toContain('synthetic-ref');
-    harness.routeNativeElement!.querySelector<HTMLButtonElement>('#cases-draft-retry-list')!.click();
-    flushList('SUBMITTED', 1);
+    const component = harness.routeDebugElement?.componentInstance as CasesDraftCheckAndValidateTabsComponent;
+    expect(component.navigation.selection()).toEqual({
+      tab: 'rejected',
+      page: 1,
+      sort: 'statusDate',
+      direction: 'ascending',
+    });
+    component.changeSort({ key: 'applicant', direction: 'descending' });
+    component.changePage(2);
     await settle(harness);
-    expect(harness.routeNativeElement?.querySelectorAll('tbody tr')).toHaveLength(1);
-    expect(harness.routeNativeElement?.querySelector('#cases-draft-failure')).toBeNull();
+    expect(component.navigation.selection()).toEqual({
+      tab: 'rejected',
+      page: 2,
+      sort: 'applicant',
+      direction: 'descending',
+    });
+    expect(harness.routeNativeElement?.querySelector('output')?.textContent).toContain('Page 2 of 2');
+    expect(TestBed.inject(Router).serializeUrl(component.navigation.dashboardUrl())).toBe(dashboard + '#rejected');
+    expect(TestBed.inject(Router).serializeUrl(component.navigation.placeholderUrl('view', 123))).toBe(
+      '/cases/draft/check-and-validate/view/123#rejected',
+    );
+    http.expectNone((request) => request.url.includes('/draft-casefiles'));
+  });
+  it('propagates initial resolver failure without rendering a successful checker arrival', async () => {
+    const harness = await RouterTestingHarness.create();
+    const arrival = harness.navigateByUrl(dashboard);
+    const rejected = expect(arrival).rejects.toBeDefined();
+    await vi.waitFor(() =>
+      http
+        .expectOne((request) => request.params.get('restrict') !== 'counts')
+        .flush({}, { status: 500, statusText: 'Failure' }),
+    );
+    for (const request of http.match((request) => request.params.has('restrict'))) {
+      if (!request.cancelled) request.flush({ count: 0 });
+    }
+    await rejected;
+    expect(harness.routeNativeElement?.querySelector('tbody')).toBeFalsy();
+    expect(TestBed.inject(Router).url).toBe('/');
   });
   it('uses exact BU exclusion for both roles without altering inputter creation origin', async () => {
     const user = permittedUser();
     user.business_unit_users[0].permissions.push({ permission_id: 21, permission_name: 'Create' });
     userState.set(user);
-    const harness = await RouterTestingHarness.create(dashboard);
-    const requests = http.match((request) => request.url.includes('/draft-casefiles'));
+    const arrival = RouterTestingHarness.create(dashboard);
+    let list: ReturnType<HttpTestingController['expectOne']> | undefined;
+    await vi.waitFor(() => {
+      list = http.expectOne((request) => !request.params.has('restrict'));
+    });
+    const requests = [list!, ...http.match((request) => request.url.includes('/draft-casefiles'))];
     expect(requests).toHaveLength(3);
     for (const request of requests) {
       expect(request.request.params.get('business_unit_id')).toBe('44');
@@ -236,28 +282,36 @@ describe('checker production route boundaries', () => {
           ],
         });
     }
+    const harness = await arrival;
     await settle(harness);
     expect(harness.routeNativeElement?.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(harness.routeNativeElement?.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('456');
     expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
   });
   it('keeps successful list beside independent count failure', async () => {
-    const harness = await RouterTestingHarness.create(dashboard);
-    http
-      .expectOne(
-        (request) =>
-          request.params.get('restrict') === 'counts' && request.params.get('casefile_status') === 'REJECTED',
-      )
-      .flush({}, { status: 500, statusText: 'Failure' });
+    const arrival = RouterTestingHarness.create(dashboard);
+    await vi.waitFor(() =>
+      http
+        .expectOne(
+          (request) =>
+            request.params.get('restrict') === 'counts' && request.params.get('casefile_status') === 'REJECTED',
+        )
+        .flush({}, { status: 500, statusText: 'Failure' }),
+    );
     flushList('SUBMITTED', 1);
+    const harness = await arrival;
     await settle(harness);
     expect(harness.routeNativeElement?.querySelector('tbody')).not.toBeNull();
-    expect(harness.routeNativeElement?.querySelector('#cases-draft-rejected-count-retry')).not.toBeNull();
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-rejected-count')).toBeNull();
   });
   it.each(['permission', 'flag'])('cancels pending rows and counts on %s loss', async (condition) => {
-    const harness = await RouterTestingHarness.create(dashboard);
+    const arrival = RouterTestingHarness.create(dashboard);
+    await vi.waitFor(() => flushList('SUBMITTED', 1));
+    const harness = await arrival;
+    await harness.navigateByUrl(dashboard + '#deleted');
+    await settle(harness);
     const pending = http.match((request) => request.url.includes('/draft-casefiles'));
-    expect(pending).toHaveLength(3);
+    expect(pending.length).toBeGreaterThan(0);
     if (condition === 'flag') featureFlags.set({ [key]: false });
     else {
       const user = permittedUser();

@@ -7,5 +7,4 @@ export interface ICasesDraftTabData {
   tab: CasesDraftTab;
   rows: ICasesDraftRow[] | null;
   count: number | null;
-  failure?: { correlationReference: string | null };
 }

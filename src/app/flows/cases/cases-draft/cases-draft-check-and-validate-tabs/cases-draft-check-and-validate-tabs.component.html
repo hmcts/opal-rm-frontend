@@ -1,14 +1,10 @@
 <div class="govuk-grid-column-full">
   <opal-lib-custom-page-header
     ><ng-container pageHeaderHeading
-      ><h1 #heading id="cases-draft-heading" tabindex="-1" class="govuk-heading-l">Create cases</h1></ng-container
-    ><ng-container pageHeaderButtons
-      ><button type="button" opalLibGovukButton buttonId="cases-draft-create" (click)="startNewCase()">
-        Create a case
-      </button></ng-container
+      ><h1 #heading id="cases-draft-heading" tabindex="-1" class="govuk-heading-l">Review cases</h1></ng-container
     ></opal-lib-custom-page-header
   >
-  @let rejected = rejectedCount$ | async;
+  @let counts = outcomeCounts$ | async;
   <opal-lib-moj-sub-navigation subNavId="cases-draft-tabs">
     @for (item of tabLinks(); track item.tab) {
       <li class="moj-sub-navigation__item">
@@ -20,15 +16,13 @@
           (click)="activateTab($event, item.tab)"
         >
           {{ item.label }}
-          @if (
-            item.tab === 'rejected' &&
-            rejected &&
-            isCurrentIdentity(rejected.identity) &&
-            formatRejectedCount(rejected.count)
-          ) {
-            <opal-lib-moj-notification-badge badge badgeId="cases-draft-rejected-count">{{
-              formatRejectedCount(rejected.count)
-            }}</opal-lib-moj-notification-badge>
+          @if (counts && isCurrentIdentity(counts.identity)) {
+            @let count = item.tab === 'rejected' ? counts.rejected : item.tab === 'failed' ? counts.failed : null;
+            @if (formatRejectedCount(count)) {
+              <opal-lib-moj-notification-badge badge [badgeId]="'cases-draft-' + item.tab + '-count'">{{
+                formatRejectedCount(count)
+              }}</opal-lib-moj-notification-badge>
+            }
           }
         </a>
       </li>
@@ -51,17 +45,6 @@
           (pageChanged)="changePage($event)"
           (rowOpened)="openRow($event)"
         />
-      }
-      @if (result.tab === 'rejected' && result.rows !== null) {
-        <p class="govuk-body">
-          <a
-            id="cases-draft-all-rejected"
-            class="govuk-link"
-            [href]="allRejectedUrl()"
-            (click)="openAllRejected($event)"
-            >View all rejected cases</a
-          >
-        </p>
       }
     }
   }

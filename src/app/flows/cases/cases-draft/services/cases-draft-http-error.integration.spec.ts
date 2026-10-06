@@ -15,9 +15,8 @@ import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import { AppComponent } from '../../../../app.component';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
-import { CasesDraftCreateAndManageTabsComponent } from '../cases-draft-create-and-manage-tabs/cases-draft-create-and-manage-tabs.component';
+import { CasesDraftCheckAndValidateTabsComponent } from '../cases-draft-check-and-validate-tabs/cases-draft-check-and-validate-tabs.component';
 import { CasesDraftDashboardService } from './cases-draft-dashboard.service';
-import { CasesDraftCheckerLoadService } from './cases-draft-checker-load.service';
 import { CasesDraftNavigationService } from './cases-draft-navigation.service';
 
 @Component({ template: '<h1>Access denied</h1>' })
@@ -29,14 +28,13 @@ describe('checker HTTP boundary through production interceptors and application 
   let fixture: ComponentFixture<AppComponent>;
   let http: HttpTestingController;
   let router: Router;
-  let owner: CasesDraftCheckerLoadService;
   const logException = vi.fn();
   beforeEach(async () => {
     TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
         provideRouter([
-          { path: 'cases/draft/check-and-validate/tabs', component: CasesDraftCreateAndManageTabsComponent },
+          { path: 'cases/draft/check-and-validate/tabs', component: CasesDraftCheckAndValidateTabsComponent },
           { path: 'access-denied', component: DeniedComponent },
           { path: 'error/:kind', component: DeniedComponent },
         ]),
@@ -47,7 +45,6 @@ describe('checker HTTP boundary through production interceptors and application 
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'checker' },
         CasesDraftDashboardService,
-        CasesDraftCheckerLoadService,
         CasesDraftNavigationService,
         { provide: AppInsightsService, useValue: { logException, logPageView: vi.fn() } },
         {
@@ -76,7 +73,6 @@ describe('checker HTTP boundary through production interceptors and application 
     store.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
     http = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
-    owner = TestBed.inject(CasesDraftCheckerLoadService);
     fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     await router.navigateByUrl(dashboard);
@@ -92,84 +88,38 @@ describe('checker HTTP boundary through production interceptors and application 
     await fixture.whenStable();
     fixture.detectChanges();
   }
-  it.each(['<unsafe-reference>', 'x'.repeat(101), 'safe-reference_42'])(
-    'keeps a later list failure generic with bounded reference %s',
-    async (operationId) => {
-      await router.navigateByUrl(dashboard + '#deleted');
-      await settle();
-      http
-        .expectOne((request) => request.params.get('casefile_status') === 'DELETED')
-        .flush(
-          {
-            title: 'Synthetic provider title',
-            detail: 'Synthetic provider detail',
-            operation_id: operationId,
-          },
-          { status: 503, statusText: 'Unavailable' },
-        );
-      await settle();
-      const text = fixture.nativeElement.textContent;
-      expect(text).not.toContain('Synthetic provider');
-      expect(text).toContain('There was a problem');
-      expect(text.includes(operationId)).toBe(operationId === 'safe-reference_42');
-      const monitored = JSON.stringify(logException.mock.lastCall);
-      expect(monitored).not.toContain('Synthetic provider');
-      expect(monitored.includes(operationId)).toBe(operationId === 'safe-reference_42');
-      expect(owner.listState()?.status).toBe('failure');
-      expect(router.url).toBe(dashboard + '#deleted');
-    },
-  );
-  it('keeps a later independent count retry generic after other requests settle', async () => {
-    owner.retryCount('failed');
-    http
-      .expectOne((request) => request.params.get('restrict') === 'counts')
-      .flush(
-        {
-          title: 'Synthetic provider title',
-          detail: 'Synthetic provider detail',
-          operation_id: '<unsafe-reference>',
-        },
-        { status: 500, statusText: 'Failure' },
-      );
-    await settle();
-    expect(fixture.nativeElement.textContent).not.toContain('Synthetic provider');
-    expect(fixture.nativeElement.textContent).not.toContain('<unsafe-reference>');
-    expect(owner.counts().failed.status).toBe('failure');
-  });
-  it.each([500, 409])('retains local Retry for non-access status %s even retriable false', async (status) => {
-    owner.retryList();
-    http
-      .expectOne((request) => !request.params.has('restrict'))
-      .flush({ retriable: false }, { status, statusText: 'Failure' });
-    await settle();
-    expect(router.url).toBe(dashboard);
-    expect(owner.listState()?.status).toBe('failure');
-    expect(fixture.nativeElement.textContent).toContain('Retry');
-  });
-  it('delivers retriable 409 to the owner as an HTTP failure', async () => {
-    owner.retryList();
-    http
-      .expectOne((request) => !request.params.has('restrict'))
-      .flush({ operation_id: 'conflict-42' }, { status: 409, statusText: 'Conflict' });
-    await settle();
-    expect(owner.listState()).toMatchObject({ status: 'failure', correlationReference: 'conflict-42' });
-  });
-  it.each([401, 403])('uses one terminal access-denied navigation for %s', async (status) => {
+  it.each([
+    [403, '/error/permission-denied'],
+    [500, '/error/internal-server'],
+  ])('preserves common error routing for checker status %s', async (status, destination) => {
     const destinations: string[] = [];
     const subscription = router.events.subscribe((event) => {
       if (event instanceof NavigationStart) destinations.push(event.url);
     });
-    owner.retryList();
+    await router.navigateByUrl(dashboard + '#deleted');
+    await settle();
+    for (const request of http.match((request) => request.params.has('restrict'))) request.flush({ count: 2 });
     http
-      .expectOne((request) => !request.params.has('restrict'))
-      .flush({ retriable: false }, { status, statusText: 'Denied' });
+      .expectOne((request) => request.params.get('casefile_status') === 'DELETED')
+      .flush({ retriable: false }, { status: Number(status), statusText: 'Failure' });
     await settle();
     subscription.unsubscribe();
-    expect(destinations).toEqual(['/access-denied']);
-    expect(owner.denied()).toBe(true);
-    owner.retryList();
-    owner.retryCount('failed');
-    http.expectNone((request) => request.url.includes('/draft-casefiles'));
+    expect(router.url).toBe(destination);
+    expect(destinations).not.toContain('/access-denied');
+  });
+  it('uses the common banner for checker list failures', async () => {
+    await router.navigateByUrl(dashboard + '#deleted');
+    await settle();
+    for (const request of http.match((request) => request.params.has('restrict'))) request.flush({ count: 2 });
+    http
+      .expectOne((request) => request.params.get('casefile_status') === 'DELETED')
+      .flush(
+        { title: 'Existing error title', detail: 'Existing error detail' },
+        { status: 500, statusText: 'Failure' },
+      );
+    await settle();
+    expect(fixture.nativeElement.textContent).toContain('Existing error detail');
+    expect(fixture.nativeElement.textContent).not.toContain('Retry loading');
   });
   it('preserves the installed common banner behaviour for unmarked requests', async () => {
     TestBed.inject(HttpClient)

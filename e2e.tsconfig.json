@@ -6,6 +6,7 @@
     "types": ["cypress", "node", "@cypress/grep"],
     "typeRoots": ["./node_modules/@types", "./node_modules/@cypress"],
     "paths": {
+      "src/*": ["./src/*"],
       "@e2e/*": ["./cypress/e2e/*"],
       "cypress/e2e/*": ["./cypress/e2e/*"],
       "cypress/shared/*": ["./cypress/shared/*"],

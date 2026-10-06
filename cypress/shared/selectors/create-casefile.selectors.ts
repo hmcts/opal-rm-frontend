@@ -7,6 +7,9 @@ import { CASES_CREATE_CASEFILE_COMMENTS_NOTES_FIELD_NAMES } from 'src/app/flows/
 import { CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-order-term-creditor/constants/cases-create-casefile-order-term-creditor-field-names.constant';
 
 export const CreateCasefileSelectors = {
+  dashboard: {
+    createCasefileLink: '#casesCreateCasefileLink',
+  },
   heading: 'h1',
   globalErrorBanner: '.moj-alert--error',
   globalErrorBannerHeading: '.moj-alert--error .moj-alert__heading',

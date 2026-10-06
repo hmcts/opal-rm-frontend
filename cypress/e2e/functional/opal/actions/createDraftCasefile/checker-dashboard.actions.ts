@@ -28,7 +28,6 @@ export class CheckerDashboardActions {
   private user = checkerUser('checker');
   private heldTab: CasesDraftCheckerTab | null = null;
   private release: ((denied?: boolean) => void) | null = null;
-  private listCountBeforeRetry = 0;
   private failureStatus = 503;
   private failureReference = 'SYNTHETIC-RETRY';
   private failureRetriable = true;
@@ -42,7 +41,6 @@ export class CheckerDashboardActions {
     this.countFailures = 0;
     this.heldTab = null;
     this.release = null;
-    this.listCountBeforeRetry = 0;
     this.failureStatus = 503;
     this.failureReference = 'SYNTHETIC-RETRY';
     this.failureRetriable = true;
@@ -102,7 +100,7 @@ export class CheckerDashboardActions {
         this.heldTab = null;
         return new Promise<void>((resolve) => {
           this.release = (denied = false) => {
-            request.reply(denied ? { statusCode: 403, body: CHECKER_FAILURE } : { body });
+            request.reply(denied ? { statusCode: 403, body: { ...CHECKER_FAILURE, retriable: false } } : { body });
             resolve();
           };
         });
@@ -118,7 +116,6 @@ export class CheckerDashboardActions {
     cy.viewport(1440, 1000);
     cy.screenshot('po10606-after-cases-entry');
     cy.get(S.checkerEntry).click();
-    cy.get(S.heading).should('have.text', 'Review cases');
   }
 
   /** Checks permanent queues and defensive scope filtering for both authorised roles. */
@@ -215,6 +212,7 @@ export class CheckerDashboardActions {
   public failFirstList(): void {
     cy.then(() => {
       this.listFailures = 1;
+      this.failureRetriable = false;
     });
   }
   /** Fails only the next independent Failed count. */
@@ -224,60 +222,18 @@ export class CheckerDashboardActions {
     });
   }
 
-  /** Checks safe announced first-entry failure and retained dashboard controls. */
-  public expectRetryableList(): void {
-    cy.get(S.failure)
-      .should('have.attr', 'aria-live', 'polite')
-      .and('contain.text', 'We could not load these cases. Try again.')
-      .and('contain.text', 'SYNTHETIC-RETRY');
-    cy.get(S.retryList).should('be.visible');
+  /** Verifies initial failure follows the existing common error route. */
+  public expectInitialError(): void {
+    cy.location('pathname').should('eq', '/error/internal-server');
     cy.get(S.table).should('not.exist');
-    cy.get(S.empty).should('not.exist');
-    cy.contains('Synthetic private detail').should('not.exist');
-    cy.contains('Synthetic backend title').should('not.exist');
-  }
-  /** Uses native Enter to retry list loading with the existing selection. */
-  public retryListWithKeyboard(): void {
-    cy.get(S.retryList).focus();
-    pressDashboardEnter();
-  }
-  /** Checks explicit retry made exactly one additional list request. */
-  public expectLoadedSelection(): void {
-    cy.get(S.table).should('be.visible');
-    cy.location('hash').should('eq', '#to-review');
-    cy.get(S.failure).should('not.exist');
-    cy.then(() => expect(this.requests.filter((request) => !request['restrict'])).to.have.length(2));
+    cy.get(S.retryList).should('not.exist');
     this.assertNoPersistence();
   }
-  /** Checks an unavailable count is announced while successful rows remain usable. */
+  /** Checks an unavailable independent count is omitted while the list remains usable. */
   public expectCountFailureWithTable(): void {
     cy.get(S.table).should('be.visible');
-    cy.get(S.countFailure('failed'))
-      .should('have.attr', 'aria-live', 'polite')
-      .and('contain.text', 'We could not load the Failed count. Try again.');
     cy.get(S.failedCount).should('not.exist');
-    cy.then(() => {
-      this.listCountBeforeRetry = this.requests.filter((request) => !request['restrict']).length;
-    });
-  }
-  /** Retries an independent count through native Enter. */
-  public retryFailedCountWithKeyboard(): void {
-    cy.get(S.countRetry('failed')).focus();
-    pressDashboardEnter();
-  }
-  /** Checks count recovery did not replace the successful list. */
-  public expectCountOnlyRecovery(): void {
-    cy.get(S.failedCount).should('contain.text', '26');
-    cy.get(S.countFailure('failed')).should('not.exist');
-    cy.get(S.table).should('be.visible');
-    cy.then(() => {
-      expect(this.requests.filter((request) => !request['restrict'])).to.have.length(this.listCountBeforeRetry);
-      expect(
-        this.requests.filter(
-          (request) => request['casefile_status'] === 'PUBLISHING_FAILED' && request['restrict'] === 'counts',
-        ),
-      ).to.have.length(2);
-    });
+    cy.get(S.countRetry('failed')).should('not.exist');
   }
 
   /** Opens a guarded destination directly.
@@ -361,10 +317,12 @@ export class CheckerDashboardActions {
 
   /** Holds a response explicitly, avoiding a sleep-based race fixture. */
   public pendingOutcome(): void {
+    this.enterFromCases();
+    cy.get(S.table).should('be.visible');
     cy.then(() => {
       this.heldTab = 'failed';
     });
-    cy.visit(DASHBOARD + '#failed');
+    this.selectTab('failed');
     cy.get(S.loading).should('contain.text', 'Loading Failed cases.');
   }
   /** Leaves a pending outcome, obtains its count and gives a newer selected list precedence. */
@@ -393,10 +351,10 @@ export class CheckerDashboardActions {
       expect(this.release, 'controlled pending list').not.to.eq(null);
       this.release!(true);
     });
-    cy.location('pathname').should('eq', '/access-denied');
+    cy.location('pathname').should('eq', '/error/permission-denied');
     cy.get(S.table).should('not.exist');
     cy.get(S.failedCount).should('not.exist');
-    cy.then(() => expect(this.requests.filter((request) => !request['restrict'])).to.have.length(1));
+    cy.then(() => expect(this.requests.filter((request) => !request['restrict'])).to.have.length(2));
     this.assertNoPersistence();
   }
   /** Proves separate in-memory return state and fragment-only shell links for dual roles. */
@@ -430,17 +388,14 @@ export class CheckerDashboardActions {
     this.assertNoPersistence();
   }
 
-  /** Exercises later failures after all other consultations settle through the production shell.
-   * @param kind List or independent count retry.
-   * @param status Provider status.
-   * @param reference Safe or rejected operation reference. */
+  /** Exercises existing common error routes after successful arrival.
+   * @param kind List or independent count.
+   * @param status Provider HTTP status.
+   * @param reference Synthetic operation reference. */
   public laterFailure(kind: string, status: number, reference: string): void {
-    if (kind === 'count') this.failFirstFailedCount();
     this.enterFromCases();
     cy.get(S.table).should('be.visible');
-    cy.get(S.rejectedCount).should('contain.text', '26');
-    if (kind === 'count') this.expectCountFailureWithTable();
-    else cy.get(S.failedCount).should('contain.text', '26');
+    cy.get(S.failedCount).should('contain.text', '26');
     cy.then(() => {
       this.failureStatus = status;
       this.failureRetriable = false;
@@ -448,25 +403,13 @@ export class CheckerDashboardActions {
       if (kind === 'count') this.countFailures = 1;
       else this.listFailures = 1;
     });
-    if (kind === 'count') this.retryFailedCountWithKeyboard();
-    else cy.get(S.tab('deleted')).click();
-    if (status === 401 || status === 403) {
-      cy.location('pathname').should('eq', '/access-denied');
-      cy.contains('h1', 'Access Denied').should('be.visible');
-      cy.get(S.retryList).should('not.exist');
-    } else {
-      cy.get(kind === 'count' ? S.countFailure('failed') : S.failure).should('be.visible');
-      cy.get(kind === 'count' ? S.countRetry('failed') : S.retryList).should('be.visible');
-      cy.location('pathname').should('eq', DASHBOARD);
-      cy.contains('There was a problem').should('be.visible');
-      if (reference === 'safe-reference_42') cy.contains('Error code: ' + reference).should('be.visible');
-      else cy.get('body').should('not.contain.text', reference === 'oversized' ? 'x'.repeat(101) : reference);
-    }
-    cy.get('body')
-      .should('not.contain.text', 'Synthetic private detail')
-      .and('not.contain.text', 'Synthetic backend title');
-    cy.location('search').should('eq', '');
-    cy.screenshot('po10606-final-boundary-' + kind + '-' + status + '-' + reference.replace(/[^\w-]/g, ''));
+    cy.get(S.tab('deleted')).click();
+    const destination =
+      status === 403 ? 'permission-denied' : status === 409 ? 'concurrency-failure' : 'internal-server';
+    cy.location('pathname').should('eq', '/error/' + destination);
+    cy.get(S.retryList).should('not.exist');
+    cy.get(S.table).should('not.exist');
+    cy.screenshot('po10606-common-error-' + kind + '-' + status);
     this.assertNoPersistence();
   }
   /** Supplies explicit accessible dashboard states with controlled loading completion.
@@ -477,17 +420,25 @@ export class CheckerDashboardActions {
       cy.then(() => {
         this.collections['to-review'] = [];
       });
-    if (state === 'list-error') this.failFirstList();
     if (state === 'count-error') this.failFirstFailedCount();
-    if (state === 'loading')
-      cy.then(() => {
-        this.heldTab = 'to-review';
-      });
     this.enterFromCases();
+    if (state === 'loading' || state === 'list-error') {
+      cy.get(S.table).should('be.visible');
+      if (state === 'loading')
+        cy.then(() => {
+          this.heldTab = 'deleted';
+        });
+      else
+        cy.then(() => {
+          this.listFailures = 1;
+          this.failureRetriable = true;
+        });
+      this.selectTab('deleted');
+    }
     const selector = {
       empty: S.empty,
-      'list-error': S.failure,
-      'count-error': S.countFailure('failed'),
+      'list-error': '.moj-alert--error',
+      'count-error': S.table,
       loading: S.loading,
       populated: S.table,
     }[state];

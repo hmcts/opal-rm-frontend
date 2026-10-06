@@ -41,29 +41,13 @@ export class CheckerDashboardFlow {
   public failFirstFailedCount(): void {
     this.actions.failFirstFailedCount();
   }
-  /** Delegates the expectRetryableList journey to its page action. */
-  public expectRetryableList(): void {
-    this.actions.expectRetryableList();
+  /** Checks existing initial HTTP error routing. */
+  public expectInitialError(): void {
+    this.actions.expectInitialError();
   }
-  /** Delegates the retryListWithKeyboard journey to its page action. */
-  public retryListWithKeyboard(): void {
-    this.actions.retryListWithKeyboard();
-  }
-  /** Delegates the expectLoadedSelection journey to its page action. */
-  public expectLoadedSelection(): void {
-    this.actions.expectLoadedSelection();
-  }
-  /** Delegates the expectCountFailureWithTable journey to its page action. */
+  /** Checks a count failure preserves the successful list. */
   public expectCountFailureWithTable(): void {
     this.actions.expectCountFailureWithTable();
-  }
-  /** Delegates the retryFailedCountWithKeyboard journey to its page action. */
-  public retryFailedCountWithKeyboard(): void {
-    this.actions.retryFailedCountWithKeyboard();
-  }
-  /** Delegates the expectCountOnlyRecovery journey to its page action. */
-  public expectCountOnlyRecovery(): void {
-    this.actions.expectCountOnlyRecovery();
   }
   /** Delegates the openProtected journey to its page action.
    * @param destination Named protected route. */

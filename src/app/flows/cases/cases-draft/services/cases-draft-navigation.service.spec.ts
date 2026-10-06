@@ -1,6 +1,6 @@
 import { createEnvironmentInjector, EnvironmentInjector, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter, convertToParamMap } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';

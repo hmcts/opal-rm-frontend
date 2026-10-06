@@ -22,7 +22,7 @@ export function mapCasesDraftRows(
         id: summary.draft_casefile_id,
         respondent: populated(snapshot.respondent_account?.respondent_name),
         applicant: populated(snapshot.applicant_account?.applicant_name),
-        submittedByName: null,
+        submittedByName: populated(summary.submitted_by_name),
         caseType: summary.casefile_type,
         created: summary.created_date,
         statusDate: summary.casefile_status_date,

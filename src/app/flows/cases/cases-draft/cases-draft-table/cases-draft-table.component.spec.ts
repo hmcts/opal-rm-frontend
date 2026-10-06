@@ -380,3 +380,134 @@ describe('checker rendered table', () => {
     },
   );
 });
+
+describe.each(['inputter', 'checker'] as const)('%s controlled page announcements', (mode) => {
+  const tab = mode === 'checker' ? 'to-review' : 'in-review';
+  const title = mode === 'checker' ? 'Review cases' : 'Create cases';
+  beforeEach(() =>
+    TestBed.configureTestingModule({
+      imports: [CasesDraftTableComponent],
+      providers: [
+        provideRouter([]),
+        { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: mode },
+        {
+          provide: GlobalStore,
+          useValue: { authenticated: signal(false), userState: signal(null), featureFlags: signal({}) },
+        },
+      ],
+    }),
+  );
+
+  function render() {
+    const fixture = TestBed.createComponent(CasesDraftTableComponent);
+    fixture.componentRef.setInput('selection', defaultCasesDraftNavigation(tab, mode));
+    fixture.componentRef.setInput(
+      'rows',
+      mapCasesDraftRows(
+        Array.from({ length: 26 }, (_, index) =>
+          createCasesDraftSummary({
+            draft_casefile_id: index + 1,
+            casefile_snapshot: { respondent_account: { respondent_name: `Synthetic ${index}` } },
+          }),
+        ),
+        tab,
+        mode,
+      ),
+    );
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('preserves the titled page announcement when the parent commits page two with the same sort', () => {
+    const fixture = render();
+    const element: HTMLElement = fixture.nativeElement;
+    fixture.componentInstance.onPageChange(2);
+    fixture.detectChanges();
+    expect(element.querySelector('output')?.textContent).toBe(`${title}, page 2 of 2`);
+
+    fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(tab, mode), page: 2 });
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(element.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('26');
+    expect(element.querySelector('output')?.textContent).toBe(`${title}, page 2 of 2`);
+  });
+
+  it('announces page one and Respondent sort after sorting a committed second page', () => {
+    const fixture = render();
+    const element: HTMLElement = fixture.nativeElement;
+    fixture.componentInstance.onPageChange(2);
+    fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(tab, mode), page: 2 });
+    fixture.detectChanges();
+
+    (element.querySelector('th[columnKey="respondent"] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
+    expect(element.querySelector('output')?.textContent).toBe('Page 1 of 2, showing cases 1 to 25 of 26');
+
+    fixture.componentRef.setInput('selection', {
+      ...defaultCasesDraftNavigation(tab, mode),
+      sort: 'respondent',
+      direction: 'ascending',
+    });
+    fixture.detectChanges();
+    expect(element.querySelector('output')?.textContent).toBe('Page 1 of 2, showing cases 1 to 25 of 26');
+    expect(element.querySelector('th[columnKey="respondent"]')?.getAttribute('aria-sort')).toBe('ascending');
+    expect(element.querySelector('opal-lib-moj-sortable-table-status')?.textContent).toContain(
+      'Sorted by Respondent (ascending)',
+    );
+  });
+
+  it.each(['ascending', 'none'] as const)(
+    'restores actual page-one status after cancelled page navigation with %s sort',
+    (direction) => {
+      const fixture = render();
+      const element: HTMLElement = fixture.nativeElement;
+      fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(tab, mode), direction });
+      fixture.detectChanges();
+      fixture.componentInstance.onPageChange(2);
+      fixture.detectChanges();
+      expect(element.querySelector('output')?.textContent).toBe(`${title}, page 2 of 2`);
+
+      fixture.componentInstance.restoreSelection();
+      fixture.detectChanges();
+
+      expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
+      expect(element.querySelector('output')?.textContent).toBe('Page 1 of 2, showing cases 1 to 25 of 26');
+    },
+  );
+
+  it('updates page status when a committed second page is clamped by shrinking rows', () => {
+    const fixture = render();
+    const element: HTMLElement = fixture.nativeElement;
+    fixture.componentInstance.onPageChange(2);
+    fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(tab, mode), page: 2 });
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('rows', mapCasesDraftRows([createCasesDraftSummary()], tab, mode));
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(element.querySelector('output')?.textContent).toBe('Page 1 of 1, showing cases 1 to 1 of 1');
+  });
+
+  it('restores page-two rows and status when a sort navigation is cancelled', () => {
+    const fixture = render();
+    const element: HTMLElement = fixture.nativeElement;
+    fixture.componentInstance.onPageChange(2);
+    fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(tab, mode), page: 2 });
+    fixture.detectChanges();
+    (element.querySelector('th[columnKey="respondent"] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
+
+    fixture.componentInstance.restoreSelection();
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(element.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('26');
+    expect(element.querySelector('output')?.textContent).toBe('Page 2 of 2, showing cases 26 to 26 of 26');
+    expect(element.querySelector('th[columnKey="created"]')?.getAttribute('aria-sort')).toBe('ascending');
+    expect(element.querySelector('th[columnKey="respondent"]')?.getAttribute('aria-sort')).toBe('none');
+  });
+});

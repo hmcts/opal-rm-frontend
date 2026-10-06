@@ -116,7 +116,13 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
     } else {
       this.applySort(selection.sort, selection.direction);
     }
-    this.currentPageSignal.set(Math.max(1, Math.min(selection.page, Math.ceil(rows.length / 25))));
+    const totalPages = Math.max(1, Math.ceil(rows.length / this.itemsPerPageSignal()));
+    const page = Math.max(1, Math.min(selection.page, totalPages));
+    this.currentPageSignal.set(page);
+    const announcement = this.pageChangeAnnouncement();
+    if (announcement && announcement !== `${this.paginationPageTitle}, page ${page} of ${totalPages}`) {
+      this.pageChangeAnnouncement.set('');
+    }
   }
 
   /** Shared scalar table data keeps the original creditor sequence available for display and RM comparison. */
@@ -127,7 +133,6 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
   /** The base owns sort state/page reset; RM additionally requires missing-last, numeric and sequence ordering. */
   private applySort(column: CasesDraftSortColumn, direction: 'ascending' | 'descending'): void {
     super.onSortChange({ key: column, sortType: direction });
-    this.pageChangeAnnouncement.set('');
     this.sortedTableDataSignal.set(this.tableData(sortCasesDraftRows(this.rows(), column, direction)));
   }
 
@@ -135,6 +140,7 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
     const columns: readonly string[] = getCasesDraftTabMetadata(this.selection().tab, this.mode).columns;
     if (!columns.includes(event.key) || event.sortType === 'none') return;
     const column = event.key as CasesDraftSortColumn;
+    this.pageChangeAnnouncement.set('');
     this.applySort(column, event.sortType);
     this.sortChanged.emit({ key: column, direction: event.sortType });
   }

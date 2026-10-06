@@ -1,3 +1,4 @@
+import { CreateCasefileSelectors } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CasesDraftSelectors as S } from '../../../../../shared/selectors/cases-draft.selectors';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { accessibilityActions } from '../accessibility/accessibility.actions';
@@ -437,7 +438,7 @@ export class CheckerDashboardActions {
     }
     const selector = {
       empty: S.empty,
-      'list-error': '.moj-alert--error',
+      'list-error': CreateCasefileSelectors.globalErrorBanner,
       'count-error': S.table,
       loading: S.loading,
       populated: S.table,

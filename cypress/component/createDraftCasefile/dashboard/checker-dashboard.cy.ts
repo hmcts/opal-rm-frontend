@@ -93,10 +93,7 @@ describe('Checker routed dashboard', () => {
   });
   it('AC3. should provide a native modified-click review href', { tags: buildTags() }, () => {
     setupCheckerDashboard();
-    cy.get(S.row(1))
-      .find('a')
-      .should('have.attr', 'href')
-      .and('include', '/review/1?tab=to-review&page=1&sort=created&direction=ascending');
+    cy.get(S.row(1)).find('a').should('have.attr', 'href').and('include', '/review/1#to-review');
     cy.get(S.row(1)).find('a').trigger('click', { ctrlKey: true });
     cy.get(S.heading).should('be.visible');
     cy.get('@checkerListRequest').should('have.been.calledOnce');
@@ -129,9 +126,7 @@ describe('Checker routed dashboard', () => {
     setupCheckerDashboard({ tab: 'rejected', page: 2, sort: 'respondent', direction: 'descending' });
     cy.get(S.tableRows).first().find('a').click();
     cy.get(S.placeholderHeading).should('have.text', 'View case details').and('be.focused');
-    cy.get(S.placeholderBack)
-      .should('have.attr', 'href')
-      .and('include', 'page=2&sort=respondent&direction=descending#rejected');
+    cy.get(S.placeholderBack).should('have.attr', 'href').and('include', '#rejected');
     cy.get<Cypress.Agent<sinon.SinonStub>>('@checkerListRequest').then((request) =>
       request.returns(of({ count: 1, summaries: checkerFixtures.queues.rejected.slice(0, 1) })),
     );

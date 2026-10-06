@@ -4,6 +4,13 @@ import type { CheckerRole, CheckerDestination } from '../../mocks/createDraftCas
 /** Exposes checker business journeys while HTTP and page details stay in Actions. */
 export class CheckerDashboardFlow {
   private readonly actions = new CheckerDashboardActions();
+  /** Verifies later safe recovery and terminal denial through the real shell.
+   * @param kind Consultation kind.
+   * @param status Provider status.
+   * @param reference Provider correlation reference. */
+  public laterFailure(kind: string, status: number, reference: string): void {
+    this.actions.laterFailure(kind, status, reference);
+  }
   /** Delegates the prepare journey to its page action.
    * @param role Synthetic role at the HTTP boundary. */
   public prepare(role: CheckerRole): void {

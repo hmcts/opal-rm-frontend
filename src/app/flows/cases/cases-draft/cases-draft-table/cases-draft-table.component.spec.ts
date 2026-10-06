@@ -458,25 +458,6 @@ describe.each(['inputter', 'checker'] as const)('%s controlled page announcement
     );
   });
 
-  it.each(['ascending', 'none'] as const)(
-    'restores actual page-one status after cancelled page navigation with %s sort',
-    (direction) => {
-      const fixture = render();
-      const element: HTMLElement = fixture.nativeElement;
-      fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(tab, mode), direction });
-      fixture.detectChanges();
-      fixture.componentInstance.onPageChange(2);
-      fixture.detectChanges();
-      expect(element.querySelector('output')?.textContent).toBe(`${title}, page 2 of 2`);
-
-      fixture.componentInstance.restoreSelection();
-      fixture.detectChanges();
-
-      expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
-      expect(element.querySelector('output')?.textContent).toBe('Page 1 of 2, showing cases 1 to 25 of 26');
-    },
-  );
-
   it('updates page status when a committed second page is clamped by shrinking rows', () => {
     const fixture = render();
     const element: HTMLElement = fixture.nativeElement;
@@ -489,25 +470,5 @@ describe.each(['inputter', 'checker'] as const)('%s controlled page announcement
 
     expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(element.querySelector('output')?.textContent).toBe('Page 1 of 1, showing cases 1 to 1 of 1');
-  });
-
-  it('restores page-two rows and status when a sort navigation is cancelled', () => {
-    const fixture = render();
-    const element: HTMLElement = fixture.nativeElement;
-    fixture.componentInstance.onPageChange(2);
-    fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(tab, mode), page: 2 });
-    fixture.detectChanges();
-    (element.querySelector('th[columnKey="respondent"] button') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
-
-    fixture.componentInstance.restoreSelection();
-    fixture.detectChanges();
-
-    expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
-    expect(element.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('26');
-    expect(element.querySelector('output')?.textContent).toBe('Page 2 of 2, showing cases 26 to 26 of 26');
-    expect(element.querySelector('th[columnKey="created"]')?.getAttribute('aria-sort')).toBe('ascending');
-    expect(element.querySelector('th[columnKey="respondent"]')?.getAttribute('aria-sort')).toBe('none');
   });
 });

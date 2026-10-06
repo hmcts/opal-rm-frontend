@@ -84,7 +84,7 @@ describe('draft production route boundaries', () => {
     expect(element.querySelector('h1')?.textContent?.trim()).toBe(heading);
     expect(document.title).toBe('OPAL - ' + heading);
     expect(element.textContent).toContain(body);
-    expect(element.querySelector('.govuk-grid-row > div')?.className).toBe(grid);
+    expect(element.querySelector(':scope > div')?.className).toBe(grid);
     expect(element.querySelector('h1')?.getAttribute('tabindex')).toBe('-1');
     expect(document.activeElement).toBe(element.querySelector('h1'));
     expect(element.querySelector('a')?.getAttribute('href')).toBe(

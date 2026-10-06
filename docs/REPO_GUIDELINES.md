@@ -200,9 +200,12 @@ mapping, follow [SONAR.md](SONAR.md#form-identifiers).
   calendar date; it does not replace Date of birth validation such as rejecting today or future dates.
 - Add bespoke styling only when no suitable established pattern exists.
 - Keep content concise, user-centred, and consistent with the GOV.UK style guide.
-- Keep routed placeholder pages structurally representative of their intended completed page. Include the appropriate
-  GOV.UK grid wrapper and page-width class, matching the approved adjacent journey page when that is the design
-  baseline; do not leave a bare heading that renders at a different width from the eventual screen.
+- The application owns one `govuk-grid-row`, in `app.component.html`, around the router outlet. Routed pages must use
+  the appropriate `govuk-grid-column-*` wrapper without adding another row. Keep Back links and page content inside
+  that column so the left and right buffers align with the application shell.
+- Keep routed placeholder pages structurally representative of their intended completed page. Use the appropriate
+  column width, matching the approved adjacent journey page when that is the design baseline; do not leave a bare
+  heading that renders at a different width from the eventual screen.
 - Use the shared GOV.UK button component by default. For a `govuk-button-group` containing exactly one primary action
   and `opal-lib-govuk-cancel-link`, use a native `<button>` with the standard `govuk-button` classes when the shared
   button component's custom-element host prevents GOV.UK flex alignment. Preserve the correct `type`, accessible text,

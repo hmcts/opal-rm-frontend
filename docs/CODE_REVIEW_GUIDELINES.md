@@ -79,8 +79,9 @@ Severity reflects impact, not the category of the repository rule involved.
   equivalent semantics.
 - Report controls without an accessible name, validation errors that are not associated with their controls, and
   state changes that are not understandable to assistive-technology users.
-- Check routed placeholders retain the intended GOV.UK grid wrapper and width when omission would make the placeholder
-  materially diverge from the completed or approved adjacent journey page.
+- Check routed pages use the application shell's single `govuk-grid-row` in `app.component.html`, with column wrappers
+  for their content. Flag additional rows when their margins misalign the page with the shell. Check placeholders
+  retain the intended column width of the completed or approved adjacent journey page.
 - Do not require `opal-lib-govuk-button` inside a `govuk-button-group` containing one primary action and
   `opal-lib-govuk-cancel-link` when its host element breaks GOV.UK flex alignment. Check that the native-button fallback
   retains GOV.UK classes, semantic button type, accessible text, stable ID, and appropriate spacing.

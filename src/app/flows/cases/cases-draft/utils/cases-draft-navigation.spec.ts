@@ -69,3 +69,64 @@ describe('draft dashboard navigation parsing', () => {
     }
   });
 });
+
+describe('checker dashboard navigation parsing', () => {
+  it('defaults missing and unsupported fragments to To review', () => {
+    for (const fragment of [null, 'approved', 'in-review', '', '__proto__', 'unknown']) {
+      expect(parseCasesDraftNavigation(fragment, convertToParamMap({}), 'checker')).toEqual({
+        tab: 'to-review',
+        page: 1,
+        sort: 'created',
+        direction: 'ascending',
+      });
+    }
+  });
+  it('falls back within a valid checker queue when its query is invalid', () => {
+    expect(
+      parseCasesDraftNavigation(
+        'failed',
+        convertToParamMap({
+          page: '-1',
+          sort: 'approved',
+          direction: 'descending',
+          mode: 'inputter',
+          returnUrl: 'https://example.invalid',
+        }),
+        'checker',
+      ),
+    ).toEqual({ tab: 'failed', page: 1, sort: 'statusDate', direction: 'ascending' });
+  });
+  it.each(['0', '-1', '1.5', '1e3', '9007199254740992', 'bad'])('rejects page %s within its queue', (page) => {
+    expect(parseCasesDraftNavigation('rejected', convertToParamMap({ page }), 'checker')).toEqual(
+      defaultCasesDraftNavigation('rejected', 'checker'),
+    );
+  });
+  it.each(['to-review', 'rejected', 'deleted', 'failed'] as const)('defaults omitted metadata for %s', (tab) => {
+    expect(parseCasesDraftNavigation(tab, convertToParamMap({}), 'checker')).toEqual(
+      defaultCasesDraftNavigation(tab, 'checker'),
+    );
+  });
+  it.each([{ sort: 'approved' }, { direction: 'sideways' }, { sort: '' }, { direction: '' }])(
+    'resets invalid metadata %j within its queue',
+    (query) => {
+      expect(parseCasesDraftNavigation('deleted', convertToParamMap(query), 'checker')).toEqual(
+        defaultCasesDraftNavigation('deleted', 'checker'),
+      );
+    },
+  );
+  it('restores checker metadata and ignores caller mode and return URL', () => {
+    expect(
+      parseCasesDraftNavigation(
+        'failed',
+        convertToParamMap({
+          page: '2',
+          sort: 'submittedByName',
+          direction: 'descending',
+          mode: 'inputter',
+          returnUrl: 'https://example.invalid',
+        }),
+        'checker',
+      ),
+    ).toEqual({ tab: 'failed', page: 2, sort: 'submittedByName', direction: 'descending' });
+  });
+});

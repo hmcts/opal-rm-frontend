@@ -1,13 +1,14 @@
-import { signal } from '@angular/core';
+import { createEnvironmentInjector, EnvironmentInjector, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { Router, provideRouter, convertToParamMap } from '@angular/router';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CasesCreateCasefileStore } from '../../cases-create-casefile/stores/cases-create-casefile.store';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
-import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
+import { defaultCasesDraftNavigation, parseCasesDraftNavigation } from '../utils/cases-draft-navigation';
+import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import { CasesDraftNavigationService } from './cases-draft-navigation.service';
 
 const permittedUser = (): IOpalUserState => ({
@@ -38,7 +39,9 @@ describe('CasesDraftNavigationService', () => {
   };
   const expectCleared = () => {
     expect(service.selection()).toEqual(defaultCasesDraftNavigation());
-    expect(router.serializeUrl(service.creationReturnUrl())).toBe('/cases/draft/create-and-manage/tabs#in-review');
+    expect(router.serializeUrl(service.creationReturnUrl())).toBe(
+      '/cases/draft/create-and-manage/tabs?page=1&sort=created&direction=ascending#in-review',
+    );
   };
   beforeEach(() => {
     authenticated.set(true);
@@ -55,7 +58,7 @@ describe('CasesDraftNavigationService', () => {
     expectCleared();
   });
   it('retains initial valid incoming metadata through the first lifecycle effect', () => {
-    service.setSelection({ ...defaultCasesDraftNavigation('approved'), page: 2 });
+    service.setSelection(parseCasesDraftNavigation('approved', convertToParamMap({ page: '2' })));
     flush();
     expect(service.selection()).toEqual({ ...defaultCasesDraftNavigation('approved'), page: 2 });
   });
@@ -67,7 +70,9 @@ describe('CasesDraftNavigationService', () => {
     service.setSelection(defaultCasesDraftNavigation('rejected'));
     flush();
     expect(service.selection()).toEqual(defaultCasesDraftNavigation('rejected'));
-    expect(router.serializeUrl(service.creationReturnUrl())).toBe('/cases/draft/create-and-manage/tabs#approved');
+    expect(router.serializeUrl(service.creationReturnUrl())).toBe(
+      '/cases/draft/create-and-manage/tabs?page=2&sort=approved&direction=descending#approved',
+    );
   });
   it('restores the captured local table state before cancellation returns without query parameters', () => {
     remember();
@@ -91,7 +96,9 @@ describe('CasesDraftNavigationService', () => {
   it('clears old create origins for a direct new creation', () => {
     remember();
     service.clearCreateOrigin();
-    expect(router.serializeUrl(service.creationReturnUrl())).toContain('#in-review');
+    expect(router.serializeUrl(service.creationReturnUrl())).toContain(
+      'page=1&sort=created&direction=ascending#in-review',
+    );
     expect(service.selection()).toEqual(selected);
   });
   it('keeps dashboard metadata independent of real creation-store resets', () => {
@@ -102,7 +109,9 @@ describe('CasesDraftNavigationService', () => {
     flush();
     expect(creation.submissionSucceeded()).toBe(false);
     expect(service.selection()).toEqual(selected);
-    expect(router.serializeUrl(service.creationReturnUrl())).toContain('#approved');
+    expect(router.serializeUrl(service.creationReturnUrl())).toContain(
+      'page=2&sort=approved&direction=descending#approved',
+    );
   });
   it.each([
     'global user',
@@ -152,37 +161,44 @@ describe('CasesDraftNavigationService', () => {
     flush();
     expectCleared();
   });
-  it('creates a fragment-only dashboard URL while retaining local table state', () => {
-    const selection = {
-      ...defaultCasesDraftNavigation('rejected'),
-      page: 3,
-      sort: 'applicant' as const,
-      direction: 'descending' as const,
-    };
-    service.setSelection(selection);
-    const tree = service.dashboardUrl();
-    expect(router.serializeUrl(tree)).toBe('/cases/draft/create-and-manage/tabs#rejected');
-    expect(tree.queryParams).toEqual({});
-    expect(service.selection()).toEqual(selection);
-    expect(router.serializeUrl(service.dashboardUrl(defaultCasesDraftNavigation()))).toBe(
-      '/cases/draft/create-and-manage/tabs#in-review',
+  it('creates a closed dashboard URL from only validated metadata', () => {
+    service.setSelection(
+      parseCasesDraftNavigation(
+        'rejected',
+        convertToParamMap({
+          page: '3',
+          sort: 'applicant',
+          direction: 'descending',
+          returnUrl: 'https://example.invalid',
+        }),
+      ),
+    );
+    expect(router.serializeUrl(service.dashboardUrl())).toBe(
+      '/cases/draft/create-and-manage/tabs?page=3&sort=applicant&direction=descending#rejected',
+    );
+    expect(router.serializeUrl(service.dashboardUrl(defaultCasesDraftNavigation()))).toContain(
+      'page=1&sort=created&direction=ascending#in-review',
     );
   });
   it.each([
     ['details', '/cases/create-casefile/check-case-details/12'],
     ['amendment', '/cases/create-casefile/task-list/12'],
     ['rejections', '/cases/draft/create-and-manage/rejections'],
-  ] as const)('creates the fixed %s destination with only the source fragment', (kind, path) => {
-    service.setSelection({
-      ...defaultCasesDraftNavigation('rejected'),
-      page: 3,
-      sort: 'applicant',
-      direction: 'descending',
-    });
+  ] as const)('creates the fixed %s destination with restorable metadata', (kind, path) => {
+    service.setSelection(
+      parseCasesDraftNavigation(
+        'rejected',
+        convertToParamMap({
+          page: '3',
+          sort: 'applicant',
+          direction: 'descending',
+          returnUrl: 'https://example.invalid',
+        }),
+      ),
+    );
     const tree = service.placeholderUrl(kind, 12);
-    expect(router.serializeUrl(tree)).toBe(path + '#rejected');
-    expect(tree.queryParams).toEqual({});
-    expect(service.selection()).toEqual({ tab: 'rejected', page: 3, sort: 'applicant', direction: 'descending' });
+    expect(router.serializeUrl(tree)).toBe(path + '?tab=rejected&page=3&sort=applicant&direction=descending');
+    expect(parseCasesDraftNavigation(tree.queryParamMap.get('tab'), tree.queryParamMap)).toEqual(service.selection());
   });
   it.each(['details', 'amendment'] as const)('rejects invalid identifiers for %s', (kind) => {
     for (const id of [undefined, 0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])
@@ -190,7 +206,106 @@ describe('CasesDraftNavigationService', () => {
   });
   it('does not require an identifier for all rejections', () => {
     expect(router.serializeUrl(service.placeholderUrl('rejections'))).toBe(
-      '/cases/draft/create-and-manage/rejections#in-review',
+      '/cases/draft/create-and-manage/rejections?tab=in-review&page=1&sort=created&direction=ascending',
     );
+  });
+});
+
+describe('checker CasesDraftNavigationService', () => {
+  const authenticated = signal(true);
+  const userState = signal<IOpalUserState | null>(null);
+  const featureFlags = signal<Record<string, boolean>>({});
+  let service: CasesDraftNavigationService;
+  let router: Router;
+  const checkerUser = () => {
+    const user = permittedUser();
+    user.business_unit_users[0].permissions = [
+      { permission_id: 22, permission_name: 'Check and Validate Draft Casefiles' },
+    ];
+    return user;
+  };
+  beforeEach(() => {
+    authenticated.set(true);
+    userState.set(checkerUser());
+    featureFlags.set({ 'release-1c-rm-create-case-files': true });
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: GlobalStore, useValue: { authenticated, userState, featureFlags } },
+        { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'checker' },
+      ],
+    });
+    service = TestBed.inject(CasesDraftNavigationService);
+    router = TestBed.inject(Router);
+  });
+  it('starts with the checker default and constructs its dashboard URL', () => {
+    TestBed.tick();
+    expect(service.selection()).toEqual(defaultCasesDraftNavigation(undefined, 'checker'));
+    expect(router.serializeUrl(service.dashboardUrl())).toBe(
+      '/cases/draft/check-and-validate/tabs?page=1&sort=created&direction=ascending#to-review',
+    );
+  });
+  it('constructs an internal review URL from its default selection', () => {
+    expect(router.serializeUrl(service.placeholderUrl('review', 123))).toBe(
+      '/cases/draft/check-and-validate/review/123?tab=to-review&page=1&sort=created&direction=ascending',
+    );
+  });
+  it('retains failed queue metadata in an internal view URL and through the first identity effect', () => {
+    service.setSelection({ tab: 'failed', page: 2, sort: 'applicant', direction: 'descending' });
+    TestBed.tick();
+    const tree = service.placeholderUrl('view', 123);
+    expect(router.serializeUrl(tree)).toBe(
+      '/cases/draft/check-and-validate/view/123?tab=failed&page=2&sort=applicant&direction=descending',
+    );
+    expect(parseCasesDraftNavigation(tree.queryParamMap.get('tab'), tree.queryParamMap, 'checker')).toEqual(
+      service.selection(),
+    );
+  });
+  it.each(['review', 'view'] as const)('rejects unsafe identifiers before constructing %s URL', (kind) => {
+    for (const id of [undefined, 0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(() => service.placeholderUrl(kind, id)).toThrow('Invalid draft casefile identifier');
+    }
+  });
+  it.each(['BU user', 'permission', 'authentication', 'release'])(
+    'clears checker metadata after %s changes',
+    (change) => {
+      service.setSelection({ tab: 'failed', page: 2, sort: 'applicant', direction: 'descending' });
+      TestBed.tick();
+      const user = checkerUser();
+      if (change === 'BU user') user.business_unit_users[0].business_unit_user_id = 'OTHER-SYNTHETIC';
+      if (change === 'permission') user.business_unit_users[0].permissions = [];
+      if (change === 'authentication') authenticated.set(false);
+      if (change === 'release') featureFlags.set({});
+      userState.set(user);
+      TestBed.tick();
+      expect(service.selection()).toEqual(defaultCasesDraftNavigation(undefined, 'checker'));
+    },
+  );
+  it('preserves the independent inputter creation origin when checker metadata changes', () => {
+    const user = permittedUser();
+    user.business_unit_users[0].permissions.push({
+      permission_id: 22,
+      permission_name: 'Check and Validate Draft Casefiles',
+    });
+    userState.set(user);
+    TestBed.tick();
+    const inputterInjector = createEnvironmentInjector(
+      [CasesDraftNavigationService, { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'inputter' }],
+      TestBed.inject(EnvironmentInjector),
+    );
+    try {
+      const inputter = inputterInjector.get(CasesDraftNavigationService);
+      inputter.setSelection(defaultCasesDraftNavigation('rejected'));
+      inputter.rememberCreateOrigin();
+      service.setSelection({ tab: 'failed', page: 2, sort: 'applicant', direction: 'descending' });
+      service.rememberCreateOrigin();
+      service.clearCreateOrigin();
+      TestBed.tick();
+      expect(router.serializeUrl(inputter.creationReturnUrl())).toBe(
+        '/cases/draft/create-and-manage/tabs?page=1&sort=statusDate&direction=ascending#rejected',
+      );
+    } finally {
+      inputterInjector.destroy();
+    }
   });
 });

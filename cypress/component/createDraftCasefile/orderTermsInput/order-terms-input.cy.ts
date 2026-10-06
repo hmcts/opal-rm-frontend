@@ -390,10 +390,8 @@ describe('Order term input', () => {
     cy.get(S.orderTermsInput.amount).clear().type('25.1');
     cy.get(S.orderTermsInput.continueButton).click();
     cy.get<Router>('@angularRouter').its('url').should('eq', path(PATHS.children.orderTermCreditor));
+    assertTerms({ amount: '25.10', expiry_date: '2027-03-31', arrears: '4.50' });
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.orderTerms()).to.deep.equal([
-        { resultId: 'MAT', parameters: { amount: '25.10', expiry_date: '2027-03-31', arrears: '4.50' } },
-      ]);
       expect(store.orderTermDraft()).to.eq(null);
     });
     cy.get('@draftWrite').should('not.have.been.called');

@@ -40,7 +40,7 @@ export const minorCreditorSortCodeValidator: ValidatorFn = (control) => {
   if (!value) return null;
   if (!/^[0-9-]+$/.test(value)) return { sortCodeFormat: true };
   if (value.replaceAll('-', '').length !== 6) return { sortCodeLength: true };
-  return /^(?:[0-9]{6}|[0-9]{2}-[0-9]{2}-[0-9]{2})$/.test(value) ? null : { sortCodeFormat: true };
+  return /^(?:\d{6}|\d{2}-\d{2}-\d{2})$/.test(value) ? null : { sortCodeFormat: true };
 };
 
 const INDIVIDUAL_BRANCH: Branch = [
@@ -52,17 +52,17 @@ const ORGANISATION_BRANCH: Branch = [{ name: F.organisationName, validators: req
 const UK_BRANCH: Branch = [
   { name: F.ukNameOnAccount, validators: requiredText(18) },
   { name: F.ukSortCode, validators: [trimRequiredValidator, minorCreditorSortCodeValidator] },
-  { name: F.ukAccountNumber, validators: [trimRequiredValidator, Validators.pattern(/^[0-9]{6,8}$/)] },
+  { name: F.ukAccountNumber, validators: [trimRequiredValidator, Validators.pattern(/^\d{6,8}$/)] },
   { name: F.ukPaymentReference, validators: requiredText(18) },
 ];
 const NON_UK_BRANCH: Branch = [
   { name: F.nonUkNameOnAccount, validators: requiredText(18) },
-  { name: F.nonUkAccountNumber, validators: [Validators.pattern(/^[0-9]{1,20}$/), Validators.maxLength(20)] },
+  { name: F.nonUkAccountNumber, validators: [Validators.pattern(/^\d{1,20}$/), Validators.maxLength(20)] },
   { name: F.nonUkPaymentReference, validators: requiredText(18) },
   { name: F.nonUkBicSwiftCode, validators: [Validators.pattern(/^[A-Za-z0-9]{8,11}$/)] },
   { name: F.nonUkIban, validators: [Validators.pattern(/^[A-Za-z0-9]{1,34}$/)] },
   { name: F.nonUkBankName, validators: [] },
-  { name: F.nonUkBranchSortCode, validators: [Validators.pattern(/^[0-9]+$/), Validators.maxLength(12)] },
+  { name: F.nonUkBranchSortCode, validators: [Validators.pattern(/^\d+$/), Validators.maxLength(12)] },
 ];
 
 const disabledControl = <T>(): FormControl<T | null> => new FormControl<T | null>({ value: null, disabled: true });

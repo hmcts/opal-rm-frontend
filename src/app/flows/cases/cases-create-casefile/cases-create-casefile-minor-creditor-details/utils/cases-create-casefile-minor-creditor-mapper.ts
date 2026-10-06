@@ -29,27 +29,29 @@ export const toMinorCreditorDetails = (
     postalOrZipCode: optional(data[F.postalOrZipCode]),
     countryId: Number(data[F.countryId]),
   };
-  const bank: CasesCreateCasefileMinorCreditorBank =
-    data[F.bankType] === 'uk'
-      ? {
-          type: 'uk',
-          nameOnAccount: text(data[F.ukNameOnAccount]),
-          sortCode: text(data[F.ukSortCode]).replaceAll('-', ''),
-          accountNumber: text(data[F.ukAccountNumber]),
-          paymentReference: text(data[F.ukPaymentReference]),
-        }
-      : data[F.bankType] === 'non-uk'
-        ? {
-            type: 'non-uk',
-            nameOnAccount: text(data[F.nonUkNameOnAccount]),
-            accountNumber: optional(data[F.nonUkAccountNumber]),
-            paymentReference: text(data[F.nonUkPaymentReference]),
-            bicSwiftCode: optional(data[F.nonUkBicSwiftCode]),
-            iban: optional(data[F.nonUkIban]),
-            bankName: optional(data[F.nonUkBankName]),
-            branchSortCode: optional(data[F.nonUkBranchSortCode]),
-          }
-        : { type: 'none' };
+  let bank: CasesCreateCasefileMinorCreditorBank;
+  if (data[F.bankType] === 'uk') {
+    bank = {
+      type: 'uk',
+      nameOnAccount: text(data[F.ukNameOnAccount]),
+      sortCode: text(data[F.ukSortCode]).replaceAll('-', ''),
+      accountNumber: text(data[F.ukAccountNumber]),
+      paymentReference: text(data[F.ukPaymentReference]),
+    };
+  } else if (data[F.bankType] === 'non-uk') {
+    bank = {
+      type: 'non-uk',
+      nameOnAccount: text(data[F.nonUkNameOnAccount]),
+      accountNumber: optional(data[F.nonUkAccountNumber]),
+      paymentReference: text(data[F.nonUkPaymentReference]),
+      bicSwiftCode: optional(data[F.nonUkBicSwiftCode]),
+      iban: optional(data[F.nonUkIban]),
+      bankName: optional(data[F.nonUkBankName]),
+      branchSortCode: optional(data[F.nonUkBranchSortCode]),
+    };
+  } else {
+    bank = { type: 'none' };
+  }
   return { identity, address, bank };
 };
 

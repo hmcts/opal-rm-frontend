@@ -1,4 +1,5 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { CASES_DRAFT_CHECKER_HTTP_ERROR } from '../constants/cases-draft-checker-http-error.token';
+import { HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
@@ -30,6 +31,10 @@ export class CasesDraftDashboardService {
   private readonly globalStore = inject(GlobalStore);
   private readonly identity = computed(() => this.getIdentity());
   private readonly identityChanges$ = toObservable(this.identity);
+
+  private requestContext(): HttpContext | undefined {
+    return this.mode === 'checker' ? new HttpContext().set(CASES_DRAFT_CHECKER_HTTP_ERROR, true) : undefined;
+  }
 
   private consultCount(
     identity: ICasesDraftIdentity,
@@ -64,7 +69,10 @@ export class CasesDraftDashboardService {
     tab: CasesDraftTab,
   ): Observable<IOpalMaintenanceDraftCasefileListResponse> {
     return defer(() =>
-      this.api.getDraftCasefiles(buildCasesDraftListParams(identity, tab, this.dates.getDateRange(7, 0), this.mode)),
+      this.api.getDraftCasefiles(
+        buildCasesDraftListParams(identity, tab, this.dates.getDateRange(7, 0), this.mode),
+        this.requestContext(),
+      ),
     ).pipe(
       take(1),
       throwIfEmpty(),
@@ -83,17 +91,20 @@ export class CasesDraftDashboardService {
   /** Consults the independent outcome count in the injected dashboard scope, with no date restriction. */
   public getOutcomeCount(identity: ICasesDraftIdentity, tab: CasesDraftOutcomeTab): Observable<number> {
     return this.consultCount(identity, () =>
-      this.api.getDraftCasefileCount({
-        business_unit_id: identity.businessUnitId,
-        ...(this.mode === 'checker'
-          ? { not_submitted_by: identity.submittedBy }
-          : { submitted_by: identity.submittedBy }),
-        casefile_status: getCasesDraftTabMetadata(tab, this.mode).statuses,
-      }),
+      this.api.getDraftCasefileCount(
+        {
+          business_unit_id: identity.businessUnitId,
+          ...(this.mode === 'checker'
+            ? { not_submitted_by: identity.submittedBy }
+            : { submitted_by: identity.submittedBy }),
+          casefile_status: getCasesDraftTabMetadata(tab, this.mode).statuses,
+        },
+        this.requestContext(),
+      ),
     );
   }
 
-  /** HTTP errors already use the application's interceptor; decoding/navigation errors need the same generic banner. */
+  /** HTTP reporting belongs to the request boundary; decoding/navigation errors need the same generic banner. */
   public reportError(error: unknown): void {
     if (error instanceof HttpErrorResponse) return;
     this.globalStore.setBannerError({

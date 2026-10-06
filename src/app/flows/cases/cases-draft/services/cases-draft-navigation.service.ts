@@ -20,7 +20,7 @@ export class CasesDraftNavigationService {
   private readonly routes = this.mode === 'checker' ? CASES_DRAFT_CHECKER_ROUTING_PATHS : CASES_DRAFT_ROUTING_PATHS;
   private readonly current = signal<ICasesDraftNavigation>(defaultCasesDraftNavigation(undefined, this.mode));
   private readonly createOrigin = signal<ICasesDraftNavigation | null>(null);
-  // Seed from the live identity so the first effect preserves valid direct-entry URL metadata.
+  // Seed from the live identity so the first effect preserves valid local table state.
   private previousIdentity = this.authorisedIdentity();
 
   public readonly selection = this.current.asReadonly();
@@ -61,7 +61,6 @@ export class CasesDraftNavigationService {
   public dashboardUrl(selection = this.selection()): UrlTree {
     return this.router.createUrlTree(['/' + this.routes.root + '/' + this.routes.children.tabs], {
       fragment: selection.tab,
-      queryParams: { page: selection.page, sort: selection.sort, direction: selection.direction },
     });
   }
 
@@ -90,7 +89,7 @@ export class CasesDraftNavigationService {
       }
     }
     return this.router.createUrlTree([path], {
-      queryParams: { tab: selection.tab, page: selection.page, sort: selection.sort, direction: selection.direction },
+      fragment: selection.tab,
     });
   }
 
@@ -104,7 +103,7 @@ export class CasesDraftNavigationService {
 
   /** Restore the captured table state explicitly before navigating back from creation. */
   public prepareCreationReturn(): UrlTree {
-    this.setSelection(this.createOrigin() ?? defaultCasesDraftNavigation());
+    this.setSelection(this.createOrigin() ?? defaultCasesDraftNavigation(undefined, this.mode));
     return this.creationReturnUrl();
   }
 

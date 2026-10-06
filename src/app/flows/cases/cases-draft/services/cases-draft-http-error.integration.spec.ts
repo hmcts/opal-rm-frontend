@@ -1,13 +1,11 @@
 import { Component, PLATFORM_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { NavigationStart, provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applicationHttpErrorInterceptor } from '../../../../interceptors/application-http-error.interceptor';
-import { httpRetryInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-retry';
-import { contentDigestInterceptor } from '@hmcts/opal-frontend-common/interceptors/content-digest';
+import { appConfig } from '../../../../app.config';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
 import { LaunchDarklyService } from '@hmcts/opal-frontend-common/services/launch-darkly-service';
 import { SessionService } from '@hmcts/opal-frontend-common/services/session-service';
@@ -33,14 +31,13 @@ describe('checker HTTP boundary through production interceptors and application 
     TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
+        // Install the actual production HTTP provider without SSR hydration or app startup.
+        appConfig.providers[2],
         provideRouter([
           { path: 'cases/draft/check-and-validate/tabs', component: CasesDraftCheckAndValidateTabsComponent },
           { path: 'access-denied', component: DeniedComponent },
           { path: 'error/:kind', component: DeniedComponent },
         ]),
-        provideHttpClient(
-          withInterceptors([applicationHttpErrorInterceptor, contentDigestInterceptor, httpRetryInterceptor]),
-        ),
         provideHttpClientTesting(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'checker' },

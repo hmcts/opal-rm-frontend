@@ -127,6 +127,7 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
   /** The base owns sort state/page reset; RM additionally requires missing-last, numeric and sequence ordering. */
   private applySort(column: CasesDraftSortColumn, direction: 'ascending' | 'descending'): void {
     super.onSortChange({ key: column, sortType: direction });
+    this.pageChangeAnnouncement.set('');
     this.sortedTableDataSignal.set(this.tableData(sortCasesDraftRows(this.rows(), column, direction)));
   }
 

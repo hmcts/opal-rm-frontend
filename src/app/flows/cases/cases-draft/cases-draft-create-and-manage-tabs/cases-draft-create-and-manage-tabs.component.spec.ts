@@ -107,6 +107,10 @@ describe('resolver-backed dashboard', () => {
     fixture.detectChanges();
     return fixture;
   }
+  it('renders the exact inputter heading without surrounding whitespace', async () => {
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Create cases');
+  });
   it('uses an unresolved initial Rejected list for its badge without a count consultation', async () => {
     snapshot.fragment = 'rejected';
     fragment.next('rejected');
@@ -577,7 +581,7 @@ describe('checker dashboard presentation', () => {
     async (tab) => {
       fragment.next(tab);
       const fixture = await render();
-      expect(fixture.nativeElement.querySelector('h1').textContent.trim()).toBe('Review cases');
+      expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Review cases');
       expect(fixture.nativeElement.querySelector('#cases-draft-create')).toBeNull();
       expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected')).toBeNull();
       expect(fixture.nativeElement.querySelectorAll('#cases-draft-tabs a')).toHaveLength(4);

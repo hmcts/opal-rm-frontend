@@ -332,6 +332,29 @@ describe('checker rendered table', () => {
       '3',
     ]);
   });
+  it('announces page one and the selected sort after sorting from checker page two', () => {
+    const fixture = render('to-review', 26);
+    const element: HTMLElement = fixture.nativeElement;
+    fixture.componentInstance.onPageChange(2);
+    fixture.detectChanges();
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(element.querySelector('output')?.textContent).toContain('Review cases, page 2 of 2');
+
+    (element.querySelector('th[columnKey="respondent"] button') as HTMLButtonElement).click();
+    fixture.componentRef.setInput('selection', {
+      ...defaultCasesDraftNavigation('to-review', 'checker'),
+      sort: 'respondent',
+      direction: 'ascending',
+    });
+    fixture.detectChanges();
+
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
+    expect(element.querySelector('th[columnKey="respondent"]')?.getAttribute('aria-sort')).toBe('ascending');
+    expect(element.querySelector('output')?.textContent).toContain('Page 1 of 2, showing cases 1 to 25 of 26');
+    expect(element.querySelector('opal-lib-moj-sortable-table-status')?.textContent).toContain(
+      'Sorted by Respondent (ascending)',
+    );
+  });
   it('keeps 25 rows on one page, and name sorting resets a later page', () => {
     expect(render('to-review', 25).nativeElement.querySelector('#cases-draft-pagination')).toBeNull();
     const fixture = render('to-review', 26);

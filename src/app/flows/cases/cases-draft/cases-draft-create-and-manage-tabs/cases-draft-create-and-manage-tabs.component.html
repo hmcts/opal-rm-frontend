@@ -2,9 +2,13 @@
   <div class="govuk-grid-column-full">
     <opal-lib-custom-page-header
       ><ng-container pageHeaderHeading
-        ><h1 #heading id="cases-draft-heading" tabindex="-1" class="govuk-heading-l">
-          {{ dashboardTitle }}
-        </h1></ng-container
+        ><h1
+          #heading
+          id="cases-draft-heading"
+          tabindex="-1"
+          class="govuk-heading-l"
+          [textContent]="dashboardTitle"
+        ></h1></ng-container
       ><ng-container pageHeaderButtons>
         @if (mode === 'inputter') {
           <button type="button" opalLibGovukButton buttonId="cases-draft-create" (click)="startNewCase()">

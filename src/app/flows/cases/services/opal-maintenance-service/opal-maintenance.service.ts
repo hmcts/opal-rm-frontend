@@ -28,6 +28,21 @@ export class OpalMaintenanceService {
     Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse>
   >();
 
+  private draftQuery(params: IOpalMaintenanceDraftCasefileListParams): HttpParams {
+    let query = new HttpParams()
+      .set('business_unit_id', params.business_unit_id)
+      .set('casefile_status', params.casefile_status);
+    if (params.not_submitted_by !== undefined) query = query.set('not_submitted_by', params.not_submitted_by);
+    else query = query.set('submitted_by', params.submitted_by);
+    if (params.casefile_status_from_date !== undefined) {
+      query = query.set('casefile_status_from_date', params.casefile_status_from_date);
+    }
+    if (params.casefile_status_to_date !== undefined) {
+      query = query.set('casefile_status_to_date', params.casefile_status_to_date);
+    }
+    return query;
+  }
+
   private cacheRequest<TKey, TResponse extends { refData: unknown[] }>(
     cache: Map<TKey, Observable<TResponse>>,
     cacheKey: TKey,
@@ -68,39 +83,35 @@ export class OpalMaintenanceService {
   public getDraftCasefiles(
     params: IOpalMaintenanceDraftCasefileListParams,
   ): Observable<IOpalMaintenanceDraftCasefileListResponse> {
-    let query = new HttpParams()
-      .set('business_unit_id', params.business_unit_id)
-      .set('submitted_by', params.submitted_by)
-      .set('casefile_status', params.casefile_status);
-    if (params.casefile_status_from_date !== undefined) {
-      query = query.set('casefile_status_from_date', params.casefile_status_from_date);
-    }
-    if (params.casefile_status_to_date !== undefined) {
-      query = query.set('casefile_status_to_date', params.casefile_status_to_date);
-    }
     return this.http
       .get<unknown>('/opal-maintenance-service/draft-casefiles', {
-        params: query,
+        params: this.draftQuery(params),
         context: withoutHttpRetry(),
       })
       .pipe(map(decodeDraftCasefileList));
   }
 
-  /** Retrieves only the rejected count for the authorised BU user scope. */
-  public getRejectedDraftCasefileCount(
-    identity: ICasesDraftIdentity,
+  /** Counts a scoped collection without fetching its summaries or retrying automatically. */
+  public getDraftCasefileCount(
+    params: IOpalMaintenanceDraftCasefileListParams,
   ): Observable<IOpalMaintenanceDraftCasefileCountResponse> {
     return this.http
       .get<unknown>('/opal-maintenance-service/draft-casefiles', {
-        params: {
-          business_unit_id: identity.businessUnitId,
-          submitted_by: identity.submittedBy,
-          casefile_status: 'REJECTED',
-          restrict: 'counts',
-        },
+        params: this.draftQuery(params).set('restrict', 'counts'),
         context: withoutHttpRetry(),
       })
       .pipe(map(decodeDraftCasefileCount));
+  }
+
+  /** Retains the inputter inclusion scope for existing callers. */
+  public getRejectedDraftCasefileCount(
+    identity: ICasesDraftIdentity,
+  ): Observable<IOpalMaintenanceDraftCasefileCountResponse> {
+    return this.getDraftCasefileCount({
+      business_unit_id: identity.businessUnitId,
+      submitted_by: identity.submittedBy,
+      casefile_status: 'REJECTED',
+    });
   }
 
   public getMaintenanceApplications(): Observable<IOpalMaintenanceApplicationReferenceDataResponse> {

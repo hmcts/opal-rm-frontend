@@ -10,7 +10,7 @@ export class OrderTermsFlow {
   public openSummary(): void {
     this.details.completeParties();
     this.details.openAvailable();
-    this.details.saveWithoutOrderDate();
+    this.details.saveRequiredDetails();
     this.actions.openSummary();
   }
 
@@ -66,5 +66,23 @@ export class OrderTermsFlow {
   /** Reloads the input route and checks the journey reset. */
   public reload(): void {
     this.actions.reload();
+  }
+  /** Enters the amount for the pending term.
+   * @param amount Raw amount to enter.
+   */
+  public enterAmount(amount: string): void {
+    this.actions.enterAmount(amount);
+  }
+  /** Submits the pending term. */
+  public continueInput(): void {
+    this.actions.continueInput();
+  }
+  /** Checks Creditor is reached without backend draft creation. */
+  public assertCreditor(): void {
+    this.actions.assertCreditor();
+  }
+  /** Checks required amount validation and summary focus. */
+  public assertAmountRequired(): void {
+    this.actions.assertAmountRequired();
   }
 }

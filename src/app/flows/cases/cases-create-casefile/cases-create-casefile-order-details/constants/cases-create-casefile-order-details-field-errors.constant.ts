@@ -16,7 +16,7 @@ export const CASES_CREATE_CASEFILE_ORDER_DETAILS_FIELD_ERRORS = {
     invalidSelection: createCasesCreateCasefileError('Select an application code from the list', 2),
   },
   [F.court]: createCasesCreateCasefileMaxLengthError('Court that made the order', 40, 1),
-  [F.dateOrderMade]: { ...dateErrors },
+  [F.dateOrderMade]: { required: createCasesCreateCasefileError('Enter the date order made', 1), ...dateErrors },
   [F.paymentFrequency]: { required: createCasesCreateCasefileError('Select a payment frequency', 1) },
   [F.dateArrearsLastUpdated]: {
     required: createCasesCreateCasefileError('Enter the date arrears last updated', 1),

@@ -108,6 +108,38 @@ describe('OpalMaintenanceService', () => {
     http.expectOne('/opal-maintenance-service/results?order_term=true&active=true').flush({ count: 0, refData: [] });
   });
 
+  it('requests Result detail afresh with an encoded identifier and no automatic retry', () => {
+    const detail = { result_id: 'A/B', result_title: 'Maintenance', result_parameters: '[]' };
+    const source = service.getResult('A/B');
+    for (let attempt = 0; attempt < 2; attempt++) {
+      source.subscribe((response) => expect(response).toEqual(detail));
+      const request = http.expectOne('/opal-maintenance-service/results/A%2FB');
+      expect(request.request.method).toBe('GET');
+      for (const token of withoutHttpRetry().keys()) {
+        expect(request.request.context.get(token)).toEqual(withoutHttpRetry().get(token));
+      }
+      request.flush(detail);
+    }
+  });
+
+  it('preserves null metadata without substituting a fixture', () => {
+    const detail = { result_id: 'MAT', result_title: 'Maintenance', result_parameters: null };
+    service.getResult('MAT').subscribe((response) => expect(response).toEqual(detail));
+    http.expectOne('/opal-maintenance-service/results/MAT').flush(detail);
+  });
+
+  it.each([404, 503])('propagates detail HTTP %s and allows a fresh request', (status) => {
+    let failure: number | undefined;
+    service.getResult('MAT').subscribe({ error: (error) => (failure = error.status) });
+    http
+      .expectOne('/opal-maintenance-service/results/MAT')
+      .flush({ detail: 'Unavailable' }, { status, statusText: 'Unavailable' });
+    expect(failure).toBe(status);
+    const detail = { result_id: 'MAT', result_title: 'Maintenance', result_parameters: '[]' };
+    service.getResult('MAT').subscribe((response) => expect(response).toEqual(detail));
+    http.expectOne('/opal-maintenance-service/results/MAT').flush(detail);
+  });
+
   it('requests active Create Casefile applications afresh on each entry', () => {
     for (let attempt = 0; attempt < 3; attempt++) {
       service.getMaintenanceApplications().subscribe((response) => expect(response.refData).toEqual([]));

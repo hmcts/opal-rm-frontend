@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output } from '@angular/core';
+import { takeUntil } from 'rxjs';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AbstractFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-base';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
@@ -87,6 +88,9 @@ export class CasesCreateCasefileOrderTermsSelectFormComponent
     this.rePopulateForm(this.initialFormData);
     this.initialized = true;
     this.applyLoadState();
+    this.form.valueChanges.pipe(takeUntil(this.ngUnsubscribe)).subscribe(() => {
+      this.formSubmitted = false;
+    });
     super.ngOnInit();
   }
 

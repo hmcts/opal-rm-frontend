@@ -31,11 +31,9 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
       stateChanges: store.stateChanges(),
     };
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.govuk-grid-column-two-thirds h1')?.textContent.trim()).toBe(
-      'Order terms',
-    );
-    fixture.nativeElement.querySelector('a.govuk-back-link').click();
+    expect(fixture.nativeElement.querySelector('.govuk-grid-column-full')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.govuk-grid-column-full h1')?.textContent.trim()).toBe('Order terms');
+    fixture.nativeElement.querySelector('#create_casefile_order_terms_return').click();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/task-list');
     expect({
       caseTypeSelection: store.caseTypeSelection(),
@@ -43,6 +41,21 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
       unsavedChanges: store.unsavedChanges(),
       stateChanges: store.stateChanges(),
     }).toEqual(before);
+  });
+
+  it('groups the primary return action before the secondary add action below a divider', () => {
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('hr')).not.toBeNull();
+    const buttons = root.querySelectorAll('.govuk-button-group button');
+    expect(Array.from(buttons).map((button) => button.textContent?.trim())).toEqual([
+      'Return to case details',
+      'Add terms',
+    ]);
+    expect(buttons[0].classList.contains('govuk-button--secondary')).toBe(false);
+    expect(buttons[1].classList.contains('govuk-button--secondary')).toBe(true);
+    buttons[0].dispatchEvent(new MouseEvent('click'));
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/task-list');
   });
 
   it('starts a fresh add without marking Order Terms provided', () => {

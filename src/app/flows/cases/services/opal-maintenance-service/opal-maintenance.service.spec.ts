@@ -1,7 +1,7 @@
 import { CasesCreateCasefilePayloadService } from '../../cases-create-casefile/services/cases-create-casefile-payload/cases-create-casefile-payload.service';
 import { createCasesCreateCasefileReviewState } from '../../cases-create-casefile/mocks/cases-create-casefile-review-state.mock';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpContextToken, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -102,6 +102,22 @@ describe('OpalMaintenanceService', () => {
     const expectManualRetry = (context: ReturnType<typeof withoutHttpRetry>) => {
       for (const key of withoutHttpRetry().keys()) expect(context.get(key)).toEqual(withoutHttpRetry().get(key));
     };
+
+    it.each(['list', 'count'] as const)(
+      'preserves explicit caller context and disables retries for %s',
+      async (kind) => {
+        const token = new HttpContextToken(() => false);
+        const context = new HttpContext().set(token, true);
+        const pending = firstValueFrom(
+          kind === 'list' ? service.getDraftCasefiles(params, context) : service.getDraftCasefileCount(params, context),
+        );
+        const get = expectCollection();
+        expect(get.request.context.get(token)).toBe(true);
+        expectManualRetry(get.request.context);
+        get.flush(kind === 'list' ? { count: 0, summaries: [] } : { count: 0 });
+        await pending;
+      },
+    );
 
     it('consults the full selected list with BU user scope and manual retry only', async () => {
       const pending = firstValueFrom(service.getDraftCasefiles(params));

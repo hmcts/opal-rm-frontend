@@ -1241,9 +1241,9 @@ describe('CasesCreateCasefileStore', () => {
     patchState(stateSource, {
       currentOrderTermId: 1,
       orderTerms: [
-        { termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
-        { termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
-        { termId: 3, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 4 } },
+        { presentation, termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
+        { presentation, termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
+        { presentation, termId: 3, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 4 } },
       ],
       minorCreditors: [existing, other],
       nextMinorCreditorSequence: 5,

@@ -5,7 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
-import { EMPTY, firstValueFrom, of, Subject, throwError } from 'rxjs';
+import { EMPTY, finalize, firstValueFrom, of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { CasesDraftDashboardService } from './cases-draft-dashboard.service';
@@ -122,6 +122,84 @@ describe('stateless dashboard data', () => {
       expect(JSON.stringify(setBannerError.mock.calls)).not.toContain('private detail');
     });
   });
+  it('consults all other-inputter rejections without dates, counts or paging', async () => {
+    const request = service.getAllRejectedList(identity);
+    expect(api.getDraftCasefiles).not.toHaveBeenCalled();
+    await firstValueFrom(request);
+    await firstValueFrom(request);
+    expect(api.getDraftCasefiles).toHaveBeenCalledTimes(2);
+    expect(api.getDraftCasefiles).toHaveBeenCalledWith({
+      business_unit_id: 44,
+      casefile_status: 'REJECTED',
+      not_submitted_by: 'BUU-SYNTHETIC',
+    });
+    expect(dates.getDateRange).not.toHaveBeenCalled();
+    expect(api.getRejectedDraftCasefileCount).not.toHaveBeenCalled();
+    expect(api.getDraftCasefileCount).not.toHaveBeenCalled();
+  });
+  it('cancels an all-rejected consultation immediately after identity loss', () => {
+    const pending = new Subject();
+    api.getDraftCasefiles.mockReturnValue(pending);
+    const next = vi.fn();
+    const complete = vi.fn();
+    service.getAllRejectedList(identity).subscribe({ next, complete });
+    authenticated.set(false);
+    TestBed.tick();
+    pending.next({ count: 0, summaries: [] });
+    expect(complete).toHaveBeenCalledOnce();
+    expect(next).not.toHaveBeenCalled();
+    expect(setBannerError).not.toHaveBeenCalled();
+  });
+  it.each(['replacement', 'authentication', 'permission', 'flag'] as const)(
+    'unsubscribes an all-rejected request on %s scope loss without returning old rows',
+    (reason) => {
+      const pending = new Subject();
+      const teardown = vi.fn();
+      api.getDraftCasefiles.mockReturnValue(pending.pipe(finalize(teardown)));
+      const next = vi.fn();
+      const complete = vi.fn();
+      service.getAllRejectedList(service.getIdentity()!).subscribe({ next, complete });
+      TestBed.tick();
+      if (reason === 'authentication') authenticated.set(false);
+      if (reason === 'flag') featureFlags.set({ 'release-1c-rm-create-case-files': false });
+      if (reason === 'permission') userState.set({ ...permittedUser(), business_unit_users: [] });
+      if (reason === 'replacement') {
+        const replacement = permittedUser();
+        replacement.business_unit_users[0].business_unit_user_id = 'BUU-NEW';
+        userState.set(replacement);
+      }
+      TestBed.tick();
+      pending.next({ count: 1, summaries: [createCasesDraftSummary()] });
+      expect(teardown).toHaveBeenCalledOnce();
+      expect(complete).toHaveBeenCalledOnce();
+      expect(next).not.toHaveBeenCalled();
+      expect(setBannerError).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['network', 'server', 'decoder', 'empty'] as const)(
+    'preserves the all-rejected %s error boundary',
+    async (failure) => {
+      const error =
+        failure === 'network' || failure === 'server'
+          ? new HttpErrorResponse({ status: failure === 'network' ? 0 : 500 })
+          : new Error('Synthetic decoding failure');
+      api.getDraftCasefiles.mockReturnValue(failure === 'empty' ? EMPTY : throwError(() => error));
+      await expect(firstValueFrom(service.getAllRejectedList(identity))).rejects.toThrow();
+      expect(setBannerError).toHaveBeenCalledTimes(error instanceof HttpErrorResponse ? 0 : 1);
+    },
+  );
+  it('uses fresh all-rejected rows on every subscription and takes only the first response', async () => {
+    const first = { count: 0, summaries: [] };
+    const second = { count: 1, summaries: [createCasesDraftSummary({ casefile_status: 'REJECTED' })] };
+    const request = service.getAllRejectedList(identity);
+    api.getDraftCasefiles.mockReturnValueOnce(of(first, second)).mockReturnValueOnce(of(second));
+    const next = vi.fn();
+    const complete = vi.fn();
+    request.subscribe({ next, complete });
+    expect(next).toHaveBeenCalledExactlyOnceWith(first);
+    expect(complete).toHaveBeenCalledOnce();
+    expect(await firstValueFrom(request)).toEqual(second);
+  });
   it('consults only on subscription without retaining rows', async () => {
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
     const request = service.getList(identity, 'in-review');
@@ -162,19 +240,26 @@ describe('stateless dashboard data', () => {
     if (reason === 'permission') userState.set({ ...permittedUser(), business_unit_users: [] });
     expect(service.getIdentity()).toBeNull();
   });
-  it('does not cancel a fresh replacement-identity request using the previous effect emission', () => {
-    TestBed.tick();
-    const replacement = permittedUser();
-    replacement.business_unit_users[0].business_unit_user_id = 'BUU-NEW';
-    userState.set(replacement);
-    api.getDraftCasefiles.mockReturnValue(new Subject());
-    const completed = vi.fn();
-    const subscription = service.getList(service.getIdentity()!, 'in-review').subscribe({ complete: completed });
-    expect(completed).not.toHaveBeenCalled();
-    TestBed.tick();
-    expect(completed).not.toHaveBeenCalled();
-    subscription.unsubscribe();
-  });
+  it.each(['dashboard', 'all-rejected'] as const)(
+    'does not cancel a fresh replacement-identity %s request using the previous effect emission',
+    (collection) => {
+      TestBed.tick();
+      const replacement = permittedUser();
+      replacement.business_unit_users[0].business_unit_user_id = 'BUU-NEW';
+      userState.set(replacement);
+      api.getDraftCasefiles.mockReturnValue(new Subject());
+      const completed = vi.fn();
+      const request =
+        collection === 'dashboard'
+          ? service.getList(service.getIdentity()!, 'in-review')
+          : service.getAllRejectedList(service.getIdentity()!);
+      const subscription = request.subscribe({ complete: completed });
+      expect(completed).not.toHaveBeenCalled();
+      TestBed.tick();
+      expect(completed).not.toHaveBeenCalled();
+      subscription.unsubscribe();
+    },
+  );
   it('cancels a pending resolver consultation on access loss without a generic failure banner', () => {
     api.getDraftCasefiles.mockReturnValue(new Subject());
     const completed = vi.fn();

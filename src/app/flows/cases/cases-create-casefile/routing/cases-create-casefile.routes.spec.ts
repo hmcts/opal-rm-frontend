@@ -514,7 +514,7 @@ describe('Create Casefile routes', () => {
       expect(route?.canActivate).toEqual(
         pathKey === 'checkCaseDetails' ? [casesCreateCasefileCheckDetailsGuard] : [casesCreateCasefileFlowStateGuard],
       );
-      expect(route?.data).toEqual({ title });
+      expect(route?.data).toEqual(pathKey === 'checkCaseDetails' ? { title, casefileIntent: 'create' } : { title });
       expect(route?.resolve).toEqual(
         pathKey === 'checkCaseDetails'
           ? {

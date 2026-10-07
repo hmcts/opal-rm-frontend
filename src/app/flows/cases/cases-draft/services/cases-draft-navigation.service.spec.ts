@@ -51,6 +51,16 @@ describe('CasesDraftNavigationService', () => {
     service = TestBed.inject(CasesDraftNavigationService);
     router = TestBed.inject(Router);
   });
+  it('returns persisted summaries to the selected mode or its default fallback', () => {
+    service.setSelection(selected);
+    expect(router.serializeUrl(service.persistedDashboardUrl('inputter'))).toBe(
+      '/cases/draft/create-and-manage/tabs#approved',
+    );
+    expect(router.serializeUrl(service.persistedDashboardUrl('checker'))).toBe(
+      '/cases/draft/check-and-validate/tabs#to-review',
+    );
+    expect(service.selection()).toEqual(selected);
+  });
   it('keeps dashboard metadata independent from the oldest-first rejection list', () => {
     const navigation = TestBed.inject(CasesDraftNavigationService);
     navigation.setSelection({ tab: 'rejected', page: 3, sort: 'created', direction: 'descending' });

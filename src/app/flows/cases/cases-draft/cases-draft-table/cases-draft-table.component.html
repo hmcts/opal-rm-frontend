@@ -83,7 +83,7 @@
         >
           Case type
         </th>
-        @if (mode === 'checker') {
+        @if (showSubmittedBy()) {
           <th
             opal-lib-moj-sortable-table-header
             columnKey="submittedByName"
@@ -97,7 +97,7 @@
         <th
           opal-lib-moj-sortable-table-header
           columnKey="created"
-          [dataIndex]="mode === 'checker' ? 4 : 3"
+          [dataIndex]="showSubmittedBy() ? 4 : 3"
           [sortDirection]="sortStateSignal()['created']"
           (sortChange)="onSortChange($event)"
         >
@@ -107,7 +107,7 @@
           <th
             opal-lib-moj-sortable-table-header
             columnKey="statusDate"
-            [dataIndex]="mode === 'checker' ? 5 : 4"
+            [dataIndex]="showSubmittedBy() ? 5 : 4"
             [sortDirection]="sortStateSignal()['statusDate']"
             (sortChange)="onSortChange($event)"
           >
@@ -177,7 +177,7 @@
             <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-caseType'" data-column="caseType">
               {{ row.caseType }}
             </td>
-            @if (mode === 'checker') {
+            @if (showSubmittedBy()) {
               <td
                 opal-lib-moj-sortable-table-row-data
                 [id]="'draft-' + row.id + '-submittedByName'"
@@ -211,11 +211,21 @@
   ></opal-lib-moj-sortable-table>
 </div>
 @if (rows().length > 25) {
-  <opal-lib-moj-pagination
-    id="cases-draft-pagination"
-    [currentPage]="currentPageSignal()"
-    [limit]="itemsPerPageSignal()"
-    [total]="rows().length"
-    (changePage)="onPageChange($event)"
-  />
+  @if (allRejected()) {
+    <opal-lib-govuk-pagination
+      id="cases-draft-pagination"
+      [currentPage]="currentPageSignal()"
+      [limit]="itemsPerPageSignal()"
+      [total]="rows().length"
+      (changePage)="onPageChange($event)"
+    />
+  } @else {
+    <opal-lib-moj-pagination
+      id="cases-draft-pagination"
+      [currentPage]="currentPageSignal()"
+      [limit]="itemsPerPageSignal()"
+      [total]="rows().length"
+      (changePage)="onPageChange($event)"
+    />
+  }
 }

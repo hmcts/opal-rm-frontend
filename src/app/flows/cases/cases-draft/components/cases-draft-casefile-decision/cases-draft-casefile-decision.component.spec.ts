@@ -37,6 +37,28 @@ describe('CasesDraftCasefileDecisionComponent', () => {
     Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
   });
 
+  it.each(['initial', 'missing decision', 'Approve'])(
+    'only references existing conditional content in the %s state',
+    async (state) => {
+      if (state === 'Approve') {
+        component.form.controls.create_casefile_review_decision.setValue('approve');
+      }
+      fixture.detectChanges();
+      if (state === 'missing decision') {
+        await submit();
+      }
+      expect(query(`#${reasonId}`)).toBeNull();
+      const controls = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[aria-controls]');
+      for (const control of controls) {
+        const targetIds = control.getAttribute('aria-controls')?.trim().split(/\s+/);
+        expect(targetIds).toBeDefined();
+        for (const targetId of targetIds ?? []) {
+          expect(query(`[id="${targetId}"]`)).not.toBeNull();
+        }
+      }
+    },
+  );
+
   it('does not preselect or emit a missing decision and marks controls touched', async () => {
     const emit = vi.spyOn(component.decisionEvent, 'emit');
     expect(component.form.controls.create_casefile_review_decision.value).toBeNull();
@@ -112,6 +134,7 @@ describe('CasesDraftCasefileDecisionComponent', () => {
     expect(component.formControlErrorMessages[reasonId]).toBeUndefined();
     expect(component.formErrorSummaryMessage).toEqual([]);
     expect(query(`#${reasonId}`)).toBeNull();
+    expect(query(`#${decisionId}-reject`).hasAttribute('aria-controls')).toBe(false);
     await submit();
     expect(emit).toHaveBeenCalledExactlyOnceWith({ decision: 'approve', targetStatus: 'PUBLISHING_PENDING' });
     component.form.controls.create_casefile_review_decision.setValue('reject');
@@ -131,11 +154,12 @@ describe('CasesDraftCasefileDecisionComponent', () => {
     expect(query(`#${decisionId} legend`).textContent?.trim()).toBe('Review decision');
     expect(query(`label[for="${decisionId}-approve"]`).textContent?.trim()).toBe('Approve');
     expect(query(`label[for="${decisionId}-reject"]`).textContent?.trim()).toBe('Reject');
-    expect(rejectRadio.getAttribute('aria-controls')).toBe('create_casefile_review_rejection');
     expect(query(`#${reasonId}`)).toBeNull();
     rejectRadio.click();
     fixture.detectChanges();
+    expect(rejectRadio.getAttribute('aria-controls')).toBe('create_casefile_review_rejection');
     const textarea = query<HTMLTextAreaElement>(`#${reasonId}`);
+    expect(query('#create_casefile_review_rejection').contains(textarea)).toBe(true);
     expect(textarea.name).toBe(reasonId);
     expect(textarea.hasAttribute('maxlength')).toBe(false);
     expect(textarea.getAttribute('aria-describedby')).toBe(`${reasonId}-hint ${reasonId}-count`);

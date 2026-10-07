@@ -230,31 +230,45 @@ describe('draft production route boundaries', () => {
         }),
     );
   }
-  it.each(['populated', 'empty', 'failure'] as const)(
-    'reuses the resolved page for one native Retry and preserves heading focus through %s completion',
+  it.each(['populated', 'empty'] as const)(
+    'activates only the successfully resolved %s collection without local status controls',
     async (completion) => {
       const harness = await RouterTestingHarness.create();
       const arrival = harness.navigateByUrl(rejections);
-      await vi.waitFor(() => http.expectOne(exclusive).flush({ count: 1, summaries: 'invalid' }));
+      await flushExclusive(completion === 'empty' ? 0 : 1);
       await arrival;
       harness.detectChanges();
       const page = harness.routeDebugElement!.componentInstance as CasesDraftCreateAndManageViewAllRejectedComponent;
-      const retry = harness.routeNativeElement!.querySelector('#cases-draft-all-rejected-retry') as HTMLButtonElement;
-      retry.focus();
-      retry.click();
-      retry.click();
-      harness.detectChanges();
-      expect(harness.routeNativeElement!.querySelector('#cases-draft-all-rejected-loading')).not.toBeNull();
-      expect(document.activeElement).toBe(harness.routeNativeElement!.querySelector('h1'));
-      if (completion === 'failure')
-        await vi.waitFor(() => http.expectOne(exclusive).flush({ count: 1, summaries: 'invalid' }));
-      else await flushExclusive(completion === 'empty' ? 0 : 1);
-      await harness.fixture.whenStable();
-      harness.detectChanges();
-      expect(harness.routeDebugElement!.componentInstance).toBe(page);
-      expect(page.state()?.status).toBe(completion === 'failure' ? 'failure' : 'success');
+      expect(page.casefiles()?.rows).toHaveLength(completion === 'empty' ? 0 : 1);
+      expect(
+        harness.routeNativeElement!.querySelector(
+          '#cases-draft-all-rejected-loading, #cases-draft-all-rejected-failure, #cases-draft-all-rejected-retry',
+        ),
+      ).toBeNull();
       expect(document.activeElement).toBe(harness.routeNativeElement!.querySelector('h1'));
       http.expectNone(exclusive);
+    },
+  );
+  it.each(['decoder', 'network', 'server'] as const)(
+    'propagates initial %s failure without activating or rendering an empty list',
+    async (failure) => {
+      const harness = await RouterTestingHarness.create(details);
+      const arrival = harness.navigateByUrl(rejections);
+      const rejected = expect(arrival).rejects.toBeTruthy();
+      await vi.waitFor(() => {
+        const request = http.expectOne(exclusive);
+        if (failure === 'decoder') request.flush({ count: 1, summaries: 'invalid' });
+        else if (failure === 'network') request.error(new ProgressEvent('error'));
+        else request.flush({}, { status: 500, statusText: 'Failure' });
+      });
+      await rejected;
+      harness.detectChanges();
+      expect(TestBed.inject(Router).url).toBe(details);
+      expect(
+        harness.routeNativeElement!.querySelector(
+          '#cases-draft-all-rejected-heading, #cases-draft-all-rejected-empty, #cases-draft-all-rejected-loading, #cases-draft-all-rejected-failure, #cases-draft-all-rejected-retry',
+        ),
+      ).toBeNull();
     },
   );
   it('does not activate pending arrival and defensively excludes own, foreign and wrong-status rows', async () => {
@@ -264,7 +278,11 @@ describe('draft production route boundaries', () => {
     await vi.waitFor(() => {
       pending = http.expectOne(exclusive);
     });
-    expect(harness.routeNativeElement!.querySelector('#cases-draft-all-rejected-heading')).toBeNull();
+    expect(
+      harness.routeNativeElement!.querySelector(
+        '#cases-draft-all-rejected-heading, #cases-draft-all-rejected-loading, #cases-draft-all-rejected-retry',
+      ),
+    ).toBeNull();
     pending.flush({
       count: 4,
       summaries: [
@@ -294,7 +312,7 @@ describe('draft production route boundaries', () => {
     replacement.user_id += 1;
     replacement.business_unit_users[0].business_unit_user_id = 'BUU-B';
     userState.set(replacement);
-    expect(page.state()).toBeNull();
+    expect(page.casefiles()).toBeNull();
     expect(page.successText()).toBeNull();
     harness.detectChanges();
     let pending!: import('@angular/common/http/testing').TestRequest;
@@ -310,8 +328,7 @@ describe('draft production route boundaries', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(pending.cancelled).toBe(true);
-    expect(page.state()?.identity.submittedBy).toBe('BUU-C');
-    expect(page.state()?.status).toBe('success');
+    expect(page.casefiles()?.identity.submittedBy).toBe('BUU-C');
     expect(harness.routeDebugElement!.componentInstance).toBe(page);
     http.expectNone(exclusive);
   });
@@ -335,7 +352,7 @@ describe('draft production route boundaries', () => {
     expect(page.successText()).toContain('Synthetic Respondent');
     expect(harness.routeNativeElement!.querySelector('tbody')).not.toBeNull();
     featureFlags.set({ [key]: false });
-    expect(page.state()).toBeNull();
+    expect(page.casefiles()).toBeNull();
     expect(page.successText()).toBeNull();
     harness.detectChanges();
     await harness.fixture.whenStable();
@@ -365,7 +382,7 @@ describe('draft production route boundaries', () => {
         userState.set({ ...replacement });
       } else if (loss === 'flag') featureFlags.set({ [key]: false });
       else authenticated.set(false);
-      expect(page.state()).toBeNull();
+      expect(page.casefiles()).toBeNull();
       expect(page.successText()).toBeNull();
       harness.detectChanges();
       await harness.fixture.whenStable();

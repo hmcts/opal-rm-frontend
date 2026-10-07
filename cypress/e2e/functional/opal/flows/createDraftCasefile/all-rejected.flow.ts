@@ -4,11 +4,6 @@ import { AllRejectedActions } from '../../actions/createDraftCasefile/all-reject
 export class AllRejectedFlow {
   private readonly actions = new AllRejectedActions();
 
-  /** Checks the denied pending consultation result. */
-  public expectPendingDenied(): void {
-    this.actions.expectPendingDenied();
-  }
-
   /** Checks direct protected-shell fallback.
    * @param kind Protected destination kind. */
   public expectDirectShell(kind: string): void {
@@ -98,16 +93,6 @@ export class AllRejectedFlow {
   public expectFailure(): void {
     this.actions.expectFailure();
   }
-  /** Retry for the controlled browser journey.
-   */
-  public retry(): void {
-    this.actions.retry();
-  }
-  /** Expect recovered for the controlled browser journey.
-   */
-  public expectRecovered(): void {
-    this.actions.expectCollection(2);
-  }
   /** Expect denied for the controlled browser journey.
    */
   public expectDenied(): void {
@@ -142,24 +127,6 @@ export class AllRejectedFlow {
   public expectEmpty(): void {
     this.actions.expectEmpty();
   }
-  /** Pending retry for the controlled browser journey.
-   */
-  public pendingRetry(): void {
-    this.actions.holdRetry();
-    this.actions.retry();
-    this.actions.expectPending();
-  }
-  /** Release retry for the controlled browser journey.
-   */
-  public releaseRetry(): void {
-    this.actions.releaseRetry();
-    this.actions.expectCollection(2);
-  }
-  /** Lose access for the controlled browser journey.
-   */
-  public loseAccess(): void {
-    this.actions.denyPending();
-  }
   /** Reflow for the controlled browser journey.
    */
   public reflow(): void {
@@ -170,20 +137,10 @@ export class AllRejectedFlow {
   public capturePopulated(): void {
     this.actions.capture('populated');
   }
-  /** Capture failure for the controlled browser journey.
-   */
-  public captureFailure(): void {
-    this.actions.capture('failure');
-  }
   /** Capture empty for the controlled browser journey.
    */
   public captureEmpty(): void {
     this.actions.capture('empty');
-  }
-  /** Capture pending for the controlled browser journey.
-   */
-  public capturePending(): void {
-    this.actions.capture('pending');
   }
   /** Open details for the controlled browser journey.
    */

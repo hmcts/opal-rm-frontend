@@ -10,7 +10,7 @@ import { CasesDraftDashboardService } from '../../services/cases-draft-dashboard
 import { CasesDraftNavigationService } from '../../services/cases-draft-navigation.service';
 import { createCasesDraftSummary } from '../../mocks/cases-draft-summary.mock';
 import { mapCasesDraftRows } from '../../utils/cases-draft-summary';
-import type { CasesDraftAllRejectedResolvedState } from '../../types/cases-draft-all-rejected-resolved-state.type';
+import type { ICasesDraftAllRejectedResolvedCasefiles } from '../../interfaces/cases-draft-all-rejected-resolved-casefiles.interface';
 import type { ICasesDraftIdentity } from '../../interfaces/cases-draft-identity.interface';
 import { CasesDraftCreateAndManageViewAllRejectedComponent } from './cases-draft-create-and-manage-view-all-rejected.component';
 
@@ -27,8 +27,7 @@ const user = () => ({
     },
   ],
 });
-const result = (count = 26, scope = identity): CasesDraftAllRejectedResolvedState => ({
-  status: 'success',
+const result = (count = 26, scope = identity): ICasesDraftAllRejectedResolvedCasefiles => ({
   identity: scope,
   rows: mapCasesDraftRows(
     Array.from({ length: count }, (_, index) =>
@@ -131,24 +130,22 @@ describe('all rejected resolved page', () => {
     render();
     expect(fixture.componentInstance.successText()).toBeNull();
   });
-  it.each(['success', 'failure'] as const)(
-    'retains trusted success beside %s and receives updates on the same instance',
-    (status) => {
-      record();
-      routeData.next({ allRejectedCasefiles: status === 'success' ? result(0) : { status, identity } });
-      const page = render();
-      expect(page.successText()).not.toBeNull();
-      expect(
-        fixture.nativeElement.querySelector(
-          status === 'success' ? '#cases-draft-all-rejected-empty' : '#cases-draft-all-rejected-failure',
-        ),
-      ).not.toBeNull();
-      routeData.next({ allRejectedCasefiles: result(1) });
-      fixture.detectChanges();
-      expect(fixture.componentInstance).toBe(page);
-      expect(fixture.nativeElement.querySelectorAll('tbody tr')).toHaveLength(1);
-    },
-  );
+  it('retains trusted success beside an empty resolved collection and receives fresh rows on the same instance', () => {
+    record();
+    routeData.next({ allRejectedCasefiles: result(0) });
+    const page = render();
+    expect(page.successText()).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-empty')).not.toBeNull();
+    routeData.next({ allRejectedCasefiles: result(1) });
+    fixture.detectChanges();
+    expect(fixture.componentInstance).toBe(page);
+    expect(fixture.nativeElement.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(
+      fixture.nativeElement.querySelector(
+        '#cases-draft-all-rejected-loading, #cases-draft-all-rejected-failure, #cases-draft-all-rejected-retry',
+      ),
+    ).toBeNull();
+  });
   it('sorts and clamps pagination locally with no requests or URL changes', () => {
     const page = render();
     const router = TestBed.inject(Router);
@@ -212,7 +209,7 @@ describe('all rejected resolved page', () => {
     expect(navigate).toHaveBeenCalledOnce();
     finish(true);
     await pending;
-    routeData.next({ allRejectedCasefiles: { status: 'failure', identity } });
+    routeData.next({});
     page.changePage(2);
     page.changeSort({ key: 'created', direction: 'ascending' });
     await page.openRow(1);
@@ -223,7 +220,7 @@ describe('all rejected resolved page', () => {
     const page = render();
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
     scope.set(null);
-    expect(page.state()).toBeNull();
+    expect(page.casefiles()).toBeNull();
     expect(page.successText()).toBeNull();
     await settle();
     expect(navigate).toHaveBeenCalledWith('/access-denied');
@@ -247,20 +244,23 @@ describe('all rejected resolved page', () => {
     new Error('Synthetic cancelled'),
     new HttpErrorResponse({ status: 403 }),
     new HttpErrorResponse({ status: 400, error: { retriable: false } }),
-  ])('reports reload failures with terminal ownership %j', async (error) => {
-    routeData.next({ allRejectedCasefiles: { status: 'failure', identity } });
+  ])('reports identity reload failures through the existing error boundary %j', async (error) => {
     record();
     const page = render();
     vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockRejectedValue(error);
-    page.retry();
+    scope.set({ ...identity, userId: 101, submittedBy: 'BUU-NEW' });
     await settle();
     expect(data.reportError).toHaveBeenCalledWith(error);
-    expect(page.state()).toEqual(error instanceof HttpErrorResponse ? null : { status: 'failure', identity });
-    expect(page.successText() === null).toBe(error instanceof HttpErrorResponse);
+    expect(page.casefiles()).toBeNull();
+    expect(page.successText()).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '#cases-draft-all-rejected-empty, #cases-draft-all-rejected-loading, #cases-draft-all-rejected-failure, #cases-draft-all-rejected-retry',
+      ),
+    ).toBeNull();
   });
-  it('ignores pending callbacks after destruction', async () => {
-    routeData.next({ allRejectedCasefiles: { status: 'failure', identity } });
-    const page = render();
+  it('ignores pending identity reload rejection after destruction', async () => {
+    render();
     let reject!: (value: unknown) => void;
     vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockImplementation(
       () =>
@@ -268,12 +268,38 @@ describe('all rejected resolved page', () => {
           reject = fail;
         }),
     );
-    page.retry();
+    scope.set({ ...identity, userId: 101, submittedBy: 'BUU-NEW' });
+    fixture.detectChanges();
+    expect(reject).toBeDefined();
     fixture.destroy();
     reject(new Error('Synthetic late'));
     await Promise.resolve();
     await Promise.resolve();
     expect(data.reportError).not.toHaveBeenCalled();
+  });
+  it('ignores a superseded identity reload rejection while the newest scope resolves', async () => {
+    render();
+    let rejectOld!: (value: unknown) => void;
+    const newest = { ...identity, userId: 102, submittedBy: 'BUU-C' };
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl')
+      .mockImplementationOnce(
+        () =>
+          new Promise((_, reject) => {
+            rejectOld = reject;
+          }),
+      )
+      .mockResolvedValueOnce(true);
+    scope.set({ ...identity, userId: 101, submittedBy: 'BUU-B' });
+    fixture.detectChanges();
+    scope.set(newest);
+    fixture.detectChanges();
+    rejectOld(new Error('Synthetic stale'));
+    await settle();
+    expect(data.reportError).not.toHaveBeenCalled();
+    routeData.next({ allRejectedCasefiles: result(1, newest) });
+    await settle();
+    expect(fixture.componentInstance.casefiles()?.identity).toEqual(newest);
+    expect(fixture.nativeElement.querySelectorAll('tbody tr')).toHaveLength(1);
   });
   it('accepts Back without restoring focus or changing list selection', async () => {
     navigation.setAllRejectedSelection(selection);
@@ -304,18 +330,6 @@ describe('all rejected resolved page', () => {
       expect(data.reportError).not.toHaveBeenCalled();
     },
   );
-  it('does not Retry after destruction or without a failed authorized collection', () => {
-    const page = render();
-    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
-    page.retry();
-    scope.set(null);
-    page.retry();
-    scope.set(identity);
-    routeData.next({ allRejectedCasefiles: { status: 'failure', identity } });
-    fixture.destroy();
-    page.retry();
-    expect(navigate).not.toHaveBeenCalled();
-  });
   it.each(['row', 'back', 'denial'] as const)(
     'ignores late rejected %s navigation after the page is destroyed',
     async (action) => {

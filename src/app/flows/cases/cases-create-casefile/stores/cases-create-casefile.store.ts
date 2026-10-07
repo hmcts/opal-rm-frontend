@@ -533,8 +533,7 @@ export const CasesCreateCasefileStore = signalStore(
     ): boolean => {
       const pending = store.orderTermAmendment();
       if (
-        !pending ||
-        pending.termId !== store.currentOrderTermId() ||
+        pending?.termId !== store.currentOrderTermId() ||
         term.resultId !== pending.term.resultId ||
         page.resultId !== term.resultId
       )

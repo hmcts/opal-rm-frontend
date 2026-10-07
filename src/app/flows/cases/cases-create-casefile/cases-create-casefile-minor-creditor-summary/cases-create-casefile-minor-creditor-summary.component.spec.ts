@@ -407,4 +407,32 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     expect(store.orderTerms()).toHaveLength(2);
     expect(store.minorCreditors()).toEqual([]);
   });
+  it('retains reviewed amendment details when Cancel is clicked during Continue navigation', async () => {
+    const { component, store, router } = await setup(amendmentState());
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockReturnValue(new Promise<boolean>((resolve) => (finish = resolve)));
+    const continuing = component.handleContinue();
+    const amendment = store.orderTermAmendment();
+    const pending = store.creditorDraft();
+    await component.handleCancel();
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.orderTermAmendment()).toBe(amendment);
+    expect(store.creditorDraft()).toBe(pending);
+    finish(false);
+    await continuing;
+  });
+
+  it('does not cancel an amendment after the current term changes', async () => {
+    const { component, store, router } = await setup(amendmentState());
+    const amendment = store.orderTermAmendment();
+    const pending = store.creditorDraft();
+    patch(store, { currentOrderTermId: 1 });
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    await component.handleCancel();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(store.orderTermAmendment()).toBe(amendment);
+    expect(store.creditorDraft()).toBe(pending);
+  });
 });

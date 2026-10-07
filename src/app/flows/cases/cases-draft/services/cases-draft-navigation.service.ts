@@ -40,6 +40,8 @@ export class CasesDraftNavigationService {
   private readonly rejectedSuccess = signal<ICasesDraftResubmissionSuccess | null>(null);
   private readonly rejectedPlaceholder = signal<ICasesDraftAllRejectedPlaceholderContext | null>(null);
   private allRejectedNavigationOperation = 0;
+  // Keep each field's first committed value until the latest overlapping operation settles.
+  private readonly allRejectedNavigationRollback = new Map<string, () => void>();
 
   public readonly selection = this.current.asReadonly();
   public readonly allRejectedSelection = computed(() =>
@@ -65,6 +67,7 @@ export class CasesDraftNavigationService {
 
   private resetAllRejected(identity: ICasesDraftIdentity | null): void {
     this.allRejectedNavigationOperation++;
+    this.allRejectedNavigationRollback.clear();
     this.allRejectedScope.set(identity);
     this.rejectedSelection.set(defaultAllRejectedSelection());
     this.rejectedDashboardOrigin.set(null);
@@ -82,7 +85,8 @@ export class CasesDraftNavigationService {
   private async navigateInAllRejectedScope(
     identity: ICasesDraftIdentity,
     url: UrlTree,
-    settled: (accepted: boolean) => void,
+    mutatedField?: string,
+    onAccepted?: () => void,
   ): Promise<boolean> {
     const operation = ++this.allRejectedNavigationOperation;
     let accepted = false;
@@ -93,9 +97,19 @@ export class CasesDraftNavigationService {
       if (
         operation === this.allRejectedNavigationOperation &&
         sameCasesDraftIdentity(identity, this.currentAllRejectedIdentity())
-      )
-        settled(accepted);
+      ) {
+        // Acceptance commits only this operation's mutation, not superseded fields from other operations.
+        this.allRejectedNavigationRollback.forEach((rollback, field) => {
+          if (!accepted || field !== mutatedField) rollback();
+        });
+        if (accepted) onAccepted?.();
+        this.allRejectedNavigationRollback.clear();
+      }
     }
+  }
+
+  private rememberAllRejectedRollback(field: string, rollback: () => void): void {
+    if (!this.allRejectedNavigationRollback.has(field)) this.allRejectedNavigationRollback.set(field, rollback);
   }
 
   private authorisedIdentity(): ICasesDraftIdentity | null {
@@ -168,10 +182,9 @@ export class CasesDraftNavigationService {
     const identity = this.liveAllRejectedScope();
     if (!identity) return false;
     const previous = this.rejectedDashboardOrigin();
+    this.rememberAllRejectedRollback('origin', () => this.rejectedDashboardOrigin.set(previous));
     this.rememberAllRejectedDashboardOrigin();
-    return this.navigateInAllRejectedScope(identity, this.allRejectedUrl(), (accepted) => {
-      if (!accepted) this.rejectedDashboardOrigin.set(previous);
-    });
+    return this.navigateInAllRejectedScope(identity, this.allRejectedUrl(), 'origin');
   }
 
   public async navigateToPlaceholder(
@@ -183,17 +196,16 @@ export class CasesDraftNavigationService {
     if (!identity) return false;
     const url = origin === 'all-rejected' ? this.allRejectedPlaceholderUrl(kind, id) : this.placeholderUrl(kind, id);
     const previous = this.rejectedPlaceholder();
+    this.rememberAllRejectedRollback('placeholder', () => this.rejectedPlaceholder.set(previous));
     this.rejectedPlaceholder.set(origin === 'all-rejected' ? { identity: { ...identity }, kind, id } : null);
-    return this.navigateInAllRejectedScope(identity, url, (accepted) => {
-      if (!accepted) this.rejectedPlaceholder.set(previous);
-    });
+    return this.navigateInAllRejectedScope(identity, url, 'placeholder');
   }
 
   public async returnFromPlaceholder(kind: unknown, idText: string | null): Promise<boolean> {
     const context = this.contextForPlaceholder(kind, idText);
     if (!context) return false;
-    return this.navigateInAllRejectedScope(context.identity, this.allRejectedUrl(), (accepted) => {
-      if (accepted) this.rejectedPlaceholder.set(null);
+    return this.navigateInAllRejectedScope(context.identity, this.allRejectedUrl(), undefined, () => {
+      this.rejectedPlaceholder.set(null);
     });
   }
 
@@ -202,10 +214,10 @@ export class CasesDraftNavigationService {
     if (!identity) return false;
     const previous = { ...this.selection() };
     const target = this.rejectedDashboardOrigin() ?? defaultCasesDraftNavigation('rejected');
-    this.setSelection(target);
-    return this.navigateInAllRejectedScope(identity, this.dashboardUrl(target), (accepted) => {
-      if (accepted) this.rejectedPlaceholder.set(null);
-      else this.setSelection(previous);
+    this.rememberAllRejectedRollback('selection', () => this.current.set(previous));
+    this.current.set({ ...target });
+    return this.navigateInAllRejectedScope(identity, this.dashboardUrl(target), 'selection', () => {
+      this.rejectedPlaceholder.set(null);
     });
   }
 
@@ -226,6 +238,7 @@ export class CasesDraftNavigationService {
   }
 
   public setSelection(selection: ICasesDraftNavigation): void {
+    this.allRejectedNavigationRollback.delete('selection');
     const { tab, page, sort, direction } = selection;
     this.current.set({ tab, page, sort, direction });
   }

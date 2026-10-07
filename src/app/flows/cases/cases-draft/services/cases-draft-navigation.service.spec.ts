@@ -222,6 +222,203 @@ describe('CasesDraftNavigationService', () => {
     expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ kind: 'amendment', id: 124 });
     expect(service.allRejectedSelection()).toEqual(listState);
   });
+  it.each([
+    [false, false, 'cancel', 'throw'],
+    [false, true, 'throw', 'cancel'],
+    [true, false, 'throw', 'cancel'],
+    [true, true, 'cancel', 'throw'],
+  ] as const)(
+    'restores original row context=%s when every overlapping row fails, latest first=%s (%s/%s)',
+    async (hasContext, latestFirst, olderOutcome, latestOutcome) => {
+      const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      if (hasContext) await service.navigateToPlaceholder('details', 122, 'all-rejected');
+      const original = service.contextForPlaceholder('details', '122');
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      const first = service.navigateToPlaceholder('details', 123, 'all-rejected');
+      const second = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+      service.setAllRejectedSelection(listState);
+      if (latestFirst) {
+        await settleOlderNavigation(newer, second, latestOutcome);
+        expect(service.contextForPlaceholder('details', '122')).toEqual(original);
+        expect(service.contextForPlaceholder('details', '123')).toBeNull();
+        await settleOlderNavigation(older, first, olderOutcome);
+      } else {
+        await settleOlderNavigation(older, first, olderOutcome);
+        await settleOlderNavigation(newer, second, latestOutcome);
+      }
+      expect(service.contextForPlaceholder('details', '122')).toEqual(original);
+      expect(service.contextForPlaceholder('details', '123')).toBeNull();
+      expect(service.contextForPlaceholder('amendment', '124')).toBeNull();
+      expect(service.allRejectedSelection()).toEqual(listState);
+    },
+  );
+  it.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])('restores original entry origin=%s when every entry fails, latest first=%s', async (hasOrigin, latestFirst) => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    service.setSelection(dashboardState);
+    if (hasOrigin) await service.navigateToAllRejected();
+    const older = pendingNavigation();
+    const newer = pendingNavigation();
+    navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+    service.setSelection({ ...dashboardState, page: 6 });
+    const first = service.navigateToAllRejected();
+    service.setSelection({ ...dashboardState, page: 7 });
+    const second = service.navigateToAllRejected();
+    if (latestFirst) {
+      await settleOlderNavigation(newer, second, 'throw');
+      await settleOlderNavigation(older, first, 'cancel');
+    } else {
+      await settleOlderNavigation(older, first, 'cancel');
+      await settleOlderNavigation(newer, second, 'throw');
+    }
+    service.setSelection(selected);
+    await service.returnFromAllRejected();
+    expect(service.selection()).toEqual(hasOrigin ? dashboardState : defaultCasesDraftNavigation('rejected'));
+  });
+  it.each([false, true])(
+    'restores original dashboard selection when every Back fails, latest first=%s',
+    async (latestFirst) => {
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      vi.spyOn(router, 'navigateByUrl').mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      service.setSelection(dashboardState);
+      service.rememberAllRejectedDashboardOrigin();
+      service.setSelection(selected);
+      const first = service.returnFromAllRejected();
+      const second = service.returnFromAllRejected();
+      if (latestFirst) {
+        await settleOlderNavigation(newer, second, 'cancel');
+        expect(service.selection()).toEqual(selected);
+        await settleOlderNavigation(older, first, 'throw');
+      } else {
+        await settleOlderNavigation(older, first, 'throw');
+        await settleOlderNavigation(newer, second, 'cancel');
+      }
+      expect(service.selection()).toEqual(selected);
+    },
+  );
+  it('uses the accepted latest row as the baseline for a later failure while older navigation remains pending', async () => {
+    const older = pendingNavigation();
+    const newer = pendingNavigation();
+    const last = pendingNavigation();
+    vi.spyOn(router, 'navigateByUrl')
+      .mockReturnValueOnce(older.promise)
+      .mockReturnValueOnce(newer.promise)
+      .mockReturnValueOnce(last.promise);
+    const first = service.navigateToPlaceholder('details', 123, 'all-rejected');
+    const second = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+    newer.resolve(true);
+    expect(await second).toBe(true);
+    const third = service.navigateToPlaceholder('details', 125, 'all-rejected');
+    await settleOlderNavigation(last, third, 'throw');
+    await settleOlderNavigation(older, first, 'cancel');
+    expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ id: 124 });
+    expect(service.contextForPlaceholder('details', '123')).toBeNull();
+    expect(service.contextForPlaceholder('details', '125')).toBeNull();
+  });
+  it('preserves an unrelated dashboard selection update while dashboard Back fails', async () => {
+    const pending = pendingNavigation();
+    vi.spyOn(router, 'navigateByUrl').mockReturnValueOnce(pending.promise);
+    service.setSelection(selected);
+    const back = service.returnFromAllRejected();
+    service.setSelection(dashboardState);
+    await settleOlderNavigation(pending, back, 'cancel');
+    expect(service.selection()).toEqual(dashboardState);
+  });
+  it.each([
+    ['cancel', false],
+    ['throw', false],
+    ['cancel', true],
+    ['throw', true],
+  ] as const)(
+    'rolls superseded Back selection back while retaining accepted row (%s, latest first=%s)',
+    async (outcome, latestFirst) => {
+      service.setSelection(dashboardState);
+      service.rememberAllRejectedDashboardOrigin();
+      service.setSelection(selected);
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      vi.spyOn(router, 'navigateByUrl').mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      const back = service.returnFromAllRejected();
+      const row = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+      if (!latestFirst) await settleOlderNavigation(older, back, outcome);
+      newer.resolve(true);
+      expect(await row).toBe(true);
+      expect(service.selection()).toEqual(selected);
+      if (latestFirst) await settleOlderNavigation(older, back, outcome);
+      expect(service.selection()).toEqual(selected);
+      expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ id: 124 });
+    },
+  );
+  it.each([
+    ['cancel', false],
+    ['throw', false],
+    ['cancel', true],
+    ['throw', true],
+  ] as const)(
+    'rolls superseded entry origin back while retaining accepted row (%s, latest first=%s)',
+    async (outcome, latestFirst) => {
+      const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      service.setSelection(dashboardState);
+      await service.navigateToAllRejected();
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      service.setSelection({ ...dashboardState, page: 7 });
+      const entry = service.navigateToAllRejected();
+      const row = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+      if (!latestFirst) await settleOlderNavigation(older, entry, outcome);
+      newer.resolve(true);
+      expect(await row).toBe(true);
+      if (latestFirst) await settleOlderNavigation(older, entry, outcome);
+      expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ id: 124 });
+      service.setSelection(selected);
+      await service.returnFromAllRejected();
+      expect(service.selection()).toEqual(dashboardState);
+    },
+  );
+  it('restores both dashboard selection and row context when overlapping Back and row navigation fail', async () => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    service.setSelection(dashboardState);
+    service.rememberAllRejectedDashboardOrigin();
+    await service.navigateToPlaceholder('details', 122, 'all-rejected');
+    service.setSelection(selected);
+    const older = pendingNavigation();
+    const newer = pendingNavigation();
+    navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+    const back = service.returnFromAllRejected();
+    const row = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+    await settleOlderNavigation(older, back, 'cancel');
+    await settleOlderNavigation(newer, row, 'throw');
+    expect(service.selection()).toEqual(selected);
+    expect(service.contextForPlaceholder('details', '122')).toMatchObject({ id: 122 });
+    expect(service.contextForPlaceholder('amendment', '124')).toBeNull();
+  });
+  it('discards all overlapping rollback baselines on reset before a fresh failed navigation', async () => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    await service.navigateToPlaceholder('details', 122, 'all-rejected');
+    const older = pendingNavigation();
+    const newer = pendingNavigation();
+    navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+    const first = service.navigateToPlaceholder('details', 123, 'all-rejected');
+    const second = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+    authenticated.set(false);
+    flush();
+    authenticated.set(true);
+    flush();
+    navigate.mockResolvedValueOnce(false);
+    expect(await service.navigateToPlaceholder('details', 125, 'all-rejected')).toBe(false);
+    await settleOlderNavigation(newer, second, 'throw');
+    await settleOlderNavigation(older, first, 'cancel');
+    for (const id of ['122', '123', '125']) expect(service.contextForPlaceholder('details', id)).toBeNull();
+    expect(service.contextForPlaceholder('amendment', '124')).toBeNull();
+  });
   it.each(['placeholder Back', 'dashboard Back'] as const)(
     'keeps newer row context when an older accepted %s completes',
     async (operation) => {

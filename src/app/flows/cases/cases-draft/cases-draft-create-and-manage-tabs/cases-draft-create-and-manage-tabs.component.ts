@@ -146,7 +146,7 @@ export class CasesDraftCreateAndManageTabsComponent extends AbstractTabData {
         pendingResolved = undefined;
         if (!identity) return of(null);
         const request =
-          resolved && resolved.tab === tab && sameCasesDraftIdentity(identity, resolved.identity)
+          resolved?.tab === tab && sameCasesDraftIdentity(identity, resolved.identity)
             ? of(resolved.response)
             : this.data.getList(identity, tab);
         return request.pipe(

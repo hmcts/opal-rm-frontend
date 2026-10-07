@@ -11,9 +11,9 @@ export function mapCasesDraftRows(
   summaries: readonly IOpalMaintenanceDraftCasefileSummary[],
   tab: CasesDraftTab,
 ): ICasesDraftRow[] {
-  const statuses = CASES_DRAFT_TABS[tab].statuses.split(',');
+  const statuses = new Set(CASES_DRAFT_TABS[tab].statuses.split(','));
   return summaries
-    .filter(({ casefile_status }) => statuses.includes(casefile_status))
+    .filter(({ casefile_status }) => statuses.has(casefile_status))
     .map((summary) => {
       const snapshot = summary.casefile_snapshot;
       return {

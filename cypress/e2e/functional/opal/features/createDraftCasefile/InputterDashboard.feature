@@ -71,14 +71,14 @@ Feature: Inputter casefile dashboard
     Then the Deleted cases are shown after the failed consultation
 
   @JIRA-STORY:PO-10605 @JIRA-EPIC:PO-10817
-  Scenario Outline: Persisted destinations expose a protected shell without fetching case data
+  Scenario Outline: Persisted details restore saved summaries while amendment remains a protected shell
     Given my inputter casefile collection is available
     When I open the persisted "<kind>" destination with identifier "<id>"
-    Then the "<kind>" shell shows "<message>" without persistence requests
+    Then the "<kind>" shell shows "<message>" without mutation requests
     Examples:
       | kind      | id  | message                                                |
-      | details   | 123 | Case details will be available here.                   |
-      | details   | 0   | This case could not be opened. Return to Create cases. |
+      | details   | 123 | Saved case details                                     |
+      | details   | 0   | Saved details fail safely                              |
       | amendment | 123 | Case amendment will be available here.                 |
       | amendment | bad | This case could not be opened. Return to Create cases. |
 

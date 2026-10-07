@@ -133,6 +133,7 @@ export class InputterDashboardFlow {
    * @param id Valid or malformed route identifier. */
   public openPersisted(kind: string, id: string): void {
     this.actions.openPersisted(kind, id);
+    if (kind === 'details' && id !== '0') this.actions.expectSavedSummary();
   }
   /** Checks safe placeholder copy and the closed persistence boundary.
    * @param kind Expected destination type.

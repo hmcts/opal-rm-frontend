@@ -1,3 +1,4 @@
+import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CasesDraftSelectors as S } from '../../../../../shared/selectors/cases-draft.selectors';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { CASES_DRAFT_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
@@ -20,8 +21,6 @@ export class AllRejectedActions {
   private otherRows = allRejectedRows();
   private user = structuredClone(INPUTTER_USER);
   private listFailures = 0;
-  private holdNext = false;
-  private release: ((denied?: boolean) => void) | null = null;
 
   /** Resets every mutable fixture and observes collection/persisted traffic separately. */
   public available(): void {
@@ -30,8 +29,6 @@ export class AllRejectedActions {
     this.otherRows = allRejectedRows();
     this.user = structuredClone(INPUTTER_USER);
     this.listFailures = 0;
-    this.holdNext = false;
-    this.release = null;
     cy.intercept('GET', '**/api/user-state', (request) => request.reply({ body: structuredClone(this.user) }));
     cy.intercept('GET', PERSISTED, cy.spy().as('rejectedPersistedReads'));
     cy.intercept(
@@ -50,19 +47,10 @@ export class AllRejectedActions {
       this.rejectionRequests.push({ ...request.query });
       if (this.listFailures > 0) {
         this.listFailures--;
-        request.reply({ statusCode: 503, body: { operation_id: 'SYNTHETIC-RETRY' } });
+        request.reply({ statusCode: 503, body: { operation_id: 'SYNTHETIC-CONSULTATION' } });
         return;
       }
       const body = { count: this.otherRows.length, summaries: structuredClone(this.otherRows) };
-      if (this.holdNext) {
-        this.holdNext = false;
-        return new Promise<void>((resolve) => {
-          this.release = (denied = false) => {
-            request.reply(denied ? { statusCode: 403, body: { retriable: false } } : { body });
-            resolve();
-          };
-        });
-      }
       request.reply({ body });
     }).as('rejectedCollection');
   }
@@ -118,9 +106,9 @@ export class AllRejectedActions {
       );
     cy.get(S.tabs).should('not.exist');
     cy.get(S.create).should('not.exist');
-    cy.get('opal-lib-moj-notification-badge, opal-lib-moj-pagination').should('not.exist');
+    cy.get('opal-lib-moj-notification-badge, opal-lib-govuk-pagination').should('not.exist');
     cy.get(S.table).should((table) => expect(table.text()).to.match(/synthetic submitter/i));
-    if (paginated) cy.get(S.pagination).should('not.contain.text', 'cases').and('not.contain.text', 'results');
+    if (paginated) cy.get('opal-lib-moj-pagination .moj-pagination__results').should('contain.text', 'total results');
     cy.get(S.allRejectedPageStatus)
       .should('have.class', 'govuk-visually-hidden')
       .and('have.attr', 'aria-atomic', 'true');
@@ -184,7 +172,7 @@ export class AllRejectedActions {
    * @param page Expected or configured page.
    */
   public expectPage(page: number): void {
-    cy.get(S.allRejectedPage(page)).closest('li').should('have.attr', 'aria-current', 'page');
+    cy.get(S.allRejectedPage(page)).should('have.attr', 'aria-current', 'page');
   }
 
   /** Open details for the controlled browser journey.
@@ -284,59 +272,11 @@ export class AllRejectedActions {
   /** Expect failure for the controlled browser journey.
    */
   public expectFailure(): void {
-    cy.get(S.allRejectedFailure).should((element) =>
-      expect(element.text().trim()).to.equal('We could not load these cases. Try again.'),
-    );
+    cy.location('pathname').should('eq', DASHBOARD);
+    cy.get(CREATE.globalErrorBanner).should('be.visible');
+    cy.get(S.allRejectedHeading).should('not.exist');
     cy.get(S.allRejectedEmpty).should('not.exist');
-    cy.get(S.table).should('not.exist');
     cy.then(() => expect(this.rejectionRequests).to.have.length(1));
-    this.assertNoPersistence();
-  }
-  /** Retry for the controlled browser journey.
-   */
-  public retry(): void {
-    cy.get(S.allRejectedRetry).focus();
-    pressDashboardEnter();
-  }
-  /** Hold retry for the controlled browser journey.
-   */
-  public holdRetry(): void {
-    cy.then(() => {
-      this.holdNext = true;
-    });
-  }
-  /** Expect pending for the controlled browser journey.
-   */
-  public expectPending(): void {
-    cy.get(S.allRejectedLoading).should('be.visible');
-    cy.get(S.allRejectedHeading).should('be.focused');
-    cy.get(S.allRejectedRetry).should('not.exist');
-    cy.get(S.table).should('not.exist');
-  }
-  /** Release retry for the controlled browser journey.
-   */
-  public releaseRetry(): void {
-    cy.then(() => {
-      expect(this.release).not.to.eq(null);
-      this.release!();
-    });
-  }
-  /** Deny pending for the controlled browser journey.
-   */
-  public denyPending(): void {
-    cy.then(() => {
-      this.user.domains['maintenance']!.business_unit_users[0].permissions = [];
-      expect(this.release).not.to.eq(null);
-      this.release!(true);
-    });
-  }
-
-  /** Checks that provider denial removes every rejected interaction and row. */
-  public expectPendingDenied(): void {
-    cy.location('pathname').should('eq', '/error/permission-denied');
-    cy.get(S.table).should('not.exist');
-    cy.get(S.allRejectedRetry).should('not.exist');
-    cy.contains('Synthetic respondent').should('not.exist');
     this.assertNoPersistence();
   }
   /** Denied role for the controlled browser journey.

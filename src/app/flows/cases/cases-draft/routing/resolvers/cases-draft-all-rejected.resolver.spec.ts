@@ -10,7 +10,7 @@ import { EMPTY, EmptyError, finalize, firstValueFrom, Observable, of, Subject, t
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CasesDraftDashboardService } from '../../services/cases-draft-dashboard.service';
 import { createCasesDraftSummary } from '../../mocks/cases-draft-summary.mock';
-import type { CasesDraftAllRejectedResolvedState } from '../../types/cases-draft-all-rejected-resolved-state.type';
+import type { ICasesDraftAllRejectedResolvedCasefiles } from '../../interfaces/cases-draft-all-rejected-resolved-casefiles.interface';
 import { casesDraftAllRejectedResolver } from './cases-draft-all-rejected.resolver';
 
 const identity = { userId: 100, businessUnitId: 44 as const, submittedBy: 'BUU-SYNTHETIC' };
@@ -19,7 +19,7 @@ const run = () =>
   firstValueFrom(
     TestBed.runInInjectionContext(() =>
       casesDraftAllRejectedResolver({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
-    ) as Observable<CasesDraftAllRejectedResolvedState>,
+    ) as Observable<ICasesDraftAllRejectedResolvedCasefiles>,
   );
 
 describe('all-rejected route resolver', () => {
@@ -51,13 +51,13 @@ describe('all-rejected route resolver', () => {
       }),
     );
     const result = await run();
-    expect(result.status).toBe('success');
-    if (result.status === 'success') expect(result.rows.map((row) => row.id)).toEqual([1]);
+    expect(result).not.toHaveProperty('status');
+    expect(result.rows.map((row) => row.id)).toEqual([1]);
     expect(data.getAllRejectedList).toHaveBeenCalledExactlyOnceWith(identity);
   });
   it('distinguishes recoverable decoding failure from an empty success', async () => {
     data.getAllRejectedList.mockReturnValue(throwError(() => new Error('Synthetic decoding failure')));
-    expect(await run()).toEqual({ status: 'failure', identity });
+    await expect(run()).rejects.toThrow('Synthetic decoding failure');
   });
   it.each([401, 403])('propagates HTTP %s access failure', async (status) => {
     data.getAllRejectedList.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
@@ -75,16 +75,16 @@ describe('all-rejected route resolver', () => {
         summaries: [createCasesDraftSummary({ casefile_status: 'REJECTED', submitted_by: identity.submittedBy })],
       }),
     );
-    expect(await run()).toEqual({ status: 'success', identity, rows: [] });
+    expect(await run()).toEqual({ identity, rows: [] });
   });
   it.each([
     new HttpErrorResponse({ status: 0 }),
     new HttpErrorResponse({ status: 500 }),
     new HttpErrorResponse({ status: 500, error: { retriable: true } }),
     new EmptyError(),
-  ])('resolves a recoverable network/server/empty-provider failure %s', async (error) => {
+  ])('propagates network/server/empty-provider failure %s', async (error) => {
     data.getAllRejectedList.mockReturnValue(throwError(() => error));
-    expect(await run()).toEqual({ status: 'failure', identity });
+    await expect(run()).rejects.toBe(error);
   });
   it.each([400, 409, 500])('propagates non-retriable HTTP %s', async (status) => {
     const error = new HttpErrorResponse({ status, error: { retriable: false } });
@@ -102,7 +102,7 @@ describe('all-rejected route resolver', () => {
     const next = vi.fn();
     const subscription = TestBed.runInInjectionContext(() =>
       casesDraftAllRejectedResolver({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
-    ) as Observable<CasesDraftAllRejectedResolvedState>;
+    ) as Observable<ICasesDraftAllRejectedResolvedCasefiles>;
     const consumer = subscription.subscribe(next);
     consumer.unsubscribe();
     pending.next({ count: 0, summaries: [] });

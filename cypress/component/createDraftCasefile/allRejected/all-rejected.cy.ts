@@ -30,7 +30,7 @@ function assertUnchangedConsultation() {
 }
 describe('All rejected cases collection', () => {
   it(
-    'AC1. should request only other-inputter rejections and expose six columns without counts',
+    'AC1. should request only other-inputter rejections and expose six columns with shared MOJ pagination',
     { tags: buildTags() },
     () => {
       setupAllRejected();
@@ -54,8 +54,11 @@ describe('All rejected cases collection', () => {
         );
       cy.get(S.tabs).should('not.exist');
       cy.get(S.create).should('not.exist');
-      cy.get('opal-lib-moj-notification-badge,opal-lib-moj-pagination').should('not.exist');
-      cy.get(S.pagination).should('not.contain.text', 'Showing').and('not.contain.text', 'total results');
+      cy.get('opal-lib-moj-notification-badge,opal-lib-govuk-pagination').should('not.exist');
+      cy.get('opal-lib-moj-pagination .moj-pagination__results').should(
+        'have.text',
+        'Showing 1 to 25 of 26 total results',
+      );
       cy.get(S.allRejectedPageStatus).should('have.text', 'All rejected cases, page 1 of 2');
     },
   );
@@ -88,7 +91,7 @@ describe('All rejected cases collection', () => {
           const expected = orders[key][direction === 'ascending' ? 0 : 1];
           cy.get(S.sort(key)).closest('th').should('have.attr', 'aria-sort', direction);
           assertIds(expected.slice(0, 25));
-          cy.get(S.allRejectedPage(1)).closest('li').should('have.attr', 'aria-current', 'page');
+          cy.get(S.allRejectedPage(1)).should('have.attr', 'aria-current', 'page');
           cy.get(S.allRejectedNext).click();
           assertIds(expected.slice(25));
           cy.get(S.allRejectedPageStatus).should('have.text', 'All rejected cases, page 2 of 2');
@@ -111,32 +114,32 @@ describe('All rejected cases collection', () => {
   it('AC2. should render two noninteractive ellipses in an eleven-page collection', { tags: buildTags() }, () => {
     setupAllRejected({ rows: F.rows(251), page: 6 });
     cy.get(S.allRejectedEllipses).should('have.length', 2).find('a,button').should('not.exist');
-    cy.get(S.allRejectedPage(6)).closest('li').should('have.attr', 'aria-current', 'page');
+    cy.get(S.allRejectedPage(6)).should('have.attr', 'aria-current', 'page');
     cy.get(S.allRejectedPageStatus).should('have.text', 'All rejected cases, page 6 of 11');
     assertUnchangedConsultation();
   });
-  it(
-    'AC1. should keep pending Retry distinct from empty and coalesce repeated activation',
-    { tags: buildTags() },
-    () => {
-      setupAllRejected({ pending: true });
-      cy.get(S.allRejectedLoading).should((element) =>
-        expect(element.text().trim()).to.equal('Loading rejected cases.'),
-      );
-      cy.get(S.allRejectedHeading).should('be.focused');
-      cy.get(S.allRejectedRetry).should('not.exist');
-      cy.get(S.table).should('not.exist');
-      cy.get(S.allRejectedEmpty).should('not.exist');
-      cy.get('@listRequest').should('have.been.calledTwice');
-      cy.get<Subject<IOpalMaintenanceDraftCasefileListResponse>>('@allRejectedPending').then((pending) => {
-        pending.next({ count: 0, summaries: [] });
-        pending.complete();
-      });
-      cy.get(S.allRejectedEmpty).should('be.visible');
-      cy.get(S.allRejectedHeading).should('be.focused');
-      cy.get('@listRequest').should('have.been.calledTwice');
-    },
-  );
+  it('AC1. should wait for the resolver before activating the page', { tags: buildTags() }, () => {
+    setupAllRejected({ pending: true });
+    cy.get(S.allRejectedHeading).should('not.exist');
+    cy.get(S.table).should('not.exist');
+    cy.get(S.allRejectedEmpty).should('not.exist');
+    cy.get('@listRequest').should('have.been.calledOnce');
+    cy.get<Subject<IOpalMaintenanceDraftCasefileListResponse>>('@allRejectedPending').then((pending) => {
+      pending.next({ count: 0, summaries: [] });
+      pending.complete();
+    });
+    cy.get(S.allRejectedEmpty).should('be.visible');
+    cy.get(S.allRejectedHeading).should('be.focused');
+    assertUnchangedConsultation();
+  });
+  it('AC1. should report resolver failure without activating an empty list', { tags: buildTags() }, () => {
+    setupAllRejected({ failure: true });
+    cy.get('@globalBannerError').should('have.been.calledOnce');
+    cy.get(S.allRejectedHeading).should('not.exist');
+    cy.get(S.allRejectedEmpty).should('not.exist');
+    cy.get(S.table).should('not.exist');
+    cy.get('@listRequest').should('have.been.calledOnce');
+  });
   it(
     'AC4. should escape success names and dismiss without changing rows, selection or requests',
     { tags: buildTags() },
@@ -151,24 +154,16 @@ describe('All rejected cases collection', () => {
       cy.get(S.allRejectedSuccess).should('not.exist');
       assertIds([1]);
       cy.get(S.allRejectedHeading).should('be.focused');
-      cy.get(S.allRejectedPage(2)).closest('li').should('have.attr', 'aria-current', 'page');
+      cy.get(S.allRejectedPage(2)).should('have.attr', 'aria-current', 'page');
       assertUnchangedConsultation();
     },
   );
-  for (const failure of [false, true])
-    it(
-      'AC4. should retain trusted success alongside ' + (failure ? 'recoverable failure' : 'empty'),
-      { tags: buildTags() },
-      () => {
-        setupAllRejected({ rows: [], success: true, failure });
-        cy.get(S.allRejectedSuccess).should(
-          'contain.text',
-          "You have submitted Synthetic Respondent's case for review.",
-        );
-        cy.get(failure ? S.allRejectedFailure : S.allRejectedEmpty).should('be.visible');
-        cy.get(S.allRejectedDismiss).click();
-        cy.get(S.allRejectedSuccess).should('not.exist');
-        assertUnchangedConsultation();
-      },
-    );
+  it('AC4. should retain trusted success alongside an empty result', { tags: buildTags() }, () => {
+    setupAllRejected({ rows: [], success: true });
+    cy.get(S.allRejectedSuccess).should('contain.text', "You have submitted Synthetic Respondent's case for review.");
+    cy.get(S.allRejectedEmpty).should('be.visible');
+    cy.get(S.allRejectedDismiss).click();
+    cy.get(S.allRejectedSuccess).should('not.exist');
+    assertUnchangedConsultation();
+  });
 });

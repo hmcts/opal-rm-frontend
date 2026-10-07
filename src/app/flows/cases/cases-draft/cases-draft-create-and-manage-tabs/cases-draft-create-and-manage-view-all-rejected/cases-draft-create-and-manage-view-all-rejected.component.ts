@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -23,7 +22,7 @@ import type { ICasesDraftIdentity } from '../../interfaces/cases-draft-identity.
 import type { ICasesDraftNavigation } from '../../interfaces/cases-draft-navigation.interface';
 import type { ICasesDraftResubmissionSuccess } from '../../interfaces/cases-draft-resubmission-success.interface';
 import type { CasesDraftSortColumn } from '../../types/cases-draft-sort-column.type';
-import type { CasesDraftAllRejectedResolvedState } from '../../types/cases-draft-all-rejected-resolved-state.type';
+import type { ICasesDraftAllRejectedResolvedCasefiles } from '../../interfaces/cases-draft-all-rejected-resolved-casefiles.interface';
 import { CasesDraftDashboardService } from '../../services/cases-draft-dashboard.service';
 import { CasesDraftNavigationService } from '../../services/cases-draft-navigation.service';
 import { sameCasesDraftIdentity } from '../../utils/cases-draft-identity';
@@ -44,23 +43,20 @@ export class CasesDraftCreateAndManageViewAllRejectedComponent {
     initialValue: this.route.snapshot.data,
   });
   private readonly success = signal<ICasesDraftResubmissionSuccess | null>(null);
-  private readonly resolving = signal(false);
-  private readonly terminalFailure = signal(false);
   private readonly attemptedIdentity = signal<ICasesDraftIdentity | null>(null);
   private readonly navigationInFlight = signal(false);
   private readonly destroyRef = inject(DestroyRef);
   private resolveOperation = 0;
   private readonly identity = computed(() => this.data.getIdentity());
   private readonly resolved = computed(
-    () => this.routeData()['allRejectedCasefiles'] as CasesDraftAllRejectedResolvedState | undefined,
+    () => this.routeData()['allRejectedCasefiles'] as ICasesDraftAllRejectedResolvedCasefiles | undefined,
   );
   public readonly navigation = inject(CasesDraftNavigationService);
   public readonly copy = CASES_DRAFT_ALL_REJECTED;
   public readonly backHref = computed(() => this.router.serializeUrl(this.navigation.allRejectedDashboardUrl()));
-  public readonly state = computed(() => {
+  public readonly casefiles = computed(() => {
     const identity = this.identity();
-    if (!identity || this.terminalFailure()) return null;
-    if (this.resolving()) return { status: 'loading' as const, identity };
+    if (!identity) return null;
     const resolved = this.resolved();
     return resolved && sameCasesDraftIdentity(resolved.identity, identity) ? resolved : null;
   });
@@ -70,7 +66,7 @@ export class CasesDraftCreateAndManageViewAllRejectedComponent {
   }));
   public readonly successText = computed(() => {
     const event = this.success();
-    if (!event || this.terminalFailure() || !sameCasesDraftIdentity(event.identity, this.identity())) return null;
+    if (!event || !sameCasesDraftIdentity(event.identity, this.identity())) return null;
     return `You have submitted ${event.respondentForename} ${event.respondentSurname}'s case for review.`;
   });
 
@@ -96,8 +92,8 @@ export class CasesDraftCreateAndManageViewAllRejectedComponent {
       });
     });
     effect(() => {
-      const current = this.state();
-      if (current?.status !== 'success') return;
+      const current = this.casefiles();
+      if (!current) return;
       const selection = this.navigation.allRejectedSelection();
       const page = Math.max(1, Math.min(selection.page, Math.ceil(current.rows.length / this.copy.pageSize)));
       if (page !== selection.page) untracked(() => this.navigation.setAllRejectedSelection({ ...selection, page }));
@@ -135,40 +131,19 @@ export class CasesDraftCreateAndManageViewAllRejectedComponent {
       if (!this.destroyRef.destroyed) this.data.reportError(error);
     }
   }
-  private async resolveAgain(identity: ICasesDraftIdentity, focus = false): Promise<void> {
+  private async resolveAgain(identity: ICasesDraftIdentity): Promise<void> {
     const operation = ++this.resolveOperation;
     this.attemptedIdentity.set({ ...identity });
-    this.terminalFailure.set(false);
-    if (focus) this.heading()?.nativeElement.focus();
-    this.resolving.set(true);
     try {
       await this.router.navigateByUrl(this.router.url, {
         onSameUrlNavigation: 'reload',
       });
     } catch (error: unknown) {
-      if (this.destroyRef.destroyed || operation !== this.resolveOperation) return;
-      if (
-        error instanceof HttpErrorResponse &&
-        ([401, 403].includes(error.status) || error.error?.retriable === false)
-      ) {
-        this.terminalFailure.set(true);
-        this.success.set(null);
-      }
-      this.data.reportError(error);
-    } finally {
-      if (!this.destroyRef.destroyed && operation === this.resolveOperation) {
-        this.resolving.set(false);
-        if (focus) this.focusHeading();
-      }
+      if (!this.destroyRef.destroyed && operation === this.resolveOperation) this.data.reportError(error);
     }
   }
-  public retry(): void {
-    const identity = this.identity();
-    if (!this.destroyRef.destroyed && identity && this.state()?.status === 'failure' && !this.resolving())
-      void this.resolveAgain(identity, true);
-  }
   public changeSort(change: { key: CasesDraftSortColumn; direction: SortDirectionType }): void {
-    if (this.state()?.status !== 'success' || change.direction === 'none') return;
+    if (!this.casefiles() || change.direction === 'none') return;
     const sort = this.copy.columns.find((column) => column === change.key);
     if (sort)
       this.navigation.setAllRejectedSelection({
@@ -178,21 +153,21 @@ export class CasesDraftCreateAndManageViewAllRejectedComponent {
       });
   }
   public changePage(page: number): void {
-    const state = this.state();
-    if (state?.status !== 'success' || !Number.isSafeInteger(page)) return;
-    const clamped = Math.max(1, Math.min(page, Math.ceil(state.rows.length / this.copy.pageSize)));
+    const casefiles = this.casefiles();
+    if (!casefiles || !Number.isSafeInteger(page)) return;
+    const clamped = Math.max(1, Math.min(page, Math.ceil(casefiles.rows.length / this.copy.pageSize)));
     this.navigation.setAllRejectedSelection({
       ...this.navigation.allRejectedSelection(),
       page: clamped,
     });
   }
   public async openRow(id: number): Promise<void> {
-    const state = this.state();
+    const casefiles = this.casefiles();
     if (
-      state?.status !== 'success' ||
+      !casefiles ||
       !Number.isSafeInteger(id) ||
       id < 1 ||
-      !state.rows.some((row) => row.id === id) ||
+      !casefiles.rows.some((row) => row.id === id) ||
       this.navigationInFlight()
     )
       return;

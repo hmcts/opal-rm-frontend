@@ -1,3 +1,4 @@
+import { selectedPersistedCasefile, stubPersistedCasefileReferences } from './check-case-details-modes.actions';
 import { CreateCasefileSelectors } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CasesDraftSelectors as S } from '../../../../../shared/selectors/cases-draft.selectors';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
@@ -54,7 +55,12 @@ export class CheckerDashboardActions {
     const details = cy.spy().as('checkerDetails');
     cy.intercept('GET', PERSISTED, (request) => {
       details(request);
-      request.reply({ statusCode: 404, body: {} });
+      const id = Number(new URL(request.url).pathname.split('/').pop());
+      expect(id, 'supported selected dashboard fixture').to.be.oneOf([1, 123]);
+      const selection = this.requests.filter((query) => !query['restrict']).at(-1);
+      const status = String(selection?.['casefile_status'] ?? 'SUBMITTED').split(',')[0];
+      const submitter = String(selection?.['submitted_by'] ?? 'BUU-OTHER');
+      request.reply({ body: selectedPersistedCasefile(id, status, submitter), headers: { ETag: '"0"' } });
     });
     const mutation = cy.spy().as('checkerMutation');
     cy.intercept(
@@ -182,16 +188,17 @@ export class CheckerDashboardActions {
 
   /** Opens read-only details and supplies a smaller fresh collection before native Back. */
   public viewRejectedAndShrink(): void {
+    stubPersistedCasefileReferences();
     cy.get(S.row(1)).find('a').focus();
     pressDashboardEnter();
-    cy.get(S.placeholderHeading).should('have.text', 'View case details').and('be.focused');
-    this.assertNoPersistence();
+    this.expectSavedSummary();
+    this.assertNoMutation();
     cy.then(() => {
       this.collections.rejected = checkerRows('rejected', 1);
       this.collections.rejected[0].casefile_snapshot.respondent_account!.respondent_name =
         'Refreshed synthetic respondent';
     });
-    cy.get(S.placeholderBack).focus();
+    cy.get(CreateCasefileSelectors.review.back).focus();
     pressDashboardEnter();
   }
 
@@ -206,7 +213,7 @@ export class CheckerDashboardActions {
         this.requests.filter((request) => request['casefile_status'] === 'REJECTED' && !request['restrict']),
       ).to.have.length(2),
     );
-    this.assertNoPersistence();
+    this.assertNoMutation();
   }
 
   /** Fails only the next list consultation. */
@@ -292,24 +299,54 @@ export class CheckerDashboardActions {
    * @param kind Protected shell destination.
    * @param id Synthetic positive or malformed identifier. */
   public safeShell(kind: 'review' | 'view', id: string): void {
-    cy.visit(
+    stubPersistedCasefileReferences();
+    const path =
       '/' +
-        PATHS.root +
-        '/' +
-        kind +
-        '/' +
-        encodeURIComponent(id) +
-        '?mode=inputter&tab=failed&page=2&sort=applicant&direction=descending#rejected',
-    );
-    cy.get(S.placeholderHeading)
-      .should('have.text', kind === 'review' ? 'Review case' : 'View case details')
-      .and('be.focused');
+      PATHS.root +
+      '/' +
+      kind +
+      '/' +
+      encodeURIComponent(id) +
+      '?mode=inputter&tab=failed&page=2&sort=applicant&direction=descending#rejected';
     const valid = /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id));
-    if (!valid) cy.contains('p', 'This case could not be opened. Return to Review cases.').should('be.visible');
-    cy.get(S.placeholderBack).should('have.attr', 'href').and('include', DASHBOARD).and('include', '#rejected');
+    if (!valid) {
+      cy.visit('/dashboard/cases');
+      cy.get(S.checkerEntry).should('be.visible');
+      cy.window().then((window) => {
+        window.history.pushState({}, '', path);
+        window.dispatchEvent(new window.PopStateEvent('popstate'));
+      });
+      cy.get(S.checkerEntry).should('be.visible');
+      cy.get(CreateCasefileSelectors.globalErrorBanner).should('be.visible');
+      cy.get(CreateCasefileSelectors.review.heading).should('not.exist');
+      this.assertNoPersistence();
+      return;
+    }
+    cy.visit(path);
+    this.expectSavedSummary();
+    cy.get(CreateCasefileSelectors.review.decisionContinue).should(kind === 'review' ? 'be.visible' : 'not.exist');
     cy.get('@checkerCollection.all').should('have.length', 0);
-    this.assertNoPersistence();
+    cy.get('@checkerDetails').should('have.been.calledOnce');
+    this.assertNoMutation();
   }
+
+  /** Checks a fully resolved saved summary replaces the former persisted shell. */
+  private expectSavedSummary(): void {
+    cy.get(CreateCasefileSelectors.review.heading).should('have.text', 'Check case details').and('be.focused');
+    cy.get(CreateCasefileSelectors.review.section('respondent'))
+      .should('contain.text', 'Synthetic')
+      .and('contain.text', 'Respondent');
+    cy.get(CreateCasefileSelectors.review.section('orderTerms'))
+      .should('contain.text', 'Test order term')
+      .and('contain.text', '£100.00');
+    cy.get(CreateCasefileSelectors.review.submit).should('not.exist');
+  }
+
+  /** Successful saved-detail reads must never reach any mutation boundary. */
+  private assertNoMutation(): void {
+    cy.get('@checkerMutation').should('not.have.been.called');
+  }
+
   /** Observes the narrowly scoped persisted reads and mutations forbidden by this ticket. */
   public assertNoPersistence(): void {
     cy.get('@checkerDetails').should('not.have.been.called');
@@ -360,6 +397,7 @@ export class CheckerDashboardActions {
   }
   /** Proves separate in-memory return state and fragment-only shell links for dual roles. */
   public independentReturns(): void {
+    stubPersistedCasefileReferences();
     cy.visit('/cases/draft/create-and-manage/tabs#rejected');
     cy.get(S.table).should('be.visible');
     for (const direction of ['ascending', 'descending']) {
@@ -369,10 +407,9 @@ export class CheckerDashboardActions {
     cy.get(S.pagination).contains('a', '2').click();
     cy.get(S.pageStatus).should('contain.text', 'Create cases, page 2 of 2');
     cy.get(S.row(1)).find('a').click();
-    cy.get(S.placeholderHeading).should('have.text', 'Check case details');
+    this.expectSavedSummary();
     cy.location('search').should('eq', '');
-    cy.get(S.placeholderBack).should('have.attr', 'href', '/cases/draft/create-and-manage/tabs#rejected');
-    cy.get(S.placeholderBack).click();
+    cy.get(CreateCasefileSelectors.review.back).click();
     cy.get(S.pageStatus).should('contain.text', 'Page 2 of 2, showing cases 26 to 26 of 26');
     cy.get(S.tableRows).should('have.length', 1);
     cy.get(S.row(1)).should('be.visible');
@@ -382,11 +419,11 @@ export class CheckerDashboardActions {
     cy.get(S.checkerEntry).click();
     this.selectTab('deleted');
     cy.get(S.row(1)).find('a').click();
-    cy.get(S.placeholderBack).should('have.attr', 'href', DASHBOARD + '#deleted');
-    cy.get(S.placeholderBack).click();
+    this.expectSavedSummary();
+    cy.get(CreateCasefileSelectors.review.back).click();
     cy.location('hash').should('eq', '#deleted');
     cy.location('search').should('eq', '');
-    this.assertNoPersistence();
+    this.assertNoMutation();
   }
 
   /** Exercises existing common error routes after successful arrival.

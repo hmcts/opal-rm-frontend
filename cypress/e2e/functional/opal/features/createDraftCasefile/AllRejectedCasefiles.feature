@@ -58,7 +58,7 @@ Feature: All rejected casefiles
       | checker-only        |
 
   @JIRA-STORY:PO-10607 @JIRA-EPIC:PO-10817
-  Scenario Outline: Direct protected shells have a safe dashboard fallback
+  Scenario Outline: Direct saved details and amendment have a safe dashboard fallback
     Given other inputters have rejected casefiles in my RM business unit
     When I open a rejected "<kind>" shell without a remembered origin
     Then the protected rejected "<kind>" shell offers the safe dashboard fallback

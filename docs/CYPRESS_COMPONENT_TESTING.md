@@ -23,6 +23,10 @@ Use this guide when writing or updating Cypress component specs in `opal-rm-fron
 - Do not add a production destination placeholder merely to make a component test navigate.
 - Keep scenario choices and assertions in the spec, and keep reusable data definitions under the feature's `mocks/**` or `constants/**` folder. Setup helpers own mounting, providers, representative document-shell setup, initial-state seeding, and reusable aliases.
 
+The component webpack `TsconfigPathsPlugin` uses the repository root (`baseUrl: __dirname` in `cypress.config.ts`) with the component tsconfig so inherited application paths resolve consistently. Keep this root setting when changing the harness and verify the full component suite after a shared harness change.
+
+Format only the files you changed with `corepack yarn exec prettier --write <paths>`; the repository-wide `corepack yarn prettier` command checks formatting without rewriting unrelated files.
+
 ## Spec style and naming
 
 - Write component specs as readable executable scripts using `cy.get(...)`, shared selectors, and focused local assertion helpers.

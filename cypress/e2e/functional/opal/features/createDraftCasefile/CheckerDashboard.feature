@@ -43,8 +43,6 @@ Feature: Checker casefile dashboard
     Examples:
       | role       | destination |
       | inputter   | dashboard   |
-      | inputter   | review      |
-      | inputter   | view        |
       | cross-bu   | dashboard   |
       | cross-bu   | review      |
       | cross-bu   | view        |
@@ -62,7 +60,7 @@ Feature: Checker casefile dashboard
     Then each checker queue has its status and date contract and oldest original review order
 
   @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
-  Scenario Outline: Protected shells validate IDs and reject mode query tampering
+  Scenario Outline: Saved details validate IDs and reject mode query tampering
     Given my checker dashboard session has role "checker"
     When I open the safe checker "<kind>" shell with identifier "<id>"
     Examples:

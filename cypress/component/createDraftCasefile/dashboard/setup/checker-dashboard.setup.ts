@@ -1,3 +1,8 @@
+import {
+  createPersistedCasefileDetail,
+  PERSISTED_CASEFILE_REFERENCES,
+  PERSISTED_CASEFILE_RESULT_DETAIL,
+} from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { CasesDraftCheckAndValidateTabsComponent } from 'src/app/flows/cases/cases-draft/cases-draft-check-and-validate-tabs/cases-draft-check-and-validate-tabs.component';
 import type { CasesDraftSortColumn } from 'src/app/flows/cases/cases-draft/types/cases-draft-sort-column.type';
 import { AppComponent } from 'src/app/app.component';
@@ -43,14 +48,19 @@ class CheckerRouteHost {}
 /** Keeps production routes and guards; shell mounts additionally isolate external session and telemetry clients. */
 export function setupCheckerDashboard(options: ICheckerDashboardSetupOptions = {}): Cypress.Chainable<void> {
   const tab = options.tab ?? 'to-review';
+  let selectedTab = tab;
   const user = checkerUser(options.role ?? 'checker');
+  const bannerError = signal({ error: false, title: '', message: '', operationId: '' });
   const globalStore = {
     authenticated: signal(true),
     userState: signal(user),
     featureFlags: signal({ 'release-1c-rm-create-case-files': true }),
-    bannerError: signal({ error: false, title: '', message: '', operationId: '' }),
+    bannerError,
     tokenExpiry: signal(null),
-    setBannerError: cy.stub(),
+    setBannerError: cy
+      .stub()
+      .as('checkerBannerError')
+      .callsFake((error: Parameters<typeof bannerError.set>[0]) => bannerError.set(error)),
   };
   const listResponses: { latest: Subject<IOpalMaintenanceDraftCasefileListResponse> | null } = { latest: null };
   const countResponses: Partial<Record<CasesDraftOutcomeTab, Subject<{ count: number }>>> = {};
@@ -62,6 +72,7 @@ export function setupCheckerDashboard(options: ICheckerDashboardSetupOptions = {
         const selected = (Object.keys(CASES_DRAFT_CHECKER_TABS) as CasesDraftCheckerTab[]).find(
           (t) => CASES_DRAFT_CHECKER_TABS[t].statuses === params.casefile_status,
         )!;
+        selectedTab = selected;
         const response = new Subject<IOpalMaintenanceDraftCasefileListResponse>();
         listResponses.latest = response;
         if (options.listPending) return response;
@@ -96,6 +107,62 @@ export function setupCheckerDashboard(options: ICheckerDashboardSetupOptions = {
         return of({ count });
       }),
     );
+  const detailRequest = cy
+    .stub()
+    .as('checkerDetailRequest')
+    .callsFake((id: number) => {
+      const draft = createPersistedCasefileDetail();
+      const selectedRows =
+        selectedTab === tab
+          ? (options.rows ?? checkerFixtures.queues[selectedTab])
+          : checkerFixtures.queues[selectedTab];
+      const summary = selectedRows.find((row) => row.draft_casefile_id === id);
+      draft.draft_casefile_id = id;
+      if (summary) {
+        draft.business_unit_id = summary.business_unit_id;
+        draft.submitted_by = summary.submitted_by;
+        draft.casefile_status = summary.casefile_status;
+        draft.casefile_status_date = summary.casefile_status_date;
+      }
+      return of({ draft, etag: '"0"' });
+    });
+  const selectedApi: Pick<
+    OpalMaintenanceService,
+    'getDraftCasefile' | 'getCountries' | 'getMaintenanceApplications' | 'getMajorCreditors' | 'getResult'
+  > = {
+    getDraftCasefile: detailRequest,
+    getCountries: cy
+      .stub()
+      .as('checkerCountriesRequest')
+      .returns(
+        of({
+          count: PERSISTED_CASEFILE_REFERENCES.countries.length,
+          refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.countries),
+        }),
+      ),
+    getMaintenanceApplications: cy
+      .stub()
+      .as('checkerApplicationsRequest')
+      .returns(
+        of({
+          count: PERSISTED_CASEFILE_REFERENCES.applications.length,
+          refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.applications),
+        }),
+      ),
+    getMajorCreditors: cy
+      .stub()
+      .as('checkerMajorCreditorsRequest')
+      .returns(
+        of({
+          count: PERSISTED_CASEFILE_REFERENCES.majorCreditors.length,
+          refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.majorCreditors),
+        }),
+      ),
+    getResult: cy
+      .stub()
+      .as('checkerResultRequest')
+      .returns(of(structuredClone(PERSISTED_CASEFILE_RESULT_DETAIL))),
+  };
   cy.wrap(listResponses, { log: false }).as('checkerListResponse');
   cy.wrap(countResponses, { log: false }).as('checkerCountResponses');
   cy.wrap(globalStore, { log: false }).as('checkerGlobalStore');
@@ -128,7 +195,7 @@ export function setupCheckerDashboard(options: ICheckerDashboardSetupOptions = {
         { provide: AppInsightsService, useValue: { logPageView: () => undefined } },
         {
           provide: OpalMaintenanceService,
-          useValue: { getDraftCasefiles: listRequest, getDraftCasefileCount: countRequest },
+          useValue: { getDraftCasefiles: listRequest, getDraftCasefileCount: countRequest, ...selectedApi },
         },
       ],
     }).then(({ fixture }) => {

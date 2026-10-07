@@ -30,6 +30,12 @@ import type { ICasesCreateCasefileMinorCreditor } from '../interfaces/cases-crea
 import type { ICasesCreateCasefileAcceptedOrderTerm } from '../interfaces/cases-create-casefile-accepted-order-term.interface';
 import { createCasesCreateCasefileCancellationState } from '../mocks/cases-create-casefile-cancellation-state.mock';
 import { CasesCreateCasefileStore } from './cases-create-casefile.store';
+import {
+  createPersistedCasefileDetail,
+  PERSISTED_CASEFILE_REFERENCES,
+  PERSISTED_CASEFILE_RESULT_PAGE,
+} from '../../services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
+import { mapPersistedCasefile } from '../services/cases-create-casefile-payload/utils/map-casefile/cases-create-casefile-payload-map-state';
 
 describe('CasesCreateCasefileStore', () => {
   let store: InstanceType<typeof CasesCreateCasefileStore>;
@@ -182,6 +188,97 @@ describe('CasesCreateCasefileStore', () => {
       ...structuredClone(MINOR_CREDITOR_DETAILS_MOCK),
       identity: { type: 'organisation', organisationName: displayName },
     },
+  });
+
+  describe('hydratePersistedCasefile', () => {
+    it('hydrates mapper-produced drafts A and B without retaining optional data from A', () => {
+      const references = { ...PERSISTED_CASEFILE_REFERENCES, resultPages: { TEST01: PERSISTED_CASEFILE_RESULT_PAGE } };
+      const first = createPersistedCasefileDetail();
+      first.casefile.respondent_account.account_comment = 'First comment';
+      first.casefile.respondent_account.remo_reference = 'First reference';
+      first.casefile.minor_creditors = [
+        {
+          creditor_sequence: 12,
+          party_details: structuredClone(first.casefile.applicant.party_details),
+          bank_account_details: { bank_account_type: 'None or not applicable' },
+        },
+      ];
+      store.hydratePersistedCasefile(mapPersistedCasefile(first, references));
+      expect(store.nextMinorCreditorSequence()).toBe(13);
+      expect(store.commentsAndNotes()?.comment).toBe('First comment');
+      const second = createPersistedCasefileDetail();
+      second.casefile.respondent_account.order_details.order_terms.push(
+        structuredClone(second.casefile.respondent_account.order_details.order_terms[0]),
+      );
+      const expected = mapPersistedCasefile(second, references);
+      store.hydratePersistedCasefile(expected);
+      expect(getState(store)).toEqual(expected);
+      expect(store.commentsAndNotes()).toBeNull();
+      expect(store.centralAuthorityDetails()).toBeNull();
+      expect(store.minorCreditors()).toEqual([]);
+      expect(store.nextMinorCreditorSequence()).toBe(1);
+      expect(store.nextOrderTermId()).toBe(3);
+      expect(store.checkCaseAvailable()).toBe(true);
+    });
+    it('atomically replaces successive drafts and clears editor, removal and submission state', () => {
+      const first: ICasesCreateCasefileState = {
+        ...structuredClone(CASES_CREATE_CASEFILE_STATE),
+        caseTypeSelection: { caseType: 'REMO In', applicantType: 'Individual' },
+        applicantDetails: structuredClone(applicant),
+        respondentDetails: structuredClone(respondentDetails),
+        orderDetails: structuredClone(orderDetails),
+        orderTerms: [{ ...structuredClone(term), creditor: { type: 'applicant' } }],
+        nextOrderTermId: 8,
+        minorCreditors: [
+          { sequenceNumber: 12, displayName: 'Synthetic', details: structuredClone(MINOR_CREDITOR_DETAILS_MOCK) },
+        ],
+        nextMinorCreditorSequence: 13,
+        centralAuthorityDetails: { remoReference: 'First', centralAuthorityReference: null, majorCreditor: null },
+        commentsAndNotes: { comment: 'First comment', note: 'First note' },
+      };
+      const second: ICasesCreateCasefileState = {
+        ...structuredClone(CASES_CREATE_CASEFILE_STATE),
+        caseTypeSelection: { caseType: 'REMO Out' },
+        applicantDetails: { ...structuredClone(applicant), firstNames: 'Second' },
+        orderTerms: [{ ...structuredClone(term), termId: 1, creditor: { type: 'applicant' } }],
+        nextOrderTermId: 2,
+      };
+      store.hydratePersistedCasefile(first);
+      expect(getState(store)).toEqual(first);
+      patchState(stateSource, { ...createCasesCreateCasefileCancellationState(), submissionSucceeded: true });
+      const observations: ICasesCreateCasefileState[] = [];
+      TestBed.runInInjectionContext(() => {
+        watchState(store, (state) => observations.push(structuredClone(state)));
+      });
+      observations.length = 0;
+      store.hydratePersistedCasefile(second);
+      expect(observations).toEqual([second]);
+      expect(getState(store)).toEqual(second);
+      expect(store.centralAuthorityDetails()).toBeNull();
+      expect(store.commentsAndNotes()).toBeNull();
+      expect(store.minorCreditors()).toEqual([]);
+      expect(store.nextMinorCreditorSequence()).toBe(1);
+      expect(store.nextOrderTermId()).toBe(2);
+      expect(store.submissionSucceeded()).toBe(false);
+      expect(store.unsavedChanges()).toBe(false);
+      expect(store.stateChanges()).toBe(false);
+    });
+
+    it('clones caller-owned nested data and preserves resetStore semantics', () => {
+      const state = {
+        ...structuredClone(CASES_CREATE_CASEFILE_STATE),
+        applicantDetails: structuredClone(applicant),
+        orderTerms: [structuredClone(term)],
+      };
+      const before = structuredClone(state);
+      store.hydratePersistedCasefile(state);
+      state.applicantDetails.contactDetails.address.addressLine1 = 'changed';
+      state.orderTerms[0].presentation.fields[0].label = 'changed';
+      state.taskStatuses.applicant = CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED;
+      expect(getState(store)).toEqual(before);
+      store.resetStore();
+      expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+    });
   });
 
   it('never removes a replacement at the selected index', () => {

@@ -412,6 +412,7 @@ describe('Submission route lifecycle', () => {
       ...route,
       resolve: {},
       data: {
+        ...route.data,
         countries: { refData: [{ country_id: 1, country_name: 'United Kingdom', active: true }] },
         applications: { refData: [{ application_id: 901, application_title: 'Synthetic application', active: true }] },
       },

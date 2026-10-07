@@ -1,3 +1,4 @@
+import type { CasesDraftDashboardMode } from '../types/cases-draft-dashboard-mode.type';
 import type { CasesDraftAllRejectedPlaceholderKind } from '../types/cases-draft-all-rejected-placeholder-kind.type';
 import type { ICasesDraftAllRejectedSelection } from '../interfaces/cases-draft-all-rejected-selection.interface';
 import type { ICasesDraftAllRejectedPlaceholderContext } from '../interfaces/cases-draft-all-rejected-placeholder-context.interface';
@@ -247,6 +248,12 @@ export class CasesDraftNavigationService {
     return this.router.createUrlTree(['/' + this.routes.root + '/' + this.routes.children.tabs], {
       fragment: selection.tab,
     });
+  }
+
+  public persistedDashboardUrl(mode: CasesDraftDashboardMode): UrlTree {
+    const selection = mode === this.mode ? this.selection() : defaultCasesDraftNavigation(undefined, mode);
+    const routes = mode === 'checker' ? CASES_DRAFT_CHECKER_ROUTING_PATHS : CASES_DRAFT_ROUTING_PATHS;
+    return this.router.createUrlTree(['/' + routes.root + '/' + routes.children.tabs], { fragment: selection.tab });
   }
 
   /** Constructs only supported internal destinations with positive safe integer IDs. */

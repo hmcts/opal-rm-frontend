@@ -96,7 +96,10 @@ describe('checker dashboard presentation', () => {
     api.getDraftCasefiles.mockReturnValue(new Subject());
     api.getDraftCasefileCount.mockReturnValue(new Subject());
     const fixture = await render();
-    expect(fixture.nativeElement.querySelector('#cases-draft-loading')?.getAttribute('role')).toBe('status');
+    const loading = fixture.nativeElement.querySelector('output#cases-draft-loading');
+    expect(loading).not.toBeNull();
+    expect(loading?.getAttribute('aria-live')).toBe('polite');
+    expect(loading?.getAttribute('aria-atomic')).toBe('true');
     expect(fixture.nativeElement.querySelector('#cases-draft-loading')?.textContent).toContain(
       'Loading To review cases.',
     );

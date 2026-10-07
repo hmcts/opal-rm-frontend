@@ -555,4 +555,76 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     expect(store.orderTerms()).toHaveLength(2);
     expect(store.orderTerms()[1].parameters).toEqual({ amount: '20.00' });
   });
+  it('retains an amendment when Cancel is clicked during creditor completion navigation', async () => {
+    const { component, fixture, store, router } = await setup([majorCreditor], seedAmendment);
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockReturnValue(new Promise<boolean>((resolve) => (finish = resolve)));
+    component.handleFormSubmit({
+      formData: {
+        create_casefile_order_term_creditor_choice: 'applicant',
+        create_casefile_order_term_creditor_major_creditor_id: null,
+      },
+      nestedFlow: false,
+    });
+    const amendment = store.orderTermAmendment();
+    await component.handleCancel();
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.orderTermAmendment()).toBe(amendment);
+    finish(false);
+    await fixture.whenStable();
+  });
+
+  it.each([true, false])(
+    'does not navigate or clear unsaved state when a creditor assignment is rejected (amendment=%s)',
+    async (amending) => {
+      const { component, store, router } = await setup([majorCreditor], amending ? seedAmendment : seedCurrentTerm);
+      if (amending) {
+        const pending = store.orderTermAmendment()!;
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+          orderTermAmendment: { ...pending, inputComplete: false },
+        });
+      } else {
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, { orderTerms: [] });
+      }
+      component.handleUnsavedChanges(true);
+      const terms = store.orderTerms();
+      const amendment = store.orderTermAmendment();
+      const navigate = vi.spyOn(router, 'navigateByUrl');
+      component.handleFormSubmit({
+        formData: {
+          create_casefile_order_term_creditor_choice: 'applicant',
+          create_casefile_order_term_creditor_major_creditor_id: null,
+        },
+        nestedFlow: false,
+      });
+      expect(navigate).not.toHaveBeenCalled();
+      expect(store.orderTerms()).toBe(terms);
+      expect(store.orderTermAmendment()).toBe(amendment);
+      expect(store.unsavedChanges()).toBe(true);
+    },
+  );
+
+  it('does not complete an amendment cancelled synchronously during creditor staging', async () => {
+    const { component, store, router } = await setup([majorCreditor], seedAmendment);
+    const stage = store.stageAmendmentCreditor;
+    vi.spyOn(store, 'stageAmendmentCreditor').mockImplementation((assignment) => {
+      const result = stage(assignment);
+      store.cancelOrderTermAmendment(2);
+      return result;
+    });
+    const terms = store.orderTerms();
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    component.handleFormSubmit({
+      formData: {
+        create_casefile_order_term_creditor_choice: 'applicant',
+        create_casefile_order_term_creditor_major_creditor_id: null,
+      },
+      nestedFlow: false,
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(store.orderTerms()).toBe(terms);
+    expect(store.orderTermAmendment()).toBeNull();
+  });
 });

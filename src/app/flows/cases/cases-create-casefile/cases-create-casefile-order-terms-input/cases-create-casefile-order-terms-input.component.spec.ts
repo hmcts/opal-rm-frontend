@@ -651,4 +651,59 @@ describe('Order term input routed parent', () => {
     expect(store.orderTermAmendment()).toBe(replacement);
     expect(store.orderTerms()).toHaveLength(2);
   });
+  it.each(['missing page', 'stale term', 'invalid value', 'different result'] as const)(
+    'preserves the amendment and accepted data when input is rejected for %s',
+    async (reason) => {
+      const store = await configure();
+      seedAmendment(store);
+      const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+      const component = fixture.componentInstance;
+      const accepted = structuredClone(store.orderTerms());
+      const amendment = store.orderTermAmendment();
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+      if (reason === 'missing page') component.pages.set([]);
+      if (reason === 'stale term') store.setPendingOrderTermResultId(null);
+      if (reason === 'different result')
+        component.pages.set([{ page: { ...page, resultId: 'OTHER' }, values: {}, dirty: true }]);
+      component.handleUnsavedChanges(true);
+      component.handleFormSubmit({
+        formData: { [amountId]: reason === 'invalid value' ? 'invalid' : '30.00' },
+        nestedFlow: false,
+      });
+      expect(navigate).not.toHaveBeenCalled();
+      expect(store.orderTerms()).toEqual(accepted);
+      expect(store.orderTermAmendment()).toBe(amendment);
+      expect(store.unsavedChanges()).toBe(true);
+    },
+  );
+
+  it('does not cancel an amendment while its submitted input is navigating', async () => {
+    const store = await configure();
+    seedAmendment(store);
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(TestBed.inject(Router), 'navigateByUrl')
+      .mockReturnValue(new Promise<boolean>((resolve) => (finish = resolve)));
+    fixture.componentInstance.handleFormSubmit({ formData: { [amountId]: '30.00' }, nestedFlow: false });
+    const amendment = store.orderTermAmendment();
+    await fixture.componentInstance.handleCancel();
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.orderTermAmendment()).toBe(amendment);
+    finish(false);
+    await fixture.whenStable();
+  });
+
+  it('retries an unchanged accepted submission without appending or remapping it', async () => {
+    const store = await configure();
+    const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsInputComponent);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
+    fixture.componentInstance.handleFormSubmit({ formData: { [amountId]: '30.00' }, nestedFlow: false });
+    await fixture.whenStable();
+    const accepted = store.orderTerms();
+    fixture.componentInstance.handleFormSubmit({ formData: { [amountId]: 'invalid' }, nestedFlow: false });
+    await fixture.whenStable();
+    expect(store.orderTerms()).toBe(accepted);
+    expect(navigate).toHaveBeenCalledTimes(2);
+  });
 });

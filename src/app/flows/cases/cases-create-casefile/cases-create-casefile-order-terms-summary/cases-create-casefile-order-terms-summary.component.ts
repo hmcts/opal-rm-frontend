@@ -6,10 +6,28 @@ import {
   GovukSummaryListComponent,
   GovukSummaryListRowComponent,
 } from '@hmcts/opal-frontend-common/components/govuk/govuk-summary-list';
+import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
+import type { CasesCreateCasefileCreditorAssignment } from '../types/cases-create-casefile-creditor-assignment.type';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { cancelOrderTermAmendmentAfterNavigation } from '../utils/cases-create-casefile-order-term-amendment-navigation';
 import { creditorBankRows, orderTermRows } from './utils/cases-create-casefile-order-terms-summary-rows';
+
+function applicantName(details: CasesCreateCasefileApplicantDetails | null): string {
+  if (!details) return '';
+  if ('organisationName' in details) return details.organisationName;
+  return [details.title, details.firstNames, details.lastName].filter(Boolean).join(' ');
+}
+
+function assignedCreditorName(
+  assignment: CasesCreateCasefileCreditorAssignment | null,
+  applicant: string,
+  minorName: string | undefined,
+): string | undefined {
+  if (assignment?.type === 'applicant') return applicant;
+  if (assignment?.type === 'major') return assignment.displayName;
+  return minorName;
+}
 
 @Component({
   selector: 'app-cases-create-casefile-order-terms-summary',
@@ -40,18 +58,7 @@ export class CasesCreateCasefileOrderTermsSummaryComponent {
         assignment?.type === 'minor'
           ? this.store.minorCreditors().find((item) => item.sequenceNumber === assignment.sequenceNumber)
           : undefined;
-      const applicantName =
-        applicant === null
-          ? ''
-          : 'organisationName' in applicant
-            ? applicant.organisationName
-            : [applicant.title, applicant.firstNames, applicant.lastName].filter(Boolean).join(' ');
-      const creditorName =
-        assignment?.type === 'applicant'
-          ? applicantName
-          : assignment?.type === 'major'
-            ? assignment.displayName
-            : minor?.displayName;
+      const creditorName = assignedCreditorName(assignment, applicantName(applicant), minor?.displayName);
       const bank = assignment?.type === 'applicant' ? (applicant?.bankDetails ?? null) : (minor?.details.bank ?? null);
       const rows = orderTermRows(term, this.store.orderDetails()?.paymentFrequency ?? '');
       if (creditorName) rows.push({ id: 'assigned-creditor', label: 'Creditor', value: creditorName });

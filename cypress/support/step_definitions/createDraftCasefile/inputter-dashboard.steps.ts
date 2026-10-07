@@ -43,7 +43,7 @@ Then('the Case Type cancellation outcome is {string}', (outcome: string) => flow
 When('I open the persisted {string} destination with identifier {string}', (kind: string, id: string) =>
   flow.openPersisted(kind, id),
 );
-Then('the {string} shell shows {string} without persistence requests', (kind: string, message: string) =>
+Then('the {string} shell shows {string} without mutation requests', (kind: string, message: string) =>
   flow.expectShell(kind, message),
 );
 When('I open the protected inputter path {string}', (path: string) => flow.openProtected(path));

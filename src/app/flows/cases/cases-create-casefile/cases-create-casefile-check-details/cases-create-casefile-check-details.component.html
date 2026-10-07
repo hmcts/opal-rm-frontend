@@ -58,6 +58,9 @@
         <app-cases-draft-casefile-history [draft]="savedDraft" [context]="resolved.context" />
       }
     }
+    @for (decisionDraft of decisionDrafts(); track decisionDraft.draft_casefile_id) {
+      <app-cases-draft-casefile-decision (decisionEvent)="handleDecision()" />
+    }
     @if (editable()) {
       <div class="govuk-button-group">
         <button id="create_casefile_review_submit" class="govuk-button" type="button" (click)="handleSubmit()">

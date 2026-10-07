@@ -1,0 +1,58 @@
+<opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+<form (submit)="handleFormSubmit($event)">
+  <opal-lib-govuk-radio
+    fieldSetId="create_casefile_review_decision"
+    legendText="Review decision"
+    [errors]="formControlErrorMessages['create_casefile_review_decision']"
+  >
+    <div
+      opal-lib-govuk-radios-item
+      labelText="Approve"
+      inputId="create_casefile_review_decision-approve"
+      inputName="create_casefile_review_decision"
+      inputValue="approve"
+      [control]="form.controls.create_casefile_review_decision"
+    ></div>
+    <div
+      opal-lib-govuk-radios-item
+      labelText="Reject"
+      inputId="create_casefile_review_decision-reject"
+      inputName="create_casefile_review_decision"
+      inputValue="reject"
+      ariaControls="create_casefile_review_rejection"
+      [control]="form.controls.create_casefile_review_decision"
+    ></div>
+  </opal-lib-govuk-radio>
+  @if (form.controls.create_casefile_review_decision.value === 'reject') {
+    <div class="govuk-radios__conditional" id="create_casefile_review_rejection">
+      <div
+        class="govuk-form-group"
+        [class.govuk-form-group--error]="!!formControlErrorMessages['create_casefile_review_rejection_reason']"
+      >
+        <label class="govuk-label" for="create_casefile_review_rejection_reason">Reason for rejection</label>
+        <p id="create_casefile_review_rejection_reason-hint" class="govuk-hint">You can enter up to 250 characters</p>
+        @if (formControlErrorMessages['create_casefile_review_rejection_reason']) {
+          <p id="create_casefile_review_rejection_reason-error-message" class="govuk-error-message">
+            <span class="govuk-visually-hidden">Error:</span>
+            {{ formControlErrorMessages['create_casefile_review_rejection_reason'] }}
+          </p>
+        }
+        <!-- Allow over-limit typing so submission can show the approved validation message. -->
+        <textarea
+          id="create_casefile_review_rejection_reason"
+          name="create_casefile_review_rejection_reason"
+          class="govuk-textarea"
+          rows="5"
+          [formControl]="form.controls.create_casefile_review_rejection_reason"
+          [class.govuk-textarea--error]="!!formControlErrorMessages['create_casefile_review_rejection_reason']"
+          [attr.aria-invalid]="formControlErrorMessages['create_casefile_review_rejection_reason'] ? 'true' : null"
+          [attr.aria-describedby]="reasonDescribedBy()"
+        ></textarea>
+        <p id="create_casefile_review_rejection_reason-count" class="govuk-hint" aria-live="polite">
+          {{ reasonCountText() }}
+        </p>
+      </div>
+    </div>
+  }
+  <button class="govuk-button" id="create_casefile_review_continue" type="submit">Continue</button>
+</form>

@@ -1,3 +1,7 @@
+import { By } from '@angular/platform-browser';
+import { CasesDraftCasefileDecisionComponent } from '../../cases-draft/components/cases-draft-casefile-decision/cases-draft-casefile-decision.component';
+import { defaultCasesDraftNavigation } from '../../cases-draft/utils/cases-draft-navigation';
+import type { ICasesDraftNavigation } from '../../cases-draft/interfaces/cases-draft-navigation.interface';
 import { createPersistedCasefileResolved } from '../../cases-draft/mocks/cases-draft-casefile-resolved.mock';
 import { MINOR_CREDITOR_DETAILS_MOCK } from '../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from '../cases-create-casefile-applicant-organisation/mocks/cases-create-casefile-applicant-organisation.mock';
@@ -48,7 +52,12 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   });
   const authenticated = signal(true);
   const featureFlags = signal<Record<string, boolean>>({ 'release-1c-rm-create-case-files': true });
+  const selection = signal<ICasesDraftNavigation>(defaultCasesDraftNavigation('to-review', 'checker'));
   const draftNavigation = {
+    selection,
+    dashboardUrl: vi
+      .fn()
+      .mockImplementation((value: ICasesDraftNavigation) => `/cases/draft/check-and-validate/tabs#${value.tab}`),
     persistedDashboardUrl: vi
       .fn()
       .mockImplementation((mode: 'inputter' | 'checker') =>
@@ -79,6 +88,8 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
         },
       ],
     });
+    selection.set(defaultCasesDraftNavigation('to-review', 'checker'));
+    draftNavigation.dashboardUrl.mockClear();
     draftNavigation.persistedDashboardUrl.mockClear();
     draftNavigation.contextForPlaceholder.mockReturnValue(null);
     draftNavigation.returnFromPlaceholder.mockReset().mockResolvedValue(true);
@@ -134,6 +145,235 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     store.setTaskStatus('respondent', CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
     fixture = TestBed.createComponent(CasesCreateCasefileCheckDetailsComponent);
   });
+
+  const loadReview = (resolved = persisted()) => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = resolved.intent;
+    routeData.next({ draftCasefile: resolved });
+  };
+  const decisionForm = (): CasesDraftCasefileDecisionComponent =>
+    fixture.debugElement.query(By.directive(CasesDraftCasefileDecisionComponent))?.componentInstance;
+
+  it.each(['SUBMITTED', 'RESUBMITTED'] as const)('renders decisions only for an eligible %s review', (status) => {
+    const resolved = persisted();
+    resolved.draft.casefile_status = status;
+    loadReview(resolved);
+    fixture.detectChanges();
+    expect(decisionForm()).toBeDefined();
+    expect(fixture.nativeElement.querySelector('#create_casefile_review_continue')).not.toBeNull();
+  });
+
+  it.each(['create', 'inputter-view', 'checker-view', 'approved', 'own draft'] as const)(
+    'hides decisions for %s',
+    (mode) => {
+      const resolved = persisted();
+      if (mode === 'approved') resolved.draft.casefile_status = 'PUBLISHING_PENDING';
+      else if (mode === 'own draft') resolved.draft.submitted_by = 'BUU-CHECKER';
+      else if (mode !== 'create') resolved.intent = mode;
+      if (mode !== 'create') loadReview(resolved);
+      fixture.detectChanges();
+      expect(decisionForm()).toBeUndefined();
+    },
+  );
+
+  it.each(['approve', 'reject'] as const)(
+    'returns a validated %s to the checker queue without persisting it',
+    async (decision) => {
+      loadReview();
+      const selected = {
+        ...defaultCasesDraftNavigation('to-review', 'checker'),
+        page: 3,
+        direction: 'descending' as const,
+      };
+      selection.set(selected);
+      const completeSubmission = vi.spyOn(store, 'completeSubmission');
+      fixture.detectChanges();
+      const creationBefore = structuredClone(getState(store));
+      const persistedBefore = structuredClone(getState(TestBed.inject(CasesDraftCasefileStore)));
+      const globalBefore = structuredClone(getState(TestBed.inject(GlobalStore)));
+      const child = decisionForm();
+      child.form.setValue({
+        create_casefile_review_decision: decision,
+        create_casefile_review_rejection_reason: 'Synthetic reason',
+      });
+      child.handleContinue();
+      await fixture.whenStable();
+      expect(router.navigateByUrl).toHaveBeenCalledExactlyOnceWith('/cases/draft/check-and-validate/tabs#to-review');
+      expect(draftNavigation.dashboardUrl).toHaveBeenCalledExactlyOnceWith(selected);
+      expect(selection()).toEqual(selected);
+      expect(getState(store)).toEqual(creationBefore);
+      expect(getState(TestBed.inject(CasesDraftCasefileStore))).toEqual(persistedBefore);
+      expect(getState(TestBed.inject(GlobalStore))).toEqual(globalBefore);
+      expect(completeSubmission).not.toHaveBeenCalled();
+      expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+      expect(maintenance.getMajorCreditors).not.toHaveBeenCalled();
+    },
+  );
+
+  it('uses default to-review context when the current checker selection belongs to another queue', async () => {
+    loadReview();
+    const selected = { ...defaultCasesDraftNavigation('rejected', 'checker'), page: 4 };
+    selection.set(selected);
+    fixture.detectChanges();
+    decisionForm().form.controls.create_casefile_review_decision.setValue('approve');
+    decisionForm().handleContinue();
+    await fixture.whenStable();
+    expect(draftNavigation.dashboardUrl).toHaveBeenCalledExactlyOnceWith(
+      defaultCasesDraftNavigation('to-review', 'checker'),
+    );
+    expect(router.navigateByUrl).toHaveBeenCalledExactlyOnceWith('/cases/draft/check-and-validate/tabs#to-review');
+    expect(selection()).toEqual(selected);
+  });
+
+  it('retains invalid local input without navigating', async () => {
+    loadReview();
+    fixture.detectChanges();
+    const child = decisionForm();
+    fixture.nativeElement
+      .querySelector('form')
+      .dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }));
+    fixture.nativeElement.querySelector('#create_casefile_review_decision-reject').click();
+    fixture.detectChanges();
+    const reason = fixture.nativeElement.querySelector(
+      '#create_casefile_review_rejection_reason',
+    ) as HTMLTextAreaElement;
+    reason.value = '   ';
+    reason.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.nativeElement
+      .querySelector('form')
+      .dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(child.form.controls.create_casefile_review_rejection_reason.value).toBe('   ');
+    expect(fixture.nativeElement.textContent).toContain('Enter reason for rejection');
+  });
+
+  it.each(['false', 'rejected'] as const)(
+    'retains decision and reason on %s navigation with the safe banner',
+    async (result) => {
+      loadReview();
+      if (result === 'false') router.navigateByUrl.mockResolvedValueOnce(false);
+      else router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
+      fixture.detectChanges();
+      const child = decisionForm();
+      fixture.nativeElement.querySelector('#create_casefile_review_decision-reject').click();
+      fixture.detectChanges();
+      const reason = fixture.nativeElement.querySelector(
+        '#create_casefile_review_rejection_reason',
+      ) as HTMLTextAreaElement;
+      reason.value = 'Synthetic retained reason';
+      reason.dispatchEvent(new Event('input', { bubbles: true }));
+      const before = structuredClone(getState(TestBed.inject(CasesDraftCasefileStore)));
+      fixture.nativeElement
+        .querySelector('form')
+        .dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }));
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(decisionForm()).toBe(child);
+      expect(fixture.nativeElement.querySelector('#create_casefile_review_decision-reject').checked).toBe(true);
+      expect(fixture.nativeElement.querySelector('#create_casefile_review_rejection_reason').value).toBe(
+        'Synthetic retained reason',
+      );
+      expect(child.form.getRawValue()).toEqual({
+        create_casefile_review_decision: 'reject',
+        create_casefile_review_rejection_reason: 'Synthetic retained reason',
+      });
+      expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+      expect(TestBed.inject(UtilsService).scrollToTop).toHaveBeenCalled();
+      expect(getState(TestBed.inject(CasesDraftCasefileStore))).toEqual(before);
+      expect(fixture.componentInstance.busy()).toBe(false);
+    },
+  );
+
+  it.each(['permission', 'status'] as const)(
+    'rechecks live %s before accepting a retained form completion',
+    async (condition) => {
+      loadReview();
+      fixture.detectChanges();
+      const child = decisionForm();
+      child.form.controls.create_casefile_review_decision.setValue('approve');
+      if (condition === 'permission')
+        userState.set({
+          ...userState(),
+          business_unit_users: [
+            { ...userState().business_unit_users[0], permissions: [{ permission_id: 21, permission_name: 'Create' }] },
+          ],
+        });
+      else {
+        const replacement = persisted();
+        replacement.draft.casefile_status = 'PUBLISHING_PENDING';
+        TestBed.inject(CasesDraftCasefileStore).loadResolved(replacement);
+      }
+      child.handleContinue();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(decisionForm()).toBeUndefined();
+    },
+  );
+
+  it('ignores duplicate decision completion while navigation is pending', async () => {
+    loadReview();
+    let finish!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    fixture.detectChanges();
+    const child = decisionForm();
+    child.form.controls.create_casefile_review_decision.setValue('approve');
+    child.handleContinue();
+    child.handleContinue();
+    expect(fixture.componentInstance.busy()).toBe(true);
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    finish(true);
+    await fixture.whenStable();
+    expect(fixture.componentInstance.busy()).toBe(false);
+  });
+
+  it.each(['SUBMITTED', 'RESUBMITTED'] as const)(
+    'replaces old decision, reason and errors for another eligible %s draft',
+    async (status) => {
+      const first = persisted();
+      first.draft.casefile_status = status;
+      loadReview(first);
+      fixture.detectChanges();
+      const previous = decisionForm();
+      fixture.nativeElement.querySelector('#create_casefile_review_decision-reject').click();
+      fixture.detectChanges();
+      const reason = fixture.nativeElement.querySelector(
+        '#create_casefile_review_rejection_reason',
+      ) as HTMLTextAreaElement;
+      reason.value = 'x'.repeat(251);
+      reason.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.nativeElement
+        .querySelector('form')
+        .dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(previous.formErrorSummaryMessage).not.toHaveLength(0);
+      expect(fixture.nativeElement.textContent).toContain('Reason for rejection must be 250 characters or fewer');
+      const second = persisted();
+      second.draft.draft_casefile_id = first.draft.draft_casefile_id + 1;
+      second.draft.casefile_status = status;
+      loadReview(second);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const replacement = decisionForm();
+      expect(replacement).not.toBe(previous);
+      expect(replacement.form.getRawValue()).toEqual({
+        create_casefile_review_decision: null,
+        create_casefile_review_rejection_reason: '',
+      });
+      expect(replacement.formErrorSummaryMessage).toEqual([]);
+      expect(replacement.reasonValue()).toBe('');
+      expect(replacement.reasonError()).toBe(false);
+      expect(fixture.nativeElement.querySelector('.govuk-error-summary')).toBeNull();
+      expect(fixture.nativeElement.querySelector('#create_casefile_review_rejection_reason')).toBeNull();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+    },
+  );
 
   it('hydrates completed persisted data without another request or creation controls', () => {
     const resolved = persisted();

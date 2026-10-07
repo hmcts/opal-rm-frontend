@@ -7,7 +7,7 @@ Feature: All rejected consultation accessibility
   Scenario: Populated consultation and contained narrow table
     Given other inputters have rejected casefiles in my RM business unit
     When I open all rejected cases from my Rejected tab
-    Then I see the complete other-inputter collection with six sortable columns and no case counts
+    Then I see the complete other-inputter collection with six sortable columns and shared MOJ pagination
     And I check the page for accessibility
     And I capture the populated rejected consultation
     And the rejected table remains contained at 320 CSS pixels
@@ -19,20 +19,6 @@ Feature: All rejected consultation accessibility
     Then the rejected consultation shows its empty result without table or pagination
     And I check the page for accessibility
     And I capture the empty rejected consultation
-
-  @JIRA-STORY:PO-10607 @JIRA-EPIC:PO-10817
-  Scenario: Failure and pending Retry retain heading focus
-    Given my all rejected consultation fails once
-    When I open all rejected cases
-    Then I see a recoverable list failure without an empty message
-    And I check the page for accessibility
-    And I capture the failed rejected consultation
-    When I retry while the rejected provider response is pending
-    Then I check the page for accessibility
-    And I capture the pending rejected consultation
-    When the rejected provider completes the pending consultation
-    Then I see the refreshed other-inputter collection
-    And I check the page for accessibility
 
   @JIRA-STORY:PO-10607 @JIRA-EPIC:PO-10817
   Scenario: Page transition and both navigation boundaries

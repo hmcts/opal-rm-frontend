@@ -13,7 +13,6 @@ import type {
   SortableValuesType,
   SortDirectionType,
 } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
-import { GovukPaginationComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-pagination';
 import { MojPaginationComponent } from '@hmcts/opal-frontend-common/components/moj/moj-pagination';
 import { DaysAgoPipe } from '@hmcts/opal-frontend-common/pipes/days-ago';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
@@ -35,7 +34,6 @@ import { sortCasesDraftRows } from '../utils/cases-draft-sort';
     MojSortableTableRowDataComponent,
     MojSortableTableStatusComponent,
     MojPaginationComponent,
-    GovukPaginationComponent,
     DaysAgoPipe,
   ],
   templateUrl: './cases-draft-table.component.html',

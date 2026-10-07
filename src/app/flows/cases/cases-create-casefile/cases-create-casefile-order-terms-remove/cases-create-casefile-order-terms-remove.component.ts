@@ -55,8 +55,6 @@ export class CasesCreateCasefileOrderTermsRemoveComponent implements OnInit, OnD
 
   private async handleReturn(): Promise<void> {
     if (this.busy()) return;
-    const active = this.store.orderTermRemoval();
-    if (active && active !== this.selection) return;
     await this.navigateToSummary();
   }
 

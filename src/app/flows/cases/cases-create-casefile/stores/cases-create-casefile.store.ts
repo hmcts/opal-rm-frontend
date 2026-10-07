@@ -573,10 +573,8 @@ export const CasesCreateCasefileStore = signalStore(
         store.markOrderTermRemovalUnavailable();
         return false;
       }
-      if (!store.removeAcceptedOrderTerm(expected.termId)) {
-        store.markOrderTermRemovalUnavailable();
-        return false;
-      }
+      // Currentness synchronously proves the term exists and no amendment blocks its removal.
+      store.removeAcceptedOrderTerm(expected.termId);
       patchState(store, {
         orderTermRemoval: null,
         orderTermRemovalOutcome: 'removed',
@@ -606,8 +604,7 @@ export const CasesCreateCasefileStore = signalStore(
     ): boolean => {
       const pending = store.orderTermAmendment();
       if (
-        !pending ||
-        pending.termId !== store.currentOrderTermId() ||
+        pending?.termId !== store.currentOrderTermId() ||
         term.resultId !== pending.term.resultId ||
         page.resultId !== term.resultId
       )

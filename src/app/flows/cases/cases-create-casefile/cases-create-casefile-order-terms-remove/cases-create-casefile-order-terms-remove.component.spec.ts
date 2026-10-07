@@ -37,6 +37,45 @@ describe('CasesCreateCasefileOrderTermsRemoveComponent', () => {
     return fixture;
   };
 
+  it.each(['handleConfirm', 'handleCancel'] as const)(
+    'returns safely through %s when the selection is absent before component creation',
+    async (action) => {
+      const terms = structuredClone(store.orderTerms());
+      const fixture = TestBed.createComponent(CasesCreateCasefileOrderTermsRemoveComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.govuk-summary-card')).toBeNull();
+      await fixture.componentInstance[action]();
+
+      expect(router.navigateByUrl).toHaveBeenCalledOnce();
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/order-terms/summary');
+      expect(store.orderTerms()).toEqual(terms);
+      expect(store.orderTermRemovalOutcome()).toBeNull();
+      fixture.destroy();
+      expect(store.orderTermRemoval()).toBeNull();
+    },
+  );
+
+  it('does not start another return when the draft resets during pending cancellation', async () => {
+    let finish!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(new Promise<boolean>((resolve) => (finish = resolve)));
+    const fixture = renderRemoval();
+    const cancellation = fixture.componentInstance.handleCancel();
+
+    store.resetStore();
+    fixture.detectChanges();
+
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    expect(store.orderTerms()).toEqual([]);
+    finish(false);
+    await cancellation;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    expect(store.orderTermRemoval()).toBeNull();
+    expect(store.orderTermRemovalOutcome()).toBeNull();
+  });
+
   it('renders the captured order term with confirmation actions', () => {
     const fixture = renderRemoval();
 

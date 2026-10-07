@@ -18,6 +18,7 @@ describe('checker child routes', () => {
     expect(await (routing[1].loadComponent as () => Promise<unknown>)()).toBe(CasesDraftCheckAndValidateTabsComponent);
     expect(groups[1].data).toEqual({ ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, routePermissionId: [21, 22] });
     expect(groups[1].children?.map((route) => route.data)).toEqual([
+      { title: 'Delete casefile', casefileIntent: 'checker-delete' },
       { title: 'Review case', casefileIntent: 'checker-review' },
       { title: 'View case details', casefileIntent: 'checker-view' },
     ]);

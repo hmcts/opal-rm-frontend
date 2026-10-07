@@ -612,6 +612,8 @@ describe('AppComponent - browser', () => {
     ['/cases/create-casefile/task-list/123?tab=rejected&page=2', true],
     ['/cases/draft/check-and-validate/review/123', true],
     ['/cases/draft/check-and-validate/view/123?tab=failed', true],
+    ['/cases/draft/check-and-validate/delete/123', true],
+    ['/cases/draft/check-and-validate/delete/123?tab=failed#rejected', true],
     ['/cases/draft/check-and-validate/tabs', false],
     ['/cases/draft/create-and-manage/tabs', false],
     ['/cases/draft/create-and-manage/rejections?tab=rejected', false],

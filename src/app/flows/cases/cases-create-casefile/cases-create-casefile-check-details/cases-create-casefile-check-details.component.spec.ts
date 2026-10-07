@@ -55,6 +55,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   const selection = signal<ICasesDraftNavigation>(defaultCasesDraftNavigation('to-review', 'checker'));
   const draftNavigation = {
     selection,
+    deleteCasefileUrl: vi.fn().mockImplementation((id: number) => `/cases/draft/check-and-validate/delete/${id}`),
     dashboardUrl: vi
       .fn()
       .mockImplementation((value: ICasesDraftNavigation) => `/cases/draft/check-and-validate/tabs#${value.tab}`),
@@ -89,6 +90,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       ],
     });
     selection.set(defaultCasesDraftNavigation('to-review', 'checker'));
+    draftNavigation.deleteCasefileUrl.mockClear();
     draftNavigation.dashboardUrl.mockClear();
     draftNavigation.persistedDashboardUrl.mockClear();
     draftNavigation.contextForPlaceholder.mockReturnValue(null);
@@ -152,6 +154,93 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   };
   const decisionForm = (): CasesDraftCasefileDecisionComponent =>
     fixture.debugElement.query(By.directive(CasesDraftCasefileDecisionComponent))?.componentInstance;
+
+  it('navigates an eligible review Delete action without changing saved or creation state', async () => {
+    loadReview();
+    fixture.detectChanges();
+    const saved = structuredClone(getState(TestBed.inject(CasesDraftCasefileStore)));
+    const creation = structuredClone(getState(store));
+    const button = fixture.nativeElement.querySelector('opal-lib-govuk-button #create_casefile_review_delete');
+    expect(button).not.toBeNull();
+    expect(button.type).toBe('button');
+    expect(button.textContent.trim()).toBe('Delete casefile');
+    button.click();
+    await fixture.whenStable();
+    expect(router.navigateByUrl).toHaveBeenCalledExactlyOnceWith(
+      '/cases/draft/check-and-validate/delete/' + saved.draft!.draft_casefile_id,
+    );
+    expect(draftNavigation.deleteCasefileUrl).toHaveBeenCalledExactlyOnceWith(saved.draft!.draft_casefile_id);
+    expect(getState(TestBed.inject(CasesDraftCasefileStore))).toEqual(saved);
+    expect(getState(store)).toEqual(creation);
+    expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'create',
+    'inputter-view',
+    'checker-view',
+    'own submission',
+    'published',
+    'permission',
+    'authentication',
+    'release',
+    'identity',
+    'missing draft',
+  ])('blocks Delete rendering and direct invocation for %s', async (condition) => {
+    const result = persisted();
+    if (condition === 'inputter-view' || condition === 'checker-view') result.intent = condition;
+    if (condition === 'own submission') result.draft.submitted_by = 'BUU-CHECKER';
+    if (condition === 'published') result.draft.casefile_status = 'PUBLISHED';
+    if (condition !== 'create') loadReview(result);
+    if (condition === 'permission')
+      userState.set({
+        ...userState(),
+        business_unit_users: [
+          { ...userState().business_unit_users[0], permissions: [{ permission_id: 21, permission_name: 'Create' }] },
+        ],
+      });
+    if (condition === 'authentication') authenticated.set(false);
+    if (condition === 'release') featureFlags.set({});
+    if (condition === 'identity') userState.set({ ...userState(), user_id: 99 });
+    if (condition === 'missing draft') TestBed.inject(CasesDraftCasefileStore).resetStore();
+    await fixture.componentInstance.handleDelete();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#create_casefile_review_delete')).toBeNull();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it.each(['false', 'reject'])(
+    'shows the shared error banner on Delete navigation %s and allows another attempt',
+    async (failure) => {
+      loadReview();
+      const saved = structuredClone(getState(TestBed.inject(CasesDraftCasefileStore)));
+      if (failure === 'false') router.navigateByUrl.mockResolvedValueOnce(false);
+      else router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic failure'));
+      await fixture.componentInstance.handleDelete();
+      expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+      expect(TestBed.inject(UtilsService).scrollToTop).toHaveBeenCalledOnce();
+      expect(getState(TestBed.inject(CasesDraftCasefileStore))).toEqual(saved);
+      await fixture.componentInstance.handleDelete();
+      expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('ignores repeat Delete or decision calls while Delete navigation is pending', async () => {
+    loadReview();
+    let finish!: (accepted: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const pending = fixture.componentInstance.handleDelete();
+    await fixture.componentInstance.handleDelete();
+    await fixture.componentInstance.handleDecision();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    finish(true);
+    await pending;
+    expect(fixture.componentInstance.busy()).toBe(false);
+  });
 
   it.each(['SUBMITTED', 'RESUBMITTED'] as const)('renders decisions only for an eligible %s review', (status) => {
     const resolved = persisted();

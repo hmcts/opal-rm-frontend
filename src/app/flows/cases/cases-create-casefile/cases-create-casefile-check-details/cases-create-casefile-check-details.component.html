@@ -61,6 +61,15 @@
     @for (decisionDraft of decisionDrafts(); track decisionDraft.draft_casefile_id) {
       <app-cases-draft-casefile-decision (decisionEvent)="handleDecision()" />
     }
+    @if (reviewable()) {
+      <opal-lib-govuk-button
+        buttonId="create_casefile_review_delete"
+        buttonClasses="govuk-button--warning"
+        (buttonClickEvent)="handleDelete()"
+      >
+        Delete casefile
+      </opal-lib-govuk-button>
+    }
     @if (editable()) {
       <div class="govuk-button-group">
         <button id="create_casefile_review_submit" class="govuk-button" type="button" (click)="handleSubmit()">

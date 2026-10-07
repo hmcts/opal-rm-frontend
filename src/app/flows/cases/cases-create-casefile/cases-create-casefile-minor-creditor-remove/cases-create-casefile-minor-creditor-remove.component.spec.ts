@@ -72,13 +72,39 @@ describe('CasesCreateCasefileMinorCreditorRemoveComponent', () => {
   });
 
   it('confirms the local removal without issuing an HTTP request', async () => {
-    const { component, router } = await setupRemoval();
+    const { component, store, router } = await setupRemoval();
     vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
 
     await component.handleConfirm();
 
+    expect(store.creditorDraft()).toBeNull();
+    expect(component.committed()).toBe(true);
+    expect(router.navigateByUrl).toHaveBeenCalledWith(component.creditorPath);
     TestBed.inject(HttpTestingController).expectNone(() => true);
     TestBed.inject(HttpTestingController).verify();
+  });
+
+  it('does not navigate when there is no failed navigation to retry', async () => {
+    const { component, router } = await setupRemoval();
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+
+    await component.retryNavigation();
+
+    expect(component.retryAvailable()).toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('leaves the screen and draft intact when the store rejects confirmation', async () => {
+    const { component, store, router } = await setupRemoval();
+    const before = getState(store);
+    vi.spyOn(store, 'confirmMinorCreditorRemoval').mockReturnValue(false);
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+
+    await component.handleConfirm();
+
+    expect(component.committed()).toBe(false);
+    expect(getState(store)).toEqual(before);
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it.each([false, new Error('Synthetic navigation failure')])(
@@ -107,7 +133,9 @@ describe('CasesCreateCasefileMinorCreditorRemoveComponent', () => {
     expect(getState(store)).toEqual({ ...before, minorCreditorRemoval: null });
     expect(router.navigateByUrl).toHaveBeenCalledWith(
       '/cases/create-casefile/order-terms/creditor/minor-creditor-summary',
-      { state: { minorCreditorRemovalReturnFocus: true } },
+      {
+        state: { minorCreditorRemovalReturnFocus: true },
+      },
     );
   });
 
@@ -153,6 +181,9 @@ describe('CasesCreateCasefileMinorCreditorRemoveComponent', () => {
     const first = component.handleConfirm();
     await component.handleConfirm();
     await component.handleCancel(new Event('click', { cancelable: true }));
+    await component.recover();
+    await component.retryNavigation();
+    expect(component.retryAvailable()).toBe(false);
     expect(confirm).toHaveBeenCalledOnce();
     expect(navigate).toHaveBeenCalledOnce();
     finish(false);
@@ -162,8 +193,9 @@ describe('CasesCreateCasefileMinorCreditorRemoveComponent', () => {
   });
 
   it('hides stale details and destructive controls', async () => {
-    const { fixture, store } = await setupRemoval();
+    const { fixture, component, store } = await setupRemoval();
     patch(store, { creditorDraft: { ...draft } });
+    expect(component.rows()).toEqual([]);
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector('.govuk-summary-card')).toBeNull();

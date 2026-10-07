@@ -341,7 +341,9 @@ export class AllRejectedActions {
   public reflow(): void {
     cy.viewport(320, 900);
     cy.document().then((document) => expect(document.documentElement.scrollWidth).to.be.at.most(320));
-    cy.get(S.scrollRegion).should('have.attr', 'tabindex', '0').and('be.visible');
+    cy.get(S.scrollRegion).should('have.prop', 'tagName', 'SECTION');
+    cy.get(S.scrollRegion).should('not.have.attr', 'tabindex');
+    cy.get(S.scrollRegion).should('be.visible');
     accessibilityActions.checkAccessibilityOnly();
     cy.screenshot('po10607-e2e-reflow-320');
   }

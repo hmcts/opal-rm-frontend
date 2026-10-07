@@ -23,13 +23,11 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
       cy.get(S.tableRows).should('have.length', 25);
       cy.document().should((doc) => expect(doc.documentElement.scrollWidth).to.be.at.most(320));
       cy.get(S.scrollRegion)
-        .should('have.attr', 'role', 'region')
-        .and('have.attr', 'tabindex', '0')
+        .should('have.prop', 'tagName', 'SECTION')
         .and('have.attr', 'aria-label')
         .and('equal', TABS[tab].label + ' cases');
       cy.get(S.heading).should('be.focused');
-      for (let i = 0; i < 5; i++) cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.scrollRegion).should('be.focused');
+      for (let i = 0; i < 4; i++) cy.press(Cypress.Keyboard.Keys.TAB);
       for (const col of TABS[tab].columns) {
         cy.press(Cypress.Keyboard.Keys.TAB);
         cy.get(S.sort(col)).should('be.focused');
@@ -62,7 +60,10 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
       request.returns(new Subject<List>()),
     );
     cy.get(S.tab('deleted')).click();
-    cy.get(S.loading).should('be.visible').and('have.attr', 'aria-live', 'polite');
+    cy.get(S.loading)
+      .should('be.visible')
+      .and('have.prop', 'tagName', 'OUTPUT')
+      .and('have.attr', 'aria-live', 'polite');
     cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
     cy.checkA11y();
     cy.screenshot('po10606-checker-loading');
@@ -101,7 +102,7 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
   it('AC3. should reach sorting through native Tab and activate Enter', { tags: buildTags() }, () => {
     setupCheckerDashboard();
     cy.get(S.heading).should('be.focused');
-    for (let i = 0; i < 6; i++) cy.press(Cypress.Keyboard.Keys.TAB);
+    for (let i = 0; i < 5; i++) cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.sort('respondent')).should('be.focused');
     pressDashboardEnter();
     cy.get(S.sort('respondent')).closest('th').should('have.attr', 'aria-sort', 'ascending');
@@ -111,7 +112,7 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
   it('AC3. should reach pagination through native Tab and activate Enter', { tags: buildTags() }, () => {
     setupCheckerDashboard({ page: 2 });
     cy.get(S.heading).should('be.focused');
-    for (let i = 0; i < 12; i++) cy.press(Cypress.Keyboard.Keys.TAB);
+    for (let i = 0; i < 11; i++) cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.pagination).contains('a', 'Previous').should('be.focused');
     pressDashboardEnter();
     cy.get(S.row(1)).find('a').should('be.focused');
@@ -121,7 +122,7 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
   it('AC3. should reach respondent and Back through native keyboard', { tags: buildTags() }, () => {
     setupCheckerDashboard();
     cy.get(S.heading).should('be.focused');
-    for (let i = 0; i < 11; i++) cy.press(Cypress.Keyboard.Keys.TAB);
+    for (let i = 0; i < 10; i++) cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.row(1)).find('a').should('be.focused');
     pressDashboardEnter();
     cy.get(S.placeholderHeading).should('have.text', 'Review case').and('be.focused');

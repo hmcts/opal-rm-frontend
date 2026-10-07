@@ -128,7 +128,6 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   private async navigate(path: string): Promise<boolean> {
-    if (this.navigating()) return false;
     this.navigating.set(true);
     try {
       const navigated = await this.router.navigateByUrl(path);

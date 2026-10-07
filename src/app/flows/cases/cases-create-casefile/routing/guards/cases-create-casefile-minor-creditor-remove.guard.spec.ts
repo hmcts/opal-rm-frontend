@@ -41,6 +41,14 @@ describe('casesCreateCasefileMinorCreditorRemoveGuard', () => {
     expect(TestBed.inject(CasesCreateCasefileStore).minorCreditorRemoval()?.expectedDraft).toBe(draft);
   });
 
+  it('reuses the current selection captured by the summary', () => {
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    const selection = store.beginMinorCreditorRemoval();
+
+    expect(run()).toBe(true);
+    expect(store.minorCreditorRemoval()).toBe(selection);
+  });
+
   it.each<{ change: Partial<ICasesCreateCasefileState>; target: string }>([
     { change: { currentOrderTermId: null }, target: '/cases/create-casefile/order-terms/select' },
     { change: { orderTerms: [] }, target: '/cases/create-casefile/order-terms/select' },

@@ -8,6 +8,17 @@ import { buildMinorCreditors } from './utils/build-casefile/cases-create-casefil
 
 @Injectable({ providedIn: 'root' })
 export class CasesCreateCasefilePayloadService {
+  /** Preserves omission of optional fields in the mapped request, including nested objects. */
+  private removeUnprovidedFields(value: object): void {
+    for (const [key, field] of Object.entries(value)) {
+      if (field === undefined) {
+        Reflect.deleteProperty(value, key);
+      } else if (field && typeof field === 'object') {
+        this.removeUnprovidedFields(field);
+      }
+    }
+  }
+
   /** Builds the POST payload without mutating state. Throws for incomplete data or unresolved references. */
   public buildAddCasefilePayload(
     state: ICasesCreateCasefileState,
@@ -50,6 +61,8 @@ export class CasesCreateCasefilePayloadService {
         minor_creditors: buildMinorCreditors(state.minorCreditors, references),
       },
     };
-    return JSON.parse(JSON.stringify(payload)) as Request;
+    const request = structuredClone(payload);
+    this.removeUnprovidedFields(request);
+    return request;
   }
 }

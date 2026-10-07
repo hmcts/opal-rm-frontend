@@ -9,7 +9,10 @@ import {
 } from '@hmcts/opal-frontend-common/components/moj/moj-sortable-table';
 import { AbstractSortableTablePaginationComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table-pagination';
 import type { IAbstractTableData } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/interfaces';
-import type { SortableValuesType } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
+import type {
+  SortableValuesType,
+  SortDirectionType,
+} from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
 import { MojPaginationComponent } from '@hmcts/opal-frontend-common/components/moj/moj-pagination';
 import { DaysAgoPipe } from '@hmcts/opal-frontend-common/pipes/days-ago';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
@@ -19,7 +22,6 @@ import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-m
 import type { ICasesDraftRow } from '../interfaces/cases-draft-row.interface';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
-import type { SortDirectionType } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
 import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
 import { sortCasesDraftRows } from '../utils/cases-draft-sort';
 

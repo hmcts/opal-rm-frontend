@@ -471,9 +471,20 @@ export class CheckerDashboardActions {
   public reflow(): void {
     cy.viewport(320, 900);
     cy.document().then((document) => expect(document.documentElement.scrollWidth).to.be.at.most(320));
-    cy.get(S.scrollRegion).should('have.attr', 'tabindex', '0').and('have.attr', 'aria-label').and('not.be.empty');
-    cy.get(S.scrollRegion).focus().should('be.focused');
-    cy.press(Cypress.Keyboard.Keys.RIGHT);
+    cy.get(S.scrollRegion).should('have.prop', 'tagName', 'SECTION').and('have.attr', 'aria-label').and('not.be.empty');
+    cy.location('hash').then((fragment) => {
+      const tab = fragment.slice(1) as CasesDraftCheckerTab;
+      const columns = TABS[tab].columns;
+      cy.get(S.sort(columns[0])).focus().should('be.focused');
+      for (const column of columns.slice(1)) {
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.get(S.sort(column)).should('be.focused');
+      }
+    });
+    cy.get(S.scrollRegion).should((region) => {
+      expect(region[0].scrollWidth).to.be.greaterThan(region[0].clientWidth);
+      expect(region[0].scrollLeft).to.be.greaterThan(0);
+    });
     cy.screenshot('po10606-after-reflow-320');
   }
   /** Captures an accessible review/view shell after safe direct entry.

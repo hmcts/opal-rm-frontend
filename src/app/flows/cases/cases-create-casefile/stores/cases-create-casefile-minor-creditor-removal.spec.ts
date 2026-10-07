@@ -186,3 +186,30 @@ it('preserves another term removal transient and clears the matching one', () =>
   expect(store.removeAcceptedOrderTerm(1)).toBe(true);
   expect(store.minorCreditorRemoval()).toBeNull();
 });
+
+it('consumes a stale same-term outcome without reporting success', () => {
+  const store = seed();
+  expect(store.confirmMinorCreditorRemoval(store.beginMinorCreditorRemoval()!)).toBe(true);
+  const replacement = { ...store.orderTerms()[0] };
+  patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, { orderTerms: [replacement] });
+
+  expect(store.consumeMinorCreditorRemovalOutcome(1)).toBeNull();
+  expect(store.minorCreditorRemovalOutcome()).toBeNull();
+  expect(store.orderTerms()[0]).toBe(replacement);
+});
+
+it('preserves another term outcome and clears it when its own term is removed', () => {
+  const store = seed();
+  expect(store.confirmMinorCreditorRemoval(store.beginMinorCreditorRemoval()!)).toBe(true);
+  const outcome = store.minorCreditorRemovalOutcome();
+  expect(outcome).not.toBeNull();
+  const other = { ...store.orderTerms()[0], termId: 2 };
+  patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+    orderTerms: [...store.orderTerms(), other],
+  });
+
+  expect(store.removeAcceptedOrderTerm(2)).toBe(true);
+  expect(store.minorCreditorRemovalOutcome()).toBe(outcome);
+  expect(store.removeAcceptedOrderTerm(1)).toBe(true);
+  expect(store.minorCreditorRemovalOutcome()).toBeNull();
+});

@@ -118,6 +118,11 @@ describe('resolver-backed dashboard', () => {
       expect.objectContaining({ casefile_status: 'REJECTED' }),
     );
     expect(api.getRejectedDraftCasefileCount).not.toHaveBeenCalled();
+    const loading: HTMLElement = fixture.nativeElement.querySelector('#cases-draft-loading');
+    expect(loading.tagName).toBe('OUTPUT');
+    expect(loading.getAttribute('aria-live')).toBe('polite');
+    expect(loading.getAttribute('aria-atomic')).toBe('true');
+    expect(loading.textContent).toContain('Loading Rejected cases.');
     pending.next({ ...response('rejected'), count: 7 });
     await fixture.whenStable();
     fixture.detectChanges();
@@ -201,7 +206,7 @@ describe('resolver-backed dashboard', () => {
   it('uses the shared tab base and capped count formatting', async () => {
     const format = vi.spyOn(AbstractTabData.prototype, 'formatCountWithCap');
     const fixture = await render('in-review', response('in-review'), 102);
-    expect(fixture.componentInstance instanceof AbstractTabData).toBe(true);
+    expect(fixture.componentInstance).toBeInstanceOf(AbstractTabData);
     expect(format).toHaveBeenCalledWith(102, 99);
     format.mockRestore();
   });

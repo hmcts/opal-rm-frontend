@@ -13,9 +13,9 @@ export function mapCasesDraftRows(
   tab: CasesDraftTab,
   mode: CasesDraftDashboardMode = 'inputter',
 ): ICasesDraftRow[] {
-  const statuses = getCasesDraftTabMetadata(tab, mode).statuses.split(',');
+  const statuses = new Set(getCasesDraftTabMetadata(tab, mode).statuses.split(','));
   return summaries
-    .filter(({ casefile_status }) => statuses.includes(casefile_status))
+    .filter(({ casefile_status }) => statuses.has(casefile_status))
     .map((summary) => {
       const snapshot = summary.casefile_snapshot;
       return {

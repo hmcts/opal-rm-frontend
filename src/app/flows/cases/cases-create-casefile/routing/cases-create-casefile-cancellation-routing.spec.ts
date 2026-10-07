@@ -17,6 +17,8 @@ import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deact
 import { getState, patchState, type WritableStateSource } from '@ngrx/signals';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileComponent } from '../cases-create-casefile.component';
+import { CasesCreateCasefileCaseTypeComponent } from '../cases-create-casefile-case-type/cases-create-casefile-case-type.component';
+import { CasesCreateCasefileCaseTypeFormComponent } from '../cases-create-casefile-case-type/cases-create-casefile-case-type-form/cases-create-casefile-case-type-form.component';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
@@ -143,6 +145,7 @@ describe('Cancellation route lifecycle', () => {
     const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
     await click(harness, '#create_casefile_review_cancel a');
     context.setContext({ origin: 'review', section: 'commentsAndNotes' });
+    expect(context.context()).toEqual({ origin: 'review', section: 'commentsAndNotes' });
     await click(harness, '#create_casefile_cancel_confirm');
     expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
     expect(context.context()).toBeNull();
@@ -159,8 +162,19 @@ describe('Cancellation route lifecycle', () => {
     harness.routeNativeElement!.querySelector<HTMLElement>('#cases-draft-create')!.click();
     await harness.fixture.whenStable();
     harness.detectChanges();
+    // Outlet activation creates the form during this render; wait for its afterNextRender focus.
+    await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
-    expect(harness.routeNativeElement!.querySelector('input:checked')).toBeNull();
+    const parent = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCaseTypeComponent))
+      .componentInstance as CasesCreateCasefileCaseTypeComponent;
+    const form = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCaseTypeFormComponent))
+      .componentInstance as CasesCreateCasefileCaseTypeFormComponent;
+    expect(parent.focusHeadingOnArrival).toBe(true);
+    expect(form.focusHeading).toBe(true);
+    expect(document.activeElement?.id).toBe('create_casefile_case_type_heading');
+    expect(harness.routeNativeElement!.querySelector('input[type="radio"]:checked')).toBeNull();
+    expect(form.caseTypeControl.value).toBeNull();
+    expect(form.applicantTypeControl.value).toBeNull();
     expect(navigation.selection().tab).toBe(origin ? 'rejected' : 'in-review');
   });
 

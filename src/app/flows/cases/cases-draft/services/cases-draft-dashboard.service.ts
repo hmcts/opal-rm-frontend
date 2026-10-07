@@ -14,8 +14,7 @@ import { OpalMaintenanceService } from '../../services/opal-maintenance-service/
 import type { IOpalMaintenanceDraftCasefileListResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-list-response.interface';
 import type { ICasesDraftIdentity } from '../interfaces/cases-draft-identity.interface';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
-import type { CasesDraftOutcomeTab } from '../types/cases-draft-tab.type';
-import type { CasesDraftTab } from '../types/cases-draft-tab.type';
+import type { CasesDraftOutcomeTab, CasesDraftTab } from '../types/cases-draft-tab.type';
 import { resolveCasesDraftIdentity, sameCasesDraftIdentity } from '../utils/cases-draft-identity';
 import type { IOpalMaintenanceDraftCasefileCountResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-count-response.interface';
 import { getCasesDraftTabMetadata } from '../utils/cases-draft-tab-metadata';

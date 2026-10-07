@@ -37,7 +37,7 @@ export const setupCreateCasefileCaseType = (
       providers: [
         { provide: CasesCreateCasefileStore, useValue: store },
         { provide: GlobalStore, useValue: { setBannerError: cy.stub().as('caseTypeGlobalBannerError') } },
-        { provide: CasesDraftNavigationService, useValue: { creationReturnUrl: () => returnPath } },
+        { provide: CasesDraftNavigationService, useValue: { prepareCreationReturn: () => returnPath } },
         {
           provide: Router,
           useValue: {

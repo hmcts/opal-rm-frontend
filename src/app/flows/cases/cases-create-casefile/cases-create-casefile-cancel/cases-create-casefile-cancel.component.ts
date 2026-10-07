@@ -66,7 +66,7 @@ export class CasesCreateCasefileCancelComponent {
       this.deleted.set(true);
     }
 
-    await this.navigate(this.dashboardNavigation.creationReturnUrl());
+    await this.navigate(this.dashboardNavigation.prepareCreationReturn());
   }
 
   public async handleBack(): Promise<void> {

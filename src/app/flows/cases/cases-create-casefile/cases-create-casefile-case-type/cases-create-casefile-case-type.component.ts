@@ -125,7 +125,7 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
     if (this.cancelling()) return;
     this.cancelling.set(true);
     try {
-      await this.cancelRouter.navigateByUrl(this.dashboardNavigation.creationReturnUrl());
+      await this.cancelRouter.navigateByUrl(this.dashboardNavigation.prepareCreationReturn());
     } catch (error: unknown) {
       if (!(error instanceof HttpErrorResponse)) {
         this.globalStore.setBannerError({

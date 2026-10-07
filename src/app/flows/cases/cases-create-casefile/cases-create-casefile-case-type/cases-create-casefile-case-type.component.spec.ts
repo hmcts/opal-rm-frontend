@@ -45,7 +45,7 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileCaseTypeComponent],
       providers: [
-        { provide: CasesDraftNavigationService, useValue: { creationReturnUrl: () => returnUrl } },
+        { provide: CasesDraftNavigationService, useValue: { prepareCreationReturn: () => returnUrl } },
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: { parent: null } },
       ],

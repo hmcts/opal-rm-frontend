@@ -17,7 +17,7 @@ import { CasesCreateCasefileCancelComponent } from './cases-create-casefile-canc
 describe('CasesCreateCasefileCancelComponent', () => {
   const router = { navigateByUrl: vi.fn<(...args: unknown[]) => Promise<boolean>>() };
   const returnUrl = new UrlTree();
-  const dashboardNavigation = { creationReturnUrl: () => returnUrl };
+  const dashboardNavigation = { prepareCreationReturn: () => returnUrl };
   const reviewNavigation = { clearContext: vi.fn() };
   let store: InstanceType<typeof CasesCreateCasefileStore>;
   let fixture: ComponentFixture<CasesCreateCasefileCancelComponent>;
@@ -227,6 +227,7 @@ describe('Confirmed cancellation dashboard metadata', () => {
       const navigation = TestBed.inject(CasesDraftNavigationService);
       navigation.setSelection({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
       navigation.rememberCreateOrigin();
+      navigation.setSelection({ tab: 'in-review', page: 1, sort: 'created', direction: 'ascending' });
       const store = TestBed.inject(CasesCreateCasefileStore);
       patchState(
         store as unknown as WritableStateSource<ICasesCreateCasefileState>,

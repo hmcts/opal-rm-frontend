@@ -69,6 +69,25 @@ describe('CasesDraftNavigationService', () => {
     expect(service.selection()).toEqual(defaultCasesDraftNavigation('rejected'));
     expect(router.serializeUrl(service.creationReturnUrl())).toBe('/cases/draft/create-and-manage/tabs#approved');
   });
+  it('restores the captured local table state before cancellation returns without query parameters', () => {
+    remember();
+    service.setSelection(defaultCasesDraftNavigation('rejected'));
+    const destination = service.prepareCreationReturn();
+    expect(router.serializeUrl(destination)).toBe('/cases/draft/create-and-manage/tabs#approved');
+    expect(destination.queryParams).toEqual({});
+    expect(service.selection()).toEqual(selected);
+  });
+  it.each(['absent', 'cleared'])('returns to default In review when the creation origin is %s', (origin) => {
+    service.setSelection({ tab: 'in-review', page: 2, sort: 'respondent', direction: 'descending' });
+    if (origin === 'cleared') {
+      service.rememberCreateOrigin();
+      service.clearCreateOrigin();
+    }
+    const destination = service.prepareCreationReturn();
+    expect(router.serializeUrl(destination)).toBe('/cases/draft/create-and-manage/tabs#in-review');
+    expect(destination.queryParams).toEqual({});
+    expect(service.selection()).toEqual(defaultCasesDraftNavigation());
+  });
   it('clears old create origins for a direct new creation', () => {
     remember();
     service.clearCreateOrigin();

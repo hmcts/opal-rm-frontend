@@ -90,6 +90,12 @@ export class CasesDraftNavigationService {
     this.createOrigin.set(null);
   }
 
+  /** Restore the captured table state explicitly before navigating back from creation. */
+  public prepareCreationReturn(): UrlTree {
+    this.setSelection(this.createOrigin() ?? defaultCasesDraftNavigation());
+    return this.creationReturnUrl();
+  }
+
   public creationReturnUrl(): UrlTree {
     return this.dashboardUrl(this.createOrigin() ?? defaultCasesDraftNavigation());
   }

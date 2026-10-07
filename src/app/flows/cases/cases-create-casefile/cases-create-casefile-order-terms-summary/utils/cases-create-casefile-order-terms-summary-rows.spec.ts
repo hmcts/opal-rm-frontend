@@ -16,6 +16,19 @@ const term = (
 });
 
 describe('orderTermRows', () => {
+  it.each(['checkbox', 'select', 'radio', 'autocomplete'] as const)(
+    'preserves unknown saved %s choices when no label is available',
+    (kind) => {
+      const accepted = term(
+        [{ name: 'choice', label: 'Choice', kind, options: [{ value: 'known', label: 'Known choice' }] }],
+        { choice: kind === 'checkbox' ? ['known', 'retired'] : 'retired' },
+      );
+      expect(orderTermRows(accepted, '')).toEqual([
+        { id: 'choice', label: 'Choice', value: kind === 'checkbox' ? 'Known choice, retired' : 'retired' },
+      ]);
+    },
+  );
+
   it('preserves the sign of negative decimal fractions', () => {
     const accepted = term([{ name: 'amount', label: 'Amount', kind: 'money', options: [] }], { amount: '-0.10' });
     expect(orderTermRows(accepted, '')[0].value).toBe('-£0.10');

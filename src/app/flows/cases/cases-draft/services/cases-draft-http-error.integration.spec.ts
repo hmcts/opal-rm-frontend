@@ -15,6 +15,8 @@ import { AppComponent } from '../../../../app.component';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import { CasesDraftCheckAndValidateTabsComponent } from '../cases-draft-check-and-validate-tabs/cases-draft-check-and-validate-tabs.component';
 import { CasesDraftDashboardService } from './cases-draft-dashboard.service';
+import { CasesDraftCreateAndManageViewAllRejectedComponent } from '../cases-draft-create-and-manage-tabs/cases-draft-create-and-manage-view-all-rejected/cases-draft-create-and-manage-view-all-rejected.component';
+import { casesDraftAllRejectedResolver } from '../routing/resolvers/cases-draft-all-rejected.resolver';
 import { CasesDraftNavigationService } from './cases-draft-navigation.service';
 
 @Component({ template: '<h1>Access denied</h1>' })
@@ -220,5 +222,147 @@ describe('checker HTTP boundary through production interceptors and application 
     expect(error).not.toHaveBeenCalled();
     expect(complete).toHaveBeenCalledOnce();
     expect(router.url).toBe(dashboard);
+  });
+});
+
+const allRejected = '/cases/draft/create-and-manage/rejections';
+describe('inputter all-rejected HTTP through production interceptors and application shell', () => {
+  let fixture: ComponentFixture<AppComponent>;
+  let http: HttpTestingController;
+  let router: Router;
+  const exclusive = (request: import('@angular/common/http').HttpRequest<unknown>) =>
+    request.url === '/opal-maintenance-service/draft-casefiles';
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [AppComponent],
+      providers: [
+        appConfig.providers[2],
+        provideRouter([
+          {
+            path: 'cases/draft/create-and-manage/rejections',
+            component: CasesDraftCreateAndManageViewAllRejectedComponent,
+            resolve: { allRejectedCasefiles: casesDraftAllRejectedResolver },
+            runGuardsAndResolvers: 'always',
+          },
+          { path: 'error/:kind', component: DeniedComponent },
+          { path: 'access-denied', component: DeniedComponent },
+        ]),
+        provideHttpClientTesting(),
+        { provide: PLATFORM_ID, useValue: 'browser' },
+        { provide: AppInsightsService, useValue: { logException: vi.fn(), logPageView: vi.fn() } },
+        {
+          provide: LaunchDarklyService,
+          useValue: {
+            initializeLaunchDarklyClient: vi.fn(),
+            initializeLaunchDarklyFlags: () => Promise.resolve(),
+            initializeLaunchDarklyChangeListener: vi.fn(),
+          },
+        },
+        { provide: SessionService, useValue: { getTokenExpiry: () => of({ expiry: null }) } },
+      ],
+    });
+    const store = TestBed.inject(GlobalStore);
+    const user = structuredClone(OPAL_USER_STATE_MOCK);
+    user.status = 'active';
+    user.user_id = 100;
+    user.business_unit_users = [
+      {
+        business_unit_id: 44,
+        business_unit_user_id: identity.submittedBy,
+        permissions: [{ permission_id: 21, permission_name: 'Create and Manage Draft Casefiles' }],
+      },
+    ];
+    store.setUserState(user);
+    store.setAuthenticated(true);
+    store.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    http = TestBed.inject(HttpTestingController);
+    router = TestBed.inject(Router);
+    fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+  });
+  afterEach(() => http.verify());
+  async function settle() {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+  async function pendingRequest() {
+    let request!: import('@angular/common/http/testing').TestRequest;
+    await vi.waitFor(() => {
+      request = http.expectOne(exclusive);
+    });
+    expect(request.request.params.keys().sort()).toEqual(['business_unit_id', 'casefile_status', 'not_submitted_by']);
+    expect(request.request.params.get('business_unit_id')).toBe('44');
+    expect(request.request.params.get('casefile_status')).toBe('REJECTED');
+    expect(request.request.params.get('not_submitted_by')).toBe(identity.submittedBy);
+    return request;
+  }
+  it('keeps common recoverable banner beside local Retry and empty success', async () => {
+    const arrival = router.navigateByUrl(allRejected);
+    (await pendingRequest()).flush(
+      { title: 'Synthetic error title', detail: 'Synthetic error detail' },
+      { status: 500, statusText: 'Failure' },
+    );
+    await arrival;
+    await settle();
+    expect(fixture.nativeElement.textContent).toContain('Synthetic error detail');
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-failure')).not.toBeNull();
+    const retry = fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry') as HTMLButtonElement;
+    retry.click();
+    fixture.detectChanges();
+    (await pendingRequest()).flush({ count: 0, summaries: [] });
+    await settle();
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-empty')).not.toBeNull();
+    http.expectNone(exclusive);
+  });
+  it('uses generic reporting for decoder failure without exposing its raw body', async () => {
+    const arrival = router.navigateByUrl(allRejected);
+    (await pendingRequest()).flush({ count: 1, summaries: 'Synthetic private decoder body' });
+    await arrival;
+    await settle();
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Try again');
+    expect(fixture.nativeElement.textContent).not.toContain('Synthetic private decoder body');
+    expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+  });
+  it('renders recoverable network failure as Retry rather than successful empty', async () => {
+    const arrival = router.navigateByUrl(allRejected);
+    (await pendingRequest()).error(new ProgressEvent('error'));
+    await arrival;
+    await settle();
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-empty')).toBeNull();
+  });
+  it.each([
+    [400, 'internal-server'],
+    [401, 'internal-server'],
+    [403, 'permission-denied'],
+    [404, 'internal-server'],
+    [409, 'concurrency-failure'],
+    [500, 'internal-server'],
+  ])('preserves common non-retriable status %s navigation ownership', async (status, destination) => {
+    const destinations: string[] = [];
+    const subscription = router.events.subscribe((event) => {
+      if (event instanceof NavigationStart) destinations.push(event.url);
+    });
+    const arrival = router.navigateByUrl(allRejected);
+    (await pendingRequest()).flush({ retriable: false }, { status: Number(status), statusText: 'Failure' });
+    await arrival.catch(() => false);
+    await settle();
+    subscription.unsubscribe();
+    expect(router.url).toBe('/error/' + destination);
+    expect(destinations).toContain('/error/' + destination);
+    expect(destinations).not.toContain('/access-denied');
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-success')).toBeNull();
+  });
+  it('preserves common retriable conflict completion and reports an incomplete collection as failure', async () => {
+    const arrival = router.navigateByUrl(allRejected);
+    (await pendingRequest()).flush({ retriable: true }, { status: 409, statusText: 'Conflict' });
+    await arrival;
+    await settle();
+    expect(router.url).toBe(allRejected);
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-empty')).toBeNull();
   });
 });

@@ -1,0 +1,79 @@
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <a
+      id="cases-draft-all-rejected-back"
+      class="govuk-back-link"
+      [href]="backHref()"
+      (click)="backToYourCases($event)"
+      >{{ copy.back }}</a
+    >
+    <h1 #heading id="cases-draft-all-rejected-heading" class="govuk-heading-l" tabindex="-1">{{ copy.heading }}</h1>
+    @if (successText(); as message) {
+      <div
+        id="cases-draft-all-rejected-success"
+        class="govuk-notification-banner govuk-notification-banner--success"
+        role="alert"
+        aria-labelledby="cases-draft-all-rejected-success-title"
+        data-module="govuk-notification-banner"
+      >
+        <div class="govuk-notification-banner__header">
+          <h2 id="cases-draft-all-rejected-success-title" class="govuk-notification-banner__title">Success</h2>
+        </div>
+        <div class="govuk-notification-banner__content">
+          <p class="govuk-notification-banner__heading">{{ message }}</p>
+          <button
+            type="button"
+            opalLibGovukButton
+            buttonId="cases-draft-all-rejected-dismiss"
+            (click)="dismissSuccess()"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    }
+    @if (state(); as current) {
+      @switch (current.status) {
+        @case ('loading') {
+          <p
+            id="cases-draft-all-rejected-loading"
+            class="govuk-body"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {{ copy.loading }}
+          </p>
+        }
+        @case ('failure') {
+          <p
+            id="cases-draft-all-rejected-failure"
+            class="govuk-body"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {{ copy.failure }}
+          </p>
+          <button type="button" opalLibGovukButton buttonId="cases-draft-all-rejected-retry" (click)="retry()">
+            Retry
+          </button>
+        }
+        @case ('success') {
+          @if (current.rows.length) {
+            <app-cases-draft-table
+              presentation="all-rejected"
+              [rows]="current.rows"
+              [selection]="tableSelection()"
+              (sortChanged)="changeSort($event)"
+              (pageChanged)="changePage($event)"
+              (rowOpened)="openRow($event)"
+            />
+          } @else {
+            <p id="cases-draft-all-rejected-empty" class="govuk-body">{{ copy.empty }}</p>
+          }
+        }
+      }
+    }
+  </div>
+</div>

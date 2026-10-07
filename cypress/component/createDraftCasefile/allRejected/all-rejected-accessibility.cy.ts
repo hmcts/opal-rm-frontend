@@ -1,8 +1,7 @@
 import { setupAllRejected } from './setup/all-rejected.setup';
 import { allRejectedFixtures as F } from './mocks/all-rejected.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
-import { of, Subject } from 'rxjs';
-import type { IOpalMaintenanceDraftCasefileListResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-list-response.interface';
+import { of } from 'rxjs';
 import type { Router } from '@angular/router';
 import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 const listUrl = '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.rejections;
@@ -21,8 +20,6 @@ describe('All rejected cases native keyboard and accessibility', () => {
   const states = [
     { name: 'populated', options: {} },
     { name: 'empty', options: { rows: [] } },
-    { name: 'loading', options: { pending: true } },
-    { name: 'failure', options: { failure: true } },
     { name: 'success', options: { success: true } },
   ];
   for (const state of states)
@@ -113,40 +110,6 @@ describe('All rejected cases native keyboard and accessibility', () => {
     cy.get(S.heading).should('be.focused');
     cy.get('@listRequest').should('have.been.calledTwice');
   });
-  for (const completion of ['populated', 'empty', 'failure'] as const)
-    it(
-      'AC1, AC2. should preserve native Retry heading focus through ' + completion + ' completion',
-      { tags: buildTags() },
-      () => {
-        setupAllRejected({ failure: true });
-        const pending = new Subject<IOpalMaintenanceDraftCasefileListResponse>();
-        cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) =>
-          request.onSecondCall().returns(pending),
-        );
-        cy.get(S.allRejectedHeading).should('be.focused');
-        cy.press(Cypress.Keyboard.Keys.TAB);
-        cy.get(S.allRejectedRetry).should('be.focused');
-        pressDashboardEnter();
-        cy.get(S.allRejectedLoading).should('be.visible');
-        cy.get(S.allRejectedRetry).should('not.exist');
-        cy.get(S.allRejectedHeading).should('be.focused');
-        pressDashboardEnter();
-        cy.get('@listRequest').should('have.been.calledTwice');
-        cy.then(() => {
-          if (completion === 'failure') pending.error(new Error('Synthetic decoding failure'));
-          else {
-            const rows = completion === 'empty' ? [] : F.rows(1);
-            pending.next({ count: rows.length, summaries: rows });
-            pending.complete();
-          }
-        });
-        cy.get({ failure: S.allRejectedFailure, empty: S.allRejectedEmpty, populated: S.table }[completion]).should(
-          'be.visible',
-        );
-        cy.get(S.allRejectedHeading).should('be.focused');
-        cy.get('@listRequest').should('have.been.calledTwice');
-      },
-    );
   it(
     'AC4. should traverse Dismiss with native Tab and return to heading after native Enter',
     { tags: buildTags() },

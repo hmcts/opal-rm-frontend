@@ -7,7 +7,7 @@ Feature: All rejected casefiles
   Scenario: Consult the complete other-inputter rejection collection
     Given other inputters have rejected casefiles in my RM business unit
     When I open all rejected cases from my Rejected tab
-    Then I see the complete other-inputter collection with six sortable columns and no case counts
+    Then I see the complete other-inputter collection with six sortable columns and shared MOJ pagination
 
   @JIRA-STORY:PO-10607 @JIRA-EPIC:PO-10817
   Scenario: Keep list and dashboard selections independent during a protected details visit
@@ -24,12 +24,10 @@ Feature: All rejected casefiles
     Then the list starts with the oldest rejection on page one
 
   @JIRA-STORY:PO-10607 @JIRA-EPIC:PO-10817
-  Scenario: Recover a failed consultation
+  Scenario: A failed consultation does not activate the list
     Given my all rejected consultation fails once
-    When I open all rejected cases
-    Then I see a recoverable list failure without an empty message
-    When I retry the rejected consultation
-    Then I see the refreshed other-inputter collection
+    When I open all rejected cases from my Rejected tab
+    Then the existing error handling prevents the rejected list from opening
 
   @JIRA-STORY:PO-10607 @JIRA-EPIC:PO-10817
   Scenario: Browser history refreshes remembered list selection
@@ -48,15 +46,6 @@ Feature: All rejected casefiles
     Given there are no other-inputter rejected cases
     When I open all rejected cases
     Then the rejected consultation shows its empty result without table or pagination
-
-  @JIRA-STORY:PO-10607 @JIRA-EPIC:PO-10817
-  Scenario: Provider access loss owns a delayed Retry denial
-    Given my all rejected consultation fails once
-    When I open all rejected cases
-    Then I see a recoverable list failure without an empty message
-    When I retry while the rejected provider response is pending
-    And the provider revokes access during the pending rejected consultation
-    Then the denied pending consultation exposes no rejected rows or retry control
 
   @JIRA-STORY:PO-10607 @JIRA-EPIC:PO-10817
   Scenario Outline: Denied direct entry cannot consult rejected cases

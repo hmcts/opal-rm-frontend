@@ -22,35 +22,18 @@
       </div>
     </div>
   }
-  @if (state(); as current) {
-    @switch (current.status) {
-      @case ('loading') {
-        <p id="cases-draft-all-rejected-loading" class="govuk-body" role="status" aria-live="polite" aria-atomic="true">
-          {{ copy.loading }}
-        </p>
-      }
-      @case ('failure') {
-        <p id="cases-draft-all-rejected-failure" class="govuk-body" role="status" aria-live="polite" aria-atomic="true">
-          {{ copy.failure }}
-        </p>
-        <button type="button" opalLibGovukButton buttonId="cases-draft-all-rejected-retry" (click)="retry()">
-          Retry
-        </button>
-      }
-      @case ('success') {
-        @if (current.rows.length) {
-          <app-cases-draft-table
-            presentation="all-rejected"
-            [rows]="current.rows"
-            [selection]="tableSelection()"
-            (sortChanged)="changeSort($event)"
-            (pageChanged)="changePage($event)"
-            (rowOpened)="openRow($event)"
-          />
-        } @else {
-          <p id="cases-draft-all-rejected-empty" class="govuk-body">{{ copy.empty }}</p>
-        }
-      }
+  @if (casefiles(); as current) {
+    @if (current.rows.length) {
+      <app-cases-draft-table
+        presentation="all-rejected"
+        [rows]="current.rows"
+        [selection]="tableSelection()"
+        (sortChanged)="changeSort($event)"
+        (pageChanged)="changePage($event)"
+        (rowOpened)="openRow($event)"
+      />
+    } @else {
+      <p id="cases-draft-all-rejected-empty" class="govuk-body">{{ copy.empty }}</p>
     }
   }
 </div>

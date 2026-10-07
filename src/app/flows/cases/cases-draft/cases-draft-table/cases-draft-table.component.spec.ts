@@ -307,8 +307,10 @@ describe('checker rendered table', () => {
     expect(element.querySelector('caption')?.textContent?.trim()).toBe('All rejected cases');
     expect(element.querySelector('tbody a')?.getAttribute('href')).toBe('/cases/create-casefile/check-case-details/1');
     expect(element.querySelectorAll('th')).toHaveLength(6);
-    expect(element.querySelector('opal-lib-govuk-pagination')).not.toBeNull();
-    expect(element.textContent).not.toMatch(/Showing|total results|showing cases/);
+    expect(element.querySelector('opal-lib-moj-pagination')).not.toBeNull();
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
+      /Showing \d+ to \d+ of \d+ total results/,
+    );
   });
   it('retains checker dashboard caption and visible result counts', () => {
     const element: HTMLElement = render('rejected', 26).nativeElement;
@@ -536,7 +538,7 @@ describe('all-rejected rendered table', () => {
     return fixture;
   }
 
-  it('renders six columns, inputter detail links and count-free visible and hidden paging', () => {
+  it('renders six columns, inputter detail links and shared MOJ paging', () => {
     const fixture = render();
     const element: HTMLElement = fixture.nativeElement;
     expect([...element.querySelectorAll('th')].map((cell) => cell.textContent?.trim())).toEqual([
@@ -551,9 +553,11 @@ describe('all-rejected rendered table', () => {
     expect(element.querySelector('[data-column="submittedByName"]')?.textContent?.trim()).toBe('Synthetic submitter');
     expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
     expect(element.querySelector('tbody a')?.getAttribute('href')).toBe('/cases/create-casefile/check-case-details/1');
-    expect(element.querySelector('opal-lib-moj-pagination')).toBeNull();
-    expect(element.querySelector('#cases-draft-pagination nav')).not.toBeNull();
-    expect(element.textContent).not.toMatch(/Showing|total results|showing cases/);
+    expect(element.querySelector('opal-lib-moj-pagination')).not.toBeNull();
+    expect(element.querySelector('opal-lib-moj-pagination nav')).not.toBeNull();
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
+      /Showing \d+ to \d+ of \d+ total results/,
+    );
     expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 1 of 2');
   });
 
@@ -649,7 +653,9 @@ describe('all-rejected rendered table', () => {
     expect(element.querySelectorAll('tbody tr')).toHaveLength(Math.min(count, 25));
     expect(Boolean(element.querySelector('#cases-draft-pagination'))).toBe(count > 25);
     expect(element.querySelector('output')?.textContent).toBe(`All rejected cases, page 1 of ${count > 25 ? 2 : 1}`);
-    expect(element.textContent).not.toMatch(/Showing|total results|showing cases/);
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toBe(
+      count > 25 ? 'Showing 1 to 25 of 26 total results' : undefined,
+    );
   });
 
   it('uses local native page links, two inactive ellipses and one current page across edges', () => {
@@ -672,7 +678,7 @@ describe('all-rejected rendered table', () => {
     });
     fixture.detectChanges();
     expect(element.querySelectorAll('#cases-draft-pagination [aria-current="page"]')).toHaveLength(1);
-    expect(element.querySelector('#cases-draft-pagination [aria-current="page"] a')?.getAttribute('aria-label')).toBe(
+    expect(element.querySelector('#cases-draft-pagination a[aria-current="page"]')?.getAttribute('aria-label')).toBe(
       'Page 5',
     );
     const ellipses = element.querySelectorAll('.govuk-pagination__item--ellipses');
@@ -682,14 +688,16 @@ describe('all-rejected rendered table', () => {
     fixture.detectChanges();
     expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(element.querySelector('[rel="next"]')).toBeNull();
-    expect(element.querySelector('#cases-draft-pagination [aria-current="page"] a')?.getAttribute('aria-label')).toBe(
+    expect(element.querySelector('#cases-draft-pagination a[aria-current="page"]')?.getAttribute('aria-label')).toBe(
       'Page 11',
     );
     (element.querySelector('[rel="prev"]') as HTMLAnchorElement).click();
     fixture.detectChanges();
     expect(pageChanged).toHaveBeenLastCalledWith(10);
     expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 10 of 11');
-    expect(element.textContent).not.toMatch(/Showing|total results|showing cases/);
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
+      /Showing \d+ to \d+ of \d+ total results/,
+    );
     expect(navigate).not.toHaveBeenCalled();
     expect(routerNavigate).not.toHaveBeenCalled();
   });
@@ -766,7 +774,7 @@ describe('all-rejected rendered table', () => {
   ])('clamps stored page %s to page %s', (page, expected) => {
     const element: HTMLElement = render(26, page).nativeElement;
     expect(element.querySelector('output')?.textContent).toBe(`All rejected cases, page ${expected} of 2`);
-    expect(element.querySelector('#cases-draft-pagination [aria-current="page"] a')?.getAttribute('aria-label')).toBe(
+    expect(element.querySelector('#cases-draft-pagination a[aria-current="page"]')?.getAttribute('aria-label')).toBe(
       `Page ${expected}`,
     );
   });
@@ -791,6 +799,8 @@ describe('all-rejected rendered table', () => {
     fixture.componentInstance.onPageChange(2);
     fixture.detectChanges();
     expect(changed).toHaveBeenCalledTimes(1);
-    expect(element.textContent).not.toMatch(/Showing|total results|showing cases/);
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
+      /Showing \d+ to \d+ of \d+ total results/,
+    );
   });
 });

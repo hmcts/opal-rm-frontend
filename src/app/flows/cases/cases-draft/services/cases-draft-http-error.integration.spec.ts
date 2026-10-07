@@ -297,41 +297,58 @@ describe('inputter all-rejected HTTP through production interceptors and applica
     expect(request.request.params.get('not_submitted_by')).toBe(identity.submittedBy);
     return request;
   }
-  it('keeps common recoverable banner beside local Retry and empty success', async () => {
+  it('keeps recoverable HTTP failure in the common banner without activating the rejected screen', async () => {
+    const previous = router.url;
     const arrival = router.navigateByUrl(allRejected);
-    (await pendingRequest()).flush(
+    const rejected = expect(arrival).rejects.toBeTruthy();
+    const pending = await pendingRequest();
+    expect(
+      fixture.nativeElement.querySelector(
+        '#cases-draft-all-rejected-heading, #cases-draft-all-rejected-loading, #cases-draft-all-rejected-retry',
+      ),
+    ).toBeNull();
+    pending.flush(
       { title: 'Synthetic error title', detail: 'Synthetic error detail' },
       { status: 500, statusText: 'Failure' },
     );
-    await arrival;
+    await rejected;
     await settle();
+    expect(router.url).toBe(previous);
     expect(fixture.nativeElement.textContent).toContain('Synthetic error detail');
-    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-failure')).not.toBeNull();
-    const retry = fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry') as HTMLButtonElement;
-    retry.click();
-    fixture.detectChanges();
-    (await pendingRequest()).flush({ count: 0, summaries: [] });
-    await settle();
-    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-empty')).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '#cases-draft-all-rejected-heading, #cases-draft-all-rejected-failure, #cases-draft-all-rejected-retry, #cases-draft-all-rejected-empty',
+      ),
+    ).toBeNull();
     http.expectNone(exclusive);
   });
-  it('uses generic reporting for decoder failure without exposing its raw body', async () => {
+  it('uses generic service reporting for decoder failure without exposing its raw body or activating an empty page', async () => {
     const arrival = router.navigateByUrl(allRejected);
+    const rejected = expect(arrival).rejects.toBeTruthy();
     (await pendingRequest()).flush({ count: 1, summaries: 'Synthetic private decoder body' });
-    await arrival;
+    await rejected;
     await settle();
-    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Try again');
+    expect(
+      fixture.nativeElement.querySelector(
+        '#cases-draft-all-rejected-heading, #cases-draft-all-rejected-retry, #cases-draft-all-rejected-empty',
+      ),
+    ).toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Synthetic private decoder body');
     expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
   });
-  it('renders recoverable network failure as Retry rather than successful empty', async () => {
+  it('propagates network failure without activating the rejected screen or a fabricated empty result', async () => {
+    const previous = router.url;
     const arrival = router.navigateByUrl(allRejected);
+    const rejected = expect(arrival).rejects.toBeTruthy();
     (await pendingRequest()).error(new ProgressEvent('error'));
-    await arrival;
+    await rejected;
     await settle();
-    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-empty')).toBeNull();
+    expect(router.url).toBe(previous);
+    expect(
+      fixture.nativeElement.querySelector(
+        '#cases-draft-all-rejected-heading, #cases-draft-all-rejected-retry, #cases-draft-all-rejected-empty',
+      ),
+    ).toBeNull();
   });
   it.each([
     [400, 'internal-server'],
@@ -356,13 +373,19 @@ describe('inputter all-rejected HTTP through production interceptors and applica
     expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry')).toBeNull();
     expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-success')).toBeNull();
   });
-  it('preserves common retriable conflict completion and reports an incomplete collection as failure', async () => {
+  it('preserves common retriable conflict completion and reports incomplete resolution globally without activation', async () => {
+    const previous = router.url;
     const arrival = router.navigateByUrl(allRejected);
+    const cancelled = expect(arrival).resolves.toBe(false);
     (await pendingRequest()).flush({ retriable: true }, { status: 409, statusText: 'Conflict' });
-    await arrival;
+    await cancelled;
     await settle();
-    expect(router.url).toBe(allRejected);
-    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-retry')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-empty')).toBeNull();
+    expect(router.url).toBe(previous);
+    expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector(
+        '#cases-draft-all-rejected-heading, #cases-draft-all-rejected-retry, #cases-draft-all-rejected-empty',
+      ),
+    ).toBeNull();
   });
 });

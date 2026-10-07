@@ -104,3 +104,37 @@ the equivalent `TAGS` parameter. No new release selector or automatic flag mutat
 Release-specific functional and accessibility scenarios live under `features/releaseFlags`. Their Jira story, epic and
 test identifiers are intentionally unassigned pending confirmed ticket metadata. A Cucumber dry run proves scenario
 selection and step binding only; it is not evidence of a completed browser journey or deployed authentication.
+
+## PO-10607 all rejected consultation
+
+`features/createDraftCasefile/AllRejectedCasefiles.feature` and `AllRejectedCasefilesAccessibility.feature` prove
+routed consultation, independent dashboard/list returns, browser history, refresh defaults, page clamping, empty/error
+results, pending Retry and access boundaries. `features/releaseFlags/AllRejectedCasefilesFlagOff.feature` proves denied
+direct entry. Every scenario carries Story PO-10607 and Epic PO-10817 metadata.
+
+The HTTP fixtures are cloned synthetic BU-44 summaries. Dashboard queries use `submitted_by=BUU-SYNTHETIC`; the complete
+other-inputter collection uses exactly `business_unit_id=44`, `casefile_status=REJECTED` and
+`not_submitted_by=BUU-SYNTHETIC`. Sorting and paging leave application URLs and API queries unchanged. Persisted reads
+and writes are observed separately and must remain absent. Details/amendment are protected shells for future tickets;
+the production resubmission producer is not implemented. Success receiver evidence is in component/unit tests.
+
+Build the local SSR application with `corepack yarn build:ssr`, with compatible User and Maintenance services at their
+configured URLs. Start a controlled server using Node from `.nvmrc`:
+
+```bash
+FEATURE_FLAGS_OVERRIDE=true RELEASE_1C_RM_CREATE_CASE_FILES_ENABLED=true PORT=5200 node dist/opal-rm-frontend/server/main.js
+TEST_URL=http://localhost:5200 BROWSER_TO_RUN=chrome TAGS='@JIRA-STORY:PO-10607 and @R1CRmCreateCaseFiles and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10607 and @R1CRmCreateCaseFiles and not @skip' corepack yarn test:functional:tags --browser chrome --serial
+TEST_URL=http://localhost:5200 BROWSER_TO_RUN=chrome corepack yarn test:functional:rm-create-case-files --browser chrome
+```
+
+Stop only that server process and restart with `RELEASE_1C_RM_CREATE_CASE_FILES_ENABLED=false`. Run the matching disabled
+selection:
+
+```bash
+TEST_URL=http://localhost:5200 BROWSER_TO_RUN=chrome TAGS='@JIRA-STORY:PO-10607 and @R1CRmCreateCaseFilesOff and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10607 and @R1CRmCreateCaseFilesOff and not @skip' corepack yarn test:functional:tags --browser chrome --serial
+TEST_URL=http://localhost:5200 BROWSER_TO_RUN=chrome corepack yarn test:functional:rm-create-case-files-off --browser chrome
+```
+
+Preserve `functional-output` reports and synthetic screenshots before the next runner reset. Axe, native keyboard and
+320px checks are partial accessibility evidence; screen-reader announcements and 200%/400% zoom remain human checks.
+Local sign-in uses the maintained stub account, not deployed SSO. These commands select tests and never mutate flags.

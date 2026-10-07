@@ -8,6 +8,7 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS as CREATE_PATHS } from 'src/app/flo
 import { CASES_DRAFT_TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-tabs.constant';
 import type { CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import type { IOpalMaintenanceDraftCasefileSummary } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-summary.interface';
+import { allRejectedRows } from '../../mocks/createDraftCasefile/all-rejected.mock';
 import { INPUTTER_USER, inputterRows, PUBLISHED_ROWS } from '../../mocks/createDraftCasefile/inputter-dashboard.mock';
 
 const COLLECTION = /\/opal-maintenance-service\/draft-casefiles(?:\?|$)/;
@@ -37,6 +38,16 @@ export class InputterDashboardActions {
     );
     cy.intercept('GET', COLLECTION, (request) => {
       this.requests.push({ ...request.query });
+      if (request.query['not_submitted_by'] !== undefined) {
+        expect(request.query).to.deep.equal({
+          business_unit_id: '44',
+          casefile_status: 'REJECTED',
+          not_submitted_by: 'BUU-SYNTHETIC',
+        });
+        const summaries = allRejectedRows();
+        request.reply({ body: { count: summaries.length, summaries } });
+        return;
+      }
       const tab = (Object.keys(CASES_DRAFT_TABS) as CasesDraftInputterTab[]).find(
         (key) => CASES_DRAFT_TABS[key].statuses === request.query['casefile_status'],
       );
@@ -206,8 +217,15 @@ export class InputterDashboardActions {
   /** Checks canonical all-rejected route, heading focus and absence of persistence traffic. */
   public expectAllRejectedPlaceholder(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.rejections);
-    cy.get('#cases-draft-placeholder-heading').should('have.text', 'View all rejected cases').and('be.focused');
-    cy.get('#cases-draft-placeholder-back').should('not.have.attr', 'target');
+    cy.get(S.allRejectedHeading).should('have.text', 'All rejected cases').and('be.focused');
+    cy.get(S.allRejectedBack).should('have.text', 'Back to your cases');
+    cy.then(() =>
+      expect(this.requests).to.deep.include({
+        business_unit_id: '44',
+        not_submitted_by: 'BUU-SYNTHETIC',
+        casefile_status: 'REJECTED',
+      }),
+    );
     this.assertNoPersistence();
   }
 
@@ -490,7 +508,7 @@ export class InputterDashboardActions {
    * @param kind Evidence name distinguishing valid and malformed destinations. */
   public screenshotShell(kind: string): void {
     cy.viewport(1440, 1000);
-    cy.get('#cases-draft-placeholder-heading').should('be.focused');
+    cy.get(kind === 'all-rejected' ? S.allRejectedHeading : S.placeholderHeading).should('be.focused');
     cy.screenshot('po10605-after-' + kind + '-shell');
   }
 }

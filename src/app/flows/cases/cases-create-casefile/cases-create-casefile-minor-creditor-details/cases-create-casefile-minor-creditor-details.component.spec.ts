@@ -443,4 +443,21 @@ describe('CasesCreateCasefileMinorCreditorDetailsComponent', () => {
     expect(store.orderTerms()).toEqual(acceptedBefore);
     expect(router.navigateByUrl).toHaveBeenLastCalledWith(orderTermsPath);
   });
+  it('retains staged details when Cancel is clicked during amendment submission navigation', async () => {
+    const { fixture, component, store, router } = await setup(amendmentState());
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockReturnValue(new Promise<boolean>((resolve) => (finish = resolve)));
+    fixture.detectChanges();
+    component.handleFormSubmit(submission());
+    const amendment = store.orderTermAmendment();
+    const pending = store.creditorDraft();
+    await component.handleCancel();
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.orderTermAmendment()).toBe(amendment);
+    expect(store.creditorDraft()).toBe(pending);
+    finish(false);
+    await fixture.whenStable();
+  });
 });

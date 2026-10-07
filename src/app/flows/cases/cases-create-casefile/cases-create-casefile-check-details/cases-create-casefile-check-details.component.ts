@@ -1,3 +1,5 @@
+import { CasesDraftCasefileDecisionComponent } from '../../cases-draft/components/cases-draft-casefile-decision/cases-draft-casefile-decision.component';
+import { defaultCasesDraftNavigation } from '../../cases-draft/utils/cases-draft-navigation';
 import { CasesDraftCasefileStore } from '../../cases-draft/stores/cases-draft-casefile.store';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
 import type { ICasesDraftCasefileResolved } from '../../cases-draft/interfaces/cases-draft-casefile-resolved.interface';
@@ -54,6 +56,7 @@ import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-ca
 @Component({
   selector: 'app-cases-create-casefile-check-details',
   imports: [
+    CasesDraftCasefileDecisionComponent,
     CasesDraftCasefileHistoryComponent,
     GovukSummaryListRowActionItemComponent,
     GovukCancelLinkComponent,
@@ -120,6 +123,8 @@ export class CasesCreateCasefileCheckDetailsComponent {
           true,
       ),
   );
+  // Recreate page-local decision state when another eligible draft replaces the current one.
+  public readonly decisionDrafts = computed(() => (this.reviewable() ? [this.persistedStore.draft()!] : []));
   public readonly submissionPending = this.submitting.asReadonly();
   public readonly busy = computed(() => this.navigating() || this.submitting());
   public readonly blocked = computed(() => this.busy() || this.store.submissionSucceeded());
@@ -210,6 +215,14 @@ export class CasesCreateCasefileCheckDetailsComponent {
       this.host.nativeElement.querySelector<HTMLElement>(`[id="${id}"]`) ??
       this.host.nativeElement.querySelector<HTMLElement>('#review-heading');
     target?.focus();
+  }
+
+  /** Returns validated local completion to the checker queue without recording a decision. */
+  public async handleDecision(): Promise<void> {
+    if (!this.reviewable() || this.busy()) return;
+    const current = this.draftNavigation.selection();
+    const selection = current.tab === 'to-review' ? current : defaultCasesDraftNavigation('to-review', 'checker');
+    await this.navigate(this.draftNavigation.dashboardUrl(selection));
   }
 
   public async handleSubmit(): Promise<void> {

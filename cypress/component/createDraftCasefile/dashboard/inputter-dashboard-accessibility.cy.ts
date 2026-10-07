@@ -130,7 +130,10 @@ describe('Inputter dashboard accessibility', () => {
     cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) => request.returns(pending));
     cy.get(S.tab('approved')).focus();
     pressDashboardEnter();
-    cy.get(S.loading).should('be.visible');
+    cy.get(S.loading)
+      .should('be.visible')
+      .and('have.prop', 'tagName', 'OUTPUT')
+      .and('have.attr', 'aria-live', 'polite');
     cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
     cy.checkA11y();
     cy.press(Cypress.Keyboard.Keys.TAB);
@@ -155,9 +158,12 @@ describe('Inputter dashboard accessibility', () => {
       setupInputterDashboard({ tab, rows });
       cy.get(S.heading).should('be.focused');
       cy.document().then((document) => expect(document.documentElement.scrollWidth).to.be.at.most(320));
-      cy.get(S.scrollRegion).should('have.attr', 'role', 'region').and('have.attr', 'tabindex', '0');
+      cy.get(S.scrollRegion).should('have.prop', 'tagName', 'SECTION');
+      cy.get(S.scrollRegion).should('not.have.attr', 'role');
+      cy.get(S.scrollRegion).should('not.have.attr', 'tabindex');
       cy.get(S.scrollRegion).should('have.attr', 'aria-label').and('include', 'cases');
-      cy.get(S.scrollRegion).focus().should('be.focused');
+      const firstColumn = tab === 'approved' ? 'respondentAccount' : 'respondent';
+      cy.get(S.sort(firstColumn)).focus().should('be.focused');
       cy.then(async () => {
         for (const type of ['keyDown', 'keyUp']) {
           await Cypress.automation('remote:debugger:protocol', {
@@ -185,7 +191,7 @@ describe('Inputter dashboard accessibility', () => {
           'approved',
         );
       else if (tab !== 'in-review') columns.push('statusDate');
-      for (const column of columns) {
+      for (const column of columns.slice(1)) {
         cy.press(Cypress.Keyboard.Keys.TAB);
         cy.get(S.sort(column)).should('be.focused');
       }

@@ -75,7 +75,7 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
   }
 
   private async navigateToCreditor(): Promise<void> {
-    if (this.navigationInFlight) return;
+    // Submission guards entry and calls this helper synchronously.
     this.navigationInFlight = true;
     try {
       await this.navigationRouter.navigateByUrl('/' + this.paths.root + '/' + this.paths.children.orderTermCreditor);
@@ -84,6 +84,41 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
     } finally {
       this.navigationInFlight = false;
     }
+  }
+
+  private submittedTerm(
+    page: ICasesCreateCasefileOrderTermPage,
+    values: Record<string, CasesCreateCasefileOrderTermRawValue>,
+  ): ICasesCreateCasefileOrderTerm | null {
+    try {
+      return canonicalOrderTerm(page, values, this.dates);
+    } catch {
+      return null;
+    }
+  }
+
+  private stageAmendment(values: Record<string, CasesCreateCasefileOrderTermRawValue>): boolean {
+    const amendment = this.store.orderTermAmendment();
+    const current = this.pages()[0];
+    if (!current || amendment?.termId !== this.store.currentOrderTermId()) return false;
+    const term = this.submittedTerm(current.page, values);
+    return term !== null && this.store.stageOrderTermAmendment(term, current.page);
+  }
+
+  private acceptSubmission(values: Record<string, CasesCreateCasefileOrderTermRawValue>): boolean {
+    if (this.acceptedTermId !== null && !this.retryDraft) return true;
+    const current = this.pages()[0];
+    if (!current) return false;
+    const term = this.submittedTerm(current.page, values);
+    if (!term) return false;
+    if (this.acceptedTermId === null) {
+      if (!this.store.acceptOrderTerm(term)) return false;
+      this.acceptedTermId = this.store.currentOrderTermId();
+    } else {
+      if (!this.store.replaceAcceptedOrderTerm(this.acceptedTermId, term)) return false;
+      this.retryDraft = null;
+    }
+    return true;
   }
 
   public handleDraftChange(change: ICasesCreateCasefileOrderTermDraftChange): void {
@@ -106,44 +141,10 @@ export class CasesCreateCasefileOrderTermsInputComponent extends AbstractFormPar
     nestedFlow: boolean;
   }): void {
     if (this.navigationInFlight) return;
-    const amendment = this.store.orderTermAmendment();
-    if (amendment) {
-      const current = this.pages()[0];
-      if (!current || amendment.termId !== this.store.currentOrderTermId()) return;
-      let term: ICasesCreateCasefileOrderTerm;
-      try {
-        term = canonicalOrderTerm(current.page, form.formData, this.dates);
-      } catch {
-        return;
-      }
-      if (!this.store.stageOrderTermAmendment(term, current.page)) return;
-      this.handleUnsavedChanges(false);
-      void this.navigateToCreditor();
-      return;
-    }
-    if (this.acceptedTermId === null) {
-      const current = this.pages()[0];
-      if (!current) return;
-      let term: ICasesCreateCasefileOrderTerm;
-      try {
-        term = canonicalOrderTerm(current.page, form.formData, this.dates);
-      } catch {
-        return;
-      }
-      if (!this.store.acceptOrderTerm(term)) return;
-      this.acceptedTermId = this.store.currentOrderTermId();
-    } else if (this.retryDraft) {
-      const current = this.pages()[0];
-      if (!current) return;
-      let term: ICasesCreateCasefileOrderTerm;
-      try {
-        term = canonicalOrderTerm(current.page, form.formData, this.dates);
-      } catch {
-        return;
-      }
-      if (!this.store.replaceAcceptedOrderTerm(this.acceptedTermId, term)) return;
-      this.retryDraft = null;
-    }
+    const submissionReady = this.store.orderTermAmendment()
+      ? this.stageAmendment(form.formData)
+      : this.acceptSubmission(form.formData);
+    if (!submissionReady) return;
     this.handleUnsavedChanges(false);
     void this.navigateToCreditor();
   }

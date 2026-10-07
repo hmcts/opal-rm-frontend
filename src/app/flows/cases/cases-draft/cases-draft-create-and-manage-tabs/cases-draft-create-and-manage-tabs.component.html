@@ -38,9 +38,9 @@
   @if (tabData$ | async; as result) {
     @if (isCurrentData(result)) {
       @if (result.rows === null) {
-        <p id="cases-draft-loading" role="status" aria-live="polite" aria-atomic="true" class="govuk-body">
+        <output id="cases-draft-loading" aria-live="polite" aria-atomic="true" class="govuk-body govuk-!-display-block">
           Loading {{ selectedTabLabel() }} cases.
-        </p>
+        </output>
       } @else if (result.rows.length === 0) {
         <p id="cases-draft-empty" class="govuk-body">{{ emptyMessage() }}</p>
       } @else {

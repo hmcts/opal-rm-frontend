@@ -32,9 +32,11 @@ describe('Order terms removal guard', () => {
     });
   });
 
-  const runGuard = (orderTermIndex: string) => {
+  const runGuard = (orderTermIndex?: string) => {
     const route = new ActivatedRouteSnapshot();
-    Object.defineProperty(route, 'paramMap', { value: convertToParamMap({ orderTermIndex }) });
+    Object.defineProperty(route, 'paramMap', {
+      value: convertToParamMap(orderTermIndex === undefined ? {} : { orderTermIndex }),
+    });
     return TestBed.runInInjectionContext(() =>
       casesCreateCasefileOrderTermsRemoveGuard(route, {} as RouterStateSnapshot),
     );
@@ -89,7 +91,10 @@ describe('Order terms removal guard', () => {
     },
   );
 
-  it.each(['-1', '1.5', 'x', '', '99'])('redirects invalid order term array index %j to Summary', (index) => {
-    expect(runGuard(index)).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/order-terms/summary'));
-  });
+  it.each(['-1', '1.5', 'x', '', '99', undefined])(
+    'redirects invalid order term array index %j to Summary',
+    (index) => {
+      expect(runGuard(index)).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/order-terms/summary'));
+    },
+  );
 });

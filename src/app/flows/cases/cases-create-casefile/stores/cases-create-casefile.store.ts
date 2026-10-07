@@ -633,7 +633,7 @@ export const CasesCreateCasefileStore = signalStore(
     /** Returns a matching current outcome once, consuming stale same-term outcomes as well. */
     consumeMinorCreditorRemovalOutcome: (termId: number): ICasesCreateCasefileMinorCreditorRemovalOutcome | null => {
       const outcome = store.minorCreditorRemovalOutcome();
-      if (!outcome || outcome.termId !== termId) return null;
+      if (outcome?.termId !== termId) return null;
       const matches =
         store.currentOrderTermId() === termId &&
         store.creditorDraft() === null &&
@@ -699,10 +699,8 @@ export const CasesCreateCasefileStore = signalStore(
         store.markOrderTermRemovalUnavailable();
         return false;
       }
-      if (!store.removeAcceptedOrderTerm(expected.termId)) {
-        store.markOrderTermRemovalUnavailable();
-        return false;
-      }
+      // Currentness synchronously proves the term exists and no amendment blocks its removal.
+      store.removeAcceptedOrderTerm(expected.termId);
       patchState(store, {
         orderTermRemoval: null,
         orderTermRemovalOutcome: 'removed',
@@ -734,8 +732,7 @@ export const CasesCreateCasefileStore = signalStore(
     ): boolean => {
       const pending = store.orderTermAmendment();
       if (
-        !pending ||
-        pending.termId !== store.currentOrderTermId() ||
+        pending?.termId !== store.currentOrderTermId() ||
         term.resultId !== pending.term.resultId ||
         page.resultId !== term.resultId
       )

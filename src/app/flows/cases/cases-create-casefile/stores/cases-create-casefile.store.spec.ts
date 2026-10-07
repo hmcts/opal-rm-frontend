@@ -1769,6 +1769,23 @@ describe('CasesCreateCasefileStore', () => {
       expect(getState(store)).toEqual(before);
     });
 
+    it('rejects a captured term removed from the collection without removing the surviving term', () => {
+      const other = { ...term, termId: 12 };
+      seedTerms(term, other);
+      const selected = store.beginOrderTermRemoval(term.termId)!;
+      patchState(stateSource, { orderTerms: [other] });
+      const before = structuredClone(getState(store));
+
+      expect(store.isOrderTermRemovalCurrent(selected)).toBe(false);
+      expect(store.confirmOrderTermRemoval(selected)).toBe(false);
+      expect(getState(store)).toEqual({
+        ...before,
+        orderTermRemoval: null,
+        orderTermRemovalOutcome: 'unavailable',
+        orderTermRemovalReturnFocusId: null,
+      });
+    });
+
     it('rejects a replacement object for the selected term ID', () => {
       seedTerms(term);
       const selection = store.beginOrderTermRemoval(term.termId)!;
@@ -2120,6 +2137,106 @@ describe('CasesCreateCasefileStore', () => {
       expect(store.acceptOrderTerm({ resultId: 'MAT', parameters: { amount } })).toBe(true);
       return store.currentOrderTermId()!;
     };
+
+    it.each([true, false])(
+      'rejects staged input without an amendment even when a current term exists (%s)',
+      (hasCurrentTerm) => {
+        acceptAmount('10.00');
+        if (!hasCurrentTerm) patchState(stateSource, { currentOrderTermId: null });
+        const before = structuredClone(getState(store));
+        expect(store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '30.00' } }, amendmentPage)).toBe(
+          false,
+        );
+        expect(getState(store)).toEqual(before);
+      },
+    );
+
+    it.each(['incomplete input', 'different term'] as const)(
+      'rejects new-creditor intent for an amendment with %s',
+      (reason) => {
+        const first = acceptAmount('10.00');
+        const second = acceptAmount('20.00');
+        store.beginOrderTermAmendment(first);
+        if (reason === 'different term') {
+          store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '30.00' } }, amendmentPage);
+          patchState(stateSource, { currentOrderTermId: second });
+        }
+        const before = structuredClone(getState(store));
+        expect(store.setPendingNewMinorCreditor(reason === 'different term' ? second : first)).toBe(false);
+        expect(getState(store)).toEqual(before);
+      },
+    );
+
+    it.each(['incomplete input', 'different term', 'missing draft', 'existing creditor'] as const)(
+      'rejects amendment creditor details for %s',
+      (reason) => {
+        const first = acceptAmount('10.00');
+        const second = acceptAmount('20.00');
+        store.beginOrderTermAmendment(first);
+        if (reason !== 'incomplete input')
+          store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '30.00' } }, amendmentPage);
+        const termId = reason === 'different term' ? second : first;
+        patchState(stateSource, {
+          currentOrderTermId: termId,
+          creditorDraft:
+            reason === 'missing draft'
+              ? null
+              : { termId, branch: 'add-new', ...(reason === 'existing creditor' ? { existingSequenceNumber: 1 } : {}) },
+        });
+        const before = structuredClone(getState(store));
+        expect(store.savePendingMinorCreditorDetails(termId, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom')).toBe(
+          false,
+        );
+        expect(getState(store)).toEqual(before);
+      },
+    );
+
+    it.each(['different term', 'missing details', 'missing country', 'existing creditor'] as const)(
+      'rejects completion when reviewed creditor data has %s',
+      (reason) => {
+        const termId = acceptAmount('10.00');
+        store.beginOrderTermAmendment(termId);
+        store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '30.00' } }, amendmentPage);
+        store.setPendingNewMinorCreditor(termId);
+        store.savePendingMinorCreditorDetails(termId, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom');
+        store.prepareAmendmentCompletion(termId);
+        patchState(stateSource, {
+          creditorDraft: {
+            termId: reason === 'different term' ? termId + 1 : termId,
+            branch: 'add-new',
+            details: reason === 'missing details' ? undefined : MINOR_CREDITOR_DETAILS_MOCK,
+            countryName: reason === 'missing country' ? undefined : 'United Kingdom',
+            ...(reason === 'existing creditor' ? { existingSequenceNumber: 1 } : {}),
+          },
+        });
+        const before = structuredClone(getState(store));
+        expect(store.completeOrderTermAmendment(store.orderTermAmendment()!, store.creditorDraft())).toBe(false);
+        expect(getState(store)).toEqual(before);
+      },
+    );
+
+    it.each(['missing assignment', 'missing minor creditor'] as const)(
+      'rejects completion with %s without changing accepted data',
+      (reason) => {
+        const termId = acceptAmount('10.00');
+        store.beginOrderTermAmendment(termId);
+        store.stageOrderTermAmendment({ resultId: 'MAT', parameters: { amount: '30.00' } }, amendmentPage);
+        store.stageAmendmentCreditor({ type: 'applicant' });
+        const pending = store.orderTermAmendment()!;
+        patchState(stateSource, {
+          orderTermAmendment: {
+            ...pending,
+            term: {
+              ...pending.term,
+              creditor: reason === 'missing assignment' ? null : { type: 'minor', sequenceNumber: 999 },
+            },
+          },
+        });
+        const before = structuredClone(getState(store));
+        expect(store.completeOrderTermAmendment(store.orderTermAmendment()!, null)).toBe(false);
+        expect(getState(store)).toEqual(before);
+      },
+    );
 
     it('keeps two equal Result IDs separate and stages without accepting', () => {
       const first = acceptAmount('10.00');

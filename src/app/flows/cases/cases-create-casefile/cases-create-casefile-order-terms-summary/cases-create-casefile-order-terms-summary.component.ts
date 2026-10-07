@@ -39,10 +39,9 @@ export class CasesCreateCasefileOrderTermsSummaryComponent implements OnInit, On
   private readonly taskListPath = this.root + this.paths.children.taskList;
   private readonly selectionPath = this.root + this.paths.children.orderTermsSelect;
   private navigationInFlight = false;
-  private focusedOutcome: string | null = null;
   private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
   private readonly removeLinks = viewChildren<ElementRef<HTMLElement>>('removeLink');
-  private readonly notice = viewChild(CasesCreateCasefileRemovalNotificationComponent);
+  private readonly notice = viewChild.required(CasesCreateCasefileRemovalNotificationComponent);
   public readonly removalOutcome = this.store.orderTermRemovalOutcome;
   public readonly cards = computed(() => {
     const context = {
@@ -83,13 +82,9 @@ export class CasesCreateCasefileOrderTermsSummaryComponent implements OnInit, On
       () => {
         const outcome = this.removalOutcome();
         if (outcome === 'removed') {
-          if (this.focusedOutcome !== outcome && this.notice()) {
-            this.notice()?.focus();
-            this.focusedOutcome = outcome;
-          }
+          this.notice().focus();
           return;
         }
-        this.focusedOutcome = null;
         const focusId = this.store.orderTermRemovalReturnFocusId();
         if (focusId === null) return;
         const link = this.removeLinks().find((item) => item.nativeElement.id === `order-term-${focusId}-remove`);

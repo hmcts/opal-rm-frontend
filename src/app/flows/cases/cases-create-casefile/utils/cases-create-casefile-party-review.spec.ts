@@ -175,4 +175,14 @@ describe('minor creditor review', () => {
     expect(section.rows.map((row) => row.id)).toEqual(['organisationName', 'address']);
     expect(section.bankRows[0].values).toEqual(['None or not applicable']);
   });
+  it('does not invent a label for an unknown stored bank type', () => {
+    const applicant = structuredClone(CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedNonUk);
+    const bank = applicant.bankDetails;
+    if (bank.type !== 'non-uk') throw new Error('Expected non-UK fixture');
+    const name = bank.nameOnAccount;
+    Object.assign(bank, { type: 'legacy-bank-type' });
+    const section = reviewApplicant(applicant, []);
+    expect(section.bankRows.find((row) => row.id === 'bankType')?.values).toEqual(['']);
+    expect(section.bankRows.find((row) => row.id === 'nameOnAccount')?.values).toEqual([name]);
+  });
 });

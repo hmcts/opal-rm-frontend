@@ -49,7 +49,13 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   const authenticated = signal(true);
   const featureFlags = signal<Record<string, boolean>>({ 'release-1c-rm-create-case-files': true });
   const draftNavigation = {
-    persistedDashboardUrl: vi.fn().mockReturnValue('/cases/draft/check-and-validate/tabs#to-review'),
+    persistedDashboardUrl: vi
+      .fn()
+      .mockImplementation((mode: 'inputter' | 'checker') =>
+        mode === 'checker'
+          ? '/cases/draft/check-and-validate/tabs#to-review'
+          : '/cases/draft/create-and-manage/tabs#in-review',
+      ),
     contextForPlaceholder: vi.fn().mockReturnValue(null),
     returnFromPlaceholder: vi.fn().mockResolvedValue(true),
   };
@@ -73,6 +79,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
         },
       ],
     });
+    draftNavigation.persistedDashboardUrl.mockClear();
     draftNavigation.contextForPlaceholder.mockReturnValue(null);
     draftNavigation.returnFromPlaceholder.mockReset().mockResolvedValue(true);
     routeData = new BehaviorSubject<Data>({ casefileIntent: 'create' });
@@ -217,11 +224,89 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     fixture.componentInstance.handleBack();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/draft/check-and-validate/tabs#to-review');
   });
+  it.each([
+    ['checker', 21, 'inputter', '/cases/draft/create-and-manage/tabs#in-review'],
+    ['inputter', 22, 'checker', '/cases/draft/check-and-validate/tabs#to-review'],
+  ] as const)(
+    'returns from %s through the remaining authorised dashboard after permission loss',
+    (preferred, permission, remaining, url) => {
+      TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] =
+        preferred === 'checker' ? 'checker-view' : 'inputter-view';
+      routeData.next({
+        draftCasefile: persisted({
+          intent: preferred === 'checker' ? 'checker-view' : 'inputter-view',
+          dashboardMode: preferred,
+        }),
+      });
+      fixture.detectChanges();
+      userState.set({
+        ...userState(),
+        business_unit_users: [
+          {
+            ...userState().business_unit_users[0],
+            permissions: [{ permission_id: permission, permission_name: 'Remaining' }],
+          },
+        ],
+      });
+      fixture.detectChanges();
+      fixture.componentInstance.handleBack();
+      expect(draftNavigation.persistedDashboardUrl).toHaveBeenCalledWith(remaining);
+      expect(router.navigateByUrl).toHaveBeenCalledWith(url);
+      expect(TestBed.inject(CasesDraftCasefileStore).draft()).not.toBeNull();
+    },
+  );
+  it('keeps the preferred inputter dashboard while its permission remains', () => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'inputter-view';
+    routeData.next({ draftCasefile: persisted({ intent: 'inputter-view', dashboardMode: 'inputter' }) });
+    fixture.detectChanges();
+    fixture.componentInstance.handleBack();
+    expect(draftNavigation.persistedDashboardUrl).toHaveBeenCalledWith('inputter');
+  });
+  it('discards all-rejected return authority when inputter permission is lost', () => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'inputter-view';
+    routeData.next({ draftCasefile: persisted({ intent: 'inputter-view', dashboardMode: 'inputter' }) });
+    draftNavigation.contextForPlaceholder.mockReturnValue({} as never);
+    fixture.detectChanges();
+    userState.set({
+      ...userState(),
+      business_unit_users: [
+        { ...userState().business_unit_users[0], permissions: [{ permission_id: 22, permission_name: 'Checker' }] },
+      ],
+    });
+    fixture.detectChanges();
+    fixture.componentInstance.handleBack();
+    expect(draftNavigation.returnFromPlaceholder).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/draft/check-and-validate/tabs#to-review');
+  });
+  it.each(['false', 'rejected'])(
+    'retains saved data and reports %s navigation after dashboard downgrade',
+    async (failure) => {
+      TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-view';
+      routeData.next({ draftCasefile: persisted({ intent: 'checker-view' }) });
+      fixture.detectChanges();
+      userState.set({
+        ...userState(),
+        business_unit_users: [
+          { ...userState().business_unit_users[0], permissions: [{ permission_id: 21, permission_name: 'Inputter' }] },
+        ],
+      });
+      if (failure === 'false') router.navigateByUrl.mockResolvedValue(false);
+      else router.navigateByUrl.mockRejectedValue(new Error('Navigation failed'));
+      fixture.componentInstance.handleBack();
+      await fixture.whenStable();
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/draft/create-and-manage/tabs#in-review');
+      expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+      expect(TestBed.inject(CasesDraftCasefileStore).draft()).not.toBeNull();
+      expect(fixture.componentInstance.busy()).toBe(false);
+    },
+  );
   it('keeps persisted content hidden until completed resolver data exists', () => {
     TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#review-heading')).toBeNull();
     expect(fixture.componentInstance.reviewable()).toBe(false);
+    fixture.componentInstance.handleBack();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
   it.each([
     'view intent',

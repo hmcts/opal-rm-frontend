@@ -5,7 +5,7 @@ import {
   canReviewDraftCasefile,
   resolveCasesDraftReadIdentity,
 } from '../../cases-draft/utils/cases-draft-casefile-permissions';
-import { sameCasesDraftIdentity } from '../../cases-draft/utils/cases-draft-identity';
+import { resolveCasesDraftIdentity, sameCasesDraftIdentity } from '../../cases-draft/utils/cases-draft-identity';
 import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '../../constants/release-1c-rm-create-case-files-feature-flag.constant';
 import { CasesDraftCasefileHistoryComponent } from '../../cases-draft/components/cases-draft-casefile-history/cases-draft-casefile-history.component';
 import { GovukSummaryListRowActionItemComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-summary-list';
@@ -329,7 +329,12 @@ export class CasesCreateCasefileCheckDetailsComponent {
       const result = this.persistedResult();
       if (!result || !this.readable()) return;
       const idText = this.route?.snapshot.paramMap?.get('draftCasefileId') ?? String(result.draft.draft_casefile_id);
-      if (this.draftNavigation.contextForPlaceholder('details', idText)) {
+      const user = this.globalStore.userState();
+      const released =
+        (this.globalStore.featureFlags() as Record<string, unknown>)[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] ===
+        true;
+      const inputterIdentity = resolveCasesDraftIdentity(user, released, 'inputter');
+      if (inputterIdentity && this.draftNavigation.contextForPlaceholder('details', idText)) {
         this.navigating.set(true);
         void this.draftNavigation
           .returnFromPlaceholder('details', idText)
@@ -339,7 +344,10 @@ export class CasesCreateCasefileCheckDetailsComponent {
           .catch(() => this.showError())
           .finally(() => this.navigating.set(false));
       } else {
-        void this.navigate(this.draftNavigation.persistedDashboardUrl(result.dashboardMode));
+        const preferredIdentity = resolveCasesDraftIdentity(user, released, result.dashboardMode);
+        const fallbackMode = result.dashboardMode === 'checker' ? 'inputter' : 'checker';
+        const dashboardMode = preferredIdentity ? result.dashboardMode : fallbackMode;
+        void this.navigate(this.draftNavigation.persistedDashboardUrl(dashboardMode));
       }
       return;
     }

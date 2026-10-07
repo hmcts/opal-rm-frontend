@@ -57,6 +57,18 @@ Compare changed executable lines against the PR's actual base, especially for st
 commands and uncovered line/condition counts. Local whole-file coverage supports the assessment, but does not replace
 Sonar's New Code calculation. Recheck the external analysis for the pushed commit; a result for an earlier SHA is stale.
 
+## Stacked pull request analysis
+
+`Jenkinsfile_CNP` fetches the actual PR target (`CHANGE_TARGET`) in a PR-only `before('sonarscan')` hook. The target is
+stored as a named remote-tracking ref, and shallow checkouts are expanded before verifying the merge base. This lets
+Sonar calculate changed lines when a PR targets another feature branch. The checked-out source commit is preserved.
+
+If a scan reports `Could not find ref`, or reports zero new lines for a PR with executable changes, inspect the Git
+checkout before changing coverage settings. Confirm that the target ref and merge base are present in the scanner's
+workspace and that the scan matches the current PR head. After a correction, rerun CI and verify that Sonar reports
+new executable lines and evaluates the new-code coverage condition. A green gate without those measurements does not
+prove that new-code coverage passed. For server-side issue comparisons, keep the target branch analysis current.
+
 ## Form identifiers
 
 Use one `create_casefile_<page-or-entity>_<field>` value for the reactive-form key and DOM ID/name. This canonical

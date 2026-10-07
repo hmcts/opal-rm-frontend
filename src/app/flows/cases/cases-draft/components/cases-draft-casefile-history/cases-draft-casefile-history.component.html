@@ -1,0 +1,14 @@
+<opal-lib-govuk-tag tagId="create_casefile_review_status">{{ statusLabel() }}</opal-lib-govuk-tag>
+<h2 class="govuk-heading-m govuk-!-margin-top-6">Case history</h2>
+<opal-lib-moj-timeline>
+  @for (item of items(); track item.key) {
+    <opal-lib-moj-timeline-item>
+      <span title>{{ item.status }}</span>
+      <span user>{{ item.username }}</span>
+      <span date>{{ item.status_date | date: 'd MMMM yyyy, HH:mm' }}</span>
+      @if (item.reason_text) {
+        <span description>{{ item.reason_text }}</span>
+      }
+    </opal-lib-moj-timeline-item>
+  }
+</opal-lib-moj-timeline>

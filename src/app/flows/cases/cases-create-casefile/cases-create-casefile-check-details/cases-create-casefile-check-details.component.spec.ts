@@ -1,10 +1,16 @@
+import { createPersistedCasefileResolved } from '../../cases-draft/mocks/cases-draft-casefile-resolved.mock';
 import { MINOR_CREDITOR_DETAILS_MOCK } from '../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from '../cases-create-casefile-applicant-organisation/mocks/cases-create-casefile-applicant-organisation.mock';
 import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { UtilsService } from '@hmcts/opal-frontend-common/services/utils-service';
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { of, Subject, throwError } from 'rxjs';
+import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
+import { signal } from '@angular/core';
+import type { Data } from '@angular/router';
+import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
+import { CasesDraftCasefileStore } from '../../cases-draft/stores/cases-draft-casefile.store';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { ActivatedRoute } from '@angular/router';
@@ -24,9 +30,52 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   let store: InstanceType<typeof CasesCreateCasefileStore>;
   const maintenance = { createDraftCasefile: vi.fn(), getMajorCreditors: vi.fn() };
   const router = { navigateByUrl: vi.fn().mockResolvedValue(true) };
-
+  let routeData: BehaviorSubject<Data>;
+  const userState = signal({
+    ...structuredClone(OPAL_USER_STATE_MOCK),
+    user_id: 10606,
+    status: 'active' as const,
+    business_unit_users: [
+      {
+        business_unit_id: 44,
+        business_unit_user_id: 'BUU-CHECKER',
+        permissions: [
+          { permission_id: 21, permission_name: 'Create' },
+          { permission_id: 22, permission_name: 'Review' },
+        ],
+      },
+    ],
+  });
+  const authenticated = signal(true);
+  const featureFlags = signal<Record<string, boolean>>({ 'release-1c-rm-create-case-files': true });
+  const draftNavigation = {
+    persistedDashboardUrl: vi.fn().mockReturnValue('/cases/draft/check-and-validate/tabs#to-review'),
+    contextForPlaceholder: vi.fn().mockReturnValue(null),
+    returnFromPlaceholder: vi.fn().mockResolvedValue(true),
+  };
+  const persisted = createPersistedCasefileResolved;
   beforeEach(async () => {
     router.navigateByUrl.mockReset().mockResolvedValue(true);
+    authenticated.set(true);
+    featureFlags.set({ 'release-1c-rm-create-case-files': true });
+    userState.set({
+      ...structuredClone(OPAL_USER_STATE_MOCK),
+      user_id: 10606,
+      status: 'active',
+      business_unit_users: [
+        {
+          business_unit_id: 44,
+          business_unit_user_id: 'BUU-CHECKER',
+          permissions: [
+            { permission_id: 21, permission_name: 'Create' },
+            { permission_id: 22, permission_name: 'Review' },
+          ],
+        },
+      ],
+    });
+    draftNavigation.contextForPlaceholder.mockReturnValue(null);
+    draftNavigation.returnFromPlaceholder.mockReset().mockResolvedValue(true);
+    routeData = new BehaviorSubject<Data>({ casefileIntent: 'create' });
     maintenance.createDraftCasefile
       .mockReset()
       .mockReturnValue(
@@ -38,13 +87,20 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       providers: [
         { provide: Router, useValue: router },
         CasesCreateCasefileStore,
-        { provide: GlobalStore, useValue: new GlobalStore() },
+        CasesDraftCasefileStore,
+        { provide: CasesDraftNavigationService, useValue: draftNavigation },
+        {
+          provide: GlobalStore,
+          useValue: Object.assign(new GlobalStore(), { userState, authenticated, featureFlags }),
+        },
         { provide: OpalMaintenanceService, useValue: maintenance },
         {
           provide: ActivatedRoute,
           useValue: {
+            data: routeData,
             snapshot: {
               data: {
+                casefileIntent: 'create',
                 countries: {
                   refData: [{ country_id: 1, cjs_code: 101, country_name: 'United Kingdom', active: true }],
                 },
@@ -64,6 +120,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
         },
       ],
     }).compileComponents();
+    routeData.next(TestBed.inject(ActivatedRoute).snapshot.data);
     vi.spyOn(TestBed.inject(UtilsService), 'scrollToTop').mockImplementation(() => {});
     store = TestBed.inject(CasesCreateCasefileStore);
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
@@ -71,6 +128,180 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     fixture = TestBed.createComponent(CasesCreateCasefileCheckDetailsComponent);
   });
 
+  it('hydrates completed persisted data without another request or creation controls', () => {
+    const resolved = persisted();
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
+    routeData.next({ draftCasefile: resolved, casefileIntent: 'checker-review' });
+    fixture.detectChanges();
+    expect(store.caseTypeSelection()).toEqual(resolved.state.caseTypeSelection);
+    expect(TestBed.inject(CasesDraftCasefileStore).etag()).toBe('"0"');
+    expect(fixture.nativeElement.textContent).toContain('Test Country One');
+    expect(fixture.nativeElement.querySelector('#create_casefile_review_submit')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#review-term-change-1')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#review-term-remove-1')).toBeNull();
+    expect(maintenance.getMajorCreditors).not.toHaveBeenCalled();
+  });
+  it.each(['inputter-view', 'checker-view', 'checker-review'] as const)(
+    'guards every creation handler in %s',
+    async (intent) => {
+      const resolved = { ...persisted(), intent };
+      TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = intent;
+      routeData.next({ draftCasefile: resolved, casefileIntent: intent });
+      fixture.detectChanges();
+      const before = structuredClone(getState(store));
+      const component = fixture.componentInstance;
+      await component.handleSubmit();
+      await component.handleChange('respondent');
+      await component.handleTermChange(1);
+      await component.handleTermRemove(1);
+      component.handleCancel();
+      expect(getState(store)).toEqual(before);
+      expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+    },
+  );
+  it('replaces optional state and references on A to B route reuse', () => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
+    const first = persisted();
+    first.state.commentsAndNotes = { comment: 'First case', note: 'First notes' };
+    routeData.next({ draftCasefile: first });
+    fixture.detectChanges();
+    const second = persisted();
+    second.draft.draft_casefile_id = 18;
+    second.state.applicantDetails = null;
+    second.state.commentsAndNotes = null;
+    second.references = {
+      ...second.references,
+      countries: second.references.countries.map((country) => ({ ...country, country_name: 'Replacement country' })),
+    };
+    routeData.next({ draftCasefile: second });
+    fixture.detectChanges();
+    expect(store.applicantDetails()).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('First case');
+    expect(fixture.nativeElement.textContent).toContain('Replacement country');
+    expect(TestBed.inject(CasesDraftCasefileStore).draft()?.draft_casefile_id).toBe(18);
+  });
+  it.each(['authentication', 'release', 'identity', 'all permissions'])(
+    'immediately hides sensitive persisted DOM on %s loss',
+    (condition) => {
+      TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
+      routeData.next({ draftCasefile: persisted() });
+      fixture.detectChanges();
+      if (condition === 'authentication') authenticated.set(false);
+      if (condition === 'release') featureFlags.set({});
+      if (condition === 'identity') userState.set({ ...userState(), user_id: 55 });
+      if (condition === 'all permissions') userState.set({ ...userState(), business_unit_users: [] });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#review-orderTerms')).toBeNull();
+      expect(fixture.nativeElement.textContent).not.toContain('Synthetic Respondent');
+    },
+  );
+  it('retains readable data when checker permission is lost but inputter permission remains', () => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
+    routeData.next({ draftCasefile: persisted() });
+    fixture.detectChanges();
+    userState.set({
+      ...userState(),
+      business_unit_users: [
+        { ...userState().business_unit_users[0], permissions: [{ permission_id: 21, permission_name: 'Create' }] },
+      ],
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#review-orderTerms')).not.toBeNull();
+    expect(TestBed.inject(CasesDraftCasefileStore).draft()).not.toBeNull();
+  });
+  it('returns persisted summaries to their authorised dashboard', () => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
+    routeData.next({ draftCasefile: persisted() });
+    fixture.detectChanges();
+    fixture.componentInstance.handleBack();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/draft/check-and-validate/tabs#to-review');
+  });
+  it('keeps persisted content hidden until completed resolver data exists', () => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#review-heading')).toBeNull();
+    expect(fixture.componentInstance.reviewable()).toBe(false);
+  });
+  it.each([
+    'view intent',
+    'own submission',
+    'published',
+    'review permission',
+    'release',
+    'authentication',
+    'identity',
+    'cleared envelope',
+  ])('suppresses review eligibility on %s', (condition) => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
+    const result = persisted();
+    if (condition === 'view intent') result.intent = 'checker-view';
+    if (condition === 'own submission') result.draft.submitted_by = 'BUU-CHECKER';
+    if (condition === 'published') result.draft.casefile_status = 'PUBLISHED';
+    routeData.next({ draftCasefile: result });
+    fixture.detectChanges();
+    if (condition === 'review permission')
+      userState.set({
+        ...userState(),
+        business_unit_users: [
+          { ...userState().business_unit_users[0], permissions: [{ permission_id: 21, permission_name: 'Create' }] },
+        ],
+      });
+    if (condition === 'release') featureFlags.set({});
+    if (condition === 'authentication') authenticated.set(false);
+    if (condition === 'identity') userState.set({ ...userState(), user_id: 55 });
+    if (condition === 'cleared envelope') TestBed.inject(CasesDraftCasefileStore).resetStore();
+    expect(fixture.componentInstance.reviewable()).toBe(false);
+  });
+  it('allows live review only for a different submitter with current checker access', () => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
+    routeData.next({ draftCasefile: persisted() });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.reviewable()).toBe(true);
+  });
+  it('retains all-rejected origin and uses its existing return helper before dashboard fallback', async () => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'inputter-view';
+    routeData.next({
+      draftCasefile: persisted({ intent: 'inputter-view', context: 'inputter', dashboardMode: 'inputter' }),
+    });
+    draftNavigation.contextForPlaceholder.mockReturnValue({} as never);
+    fixture.detectChanges();
+    fixture.componentInstance.handleBack();
+    await Promise.resolve();
+    expect(draftNavigation.returnFromPlaceholder).toHaveBeenCalledWith('details', '17');
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+  it.each(['false', 'rejected'])('preserves persisted data and reports a %s all-rejected return', async (failure) => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'inputter-view';
+    routeData.next({ draftCasefile: persisted({ intent: 'inputter-view' }) });
+    draftNavigation.contextForPlaceholder.mockReturnValue({} as never);
+    if (failure === 'false') draftNavigation.returnFromPlaceholder.mockResolvedValue(false);
+    else draftNavigation.returnFromPlaceholder.mockRejectedValue(new Error('Navigation failed'));
+    fixture.detectChanges();
+    fixture.componentInstance.handleBack();
+    await fixture.whenStable();
+    expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+    expect(TestBed.inject(CasesDraftCasefileStore).draft()).not.toBeNull();
+    expect(fixture.componentInstance.busy()).toBe(false);
+  });
+  it('stops consuming completed route data when destroyed', () => {
+    TestBed.inject(ActivatedRoute).snapshot.data['casefileIntent'] = 'checker-review';
+    fixture.destroy();
+    routeData.next({ draftCasefile: persisted() });
+    expect(TestBed.inject(CasesDraftCasefileStore).draft()).toBeNull();
+  });
+  it('renders creation safely when optional route references are absent', () => {
+    TestBed.inject(ActivatedRoute).snapshot.data = { casefileIntent: 'create' };
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#create_casefile_review_submit')).not.toBeNull();
+  });
+  it('opens term removal in creation mode with its accepted selection', async () => {
+    seedCompleteDraft();
+    const termId = store.orderTerms()[0].termId;
+    await fixture.componentInstance.handleTermRemove(termId);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/order-terms/remove/0');
+    expect(store.orderTerms()[0].termId).toBe(termId);
+  });
   it('renders Check case details and returns to Case details without changing state', () => {
     fixture.detectChanges();
     const before = {

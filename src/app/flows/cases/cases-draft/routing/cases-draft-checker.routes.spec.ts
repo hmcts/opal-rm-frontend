@@ -3,7 +3,8 @@ import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
 import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from '@app/constants/route-data.constant';
 import { CasesDraftCheckAndValidateTabsComponent } from '../cases-draft-check-and-validate-tabs/cases-draft-check-and-validate-tabs.component';
 import { routing as featureRouting } from './cases-draft-checker.routes';
-const routing = featureRouting[0].children!;
+const groups = featureRouting[0].children!;
+const routing = groups[0].children!;
 describe('checker child routes', () => {
   it('renders tabs with initial data resolution and hides primary navigation in both safe shells', async () => {
     expect(routing[0]).toEqual({ path: '', pathMatch: 'full', redirectTo: 'tabs' });
@@ -15,13 +16,13 @@ describe('checker child routes', () => {
       failedCount: expect.any(Function),
     });
     expect(await (routing[1].loadComponent as () => Promise<unknown>)()).toBe(CasesDraftCheckAndValidateTabsComponent);
-    expect(routing[2].data).toEqual(PRIMARY_NAV_HIDDEN_ROUTE_DATA);
-    expect(routing[2].children?.map((route) => route.data)).toEqual([
-      { title: 'Review case', placeholderKind: 'review' },
-      { title: 'View case details', placeholderKind: 'view' },
+    expect(groups[1].data).toEqual({ ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, routePermissionId: [21, 22] });
+    expect(groups[1].children?.map((route) => route.data)).toEqual([
+      { title: 'Review case', casefileIntent: 'checker-review' },
+      { title: 'View case details', casefileIntent: 'checker-view' },
     ]);
-    for (const route of routing[2].children!) {
-      expect(route.resolve).toEqual({ title: TitleResolver });
+    for (const route of groups[1].children!) {
+      expect(route.resolve).toEqual({ title: TitleResolver, draftCasefile: expect.any(Function) });
       expect(await (route.loadComponent as () => Promise<unknown>)()).toEqual(expect.any(Function));
     }
   });

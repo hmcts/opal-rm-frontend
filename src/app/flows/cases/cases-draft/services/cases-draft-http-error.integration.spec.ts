@@ -74,9 +74,10 @@ describe('checker HTTP boundary through production interceptors and application 
     fixture.detectChanges();
     await router.navigateByUrl(dashboard);
     await settle();
-    for (const request of http.match((request) => request.url.includes('/draft-casefiles'))) {
-      request.flush(request.request.params.has('restrict') ? { count: 2 } : { count: 0, summaries: [] });
-    }
+    http
+      .expectOne((request) => request.url.includes('/draft-casefiles') && !request.params.has('restrict'))
+      .flush({ count: 0, summaries: [] });
+    for (const request of http.match((request) => request.params.has('restrict'))) request.flush({ count: 2 });
     await settle();
   });
   afterEach(() => http.verify());
@@ -117,6 +118,77 @@ describe('checker HTTP boundary through production interceptors and application 
     await settle();
     expect(fixture.nativeElement.textContent).toContain('Existing error detail');
     expect(fixture.nativeElement.textContent).not.toContain('Retry loading');
+  });
+  it('keeps a list failure visible when badge requests would finish later', async () => {
+    await router.navigateByUrl(dashboard + '#deleted');
+    await settle();
+    const pendingCounts = http.match((request) => request.params.has('restrict'));
+    http
+      .expectOne((request) => request.params.get('casefile_status') === 'DELETED')
+      .flush(
+        { title: 'Queue unavailable', detail: 'The deleted queue could not be loaded' },
+        { status: 500, statusText: 'Failure' },
+      );
+    await settle();
+    expect(fixture.nativeElement.textContent).toContain('The deleted queue could not be loaded');
+    for (const request of pendingCounts) request.flush({ count: 2 });
+    await settle();
+    expect(fixture.nativeElement.textContent).toContain('The deleted queue could not be loaded');
+  });
+  it('starts badges only after the current queue loads successfully', async () => {
+    await router.navigateByUrl(dashboard + '#deleted');
+    await settle();
+    http.expectNone((request) => request.params.has('restrict'));
+    http.expectOne((request) => request.params.get('casefile_status') === 'DELETED').flush({ count: 0, summaries: [] });
+    const counts = http.match((request) => request.params.has('restrict'));
+    expect(counts).toHaveLength(2);
+    for (const request of counts) request.flush({ count: 3 });
+    await settle();
+    expect(fixture.nativeElement.textContent).toContain('Rejected 3');
+    expect(fixture.nativeElement.textContent).toContain('Failed 3');
+    expect(fixture.nativeElement.textContent).toContain('No cases have been deleted in the past 7 days.');
+  });
+  it('cancels previous queue badges before a new queue fails', async () => {
+    await router.navigateByUrl(dashboard + '#deleted');
+    await settle();
+    http.expectOne((request) => request.params.get('casefile_status') === 'DELETED').flush({ count: 0, summaries: [] });
+    const pendingCounts = http.match((request) => request.params.has('restrict'));
+    expect(pendingCounts).toHaveLength(2);
+    await router.navigateByUrl(dashboard + '#rejected');
+    await settle();
+    expect(pendingCounts.every((request) => request.cancelled)).toBe(true);
+    http.expectNone((request) => request.params.has('restrict'));
+    http
+      .expectOne((request) => request.params.get('casefile_status') === 'REJECTED')
+      .flush(
+        { title: 'Queue unavailable', detail: 'The rejected queue could not be loaded' },
+        { status: 500, statusText: 'Failure' },
+      );
+    await settle();
+    expect(fixture.nativeElement.textContent).toContain('The rejected queue could not be loaded');
+  });
+  it('clears a resolved list failure when the next queue loads successfully', async () => {
+    await router.navigateByUrl(dashboard + '#deleted');
+    await settle();
+    http
+      .expectOne((request) => request.params.get('casefile_status') === 'DELETED')
+      .flush(
+        { title: 'Queue unavailable', detail: 'The deleted queue could not be loaded' },
+        { status: 500, statusText: 'Failure' },
+      );
+    await settle();
+    expect(fixture.nativeElement.textContent).toContain('The deleted queue could not be loaded');
+    await router.navigateByUrl(dashboard + '#rejected');
+    await settle();
+    http
+      .expectOne((request) => request.params.get('casefile_status') === 'REJECTED')
+      .flush({ count: 0, summaries: [] });
+    const counts = http.match((request) => request.params.has('restrict'));
+    expect(counts).toHaveLength(1);
+    for (const request of counts) request.flush({ count: 2 });
+    await settle();
+    expect(fixture.nativeElement.textContent).not.toContain('The deleted queue could not be loaded');
+    expect(fixture.nativeElement.textContent).toContain('There are no rejected cases');
   });
   it('preserves the installed common banner behaviour for unmarked requests', async () => {
     TestBed.inject(HttpClient)

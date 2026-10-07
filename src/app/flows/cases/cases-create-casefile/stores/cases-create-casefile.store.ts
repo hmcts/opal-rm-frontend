@@ -601,6 +601,10 @@ export const CasesCreateCasefileStore = signalStore(
     setSubmissionSucceeded: (submissionSucceeded: boolean): void => {
       patchState(store, { submissionSucceeded });
     },
+    /** Replaces the complete mapper-produced state without creation setters or dirty flags. */
+    hydratePersistedCasefile: (state: ICasesCreateCasefileState): void => {
+      patchState(store, structuredClone(state));
+    },
     resetStore: (): void => {
       patchState(store, {
         ...CASES_CREATE_CASEFILE_STATE,

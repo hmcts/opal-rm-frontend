@@ -40,6 +40,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, UrlTree } from '@angular/router';
 import { getState } from '@ngrx/signals';
+import { GovukButtonComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-button';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
 import type { IOpalMaintenanceCountryReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-item.interface';
 import type { IOpalMaintenanceApplicationReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-application-reference-data-item.interface';
@@ -61,6 +62,7 @@ import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-ca
     GovukSummaryListRowActionItemComponent,
     GovukCancelLinkComponent,
     GovukBackLinkComponent,
+    GovukButtonComponent,
     CasesCreateCasefileReviewSectionComponent,
     CasesCreateCasefileOrderTermCardComponent,
   ],
@@ -334,6 +336,13 @@ export class CasesCreateCasefileCheckDetailsComponent {
       this.store.clearOrderTermRemoval(selection);
       this.reviewNavigation.clearContext();
     }
+  }
+
+  /** Opens only the authorised walkthrough; it does not delete the saved casefile. */
+  public async handleDelete(): Promise<void> {
+    const draft = this.persistedStore.draft();
+    if (!this.reviewable() || this.busy() || !draft) return;
+    await this.navigate(this.draftNavigation.deleteCasefileUrl(draft.draft_casefile_id));
   }
 
   public handleBack(): void {

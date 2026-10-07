@@ -250,6 +250,14 @@ export class CasesDraftNavigationService {
     });
   }
 
+  /** Builds the guarded Delete walkthrough destination without dashboard metadata. */
+  public deleteCasefileUrl(id: number): UrlTree {
+    if (!Number.isSafeInteger(id) || id < 1) throw new Error('Invalid draft casefile identifier');
+    return this.router.createUrlTree([
+      '/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.root + '/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.children.delete + '/' + id,
+    ]);
+  }
+
   public persistedDashboardUrl(mode: CasesDraftDashboardMode): UrlTree {
     const selection = mode === this.mode ? this.selection() : defaultCasesDraftNavigation(undefined, mode);
     const routes = mode === 'checker' ? CASES_DRAFT_CHECKER_ROUTING_PATHS : CASES_DRAFT_ROUTING_PATHS;

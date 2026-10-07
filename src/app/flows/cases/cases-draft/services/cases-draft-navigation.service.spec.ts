@@ -51,6 +51,17 @@ describe('CasesDraftNavigationService', () => {
     service = TestBed.inject(CasesDraftNavigationService);
     router = TestBed.inject(Router);
   });
+  it.each([1, 123, Number.MAX_SAFE_INTEGER])(
+    'builds an internal Delete URL for %s without dashboard metadata',
+    (id) => {
+      service.setSelection(selected);
+      expect(router.serializeUrl(service.deleteCasefileUrl(id))).toBe('/cases/draft/check-and-validate/delete/' + id);
+      expect(service.selection()).toEqual(selected);
+    },
+  );
+  it.each([0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])('rejects invalid Delete ID %s', (id) => {
+    expect(() => service.deleteCasefileUrl(id)).toThrow('Invalid draft casefile identifier');
+  });
   it('returns persisted summaries to the selected mode or its default fallback', () => {
     service.setSelection(selected);
     expect(router.serializeUrl(service.persistedDashboardUrl('inputter'))).toBe(

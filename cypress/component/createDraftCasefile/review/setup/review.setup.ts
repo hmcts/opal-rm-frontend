@@ -1,3 +1,5 @@
+import { of } from 'rxjs';
+import { CasesDraftCasefileStore } from 'src/app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
@@ -26,6 +28,11 @@ export function setupReview(options: ReviewSetupOptions = {}) {
     ...createCompleteReviewState(),
     ...structuredClone(options.state ?? {}),
   });
+  const routeData = {
+    casefileIntent: 'create',
+    countries: { refData: structuredClone(REVIEW_COUNTRIES) },
+    applications: { refData: structuredClone(REVIEW_APPLICATIONS) },
+  };
   if (options.confirmation) store.setSubmissionSucceeded(true);
   return cy.document().then((document) => {
     document.documentElement.lang = 'en';
@@ -38,6 +45,7 @@ export function setupReview(options: ReviewSetupOptions = {}) {
       {
         providers: [
           provideRouter([]),
+          CasesDraftCasefileStore,
           provideHttpClient(withInterceptors([httpErrorInterceptor])),
           { provide: GlobalStore, useValue: new GlobalStore() },
           { provide: AppInsightsService, useValue: { logException: () => undefined } },
@@ -45,12 +53,8 @@ export function setupReview(options: ReviewSetupOptions = {}) {
           {
             provide: ActivatedRoute,
             useValue: {
-              snapshot: {
-                data: {
-                  countries: { refData: structuredClone(REVIEW_COUNTRIES) },
-                  applications: { refData: structuredClone(REVIEW_APPLICATIONS) },
-                },
-              },
+              data: of(routeData),
+              snapshot: { data: routeData },
             },
           },
         ],

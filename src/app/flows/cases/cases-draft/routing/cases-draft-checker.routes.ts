@@ -1,3 +1,6 @@
+import { resolveCasesDraftReadIdentity } from '../utils/cases-draft-casefile-permissions';
+import { casesDraftCasefileResolver } from './resolvers/cases-draft-casefile.resolver';
+import { CasesCreateCasefileOrderTermLookupsService } from '../../cases-create-casefile/cases-create-casefile-order-terms-input/services/cases-create-casefile-order-term-lookups.service';
 import { inject } from '@angular/core';
 import {
   BUSINESS_UNIT_ID_RESOLVER,
@@ -18,13 +21,13 @@ import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
 import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from '@app/constants/route-data.constant';
 import { CASES_DRAFT_CHECKER_ROUTING_PATHS } from './constants/cases-draft-checker-routing-paths.constant';
 
-const children: Routes = [
+const dashboardChildren: Routes = [
   { path: '', pathMatch: 'full', redirectTo: CASES_DRAFT_CHECKER_ROUTING_PATHS.children.tabs },
   {
     path: CASES_DRAFT_CHECKER_ROUTING_PATHS.children.tabs,
     loadComponent: () =>
       import('../cases-draft-check-and-validate-tabs/cases-draft-check-and-validate-tabs.component').then(
-        (module) => module.CasesDraftCheckAndValidateTabsComponent,
+        (m) => m.CasesDraftCheckAndValidateTabsComponent,
       ),
     data: { title: 'Review cases' },
     resolve: {
@@ -34,27 +37,55 @@ const children: Routes = [
       failedCount: casesDraftCountResolver('failed'),
     },
   },
+];
+const businessUnitProvider = (read: boolean) => ({
+  provide: BUSINESS_UNIT_ID_RESOLVER,
+  useFactory: () => {
+    const store = inject(GlobalStore);
+    return {
+      resolveBusinessUnitId: () =>
+        (read
+          ? resolveCasesDraftReadIdentity(store.userState(), true)
+          : resolveCasesDraftIdentity(store.userState(), true, 'checker')
+        )?.businessUnitId ?? null,
+    };
+  },
+});
+const children: Routes = [
   {
     path: '',
-    data: { ...PRIMARY_NAV_HIDDEN_ROUTE_DATA },
+    providers: [businessUnitProvider(false)],
+    canActivate: [businessUnitRoutePermissionsGuard],
+    canActivateChild: [businessUnitRoutePermissionsGuard],
+    data: { routePermissionId: 22 },
+    children: dashboardChildren,
+  },
+  {
+    path: '',
+    loadComponent: () =>
+      import('../../cases-create-casefile/cases-create-casefile.component').then((m) => m.CasesCreateCasefileComponent),
+    providers: [businessUnitProvider(true), CasesCreateCasefileOrderTermLookupsService],
+    canActivate: [businessUnitRoutePermissionsGuard],
+    canActivateChild: [businessUnitRoutePermissionsGuard],
+    data: { ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, routePermissionId: [21, 22] },
     children: [
       {
         path: CASES_DRAFT_CHECKER_ROUTING_PATHS.children.review + '/:draftCasefileId',
         loadComponent: () =>
-          import('../cases-draft-placeholder/cases-draft-placeholder.component').then(
-            (module) => module.CasesDraftPlaceholderComponent,
+          import('../../cases-create-casefile/cases-create-casefile-check-details/cases-create-casefile-check-details.component').then(
+            (m) => m.CasesCreateCasefileCheckDetailsComponent,
           ),
-        data: { title: 'Review case', placeholderKind: 'review' },
-        resolve: { title: TitleResolver },
+        data: { title: 'Review case', casefileIntent: 'checker-review' },
+        resolve: { title: TitleResolver, draftCasefile: casesDraftCasefileResolver },
       },
       {
         path: CASES_DRAFT_CHECKER_ROUTING_PATHS.children.view + '/:draftCasefileId',
         loadComponent: () =>
-          import('../cases-draft-placeholder/cases-draft-placeholder.component').then(
-            (module) => module.CasesDraftPlaceholderComponent,
+          import('../../cases-create-casefile/cases-create-casefile-check-details/cases-create-casefile-check-details.component').then(
+            (m) => m.CasesCreateCasefileCheckDetailsComponent,
           ),
-        data: { title: 'View case details', placeholderKind: 'view' },
-        resolve: { title: TitleResolver },
+        data: { title: 'View case details', casefileIntent: 'checker-view' },
+        resolve: { title: TitleResolver, draftCasefile: casesDraftCasefileResolver },
       },
     ],
   },
@@ -67,25 +98,10 @@ export const routing: Routes = [
       { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'checker' },
       CasesDraftDashboardService,
       CasesDraftNavigationService,
-      {
-        provide: BUSINESS_UNIT_ID_RESOLVER,
-        useFactory: () => {
-          const store = inject(GlobalStore);
-          return {
-            resolveBusinessUnitId: () =>
-              resolveCasesDraftIdentity(store.userState(), true, 'checker')?.businessUnitId ?? null,
-          };
-        },
-      },
     ],
     children,
-    canActivate: [
-      authGuard,
-      accountGuard,
-      release1cRmCreateCaseFilesFeatureFlagGuard,
-      businessUnitRoutePermissionsGuard,
-    ],
-    canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard, businessUnitRoutePermissionsGuard],
-    data: { sectionKey: 'cases', routePermissionId: 22 },
+    canActivate: [authGuard, accountGuard, release1cRmCreateCaseFilesFeatureFlagGuard],
+    canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard],
+    data: { sectionKey: 'cases' },
   },
 ];

@@ -47,6 +47,21 @@ export class CasesDraftDashboardService {
     );
   }
 
+  private consultList(
+    identity: ICasesDraftIdentity,
+    source: () => Observable<IOpalMaintenanceDraftCasefileListResponse>,
+  ): Observable<IOpalMaintenanceDraftCasefileListResponse> {
+    return defer(source).pipe(
+      take(1),
+      throwIfEmpty(),
+      catchError((error: unknown) => {
+        this.reportError(error);
+        return throwError(() => error);
+      }),
+      takeUntil(this.identityChanges$.pipe(filter(() => !sameCasesDraftIdentity(this.getIdentity(), identity)))),
+    );
+  }
+
   public getIdentity(): ICasesDraftIdentity | null {
     const flags: Record<string, unknown> = this.globalStore.featureFlags();
     return this.globalStore.authenticated()
@@ -63,16 +78,19 @@ export class CasesDraftDashboardService {
     identity: ICasesDraftIdentity,
     tab: CasesDraftTab,
   ): Observable<IOpalMaintenanceDraftCasefileListResponse> {
-    return defer(() =>
+    return this.consultList(identity, () =>
       this.api.getDraftCasefiles(buildCasesDraftListParams(identity, tab, this.dates.getDateRange(7, 0), this.mode)),
-    ).pipe(
-      take(1),
-      throwIfEmpty(),
-      catchError((error: unknown) => {
-        this.reportError(error);
-        return throwError(() => error);
+    );
+  }
+
+  /** Consults the complete other-inputter rejection collection afresh, without dates or counts. */
+  public getAllRejectedList(identity: ICasesDraftIdentity): Observable<IOpalMaintenanceDraftCasefileListResponse> {
+    return this.consultList(identity, () =>
+      this.api.getDraftCasefiles({
+        business_unit_id: identity.businessUnitId,
+        casefile_status: 'REJECTED',
+        not_submitted_by: identity.submittedBy,
       }),
-      takeUntil(this.identityChanges$.pipe(filter(() => !sameCasesDraftIdentity(this.getIdentity(), identity)))),
     );
   }
 

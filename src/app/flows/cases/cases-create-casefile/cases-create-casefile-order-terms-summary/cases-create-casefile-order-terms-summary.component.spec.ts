@@ -1,9 +1,14 @@
+import { createCasesCreateCasefileReviewState } from '../mocks/cases-create-casefile-review-state.mock';
+import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileOrderTermCardComponent } from '../components/cases-create-casefile-order-term-card/cases-create-casefile-order-term-card.component';
+import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../cases-create-casefile-applicant-individual/mocks/cases-create-casefile-applicant-individual.mock';
+import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from '../cases-create-casefile-applicant-organisation/mocks/cases-create-casefile-applicant-organisation.mock';
+import { MINOR_CREDITOR_DETAILS_MOCK } from '../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../constants/cases-create-casefile-task-statuses.constant';
 import type { ICasesCreateCasefileAcceptedOrderTerm } from '../interfaces/cases-create-casefile-accepted-order-term.interface';
@@ -493,5 +498,166 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     expect(store.orderTermAmendment()).toBeNull();
     expect(store.orderTerms()).toEqual(acceptedTerms);
     expect(router.navigateByUrl).toHaveBeenLastCalledWith('/cases/create-casefile/order-terms/select');
+  });
+  it.each([
+    [CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.saved, 'Mr Test Applicant'],
+    [
+      CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedUk,
+      CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedUk.organisationName,
+    ],
+    [null, undefined],
+  ])('renders the assigned applicant name and bank details %#', (applicantDetails, name) => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      applicantDetails,
+      orderTerms: [{ ...acceptedTerms[0], creditor: { type: 'applicant' } }],
+    });
+    fixture.detectChanges();
+    const card = fixture.componentInstance.cards()[0];
+    expect(card.rows.find((row) => row.id === 'assigned-creditor')?.value).toBe(name);
+    expect(card.bankRows.find((row) => row.id === 'nameOnAccount')?.value).toBe(
+      applicantDetails?.bankDetails.type === 'uk' ? applicantDetails.bankDetails.nameOnAccount : undefined,
+    );
+  });
+
+  it.each([true, false])('renders minor creditor details only when the assigned record exists (%s)', (exists) => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: [{ ...acceptedTerms[0], creditor: { type: 'minor', sequenceNumber: 3 } }],
+      minorCreditors: exists
+        ? [
+            {
+              sequenceNumber: 3,
+              displayName: 'Synthetic minor creditor',
+              details: {
+                ...MINOR_CREDITOR_DETAILS_MOCK,
+                bank: {
+                  type: 'uk',
+                  nameOnAccount: 'Synthetic minor creditor',
+                  sortCode: '123456',
+                  accountNumber: '12345678',
+                  paymentReference: 'REF-123',
+                },
+              },
+            },
+          ]
+        : [],
+    });
+    const card = fixture.componentInstance.cards()[0];
+    expect(card.rows.find((row) => row.id === 'assigned-creditor')?.value).toBe(
+      exists ? 'Synthetic minor creditor' : undefined,
+    );
+    expect(card.bankRows).toEqual(
+      exists
+        ? [
+            { id: 'nameOnAccount', label: 'Name on account', value: 'Synthetic minor creditor' },
+            { id: 'sortCode', label: 'Sort code', value: '123456' },
+            { id: 'accountNumber', label: 'Account number', value: '12345678' },
+            { id: 'paymentReference', label: 'Payment reference', value: 'REF-123' },
+          ]
+        : [],
+    );
+  });
+
+  it('ignores Change for a removed card', async () => {
+    await fixture.componentInstance.handleChange(999);
+    expect(store.orderTermAmendment()).toBeNull();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('does not navigate when the store refuses to open an amendment', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    vi.spyOn(store, 'beginOrderTermAmendment').mockReturnValue(false);
+    await fixture.componentInstance.handleChange(7);
+    expect(store.orderTerms()).toEqual(acceptedTerms);
+    expect(store.orderTermAmendment()).toBeNull();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('keeps the pending Change intact when Remove or Return is clicked before navigation settles', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    let finish!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(new Promise<boolean>((resolve) => (finish = resolve)));
+    const change = fixture.componentInstance.handleChange(7);
+    await fixture.componentInstance.handleRemove(new Event('click', { cancelable: true }), 7);
+    await fixture.componentInstance.handleBack();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    expect(store.orderTermAmendment()?.termId).toBe(7);
+    finish(true);
+    await change;
+  });
+
+  it('allows Return to retry after a rejected navigation without an amendment', async () => {
+    router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic return failure'));
+    await fixture.componentInstance.handleBack();
+    await fixture.componentInstance.handleBack();
+    expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+    expect(router.navigateByUrl).toHaveBeenLastCalledWith('/cases/create-casefile/task-list');
+    expect(store.orderTermAmendment()).toBeNull();
+  });
+  it.each(['orderTermAmendment', 'creditorDraft', 'orderTermRemoval', 'orderTermDraft', 'unsavedChanges'] as const)(
+    'waits for %s to clear before returning to review',
+    async (pending) => {
+      const state = createCasesCreateCasefileReviewState();
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
+      const term = state.orderTerms[0];
+      if (pending === 'orderTermAmendment') store.beginOrderTermAmendment(term.termId);
+      if (pending === 'creditorDraft') {
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+          creditorDraft: { termId: term.termId, branch: 'add-new' },
+        });
+      }
+      if (pending === 'orderTermRemoval') store.beginOrderTermRemoval(term.termId);
+      if (pending === 'orderTermDraft') {
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+          orderTermDraft: {
+            resultId: term.resultId,
+            fieldTypes: {},
+            values: {},
+            dirty: false,
+            presentation: term.presentation,
+          },
+        });
+      }
+      store.setUnsavedChanges(pending === 'unsavedChanges');
+      TestBed.inject(CasesCreateCasefileReviewNavigationService).setContext({
+        origin: 'review',
+        section: 'orderTerm',
+        termId: term.termId,
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+        orderTermAmendment: null,
+        creditorDraft: null,
+        orderTermRemoval: null,
+        orderTermDraft: null,
+        unsavedChanges: false,
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(router.navigateByUrl).toHaveBeenCalledOnce();
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/check-case-details');
+      expect(store.orderTerms()).toEqual(state.orderTerms);
+    },
+  );
+
+  it('keeps accepted terms intact if returning to review rejects navigation', async () => {
+    const state = createCasesCreateCasefileReviewState();
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
+    TestBed.inject(CasesCreateCasefileReviewNavigationService).setContext({
+      origin: 'review',
+      section: 'orderTerm',
+      termId: state.orderTerms[0].termId,
+    });
+    router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/check-case-details');
+    expect(store.orderTerms()).toEqual(state.orderTerms);
   });
 });

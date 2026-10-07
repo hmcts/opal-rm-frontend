@@ -1,3 +1,5 @@
+import { MINOR_CREDITOR_DETAILS_MOCK } from '../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
+import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from '../cases-create-casefile-applicant-organisation/mocks/cases-create-casefile-applicant-organisation.mock';
 import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { UtilsService } from '@hmcts/opal-frontend-common/services/utils-service';
@@ -120,7 +122,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     fixture.componentInstance.handleBack();
     expect(fixture.componentInstance.blocked()).toBe(true);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('[disabled]').length).toBe(0);
+    expect(fixture.nativeElement.querySelectorAll('[disabled]')).toHaveLength(0);
     expect(maintenance.createDraftCasefile).toHaveBeenCalledOnce();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
     pending.next(new HttpResponse({ status: 201, body: { draft_casefile_id: 123, casefile_status: 'SUBMITTED' } }));
@@ -320,5 +322,129 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     await Promise.resolve();
     expect(router.navigateByUrl).toHaveBeenLastCalledWith('/cases/create-casefile/cancel');
     expect(getState(store)).toEqual(before);
+  });
+  it('renders an applicable organisation and separates minor-creditor bank details from the term card', () => {
+    const state = createCasesCreateCasefileReviewState();
+    state.caseTypeSelection = { caseType: 'REMO In', applicantType: 'Organisation' };
+    state.applicantDetails = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedNone;
+    state.minorCreditors = [
+      { sequenceNumber: 1, displayName: 'Synthetic creditor', details: MINOR_CREDITOR_DETAILS_MOCK },
+    ];
+    state.orderTerms[0].creditor = { type: 'minor', sequenceNumber: 1 };
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#review-applicant').textContent).toContain('Example Organisation');
+    const card = fixture.componentInstance.cards()[0];
+    expect(card.bankRows).toEqual([]);
+    expect(card.minor?.id).toBe('minor-creditor-1-term-' + state.orderTerms[0].termId);
+    expect(card.minor?.rows.some((row) => row.id === 'address')).toBe(true);
+    expect(card.minor?.bankRows.length).toBeGreaterThan(0);
+  });
+
+  it('renders an unmatched minor creditor without fabricating creditor details', () => {
+    seedCompleteDraft();
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: [{ ...store.orderTerms()[0], creditor: { type: 'minor', sequenceNumber: 99 } }],
+    });
+    expect(fixture.componentInstance.cards()[0].minor).toBeNull();
+  });
+
+  it('passes the cached central authority into the payload mapper without fetching ordinary creditors', async () => {
+    seedCompleteDraft();
+    const authority = {
+      major_creditor_id: 501,
+      major_creditor_code: 'CA01',
+      business_unit_id: 44,
+      active: true,
+      central_authority: true,
+      name: 'Synthetic authority',
+      address_line_1: 'Test Street',
+      address_line_2: null,
+      address_line_3: null,
+      address_line_4: null,
+      address_line_5: null,
+      postcode: null,
+      country_id: null,
+      country_name: null,
+      contact_name: null,
+      contact_email: null,
+    };
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      centralAuthorityDetails: { remoReference: 'TEST', centralAuthorityReference: 'REF', majorCreditor: authority },
+    });
+    await fixture.componentInstance.handleSubmit();
+    expect(maintenance.getMajorCreditors).not.toHaveBeenCalled();
+    expect(maintenance.createDraftCasefile.mock.calls[0][0].casefile.respondent_account.central_authority_code).toBe(
+      'CA01',
+    );
+  });
+
+  it('does not post when destroyed immediately after reference data arrives', async () => {
+    seedCompleteDraft();
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: [
+        {
+          ...store.orderTerms()[0],
+          creditor: { type: 'major', majorCreditorId: 77, displayName: 'Synthetic creditor' },
+        },
+      ],
+    });
+    const before = structuredClone(getState(store));
+    const pending = new Subject<{ refData: [] }>();
+    maintenance.getMajorCreditors.mockReturnValue(pending);
+    const submit = fixture.componentInstance.handleSubmit();
+    pending.next({ refData: [] });
+    fixture.destroy();
+    await submit;
+    expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+    expect(getState(store)).toEqual(before);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('does not accept a receipt when destroyed before its continuation runs', async () => {
+    seedCompleteDraft();
+    const before = structuredClone(getState(store));
+    const pending = new Subject<HttpResponse<unknown>>();
+    maintenance.createDraftCasefile.mockReturnValue(pending);
+    const submit = fixture.componentInstance.handleSubmit();
+    pending.next(new HttpResponse({ status: 201, body: { draft_casefile_id: 123, casefile_status: 'SUBMITTED' } }));
+    fixture.destroy();
+    await submit;
+    expect(getState(store)).toEqual(before);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('opens the accepted term correction and preserves its return context', async () => {
+    seedCompleteDraft();
+    const term = store.orderTerms()[0];
+    await fixture.componentInstance.handleTermChange(term.termId);
+    expect(router.navigateByUrl).toHaveBeenCalledWith(
+      '/cases/create-casefile/order-terms/add/' + encodeURIComponent(term.resultId),
+    );
+    expect(store.orderTermAmendment()?.termId).toBe(term.termId);
+    expect(TestBed.inject(CasesCreateCasefileReviewNavigationService).context()).toEqual({
+      origin: 'review',
+      section: 'orderTerm',
+      termId: term.termId,
+    });
+  });
+
+  it('blocks every edit and cancellation while a correction navigation is pending', async () => {
+    seedCompleteDraft();
+    const before = structuredClone(getState(store));
+    let finish!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const change = fixture.componentInstance.handleChange('respondent');
+    await fixture.componentInstance.handleTermChange(store.orderTerms()[0].termId);
+    await fixture.componentInstance.handleTermRemove(store.orderTerms()[0].termId);
+    fixture.componentInstance.handleCancel();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    expect(getState(store)).toEqual(before);
+    finish(true);
+    await change;
   });
 });

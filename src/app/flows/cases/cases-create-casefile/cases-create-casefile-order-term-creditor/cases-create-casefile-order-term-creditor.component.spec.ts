@@ -555,6 +555,177 @@ describe('CasesCreateCasefileOrderTermCreditorComponent', () => {
     expect(store.orderTerms()).toHaveLength(2);
     expect(store.orderTerms()[1].parameters).toEqual({ amount: '20.00' });
   });
+  it('retains an amendment when Cancel is clicked during creditor completion navigation', async () => {
+    const { component, fixture, store, router } = await setup([majorCreditor], seedAmendment);
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockReturnValue(new Promise<boolean>((resolve) => (finish = resolve)));
+    component.handleFormSubmit({
+      formData: {
+        create_casefile_order_term_creditor_choice: 'applicant',
+        create_casefile_order_term_creditor_major_creditor_id: null,
+      },
+      nestedFlow: false,
+    });
+    const amendment = store.orderTermAmendment();
+    await component.handleCancel();
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.orderTermAmendment()).toBe(amendment);
+    finish(false);
+    await fixture.whenStable();
+  });
+
+  it.each([true, false])(
+    'does not navigate or clear unsaved state when a creditor assignment is rejected (amendment=%s)',
+    async (amending) => {
+      const { component, store, router } = await setup([majorCreditor], amending ? seedAmendment : seedCurrentTerm);
+      if (amending) {
+        const pending = store.orderTermAmendment()!;
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+          orderTermAmendment: { ...pending, inputComplete: false },
+        });
+      } else {
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, { orderTerms: [] });
+      }
+      component.handleUnsavedChanges(true);
+      const terms = store.orderTerms();
+      const amendment = store.orderTermAmendment();
+      const navigate = vi.spyOn(router, 'navigateByUrl');
+      component.handleFormSubmit({
+        formData: {
+          create_casefile_order_term_creditor_choice: 'applicant',
+          create_casefile_order_term_creditor_major_creditor_id: null,
+        },
+        nestedFlow: false,
+      });
+      expect(navigate).not.toHaveBeenCalled();
+      expect(store.orderTerms()).toBe(terms);
+      expect(store.orderTermAmendment()).toBe(amendment);
+      expect(store.unsavedChanges()).toBe(true);
+    },
+  );
+
+  it('does not complete an amendment cancelled synchronously during creditor staging', async () => {
+    const { component, store, router } = await setup([majorCreditor], seedAmendment);
+    const stage = store.stageAmendmentCreditor;
+    vi.spyOn(store, 'stageAmendmentCreditor').mockImplementation((assignment) => {
+      const result = stage(assignment);
+      store.cancelOrderTermAmendment(2);
+      return result;
+    });
+    const terms = store.orderTerms();
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    component.handleFormSubmit({
+      formData: {
+        create_casefile_order_term_creditor_choice: 'applicant',
+        create_casefile_order_term_creditor_major_creditor_id: null,
+      },
+      nestedFlow: false,
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(store.orderTerms()).toBe(terms);
+    expect(store.orderTermAmendment()).toBeNull();
+  });
+});
+
+describe('Minor creditor removal destination', () => {
+  it.each(['pending', 'assigned', 'shared', 'replacement', 'staged'] as const)(
+    'consumes %s removal success only on routed arrival and preserves the correct choice',
+    async (context) => {
+      TestBed.configureTestingModule({ providers: [provideRouter(routedCreditor())] });
+      const store = TestBed.inject(CasesCreateCasefileStore);
+      seedCurrentTerm(store);
+      const accepted = {
+        ...acceptedTerm,
+        creditor: context === 'pending' ? null : { type: 'minor' as const, sequenceNumber: 4 },
+      };
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+        orderTerms: context === 'shared' ? [accepted, { ...accepted, termId: 2 }] : [accepted],
+        minorCreditors: context === 'pending' ? [] : [existingMinorCreditor],
+        creditorDraft: {
+          termId: 1,
+          branch: 'add-new',
+          details: structuredClone(MINOR_CREDITOR_DETAILS_MOCK),
+          countryName: 'United Kingdom',
+          ...(context === 'assigned' || context === 'shared' ? { existingSequenceNumber: 4 } : {}),
+        },
+        orderTermAmendment:
+          context === 'staged' ? { termId: 1, term: accepted, inputComplete: true, ready: true } : null,
+      });
+      expect(store.confirmMinorCreditorRemoval(store.beginMinorCreditorRemoval()!)).toBe(true);
+      const harness = await RouterTestingHarness.create();
+      const component = await harness.navigateByUrl(
+        '/cases/create-casefile/order-terms/creditor',
+        CasesCreateCasefileOrderTermCreditorComponent,
+      );
+      harness.detectChanges();
+      expect(store.minorCreditorRemovalOutcome()).toBeNull();
+      const element = harness.routeNativeElement!;
+      expect(element.querySelector('#create_casefile_order_term_creditor_removal_success')?.textContent).toContain(
+        'Minor creditor removed.',
+      );
+      const selected = element.querySelector<HTMLInputElement>('input[type="radio"]:checked');
+      if (context === 'replacement') expect(selected?.value).toBe('minor:4');
+      else expect(selected).toBeNull();
+      component.dismissRemovalSuccess();
+      harness.detectChanges();
+      expect(element.querySelector('#create_casefile_order_term_creditor_removal_success')).toBeNull();
+      expect(document.activeElement?.id).toBe('create_casefile_order_term_creditor_heading');
+      await harness.navigateByUrl('/cases/create-casefile/order-terms/summary');
+      await harness.navigateByUrl('/cases/create-casefile/order-terms/creditor');
+      harness.detectChanges();
+      expect(
+        harness.routeNativeElement?.querySelector('#create_casefile_order_term_creditor_removal_success'),
+      ).toBeNull();
+    },
+  );
+
+  it.each(['missing entry term', 'changed current term'] as const)(
+    'does not consume another context outcome on navigation: %s',
+    async (context) => {
+      const { component, fixture, store, router } = await setup([majorCreditor], (currentStore) => {
+        seedCurrentTerm(currentStore);
+        if (context === 'missing entry term') {
+          patchState(currentStore as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+            currentOrderTermId: null,
+          });
+        }
+      });
+      seedCurrentTerm(store);
+      store.setPendingNewMinorCreditor(1);
+      store.savePendingMinorCreditorDetails(1, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom');
+      expect(store.confirmMinorCreditorRemoval(store.beginMinorCreditorRemoval()!)).toBe(true);
+      const outcome = store.minorCreditorRemovalOutcome();
+      expect(outcome).not.toBeNull();
+      if (context === 'changed current term') {
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, { currentOrderTermId: 2 });
+      }
+      router.resetConfig([{ path: 'destination', component: TestDestinationComponent }]);
+
+      await router.navigateByUrl('/destination');
+      fixture.detectChanges();
+
+      expect(component.removalSucceeded()).toBe(false);
+      expect(store.minorCreditorRemovalOutcome()).toBe(outcome);
+      expect(fixture.nativeElement.querySelector('#create_casefile_order_term_creditor_removal_success')).toBeNull();
+    },
+  );
+
+  it('retains the outcome when destination activation is cancelled', async () => {
+    const routes = routedCreditor();
+    routes[0].canActivate = [() => false];
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    seedCurrentTerm(store);
+    store.setPendingNewMinorCreditor(1);
+    store.savePendingMinorCreditorDetails(1, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom');
+    store.confirmMinorCreditorRemoval(store.beginMinorCreditorRemoval()!);
+    const outcome = store.minorCreditorRemovalOutcome();
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/cases/create-casefile/order-terms/creditor');
+    expect(store.minorCreditorRemovalOutcome()).toBe(outcome);
+  });
 });
 
 describe('Minor creditor removal destination', () => {

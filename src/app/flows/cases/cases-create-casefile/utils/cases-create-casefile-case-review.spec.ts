@@ -87,4 +87,20 @@ describe('reviewCaseSections', () => {
     snapshot.caseTypeSelection = null;
     expect(reviewCaseSections(snapshot, [], []).some((section) => section.id === 'caseType')).toBe(false);
   });
+  it('shows absent dates and unknown stored choice labels without inventing values', () => {
+    const state = createCasesCreateCasefileReviewState();
+    state.orderDetails!.dateOrderMade = null;
+    state.orderDetails!.dateArrearsLastUpdated = '';
+    Object.assign(state.interestAndIndexation!, { indexationType: 'legacy-indexation' });
+    Object.assign(state, { paymentArrangement: 'legacy-arrangement' });
+    const sections = reviewCaseSections(state, [], []);
+    expect(sections.find((section) => section.id === 'orderDetails')?.rows).toEqual(
+      expect.arrayContaining([
+        { id: 'dateOrderMade', label: 'Date order made', values: ['Not provided'] },
+        { id: 'dateArrearsLastUpdated', label: 'Date arrears last updated', values: ['Not provided'] },
+      ]),
+    );
+    expect(sections.find((section) => section.id === 'interestAndIndexation')?.rows[1].values).toEqual(['']);
+    expect(sections.find((section) => section.id === 'managingPayments')?.rows[0].values).toEqual(['']);
+  });
 });

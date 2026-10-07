@@ -65,7 +65,6 @@ export class CasesCreateCasefileMinorCreditorRemoveComponent {
     if (!this.navigationFailed() || this.busy()) return false;
     if (this.lastNavigation === 'cancel') return this.available();
     if (this.lastNavigation === 'recover') return true;
-    if (this.lastNavigation !== 'confirm') return false;
     const outcome = this.entryOutcome;
     return (
       outcome !== null &&
@@ -82,18 +81,15 @@ export class CasesCreateCasefileMinorCreditorRemoveComponent {
   }
 
   private async navigate(action: RemovalNavigation): Promise<void> {
-    if (this.busy()) return;
     this.busy.set(true);
     this.navigationFailed.set(false);
     this.lastNavigation = action;
     const termId = this.store.currentOrderTermId();
     const hasTerm = termId !== null && this.store.orderTerms().some((term) => term.termId === termId);
-    const target =
-      action === 'cancel'
-        ? this.summaryPath
-        : action === 'recover' && !hasTerm
-          ? this.orderTermsSelectPath
-          : this.creditorPath;
+    const recoveryTarget = hasTerm ? this.creditorPath : this.orderTermsSelectPath;
+    let target = this.creditorPath;
+    if (action === 'cancel') target = this.summaryPath;
+    if (action === 'recover') target = recoveryTarget;
     try {
       const success =
         action === 'cancel'

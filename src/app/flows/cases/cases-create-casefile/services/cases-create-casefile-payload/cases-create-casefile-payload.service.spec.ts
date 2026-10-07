@@ -327,4 +327,16 @@ describe('CasesCreateCasefilePayloadService', () => {
         .result_responses,
     ).toEqual([{ parameter_name: 'frequency', response: 'Monthly' }]);
   });
+  it('returns an independent payload whose JSON omits unprovided optional properties', () => {
+    const snapshot = state();
+    const before = structuredClone(snapshot);
+    const payload = service.buildAddCasefilePayload(snapshot, references, 44);
+    const wire = JSON.stringify(payload);
+    expect(wire).not.toContain('third_party_details');
+    expect(wire).not.toContain('account_comment');
+    expect(wire).not.toContain('minor_creditors');
+    payload.casefile.respondent_account.order_details.order_terms[0].result_responses[0].response = '999.00';
+    payload.casefile.respondent_account.respondent.party_details.aliases![0].forenames = 'Changed';
+    expect(snapshot).toEqual(before);
+  });
 });

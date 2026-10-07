@@ -96,6 +96,60 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     },
   );
 
+  it('ignores repeated removal while entry navigation is pending', async () => {
+    const { component, store, router } = await setup();
+    let finish!: (result: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    const first = component.handleRemove();
+    const selection = store.minorCreditorRemoval();
+
+    await component.handleRemove();
+
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.minorCreditorRemoval()).toBe(selection);
+    finish(true);
+    await first;
+  });
+
+  it('does not select a replacement draft from an older summary', async () => {
+    const { component, store, router } = await setup();
+    const replacement = { ...draft };
+    patch(store, { creditorDraft: replacement });
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+
+    await component.handleRemove();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(store.minorCreditorRemoval()).toBeNull();
+    expect(store.creditorDraft()).toBe(replacement);
+  });
+
+  it('does not navigate if removal capture is rejected', async () => {
+    const { component, store, router } = await setup();
+    const before = getState(store);
+    vi.spyOn(store, 'beginMinorCreditorRemoval').mockReturnValue(null);
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+
+    await component.handleRemove();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(getState(store)).toEqual(before);
+  });
+
+  it('focuses the error heading after removal entry fails', async () => {
+    const { component, fixture, router } = await setup();
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(false);
+    fixture.detectChanges();
+
+    await component.handleRemove();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.govuk-error-summary h2'));
+  });
+
   it('does not clear a newer selection when earlier removal navigation fails late', async () => {
     const { component, store, router } = await setup();
     let finish!: (result: boolean) => void;
@@ -479,5 +533,33 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     expect(store.orderTermAmendment()).toBe(replacement);
     expect(store.orderTerms()).toHaveLength(2);
     expect(store.minorCreditors()).toEqual([]);
+  });
+  it('retains reviewed amendment details when Cancel is clicked during Continue navigation', async () => {
+    const { component, store, router } = await setup(amendmentState());
+    let finish!: (value: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockReturnValue(new Promise<boolean>((resolve) => (finish = resolve)));
+    const continuing = component.handleContinue();
+    const amendment = store.orderTermAmendment();
+    const pending = store.creditorDraft();
+    await component.handleCancel();
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.orderTermAmendment()).toBe(amendment);
+    expect(store.creditorDraft()).toBe(pending);
+    finish(false);
+    await continuing;
+  });
+
+  it('does not cancel an amendment after the current term changes', async () => {
+    const { component, store, router } = await setup(amendmentState());
+    const amendment = store.orderTermAmendment();
+    const pending = store.creditorDraft();
+    patch(store, { currentOrderTermId: 1 });
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    await component.handleCancel();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(store.orderTermAmendment()).toBe(amendment);
+    expect(store.creditorDraft()).toBe(pending);
   });
 });

@@ -70,6 +70,15 @@ const children: Routes = [
     data: { ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, routePermissionId: [21, 22] },
     children: [
       {
+        path: CASES_DRAFT_CHECKER_ROUTING_PATHS.children.delete + '/:draftCasefileId',
+        loadComponent: () =>
+          import('../cases-draft-delete-placeholder/cases-draft-delete-placeholder.component').then(
+            (m) => m.CasesDraftDeletePlaceholderComponent,
+          ),
+        data: { title: 'Delete casefile', casefileIntent: 'checker-delete' },
+        resolve: { title: TitleResolver, draftCasefile: casesDraftCasefileResolver },
+      },
+      {
         path: CASES_DRAFT_CHECKER_ROUTING_PATHS.children.review + '/:draftCasefileId',
         loadComponent: () =>
           import('../../cases-create-casefile/cases-create-casefile-check-details/cases-create-casefile-check-details.component').then(

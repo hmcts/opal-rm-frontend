@@ -448,7 +448,7 @@ describe('resolver-backed dashboard', () => {
         '#approved',
       );
       expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected').getAttribute('href')).toContain(
-        '/rejections#rejected',
+        '/rejections',
       );
     },
   );
@@ -474,9 +474,7 @@ describe('resolver-backed dashboard', () => {
     await fixture.whenStable();
     expect(click.defaultPrevented).toBe(true);
     expect(navigate).toHaveBeenCalledOnce();
-    expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toBe(
-      '/cases/draft/create-and-manage/rejections#rejected',
-    );
+    expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toBe('/cases/draft/create-and-manage/rejections');
   });
   it('preserves inherited page state and visible rows without paging navigation', async () => {
     const fixture = await render('in-review', {
@@ -516,5 +514,26 @@ describe('resolver-backed dashboard', () => {
       '/cases/create-casefile/check-case-details/123#in-review',
     );
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
+  });
+  it('clears stale all-rejected row context on ordinary dashboard activation', async () => {
+    const fixture = await render();
+    const navigation = fixture.componentInstance.navigation;
+    const router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    await navigation.navigateToPlaceholder('details', 123, 'all-rejected');
+    expect(navigation.contextForPlaceholder('details', '123')).not.toBeNull();
+    await fixture.componentInstance.openRow(123);
+    expect(navigation.contextForPlaceholder('details', '123')).toBeNull();
+  });
+  it('reports failed all-rejected entry while retaining rejected origin memory', async () => {
+    const fixture = await render();
+    const navigation = fixture.componentInstance.navigation;
+    const router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigateByUrl').mockRejectedValue(new Error('Synthetic cancelled entry'));
+    const selection = { tab: 'rejected' as const, page: 2, sort: 'created' as const, direction: 'descending' as const };
+    navigation.setSelection(selection);
+    await fixture.componentInstance.openAllRejected(new MouseEvent('click'));
+    expect(navigation.selection()).toEqual(selection);
+    expect(setBannerError).toHaveBeenCalledOnce();
   });
 });

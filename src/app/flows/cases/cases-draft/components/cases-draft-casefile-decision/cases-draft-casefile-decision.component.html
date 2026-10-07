@@ -19,7 +19,9 @@
       inputId="create_casefile_review_decision-reject"
       inputName="create_casefile_review_decision"
       inputValue="reject"
-      ariaControls="create_casefile_review_rejection"
+      [ariaControls]="
+        form.controls.create_casefile_review_decision.value === 'reject' ? 'create_casefile_review_rejection' : ''
+      "
       [control]="form.controls.create_casefile_review_decision"
     ></div>
   </opal-lib-govuk-radio>

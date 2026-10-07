@@ -160,12 +160,9 @@ export abstract class CasesDraftDashboardBaseComponent extends AbstractTabData {
     return { identity$, tab$, tabData$ };
   }
 
-  protected async navigate(
-    url: string | UrlTree,
-    options: NavigationBehaviorOptions = { replaceUrl: false },
-  ): Promise<boolean> {
+  protected async navigate(url: string | UrlTree, options?: NavigationBehaviorOptions): Promise<boolean> {
     try {
-      return await this.dashboardRouter.navigateByUrl(url, options);
+      return await this.dashboardRouter.navigateByUrl(url, options ?? { replaceUrl: false });
     } catch (error: unknown) {
       this.data.reportError(error);
       return false;

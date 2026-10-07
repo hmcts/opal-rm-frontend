@@ -1,3 +1,4 @@
+import { createPersistedCasefileDetail } from './mocks/opal-maintenance-draft-casefile-detail.mock';
 import { CasesCreateCasefilePayloadService } from '../../cases-create-casefile/services/cases-create-casefile-payload/cases-create-casefile-payload.service';
 import { createCasesCreateCasefileReviewState } from '../../cases-create-casefile/mocks/cases-create-casefile-review-state.mock';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
@@ -53,6 +54,69 @@ describe('OpalMaintenanceService', () => {
       }
     ).majorCreditorsCache.clear();
 
+  it('loads the selected resource and preserves quoted zero ETag', async () => {
+    const body = createPersistedCasefileDetail();
+    const loaded = firstValueFrom(service.getDraftCasefile(17));
+    const request = http.expectOne('/opal-maintenance-service/draft-casefiles/17');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.transferCache).toBe(false);
+    for (const key of withoutHttpRetry().keys())
+      expect(request.request.context.get(key)).toEqual(withoutHttpRetry().get(key));
+    request.flush(body, { headers: { ETag: '"0"' } });
+    expect(await loaded).toEqual({ draft: body, etag: '"0"' });
+  });
+  it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])('rejects invalid selected ID %s before HTTP', (id) => {
+    expect(() => service.getDraftCasefile(id)).toThrow('Invalid draft casefile identifier');
+    http.expectNone('/opal-maintenance-service/draft-casefiles/' + id);
+  });
+  it.each([true, false, null])('uses separate country queries/cache for active %s', (active) => {
+    service.getCountries(active).subscribe();
+    const request = http.expectOne((item) => item.url.endsWith('/countries'));
+    expect(request.request.params.get('active')).toBe(active === null ? null : String(active));
+    request.flush(countries);
+    service.getCountries(active).subscribe();
+    http.expectNone((item) => item.url.endsWith('/countries'));
+  });
+  it('defaults countries to active and separates all historical cache entries', () => {
+    for (const active of [true, false, null]) {
+      service.getCountries(active).subscribe();
+      http.expectOne((item) => item.url.endsWith('/countries')).flush(countries);
+    }
+    service.getCountries().subscribe();
+    http.expectNone((item) => item.url.endsWith('/countries'));
+  });
+  it.each([true, false, null])('retains the application group for active %s', (active) => {
+    service.getMaintenanceApplications(active).subscribe();
+    const request = http.expectOne((item) => item.url.endsWith('/maintenance-applications'));
+    expect(request.request.params.get('active')).toBe(active === null ? null : String(active));
+    expect(request.request.params.get('application_group')).toBe('Create Casefile');
+    request.flush({ count: 0, refData: [] });
+  });
+  it('allows the unfiltered historical major-creditor query', () => {
+    service.getMajorCreditors({ business_unit_id: 44 }).subscribe();
+    const request = http.expectOne((item) => item.url.endsWith('/major-creditors'));
+    expect(request.request.params.keys()).toEqual(['business_unit_id']);
+    request.flush(majorCreditors);
+  });
+  it('does not poison the historical country cache after failure', () => {
+    let failed = false;
+    service.getCountries(null).subscribe({
+      error: () => {
+        failed = true;
+      },
+    });
+    http.expectOne((item) => item.url.endsWith('/countries')).flush({}, { status: 503, statusText: 'Unavailable' });
+    expect(failed).toBe(true);
+    service.getCountries(null).subscribe((value) => expect(value).toEqual(countries));
+    http.expectOne((item) => item.url.endsWith('/countries')).flush(countries);
+  });
+  it('rejects unusable GET data without leaking provider content', async () => {
+    const loaded = firstValueFrom(service.getDraftCasefile(17));
+    http
+      .expectOne('/opal-maintenance-service/draft-casefiles/17')
+      .flush({ secret: 'Synthetic sensitive data' }, { headers: { ETag: '"1"' } });
+    await expect(loaded).rejects.toThrow(new Error('Unusable draft casefile data'));
+  });
   it('posts the mapped casefile once and returns the server receipt', async () => {
     const request = TestBed.inject(CasesCreateCasefilePayloadService).buildAddCasefilePayload(
       createCasesCreateCasefileReviewState(),

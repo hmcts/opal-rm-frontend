@@ -176,18 +176,16 @@ export class CasesDraftCheckAndValidateTabsComponent extends AbstractTabData {
       takeUntilDestroyed(),
       shareReplay({ bufferSize: 1, refCount: true }),
     );
-    this.outcomeCounts$ = combineLatest([identity$, tab$]).pipe(
-      switchMap(([identity, tab]) => {
-        if (!identity) return of(null);
+    this.outcomeCounts$ = this.tabData$.pipe(
+      switchMap((result) => {
+        // A loading or failed list cancels badges before a success can clear its global error.
+        if (!result || result.rows === null || !this.isCurrentData(result)) return of(null);
+        const { identity, tab, count } = result;
         const resolved = pendingCounts;
         pendingCounts = undefined;
         return combineLatest(
           (['rejected', 'failed'] as const).map((outcome) => {
-            if (tab === outcome)
-              return this.tabData$.pipe(
-                filter((result) => result?.tab === outcome && sameCasesDraftIdentity(result.identity, identity)),
-                map((result) => result?.count ?? null),
-              );
+            if (tab === outcome) return of(count);
             if (resolved && sameCasesDraftIdentity(identity, resolvedIdentity)) return of(resolved[outcome]);
             return this.data.getOutcomeCount(identity, outcome).pipe(
               startWith<number | null>(null),

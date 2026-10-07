@@ -581,7 +581,7 @@ export const CasesCreateCasefileStore = signalStore(
     /** Returns a matching current outcome once, consuming stale same-term outcomes as well. */
     consumeMinorCreditorRemovalOutcome: (termId: number): ICasesCreateCasefileMinorCreditorRemovalOutcome | null => {
       const outcome = store.minorCreditorRemovalOutcome();
-      if (!outcome || outcome.termId !== termId) return null;
+      if (outcome?.termId !== termId) return null;
       const matches =
         store.currentOrderTermId() === termId &&
         store.creditorDraft() === null &&

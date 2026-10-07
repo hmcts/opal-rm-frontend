@@ -681,6 +681,37 @@ describe('Minor creditor removal destination', () => {
     },
   );
 
+  it.each(['missing entry term', 'changed current term'] as const)(
+    'does not consume another context outcome on navigation: %s',
+    async (context) => {
+      const { component, fixture, store, router } = await setup([majorCreditor], (currentStore) => {
+        seedCurrentTerm(currentStore);
+        if (context === 'missing entry term') {
+          patchState(currentStore as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+            currentOrderTermId: null,
+          });
+        }
+      });
+      seedCurrentTerm(store);
+      store.setPendingNewMinorCreditor(1);
+      store.savePendingMinorCreditorDetails(1, MINOR_CREDITOR_DETAILS_MOCK, 'United Kingdom');
+      expect(store.confirmMinorCreditorRemoval(store.beginMinorCreditorRemoval()!)).toBe(true);
+      const outcome = store.minorCreditorRemovalOutcome();
+      expect(outcome).not.toBeNull();
+      if (context === 'changed current term') {
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, { currentOrderTermId: 2 });
+      }
+      router.resetConfig([{ path: 'destination', component: TestDestinationComponent }]);
+
+      await router.navigateByUrl('/destination');
+      fixture.detectChanges();
+
+      expect(component.removalSucceeded()).toBe(false);
+      expect(store.minorCreditorRemovalOutcome()).toBe(outcome);
+      expect(fixture.nativeElement.querySelector('#create_casefile_order_term_creditor_removal_success')).toBeNull();
+    },
+  );
+
   it('retains the outcome when destination activation is cancelled', async () => {
     const routes = routedCreditor();
     routes[0].canActivate = [() => false];

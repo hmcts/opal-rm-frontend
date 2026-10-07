@@ -39,6 +39,7 @@ export class CasesDraftNavigationService {
   private readonly rejectedDashboardOrigin = signal<ICasesDraftNavigation | null>(null);
   private readonly rejectedSuccess = signal<ICasesDraftResubmissionSuccess | null>(null);
   private readonly rejectedPlaceholder = signal<ICasesDraftAllRejectedPlaceholderContext | null>(null);
+  private allRejectedNavigationOperation = 0;
 
   public readonly selection = this.current.asReadonly();
   public readonly allRejectedSelection = computed(() =>
@@ -63,6 +64,7 @@ export class CasesDraftNavigationService {
   }
 
   private resetAllRejected(identity: ICasesDraftIdentity | null): void {
+    this.allRejectedNavigationOperation++;
     this.allRejectedScope.set(identity);
     this.rejectedSelection.set(defaultAllRejectedSelection());
     this.rejectedDashboardOrigin.set(null);
@@ -76,18 +78,23 @@ export class CasesDraftNavigationService {
     return identity;
   }
 
-  /** Finalise or roll back only while the navigation's originating identity is still live. */
+  /** Only the latest navigation in the live identity may finalise or roll back shared journey state. */
   private async navigateInAllRejectedScope(
     identity: ICasesDraftIdentity,
     url: UrlTree,
     settled: (accepted: boolean) => void,
   ): Promise<boolean> {
+    const operation = ++this.allRejectedNavigationOperation;
     let accepted = false;
     try {
       accepted = await this.router.navigateByUrl(url);
       return accepted;
     } finally {
-      if (sameCasesDraftIdentity(identity, this.currentAllRejectedIdentity())) settled(accepted);
+      if (
+        operation === this.allRejectedNavigationOperation &&
+        sameCasesDraftIdentity(identity, this.currentAllRejectedIdentity())
+      )
+        settled(accepted);
     }
   }
 
@@ -185,11 +192,9 @@ export class CasesDraftNavigationService {
   public async returnFromPlaceholder(kind: unknown, idText: string | null): Promise<boolean> {
     const context = this.contextForPlaceholder(kind, idText);
     if (!context) return false;
-    const accepted = await this.router.navigateByUrl(this.allRejectedUrl());
-    if (accepted && sameCasesDraftIdentity(context.identity, this.currentAllRejectedIdentity())) {
-      this.rejectedPlaceholder.set(null);
-    }
-    return accepted;
+    return this.navigateInAllRejectedScope(context.identity, this.allRejectedUrl(), (accepted) => {
+      if (accepted) this.rejectedPlaceholder.set(null);
+    });
   }
 
   public async returnFromAllRejected(): Promise<boolean> {

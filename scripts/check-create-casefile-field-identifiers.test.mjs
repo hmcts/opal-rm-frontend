@@ -702,6 +702,32 @@ for (const { page, tag, id } of [
 }
 
 const reviewTemplatePath = `${createCasefilePath}/cases-create-casefile-check-details/cases-create-casefile-check-details.component.html`;
+test('accepts the review Delete action on its exact shared button tuple', async () => {
+  const root = await createFixtureRepository();
+  await writeFixtureFile(
+    root,
+    reviewTemplatePath,
+    '<opal-lib-govuk-button buttonId="create_casefile_review_delete">Delete casefile</opal-lib-govuk-button>',
+  );
+  const result = runScanner(root);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, '');
+});
+
+for (const [templatePath, tag, attribute] of [
+  [caseTypeTemplatePath, 'opal-lib-govuk-button', 'buttonId'],
+  [reviewTemplatePath, 'button', 'buttonId'],
+  [reviewTemplatePath, 'opal-lib-govuk-text-input', 'inputId'],
+  [reviewTemplatePath, 'opal-lib-govuk-button', 'id'],
+  [reviewTemplatePath, 'opal-lib-govuk-button', '[buttonId]'],
+]) {
+  test(`rejects review Delete identifier on unsupported tuple ${templatePath} ${tag} ${attribute}`, async () => {
+    const root = await createFixtureRepository();
+    await writeFixtureFile(root, templatePath, `<${tag} ${attribute}="create_casefile_review_delete"></${tag}>`);
+    assertRejected(runScanner(root), /noncanonical .*="create_casefile_review_delete"/);
+  });
+}
+
 for (const [templatePath, tag, id] of [
   [reviewTemplatePath, 'opal-lib-govuk-cancel-link', 'create_casefile_review_cancel'],
   [orderTermsSummaryTemplatePath, 'button', 'create_casefile_order_terms_return'],

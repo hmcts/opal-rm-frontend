@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { getState, patchState, WritableStateSource } from '@ngrx/signals';
+import { getState, patchState, watchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../constants/cases-create-casefile-applicant-bank-types.constant';
@@ -1159,6 +1159,7 @@ describe('CasesCreateCasefileStore', () => {
     };
 
     expect(store.savePendingMinorCreditorDetails(1, changedDetails, 'France')).toBe(false);
+    expect(store.acceptPendingMinorCreditor(1)).toBeNull();
     expect(getState(store)).toEqual(before);
   });
 
@@ -1202,6 +1203,51 @@ describe('CasesCreateCasefileStore', () => {
     expect(store.minorCreditors()[0]).toMatchObject({ sequenceNumber: 3, displayName: 'Updated name', details });
     expect(store.nextMinorCreditorSequence()).toBe(4);
     expect(store.creditorDraft()).toBeNull();
+  });
+
+  it('accepts a shared creditor edit in one state update while preserving other creditors and term references', () => {
+    const existing = minorCreditor(3, 'Previous name');
+    const other = minorCreditor(4, 'Other creditor');
+    const details = {
+      ...structuredClone(MINOR_CREDITOR_DETAILS_MOCK),
+      identity: { type: 'organisation' as const, organisationName: 'Reviewed name' },
+    };
+    patchState(stateSource, {
+      currentOrderTermId: 1,
+      orderTerms: [
+        { termId: 1, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
+        { termId: 2, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 3 } },
+        { termId: 3, resultId: 'MAT', parameters: {}, creditor: { type: 'minor', sequenceNumber: 4 } },
+      ],
+      minorCreditors: [existing, other],
+      nextMinorCreditorSequence: 5,
+      stateChanges: false,
+    });
+    expect(store.savePendingMinorCreditorDetails(1, details, 'United Kingdom')).toBe(true);
+    store.setUnsavedChanges(true);
+    const pendingDetails = store.creditorDraft()?.details;
+    const orderTerms = structuredClone(store.orderTerms());
+    const acceptedStates: ICasesCreateCasefileState[] = [];
+    TestBed.runInInjectionContext(() => {
+      watchState(store, (state) => {
+        if (state.creditorDraft === null) acceptedStates.push(structuredClone(state));
+      });
+    });
+
+    expect(store.acceptPendingMinorCreditor(1)).toBe(3);
+
+    expect(acceptedStates).toHaveLength(1);
+    expect(acceptedStates[0]).toMatchObject({
+      creditorDraft: null,
+      minorCreditors: [{ sequenceNumber: 3, displayName: 'Reviewed name', details }, other],
+      orderTerms,
+      nextMinorCreditorSequence: 5,
+      stateChanges: true,
+      unsavedChanges: false,
+    });
+    expect(store.minorCreditors()[0].details).not.toBe(pendingDetails);
+    expect(store.acceptPendingMinorCreditor(1)).toBeNull();
+    expect(acceptedStates).toHaveLength(1);
   });
 
   it('rejects pending accepted edits when their assignment disappears', () => {

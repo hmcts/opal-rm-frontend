@@ -15,6 +15,7 @@ export function minorCreditorSummaryRows(
     identity.type === 'individual'
       ? [identity.title, identity.firstNames, identity.lastName].filter(Boolean).join(' ')
       : identity.organisationName;
+  const bankTypeLabel = { uk: 'UK', 'non-uk': 'Non-UK', none: 'None' }[bank.type];
   const rows: ICasesCreateCasefileMinorCreditorSummaryRow[] = [
     row('name', identity.type === 'individual' ? 'Name' : 'Organisation name', name),
     {
@@ -30,7 +31,7 @@ export function minorCreditorSummaryRows(
         countryName,
       ].filter((line): line is string => line !== null && line !== ''),
     },
-    row('bankType', 'Bank account type', bank.type === 'uk' ? 'UK' : bank.type === 'non-uk' ? 'Non-UK' : 'None'),
+    row('bankType', 'Bank account type', bankTypeLabel),
   ];
 
   if (bank.type === 'none') return rows;

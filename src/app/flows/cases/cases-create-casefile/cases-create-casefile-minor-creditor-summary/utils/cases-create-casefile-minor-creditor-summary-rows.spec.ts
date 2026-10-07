@@ -28,6 +28,7 @@ describe('minorCreditorSummaryRows', () => {
 
     const rows = minorCreditorSummaryRows(details, 'United Kingdom');
 
+    expect(rows.find((row) => row.id === 'bankType')?.values).toEqual(['Non-UK']);
     expect(rows.find((row) => row.id === 'bicSwiftCode')?.values).toEqual([bicSwiftCode ?? '-']);
     expect(rows.find((row) => row.id === 'iban')?.values).toEqual([iban ?? '-']);
     expect(rows.some((row) => row.id === 'bankName')).toBe(fallback);
@@ -50,6 +51,7 @@ describe('minorCreditorSummaryRows', () => {
       'United Kingdom',
     );
 
+    expect(rows.find((row) => row.id === 'bankType')?.values).toEqual(['UK']);
     expect(rows.find((row) => row.id === 'sortCode')?.values).toEqual(['001122']);
     expect(rows.find((row) => row.id === 'accountNumber')?.values).toEqual(['000123']);
   });

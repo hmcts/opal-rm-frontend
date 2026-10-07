@@ -34,6 +34,21 @@ const minorCreditorDisplayName = (identity: CasesCreateCasefileMinorCreditorIden
     ? identity.organisationName
     : [identity.title, identity.firstNames, identity.lastName].filter(Boolean).join(' ');
 
+const updatedMinorCreditorDetails = (
+  creditors: ICasesCreateCasefileMinorCreditor[],
+  sequenceNumber: number,
+  details: ICasesCreateCasefileMinorCreditorDetails,
+): ICasesCreateCasefileMinorCreditor[] =>
+  creditors.map((creditor) =>
+    creditor.sequenceNumber === sequenceNumber
+      ? {
+          ...creditor,
+          displayName: minorCreditorDisplayName(details.identity),
+          details: structuredClone(details),
+        }
+      : creditor,
+  );
+
 const areCaseTypeSelectionsEqual = (
   currentSelection: CasesCreateCasefileCaseTypeSelection | null,
   nextSelection: CasesCreateCasefileCaseTypeSelection,
@@ -413,15 +428,7 @@ export const CasesCreateCasefileStore = signalStore(
       }
 
       patchState(store, {
-        minorCreditors: store.minorCreditors().map((creditor) =>
-          creditor.sequenceNumber === sequenceNumber
-            ? {
-                ...creditor,
-                displayName: minorCreditorDisplayName(details.identity),
-                details: structuredClone(details),
-              }
-            : creditor,
-        ),
+        minorCreditors: updatedMinorCreditorDetails(store.minorCreditors(), sequenceNumber, details),
         stateChanges: true,
         unsavedChanges: false,
       });
@@ -474,10 +481,13 @@ export const CasesCreateCasefileStore = signalStore(
       )
         return null;
 
-      store.clearCreditorDraft();
-      if (store.updateAssignedMinorCreditor(termId, sequence, draft.details)) return sequence;
-      patchState(store, { creditorDraft: draft });
-      return null;
+      patchState(store, {
+        minorCreditors: updatedMinorCreditorDetails(store.minorCreditors(), sequence, draft.details),
+        creditorDraft: null,
+        stateChanges: true,
+        unsavedChanges: false,
+      });
+      return sequence;
     },
   })),
 );

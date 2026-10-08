@@ -156,6 +156,69 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     fixture.debugElement.query(By.directive(CasesDraftCasefileDecisionComponent))?.componentInstance;
 
   it.each(['inputter-view', 'checker-view', 'checker-review'] as const)(
+    'heads the saved %s with the respondent title and full name, preserving casing',
+    (intent) => {
+      const draft = persisted().draft;
+      Object.assign(draft.casefile.respondent_account.respondent.party_details.individual_details!, {
+        title: 'Dr',
+        forenames: 'Synthetic Second',
+        surname: 'McExample',
+      });
+      loadReview(persisted({ draft, intent, mode: intent === 'checker-review' ? 'review' : 'view' }));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('h1#review-heading')?.textContent).toBe(
+        'Dr Synthetic Second McExample',
+      );
+    },
+  );
+
+  it.each([
+    { title: undefined, forenames: 'Synthetic Second', heading: 'Synthetic Second McExample' },
+    { title: 'Dr', forenames: '', heading: 'Dr McExample' },
+    { title: undefined, forenames: undefined, heading: 'McExample' },
+  ])('omits absent optional respondent names from the saved heading: $heading', ({ title, forenames, heading }) => {
+    const draft = persisted().draft;
+    Object.assign(draft.casefile.respondent_account.respondent.party_details.individual_details!, {
+      title,
+      forenames,
+      surname: 'McExample',
+    });
+    loadReview(persisted({ draft }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('h1#review-heading')?.textContent).toBe(heading);
+  });
+
+  it('updates the respondent heading when another saved draft replaces the resolved draft', () => {
+    loadReview();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('h1#review-heading')?.textContent).toBe('Synthetic Respondent');
+
+    const secondDraft = persisted().draft;
+    secondDraft.draft_casefile_id = 18;
+    Object.assign(secondDraft.casefile.respondent_account.respondent.party_details.individual_details!, {
+      title: 'Ms',
+      forenames: 'Second',
+      surname: 'deExample',
+    });
+    loadReview(persisted({ draft: secondDraft }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('h1#review-heading')?.textContent).toBe('Ms Second deExample');
+  });
+
+  it('renders HTML-like respondent names as text in the saved heading', () => {
+    const draft = persisted().draft;
+    Object.assign(draft.casefile.respondent_account.respondent.party_details.individual_details!, {
+      forenames: '<b>Synthetic</b>',
+      surname: '<em>Respondent</em>',
+    });
+    loadReview(persisted({ draft }));
+    fixture.detectChanges();
+    const heading: HTMLHeadingElement = fixture.nativeElement.querySelector('h1#review-heading');
+    expect(heading.textContent).toBe('<b>Synthetic</b> <em>Respondent</em>');
+    expect(heading.querySelector('b, em')).toBeNull();
+  });
+
+  it.each(['inputter-view', 'checker-view', 'checker-review'] as const)(
     'places saved status and history above the case details in %s',
     (intent) => {
       loadReview(persisted({ intent, mode: intent === 'checker-review' ? 'review' : 'view' }));
@@ -754,7 +817,8 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/order-terms/remove/0');
     expect(store.orderTerms()[0].termId).toBe(termId);
   });
-  it('renders Check case details and returns to Case details without changing state', () => {
+  it('renders Check case details during creation even with respondent details and returns without changing state', () => {
+    seedCompleteDraft();
     fixture.detectChanges();
     const before = {
       caseTypeSelection: store.caseTypeSelection(),

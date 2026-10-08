@@ -438,9 +438,7 @@ export class InputterDashboardActions {
       }
       return;
     }
-    cy.get('#cases-draft-placeholder-heading')
-      .should('have.text', kind === 'details' ? 'Check case details' : 'Amend case')
-      .and('be.focused');
+    cy.get('#cases-draft-placeholder-heading').should('have.text', 'Amend case').and('be.focused');
     cy.contains('p', message).should('be.visible');
     cy.get('.govuk-grid-column-two-thirds').should('be.visible');
     cy.get(CREATE.caseTypeGroup).should('not.exist');
@@ -449,7 +447,7 @@ export class InputterDashboardActions {
   }
   /** Checks saved parties and order terms after the actual selected GET has resolved. */
   public expectSavedSummary(): void {
-    cy.get(CREATE.review.heading).should('have.text', 'Check case details').and('be.focused');
+    cy.get(CREATE.review.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
     cy.get(CREATE.review.section('respondent')).should('contain.text', 'Synthetic').and('contain.text', 'Respondent');
     cy.get(CREATE.review.section('orderTerms'))
       .should('contain.text', 'Test order term')

@@ -332,7 +332,7 @@ export class CheckerDashboardActions {
 
   /** Checks a fully resolved saved summary replaces the former persisted shell. */
   private expectSavedSummary(): void {
-    cy.get(CreateCasefileSelectors.review.heading).should('have.text', 'Check case details').and('be.focused');
+    cy.get(CreateCasefileSelectors.review.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
     cy.get(CreateCasefileSelectors.review.section('respondent'))
       .should('contain.text', 'Synthetic')
       .and('contain.text', 'Respondent');

@@ -29,6 +29,7 @@
       labelText="Reference"
       [inputId]="fieldNames.reference"
       [inputName]="fieldNames.reference"
+      [opalLibCapitaliseAllCharacters]="form.controls[fieldNames.reference]"
       [control]="form.get(fieldNames.reference)"
       [errors]="formControlErrorMessages[fieldNames.reference]"
     />
@@ -36,6 +37,7 @@
       [form]="form"
       [formControlErrorMessages]="formControlErrorMessages"
       [fieldNames]="fieldNames"
+      [capitalisePostalOrZipCode]="true"
     />
     <opal-lib-govuk-select
       labelText="Country"

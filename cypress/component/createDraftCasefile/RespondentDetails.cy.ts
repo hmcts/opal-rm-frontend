@@ -17,6 +17,7 @@ import {
 } from './constants/respondent-details-errors.constant';
 import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
 import { REQUIRED_RESPONDENT, SAVED_RESPONDENT, VALID_EXPANDED_RESPONDENT } from './mocks/respondent-details.mock';
+import { UPPERCASE_ALIAS_SCENARIOS } from './mocks/uppercase-fields.mock';
 import { setupRespondentDetails } from './setup/respondent-details.setup';
 import type { CasesCreateCasefileStoreInstance, GlobalStoreInstance } from './setup/respondent-details.setup';
 
@@ -87,20 +88,125 @@ const assertCanonicalIdentifierContract = (
   });
 };
 describe('Create Casefile Respondent Details', () => {
+  it(
+    'AC2, AC4. should retain mid-string surname insertion while uppercasing and saving it',
+    { tags: buildTags() },
+    () => {
+      setupRespondentDetails({ savedRespondent: REQUIRED_RESPONDENT });
+
+      cy.get(Page.respondentDetails.lastName)
+        .clear()
+        .type('abcd')
+        .should('have.value', 'ABCD')
+        .type('{home}{rightArrow}{rightArrow}')
+        .should('have.prop', 'selectionStart', 2)
+        .type('xy')
+        .should('have.value', 'ABXYCD');
+      cy.get(Page.respondentDetails.returnToCaseDetails).click();
+
+      assertRouterPath(taskListPath);
+      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+        expect(store.respondentDetails()?.lastName).to.equal('ABXYCD');
+      });
+    },
+  );
+
+  it(
+    'AC2, AC4. should uppercase typed surnames in every newly added alias and save them',
+    { tags: buildTags() },
+    () => {
+      setupRespondentDetails({ savedRespondent: { ...REQUIRED_RESPONDENT, lastName: 'Respondent example' } });
+
+      cy.get(Page.respondentDetails.lastName).should('have.value', 'Respondent example');
+      cy.get(Page.respondentDetails.lastName)
+        .parents('.govuk-form-group')
+        .screenshot('po-10608-uppercase-before-input');
+      cy.get(Page.respondentDetails.lastName)
+        .clear()
+        .type('Respondent example')
+        .should('have.value', 'RESPONDENT EXAMPLE');
+      cy.get(Page.respondentDetails.lastName).parents('.govuk-form-group').screenshot('po-10608-uppercase-after-input');
+      cy.get(Page.respondentDetails.addAliases).check();
+      UPPERCASE_ALIAS_SCENARIOS.forEach((alias, index) => {
+        if (index > 0) cy.get(Page.respondentDetails.addAliasButton).click();
+        cy.get(Page.respondentDetails.aliasFirstName(index))
+          .type(alias.firstNames)
+          .should('have.value', alias.firstNames);
+        cy.get(Page.respondentDetails.aliasLastName(index))
+          .type(alias.enteredLastName)
+          .should('have.value', alias.savedLastName);
+      });
+      cy.get(Page.respondentDetails.returnToCaseDetails).click();
+
+      assertRouterPath(taskListPath);
+      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+        expect(store.respondentDetails()?.lastName).to.equal('RESPONDENT EXAMPLE');
+        expect(store.respondentDetails()?.aliases).to.deep.equal(
+          UPPERCASE_ALIAS_SCENARIOS.map((alias) => ({ firstNames: alias.firstNames, lastName: alias.savedLastName })),
+        );
+      });
+    },
+  );
+
+  it(
+    'AC2, AC4. should uppercase typed respondent identifiers and all three postcodes while preserving adjacent text',
+    { tags: buildTags() },
+    () => {
+      setupRespondentDetails({ savedRespondent: SAVED_RESPONDENT });
+
+      cy.get(Page.respondentDetails.nationalInsuranceNumber)
+        .clear()
+        .type('qq123456c')
+        .should('have.value', 'QQ123456C');
+      cy.get(Page.respondentDetails.employeeReference).clear().type('emp-a9').should('have.value', 'EMP-A9');
+      cy.get(Page.respondentDetails.postalOrZipCode).clear().type('te1 1st').should('have.value', 'TE1 1ST');
+      cy.get(Page.respondentDetails.thirdPartyPostalOrZipCode).clear().type('su2 2st').should('have.value', 'SU2 2ST');
+      cy.get(Page.respondentDetails.employerPostalOrZipCode).clear().type('em3 3st').should('have.value', 'EM3 3ST');
+      cy.get(Page.respondentDetails.thirdPartyReference).clear().type('ref-a9').should('have.value', 'REF-A9');
+      cy.get(Page.respondentDetails.firstNames).clear().type('Mixed example').should('have.value', 'Mixed example');
+      cy.get(Page.respondentDetails.employerName).clear().type('Mixed employer').should('have.value', 'Mixed employer');
+      cy.get(Page.respondentDetails.employerAddressLine1)
+        .clear()
+        .type('3 Mixed Street')
+        .should('have.value', '3 Mixed Street');
+      cy.get(Page.respondentDetails.returnToCaseDetails).click();
+
+      assertRouterPath(taskListPath);
+      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+        const respondent = store.respondentDetails();
+        expect(respondent).to.include({
+          firstNames: 'Mixed example',
+          lastName: 'Respondent',
+          nationalInsuranceNumber: 'QQ123456C',
+        });
+        expect(respondent?.contactDetails.address.postalOrZipCode).to.equal('TE1 1ST');
+        expect(respondent?.thirdParty?.reference).to.equal('REF-A9');
+        expect(respondent?.thirdParty?.address.postalOrZipCode).to.equal('SU2 2ST');
+        expect(respondent?.employer).to.include({ employerName: 'Mixed employer', employeeReference: 'EMP-A9' });
+        expect(respondent?.employer?.address).to.include({
+          addressLine1: '3 Mixed Street',
+          postalOrZipCode: 'EM3 3ST',
+        });
+      });
+    },
+  );
+
   it('AC1. should render the complete respondent screen in approved section order', { tags: buildTags() }, () => {
     setupRespondentDetails();
 
     cy.wait('@getCountries').its('request.method').should('equal', 'GET');
     cy.get(Page.respondentDetails.heading).should('have.text', 'Respondent details');
-    cy.get(Page.respondentDetails.sectionHeadings).then(($headings) => {
-      expect([...$headings].map((heading) => normalizeText(heading.textContent))).to.deep.equal([
-        'Contact details',
-        'Address',
-        'Third party details',
-        'Employer details',
-        'Restricted information',
-      ]);
-    });
+    cy.get(Page.respondentDetails.sectionHeadings)
+      .filter(':visible')
+      .then(($headings) => {
+        expect([...$headings].map((heading) => normalizeText(heading.textContent))).to.deep.equal([
+          'Contact details',
+          'Address',
+          'Third party details',
+          'Employer details',
+          'Restricted information',
+        ]);
+      });
     const initialTextControls = [
       Page.respondentDetails.title,
       Page.respondentDetails.firstNames,

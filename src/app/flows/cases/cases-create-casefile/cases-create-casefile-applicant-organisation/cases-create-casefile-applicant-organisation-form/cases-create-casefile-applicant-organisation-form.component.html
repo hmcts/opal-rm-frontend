@@ -10,6 +10,7 @@
     inputName="create_casefile_applicant_organisation_name"
     inputClasses="govuk-input--width-20"
     [control]="form.get('create_casefile_applicant_organisation_name')"
+    [opalLibCapitaliseAllCharacters]="form.controls.create_casefile_applicant_organisation_name"
     [errors]="formControlErrorMessages['create_casefile_applicant_organisation_name']"
   />
   <opal-lib-govuk-text-input
@@ -19,6 +20,7 @@
     inputName="create_casefile_applicant_organisation_foreign_authority_reference"
     inputClasses="govuk-input--width-20"
     [control]="form.get('create_casefile_applicant_organisation_foreign_authority_reference')"
+    [opalLibCapitaliseAllCharacters]="form.controls.create_casefile_applicant_organisation_foreign_authority_reference"
     [errors]="formControlErrorMessages['create_casefile_applicant_organisation_foreign_authority_reference']"
   />
 
@@ -34,6 +36,7 @@
     [form]="form"
     [formControlErrorMessages]="formControlErrorMessages"
     [fieldNames]="addressFieldNames"
+    [capitalisePostalOrZipCode]="true"
     [countryAutocompleteItems]="countryAutocompleteItems"
   />
 
@@ -42,6 +45,7 @@
     [form]="form"
     [formControlErrorMessages]="formControlErrorMessages"
     [fieldNames]="bankFieldNames"
+    [capitalisePaymentReference]="true"
     [bankOptions]="bankOptions"
     [bankTypes]="bankTypes"
     [ukBankConditionalId]="ukBankConditionalId"

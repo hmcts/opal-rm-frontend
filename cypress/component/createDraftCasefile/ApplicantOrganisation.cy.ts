@@ -122,6 +122,75 @@ const assertCanonicalIdentifierContract = (
 
 describe('Create Casefile Applicant Organisation', () => {
   it(
+    'AC2, AC4. should uppercase typed organisation, foreign reference and postcode while preserving contact text on save',
+    { tags: buildTags() },
+    () => {
+      setupApplicantOrganisation({ savedApplicant: VALID_UK_APPLICANT_ORGANISATION });
+
+      cy.get(Page.applicantOrganisation.organisationName)
+        .clear()
+        .type('Mixed organisation')
+        .should('have.value', 'MIXED ORGANISATION');
+      cy.get(Page.applicantOrganisation.foreignAuthorityReference).clear().type('fa-a9').should('have.value', 'FA-A9');
+      cy.get(Page.applicantOrganisation.postalOrZipCode).type('te1 1st').should('have.value', 'TE1 1ST');
+      cy.get(Page.applicantOrganisation.mainEmailAddress)
+        .type('Mixed@example.com')
+        .should('have.value', 'Mixed@example.com');
+      cy.get(Page.applicantOrganisation.addressLine1)
+        .clear()
+        .type('1 Mixed Street')
+        .should('have.value', '1 Mixed Street');
+      cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
+
+      assertRouterPath(taskListPath);
+      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+        const applicant = store.applicantDetails();
+        expect(applicant).to.include({ organisationName: 'MIXED ORGANISATION', foreignAuthorityReference: 'FA-A9' });
+        expect(applicant?.contactDetails.mainEmailAddress).to.equal('Mixed@example.com');
+        expect(applicant?.contactDetails.address).to.include({
+          addressLine1: '1 Mixed Street',
+          postalOrZipCode: 'TE1 1ST',
+        });
+      });
+    },
+  );
+
+  for (const bank of [
+    {
+      type: 'UK',
+      savedApplicant: VALID_UK_APPLICANT_ORGANISATION,
+      paymentReference: Page.applicantOrganisation.ukBankPaymentReference,
+      nameOnAccount: Page.applicantOrganisation.ukBankNameOnAccount,
+    },
+    {
+      type: 'non-UK',
+      savedApplicant: VALID_NON_UK_IBAN_APPLICANT_ORGANISATION,
+      paymentReference: Page.applicantOrganisation.nonUkBankPaymentReference,
+      nameOnAccount: Page.applicantOrganisation.nonUkBankNameOnAccount,
+    },
+  ]) {
+    it(
+      `AC2, AC4. should uppercase the typed ${bank.type} payment reference and preserve the account name on save`,
+      { tags: buildTags() },
+      () => {
+        setupApplicantOrganisation({ savedApplicant: bank.savedApplicant });
+
+        cy.get(bank.paymentReference).clear().type('pay-a9').should('have.value', 'PAY-A9');
+        cy.get(bank.nameOnAccount).clear().type('Mixed account').should('have.value', 'Mixed account');
+        cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
+
+        assertRouterPath(taskListPath);
+        cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+          expect(store.applicantDetails()?.bankDetails).to.include({
+            paymentReference: 'PAY-A9',
+            nameOnAccount: 'Mixed account',
+          });
+        });
+      },
+    );
+  }
+
+  it(
     'AC1, AC2. should use canonical unique control identifiers with exact error targets',
     { tags: buildTags() },
     () => {

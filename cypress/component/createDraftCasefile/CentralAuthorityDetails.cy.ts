@@ -26,6 +26,22 @@ const centralAuthorityPath =
   CASES_CREATE_CASEFILE_ROUTING_PATHS.children.centralAuthorityDetails;
 
 describe('Create Casefile Central authority details', () => {
+  it('AC3. should uppercase both typed authority references before saving', { tags: buildTags() }, () => {
+    setupCentralAuthorityDetails();
+
+    cy.get(Page.remoReference).type('remo-a9').should('have.value', 'REMO-A9');
+    cy.get(Page.centralAuthorityReference).type('ca-a9').should('have.value', 'CA-A9');
+    cy.get(Page.returnToCaseDetails).click();
+
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.centralAuthorityDetails()).to.include({
+        remoReference: 'REMO-A9',
+        centralAuthorityReference: 'CA-A9',
+      });
+      expect(store.taskStatuses().centralAuthority).to.equal('Provided');
+    });
+  });
+
   it('AC1. should render optional fields and code-name choices in backend order', { tags: buildTags() }, () => {
     setupCentralAuthorityDetails();
 
@@ -116,7 +132,7 @@ describe('Create Casefile Central authority details', () => {
       cy.get(error).should('contain.text', message);
       cy.get(Page.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
       cy.get(Page.errorSummaryLinks).contains(message).click();
-      cy.get(input).should('be.focused').and('have.value', value);
+      cy.get(input).should('be.focused').and('have.value', value.toUpperCase());
     });
   }
 

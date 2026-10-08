@@ -29,6 +29,7 @@
     inputName="create_casefile_respondent_details_last_name"
     inputClasses="govuk-input--width-20"
     [control]="form.get('create_casefile_respondent_details_last_name')"
+    [opalLibCapitaliseAllCharacters]="form.controls['create_casefile_respondent_details_last_name']"
     [errors]="formControlErrorMessages['create_casefile_respondent_details_last_name']"
   />
 
@@ -82,6 +83,13 @@
                 aliasControl['create_casefile_respondent_details_alias_last_name'].controlName,
               ])
             "
+            [opalLibCapitaliseAllCharacters]="
+              form.get([
+                'create_casefile_respondent_details_aliases',
+                rowIndex,
+                aliasControl['create_casefile_respondent_details_alias_last_name'].controlName,
+              ])!
+            "
             [errors]="
               formControlErrorMessages[aliasControl['create_casefile_respondent_details_alias_last_name'].controlName]
             "
@@ -133,6 +141,7 @@
     inputClasses="govuk-input--width-10"
     hintText="For example, QQ123456C"
     [control]="form.get('create_casefile_respondent_details_national_insurance_number')"
+    [opalLibCapitaliseAllCharacters]="form.controls['create_casefile_respondent_details_national_insurance_number']"
     [errors]="formControlErrorMessages['create_casefile_respondent_details_national_insurance_number']"
   />
   <opal-lib-govuk-text-area
@@ -160,6 +169,7 @@
     [form]="form"
     [formControlErrorMessages]="formControlErrorMessages"
     [fieldNames]="addressFieldNames"
+    [capitalisePostalOrZipCode]="true"
     [countryAutocompleteItems]="countryAutocompleteItems"
   />
 
@@ -204,6 +214,7 @@
         inputId="create_casefile_respondent_details_employee_reference"
         inputName="create_casefile_respondent_details_employee_reference"
         [control]="form.get('create_casefile_respondent_details_employee_reference')"
+        [opalLibCapitaliseAllCharacters]="form.controls['create_casefile_respondent_details_employee_reference']"
         [errors]="formControlErrorMessages['create_casefile_respondent_details_employee_reference']"
       />
       <opal-lib-govuk-text-input
@@ -262,6 +273,9 @@
         inputName="create_casefile_respondent_details_employer_postal_or_zip_code"
         inputClasses="govuk-input--width-10"
         [control]="form.get('create_casefile_respondent_details_employer_postal_or_zip_code')"
+        [opalLibCapitaliseAllCharacters]="
+          form.controls['create_casefile_respondent_details_employer_postal_or_zip_code']
+        "
         [errors]="formControlErrorMessages['create_casefile_respondent_details_employer_postal_or_zip_code']"
       />
       <opal-lib-alphagov-accessible-autocomplete

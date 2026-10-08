@@ -18,4 +18,5 @@ export class CasesCreateCasefileAddressComponent extends AbstractNestedFormBaseC
   @Input({ required: true }) public override formControlErrorMessages!: IAbstractFormControlErrorMessage;
   @Input({ required: true }) public fieldNames!: ICasesCreateCasefileAddressFieldNames;
   @Input({ required: true }) public countryAutocompleteItems!: IAlphagovAccessibleAutocompleteItem[];
+  @Input() public capitalisePostalOrZipCode = false;
 }

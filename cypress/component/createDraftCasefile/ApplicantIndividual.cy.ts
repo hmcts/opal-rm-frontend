@@ -25,6 +25,7 @@ import {
   VALID_UK_APPLICANT_INDIVIDUAL,
 } from './mocks/applicant-individual.mock';
 import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
+import { UPPERCASE_ALIAS_SCENARIOS } from './mocks/uppercase-fields.mock';
 import { setupApplicantIndividual } from './setup/applicant-individual.setup';
 import type { CasesCreateCasefileStoreInstance, GlobalStoreInstance } from './setup/applicant-individual.setup';
 
@@ -107,20 +108,142 @@ const assertCanonicalIdentifierContract = (
   });
 };
 describe('Create Casefile Applicant Individual', () => {
+  it(
+    'AC2, AC4. should uppercase typed surnames in every newly added alias and save them',
+    { tags: buildTags() },
+    () => {
+      setupApplicantIndividual({ savedApplicant: VALID_UK_APPLICANT_INDIVIDUAL });
+
+      cy.get(Page.applicantIndividual.lastName)
+        .clear()
+        .type('Applicant example')
+        .should('have.value', 'APPLICANT EXAMPLE');
+      cy.get(Page.applicantIndividual.addAliases).check();
+      UPPERCASE_ALIAS_SCENARIOS.forEach((alias, index) => {
+        if (index > 0) cy.get(Page.applicantIndividual.addAliasButton).click();
+        cy.get(Page.applicantIndividual.aliasFirstName(index))
+          .type(alias.firstNames)
+          .should('have.value', alias.firstNames);
+        cy.get(Page.applicantIndividual.aliasLastName(index))
+          .type(alias.enteredLastName)
+          .should('have.value', alias.savedLastName);
+      });
+      cy.get(Page.applicantIndividual.returnToCaseDetails).click();
+
+      assertRouterPath(taskListPath);
+      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+        expect(store.applicantDetails()).to.have.property('lastName', 'APPLICANT EXAMPLE');
+        expect(store.applicantDetails())
+          .to.have.property('aliases')
+          .that.deep.equals(
+            UPPERCASE_ALIAS_SCENARIOS.map((alias) => ({ firstNames: alias.firstNames, lastName: alias.savedLastName })),
+          );
+      });
+    },
+  );
+
+  it(
+    'AC2, AC4. should uppercase typed applicant and third-party postcodes and reference while preserving adjacent text',
+    { tags: buildTags() },
+    () => {
+      setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });
+
+      cy.get(Page.applicantIndividual.postalOrZipCode).clear().type('te1 1st').should('have.value', 'TE1 1ST');
+      cy.get(Page.applicantIndividual.thirdPartyPostalOrZipCode)
+        .clear()
+        .type('su2 2st')
+        .should('have.value', 'SU2 2ST');
+      cy.get(Page.applicantIndividual.thirdPartyReference).clear().type('ref-a9').should('have.value', 'REF-A9');
+      cy.get(Page.applicantIndividual.title).clear().type('Mx').should('have.value', 'Mx');
+      cy.get(Page.applicantIndividual.firstNames).clear().type('Mixed example').should('have.value', 'Mixed example');
+      cy.get(Page.applicantIndividual.mainEmailAddress)
+        .clear()
+        .type('Mixed@example.com')
+        .should('have.value', 'Mixed@example.com');
+      cy.get(Page.applicantIndividual.addressLine1)
+        .clear()
+        .type('1 Mixed Street')
+        .should('have.value', '1 Mixed Street');
+      cy.get(Page.applicantIndividual.thirdPartyNameOrOrganisation)
+        .clear()
+        .type('Mixed support')
+        .should('have.value', 'Mixed support');
+      cy.get(Page.applicantIndividual.thirdPartyRelationship)
+        .clear()
+        .type('Mixed representative')
+        .should('have.value', 'Mixed representative');
+      cy.get(Page.applicantIndividual.returnToCaseDetails).click();
+
+      assertRouterPath(taskListPath);
+      cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+        const applicant = store.applicantDetails();
+        expect(applicant).to.include({ title: 'Mx', firstNames: 'Mixed example', lastName: 'Applicant' });
+        expect(applicant?.contactDetails.mainEmailAddress).to.equal('Mixed@example.com');
+        expect(applicant?.contactDetails.address).to.include({
+          addressLine1: '1 Mixed Street',
+          postalOrZipCode: 'TE1 1ST',
+        });
+        expect(applicant).to.have.property('thirdParty').that.includes({
+          nameOrOrganisation: 'Mixed support',
+          relationship: 'Mixed representative',
+          reference: 'REF-A9',
+        });
+        expect(applicant).to.have.nested.property('thirdParty.address.postalOrZipCode', 'SU2 2ST');
+      });
+    },
+  );
+
+  for (const bank of [
+    {
+      type: 'UK',
+      savedApplicant: VALID_UK_APPLICANT_INDIVIDUAL,
+      paymentReference: Page.applicantIndividual.ukBankPaymentReference,
+      nameOnAccount: Page.applicantIndividual.ukBankNameOnAccount,
+    },
+    {
+      type: 'non-UK',
+      savedApplicant: VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL,
+      paymentReference: Page.applicantIndividual.nonUkBankPaymentReference,
+      nameOnAccount: Page.applicantIndividual.nonUkBankNameOnAccount,
+    },
+  ]) {
+    it(
+      `AC2, AC4. should uppercase the typed ${bank.type} payment reference and preserve the account name on save`,
+      { tags: buildTags() },
+      () => {
+        setupApplicantIndividual({ savedApplicant: bank.savedApplicant });
+
+        cy.get(bank.paymentReference).clear().type('pay-a9').should('have.value', 'PAY-A9');
+        cy.get(bank.nameOnAccount).clear().type('Mixed account').should('have.value', 'Mixed account');
+        cy.get(Page.applicantIndividual.returnToCaseDetails).click();
+
+        assertRouterPath(taskListPath);
+        cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+          expect(store.applicantDetails()?.bankDetails).to.include({
+            paymentReference: 'PAY-A9',
+            nameOnAccount: 'Mixed account',
+          });
+        });
+      },
+    );
+  }
+
   it('AC1. should render all empty controls in the documented REMO In Individual order', { tags: buildTags() }, () => {
     setupApplicantIndividual();
 
     cy.wait('@getCountries').its('request.method').should('equal', 'GET');
     cy.get(Page.applicantIndividual.heading).should('have.text', 'Applicant details');
-    cy.get(Page.applicantIndividual.sectionHeadings).then(($headings) => {
-      expect([...$headings].map((heading) => normalizeText(heading.textContent))).to.deep.equal([
-        'Contact details',
-        'Address',
-        'Third party details',
-        'Bank details',
-        'Restricted information',
-      ]);
-    });
+    cy.get(Page.applicantIndividual.sectionHeadings)
+      .filter(':visible')
+      .then(($headings) => {
+        expect([...$headings].map((heading) => normalizeText(heading.textContent))).to.deep.equal([
+          'Contact details',
+          'Address',
+          'Third party details',
+          'Bank details',
+          'Restricted information',
+        ]);
+      });
 
     for (const selector of [
       Page.applicantIndividual.title,

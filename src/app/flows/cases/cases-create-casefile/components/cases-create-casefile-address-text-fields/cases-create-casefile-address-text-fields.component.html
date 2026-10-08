@@ -33,6 +33,9 @@
   [control]="form.get(fieldNames.addressLine5)"
   [errors]="formControlErrorMessages[fieldNames.addressLine5]"
 />
+@if (capitalisePostalOrZipCode) {
+  <ng-container [opalLibCapitaliseAllCharacters]="form.controls[fieldNames.postalOrZipCode]"></ng-container>
+}
 <opal-lib-govuk-text-input
   labelText="Postal or zip code"
   [inputId]="fieldNames.postalOrZipCode"

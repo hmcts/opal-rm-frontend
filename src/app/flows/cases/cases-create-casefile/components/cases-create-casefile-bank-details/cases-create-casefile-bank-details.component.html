@@ -11,6 +11,10 @@
 }
 
 <ng-template #bankAccountType>
+  @if (capitalisePaymentReference) {
+    <ng-container [opalLibCapitaliseAllCharacters]="form.controls[fieldNames.ukPaymentReference]"></ng-container>
+    <ng-container [opalLibCapitaliseAllCharacters]="form.controls[fieldNames.nonUkPaymentReference]"></ng-container>
+  }
   <div
     class="govuk-!-margin-bottom-6"
     [class.govuk-form-group--error]="!!formControlErrorMessages[fieldNames.bankType]"

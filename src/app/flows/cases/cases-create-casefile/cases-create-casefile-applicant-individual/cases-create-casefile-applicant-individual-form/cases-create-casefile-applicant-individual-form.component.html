@@ -29,6 +29,7 @@
     inputName="create_casefile_applicant_individual_last_name"
     inputClasses="govuk-input--width-20"
     [control]="form.get('create_casefile_applicant_individual_last_name')"
+    [opalLibCapitaliseAllCharacters]="form.controls.create_casefile_applicant_individual_last_name"
     [errors]="formControlErrorMessages['create_casefile_applicant_individual_last_name']"
   />
 
@@ -83,6 +84,13 @@
                 rowIndex,
                 aliasControl['create_casefile_applicant_individual_alias_last_name'].controlName,
               ])
+            "
+            [opalLibCapitaliseAllCharacters]="
+              form.get([
+                'create_casefile_applicant_individual_aliases',
+                rowIndex,
+                aliasControl['create_casefile_applicant_individual_alias_last_name'].controlName,
+              ])!
             "
             [errors]="
               formControlErrorMessages[aliasControl['create_casefile_applicant_individual_alias_last_name'].controlName]
@@ -142,6 +150,7 @@
     [form]="form"
     [formControlErrorMessages]="formControlErrorMessages"
     [fieldNames]="addressFieldNames"
+    [capitalisePostalOrZipCode]="true"
     [countryAutocompleteItems]="countryAutocompleteItems"
   />
 
@@ -162,6 +171,7 @@
     [form]="form"
     [formControlErrorMessages]="formControlErrorMessages"
     [fieldNames]="bankFieldNames"
+    [capitalisePaymentReference]="true"
     [bankOptions]="bankOptions"
     [bankTypes]="bankTypes"
     [ukBankConditionalId]="ukBankConditionalId"

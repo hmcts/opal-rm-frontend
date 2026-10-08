@@ -102,6 +102,32 @@ const scan = (): void => {
 };
 
 describe('Minor creditor details', () => {
+  for (const bank of [
+    { type: 'UK', details: MINOR_CREDITOR_UK_MOCK, paymentReference: S.minorCreditor.ukPaymentReference },
+    { type: 'non-UK', details: MINOR_CREDITOR_NON_UK_MOCK, paymentReference: S.minorCreditor.nonUkPaymentReference },
+  ]) {
+    it(
+      `AC1, AC4. should preserve typed minor-creditor surname, postcode and ${bank.type} payment-reference casing`,
+      { tags: buildTags() },
+      () => {
+        setupMinorCreditor({ details: { ...bank.details, identity: MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK.identity } });
+
+        cy.get(S.minorCreditor.lastName).clear().type('Mixed creditor').should('have.value', 'Mixed creditor');
+        cy.get(S.minorCreditor.postalOrZipCode).clear().type('te1 1st').should('have.value', 'te1 1st');
+        cy.get(bank.paymentReference).clear().type('pay-a9').should('have.value', 'pay-a9');
+        cy.get(S.minorCreditor.save).click();
+
+        cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
+          const details = store.creditorDraft()?.details;
+          expect(details?.identity).to.include({ lastName: 'Mixed creditor' });
+          expect(details?.address.postalOrZipCode).to.equal('te1 1st');
+          expect(details?.bank).to.include({ paymentReference: 'pay-a9' });
+        });
+        cy.get('@routerNavigate').should('have.been.calledWith', route(PATHS.children.minorCreditorSummary));
+      },
+    );
+  }
+
   describe('Countries resolver retry', () => {
     for (const failure of ['empty response', 'service failure'] as const) {
       it(

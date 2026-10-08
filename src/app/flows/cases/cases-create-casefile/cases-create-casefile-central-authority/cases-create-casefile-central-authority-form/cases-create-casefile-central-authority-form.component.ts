@@ -6,6 +6,7 @@ import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-c
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
+import { CapitalisationDirective } from '@hmcts/opal-frontend-common/directives/capitalisation';
 import { CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_ERRORS } from '../constants/cases-create-casefile-central-authority-field-errors.constant';
 import { CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES } from '../constants/cases-create-casefile-central-authority-field-names.constant';
 import type { ICasesCreateCasefileCentralAuthorityFieldErrors } from '../interfaces/cases-create-casefile-central-authority-field-errors.interface';
@@ -26,6 +27,7 @@ interface ICasesCreateCasefileCentralAuthorityFormControls {
     GovukCancelLinkComponent,
     GovukErrorSummaryComponent,
     GovukTextInputComponent,
+    CapitalisationDirective,
   ],
   templateUrl: './cases-create-casefile-central-authority-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

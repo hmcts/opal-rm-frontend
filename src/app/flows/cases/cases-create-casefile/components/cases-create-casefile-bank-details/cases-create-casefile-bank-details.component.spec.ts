@@ -192,4 +192,43 @@ describe('CasesCreateCasefileBankDetailsComponent', () => {
       'govuk-radios__conditional--hidden',
     );
   });
+
+  it.each([
+    ['uk', fieldNames.ukPaymentReference, fieldNames.ukNameOnAccount],
+    ['non-uk', fieldNames.nonUkPaymentReference, fieldNames.nonUkNameOnAccount],
+  ] as const)(
+    'uppercases the opted-in %s payment reference while preserving account-holder names',
+    (bankType, referenceName, accountName) => {
+      component.capitalisePaymentReference = true;
+      form.get(fieldNames.bankType)?.setValue(bankType);
+      form.enable({ emitEvent: false });
+      fixture.detectChanges();
+      const reference = fixture.nativeElement.querySelector(`#${referenceName}`) as HTMLInputElement;
+      const name = fixture.nativeElement.querySelector(`#${accountName}`) as HTMLInputElement;
+      reference.value = 'payment-Ab12';
+      reference.dispatchEvent(new Event('input'));
+      name.value = 'Synthetic Account Name';
+      name.dispatchEvent(new Event('input'));
+      expect(reference.value).toBe('PAYMENT-AB12');
+      expect(form.get(referenceName)?.value).toBe('PAYMENT-AB12');
+      expect(form.get(accountName)?.value).toBe('Synthetic Account Name');
+    },
+  );
+
+  it.each([
+    ['uk', fieldNames.ukPaymentReference],
+    ['non-uk', fieldNames.nonUkPaymentReference],
+  ] as const)(
+    'preserves %s payment-reference casing by default for Order Terms bank consumers',
+    (bankType, referenceName) => {
+      form.get(fieldNames.bankType)?.setValue(bankType);
+      form.enable({ emitEvent: false });
+      fixture.detectChanges();
+      const reference = fixture.nativeElement.querySelector(`#${referenceName}`) as HTMLInputElement;
+      reference.value = 'payment-Ab12';
+      reference.dispatchEvent(new Event('input'));
+      expect(reference.value).toBe('payment-Ab12');
+      expect(form.get(referenceName)?.value).toBe('payment-Ab12');
+    },
+  );
 });

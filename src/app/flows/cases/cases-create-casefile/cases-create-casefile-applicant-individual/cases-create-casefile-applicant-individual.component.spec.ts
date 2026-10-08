@@ -118,6 +118,43 @@ describe('CasesCreateCasefileApplicantIndividualComponent', () => {
     expect(httpTestingController.match(() => true)).toEqual([]);
   });
 
+  it('persists uppercase values from rendered applicant inputs while preserving fields outside the casing scope', () => {
+    store.setApplicantDetails(CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.saved);
+    component = createComponent();
+    fixture.detectChanges();
+    const enteredValues = {
+      create_casefile_applicant_individual_last_name: 'o’example-smith',
+      create_casefile_applicant_individual_alias_last_name_0: 'alias-example',
+      create_casefile_applicant_individual_postal_or_zip_code: 'ab1 2cd',
+      create_casefile_applicant_individual_uk_bank_payment_reference: 'pay-Ab12',
+    };
+    for (const [inputId, value] of Object.entries(enteredValues)) {
+      const input = fixture.nativeElement.querySelector(`#${inputId}`) as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(store.applicantDetails()).toEqual({
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.saved,
+      lastName: 'O’EXAMPLE-SMITH',
+      aliases: [{ firstNames: 'Alternative', lastName: 'ALIAS-EXAMPLE' }],
+      contactDetails: {
+        ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.saved.contactDetails,
+        address: {
+          ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.saved.contactDetails.address,
+          postalOrZipCode: 'AB1 2CD',
+        },
+      },
+      bankDetails: {
+        ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.saved.bankDetails,
+        paymentReference: 'PAY-AB12',
+      },
+    });
+    expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
+  });
+
   it('tracks dirty state and cancels without replacing the last saved applicant', () => {
     store.setApplicantDetails(CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.saved);
     component = createComponent();

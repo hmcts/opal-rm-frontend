@@ -119,6 +119,57 @@ describe('CasesCreateCasefileApplicantOrganisationComponent', () => {
     expect(httpTestingController.match(() => true)).toEqual([]);
   });
 
+  it('persists uppercase values from rendered organisation inputs while preserving fields outside the casing scope', () => {
+    const savedApplicant = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedUk,
+      contactDetails: {
+        ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedUk.contactDetails,
+        address: {
+          ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedUk.contactDetails.address,
+          countryId: 1,
+        },
+      },
+    };
+    store.setApplicantDetails(savedApplicant);
+    component = createComponent();
+    fixture.detectChanges();
+    const enteredValues = {
+      create_casefile_applicant_organisation_name: 'Example Authority',
+      create_casefile_applicant_organisation_foreign_authority_reference: 'fa-Ab12',
+      create_casefile_applicant_organisation_postal_or_zip_code: 'ab1 2cd',
+      create_casefile_applicant_organisation_uk_bank_payment_reference: 'pay-Ab12',
+    };
+    for (const [inputId, value] of Object.entries(enteredValues)) {
+      const input = fixture.nativeElement.querySelector(`#${inputId}`) as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    const child = fixture.debugElement.query(
+      (debugElement) => debugElement.componentInstance instanceof CasesCreateCasefileApplicantOrganisationFormComponent,
+    ).componentInstance as CasesCreateCasefileApplicantOrganisationFormComponent;
+    expect(child.form.valid).toBe(true);
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(store.applicantDetails()).toEqual({
+      ...savedApplicant,
+      organisationName: 'EXAMPLE AUTHORITY',
+      foreignAuthorityReference: 'FA-AB12',
+      contactDetails: {
+        ...savedApplicant.contactDetails,
+        address: {
+          ...savedApplicant.contactDetails.address,
+          postalOrZipCode: 'AB1 2CD',
+        },
+      },
+      bankDetails: {
+        ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedUk.bankDetails,
+        paymentReference: 'PAY-AB12',
+      },
+    });
+    expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
+  });
+
   it('tracks dirty state and Cancel preserves the last saved applicant', () => {
     store.setApplicantDetails(CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedUk);
     component = createComponent();

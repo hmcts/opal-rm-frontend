@@ -5,6 +5,7 @@ import type { IAlphagovAccessibleAutocompleteItem } from '@hmcts/opal-frontend-c
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
+import { CapitalisationDirective } from '@hmcts/opal-frontend-common/directives/capitalisation';
 import { EMAIL_ADDRESS_PATTERN } from '@hmcts/opal-frontend-common/constants';
 import { optionalMaxLengthValidator } from '@hmcts/opal-frontend-common/validators/optional-max-length';
 import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern-validator';
@@ -71,6 +72,7 @@ interface IApplicantOrganisationFormControls {
     GovukCancelLinkComponent,
     GovukErrorSummaryComponent,
     GovukTextInputComponent,
+    CapitalisationDirective,
     CasesCreateCasefileContactDetailsComponent,
     CasesCreateCasefileAddressComponent,
     CasesCreateCasefileBankDetailsComponent,

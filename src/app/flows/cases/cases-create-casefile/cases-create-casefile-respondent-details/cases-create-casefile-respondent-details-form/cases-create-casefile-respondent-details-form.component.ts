@@ -15,6 +15,7 @@ import { GovukTextAreaComponent } from '@hmcts/opal-frontend-common/components/g
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { MojDatePickerComponent } from '@hmcts/opal-frontend-common/components/moj/moj-date-picker';
 import { EMAIL_ADDRESS_PATTERN } from '@hmcts/opal-frontend-common/constants';
+import { CapitalisationDirective } from '@hmcts/opal-frontend-common/directives/capitalisation';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import { dateOfBirthValidator } from '@hmcts/opal-frontend-common/validators/date-of-birth';
 import { optionalMaxLengthValidator } from '@hmcts/opal-frontend-common/validators/optional-max-length';
@@ -87,6 +88,7 @@ type IRespondentDetailsRawFormData = Omit<
   selector: 'app-cases-create-casefile-respondent-details-form',
   imports: [
     ReactiveFormsModule,
+    CapitalisationDirective,
     AlphagovAccessibleAutocompleteComponent,
     GovukButtonComponent,
     GovukCancelLinkComponent,

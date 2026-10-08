@@ -771,6 +771,76 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     );
   });
 
+  it('uppercases the rendered organisation name, authority reference, postal code and UK payment reference on submit', () => {
+    component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData;
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+    const uppercaseValues = {
+      create_casefile_applicant_organisation_name: ['Example Organisation', 'EXAMPLE ORGANISATION'],
+      create_casefile_applicant_organisation_foreign_authority_reference: ['fa-Ab12', 'FA-AB12'],
+      create_casefile_applicant_organisation_postal_or_zip_code: ['ab1 2cd', 'AB1 2CD'],
+      create_casefile_applicant_organisation_uk_bank_payment_reference: ['pay-Ab12', 'PAY-AB12'],
+    } as const;
+    const unchangedValues = {
+      create_casefile_applicant_organisation_main_email_address: 'Mixed.Case@example.com',
+      create_casefile_applicant_organisation_address_line_1: '1 Mixed Street',
+      create_casefile_applicant_organisation_uk_bank_name_on_account: 'Example Account',
+    } as const;
+    for (const [controlName, [entered, expected]] of Object.entries(uppercaseValues)) {
+      expect(setRenderedInputValue(controlName, entered).value).toBe(expected);
+      expect(component.form.get(controlName)?.value).toBe(expected);
+    }
+    for (const [controlName, value] of Object.entries(unchangedValues)) {
+      expect(setRenderedInputValue(controlName, value).value).toBe(value);
+      expect(component.form.get(controlName)?.value).toBe(value);
+    }
+
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(formSubmitSpy).toHaveBeenCalledWith({
+      formData: {
+        ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
+        ...unchangedValues,
+        create_casefile_applicant_organisation_name: 'EXAMPLE ORGANISATION',
+        create_casefile_applicant_organisation_foreign_authority_reference: 'FA-AB12',
+        create_casefile_applicant_organisation_postal_or_zip_code: 'AB1 2CD',
+        create_casefile_applicant_organisation_uk_bank_payment_reference: 'PAY-AB12',
+      },
+      nestedFlow: false,
+    });
+  });
+
+  it('uppercases the rendered non-UK payment reference without changing account or bank names', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNonUkFormData,
+      create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: null,
+    };
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+
+    expect(
+      setRenderedInputValue('create_casefile_applicant_organisation_non_uk_bank_payment_reference', 'ref-Ab12').value,
+    ).toBe('REF-AB12');
+    expect(
+      setRenderedInputValue('create_casefile_applicant_organisation_non_uk_bank_name_on_account', 'Mixed Account')
+        .value,
+    ).toBe('Mixed Account');
+    expect(setRenderedInputValue('create_casefile_applicant_organisation_non_uk_bank_name', 'Mixed Bank').value).toBe(
+      'Mixed Bank',
+    );
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(formSubmitSpy).toHaveBeenCalledWith({
+      formData: {
+        ...component.initialFormData,
+        create_casefile_applicant_organisation_non_uk_bank_payment_reference: 'REF-AB12',
+        create_casefile_applicant_organisation_non_uk_bank_name_on_account: 'Mixed Account',
+        create_casefile_applicant_organisation_non_uk_bank_name: 'Mixed Bank',
+      },
+      nestedFlow: false,
+    });
+  });
+
   it('emits dirty-state changes, complete valid form data and Cancel exactly once', () => {
     component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData;
     const unsavedChangesSpy = vi.spyOn(component['unsavedChanges'], 'emit');
@@ -782,7 +852,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       'Updated Organisation',
     );
 
-    expect(organisationName.value).toBe('Updated Organisation');
+    expect(organisationName.value).toBe('UPDATED ORGANISATION');
     expect(component.form.dirty).toBe(true);
     expect(unsavedChangesSpy).toHaveBeenCalledTimes(1);
     expect(unsavedChangesSpy).toHaveBeenCalledWith(true);
@@ -791,7 +861,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     expect(formSubmitSpy).toHaveBeenCalledWith({
       formData: {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
-        create_casefile_applicant_organisation_name: 'Updated Organisation',
+        create_casefile_applicant_organisation_name: 'UPDATED ORGANISATION',
       },
       nestedFlow: false,
     });

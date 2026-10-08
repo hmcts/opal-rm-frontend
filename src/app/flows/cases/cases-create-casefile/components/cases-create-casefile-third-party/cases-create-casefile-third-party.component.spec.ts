@@ -207,4 +207,26 @@ describe('CasesCreateCasefileThirdPartyComponent', () => {
       expect(select.options).toBe(countrySelectOptions);
     },
   );
+
+  it.each(['applicant', 'respondent'] as const)(
+    'uppercases the %s third-party reference and postal code while retaining name and address casing',
+    (roleLabel) => {
+      configureComponent(roleLabel);
+      form.get(checkboxFieldName)?.setValue(true);
+      fixture.detectChanges();
+      const values = [
+        [fieldNames.reference, 'reference-Ab12', 'REFERENCE-AB12'],
+        [fieldNames.postalOrZipCode, 'ab1 2cd', 'AB1 2CD'],
+        [fieldNames.nameOrOrganisation, 'Synthetic Third Party', 'Synthetic Third Party'],
+        [fieldNames.addressLine1, 'Mixed Case Street', 'Mixed Case Street'],
+      ];
+      for (const [fieldName, typed, expected] of values) {
+        const input = fixture.nativeElement.querySelector(`#${fieldName}`) as HTMLInputElement;
+        input.value = typed;
+        input.dispatchEvent(new Event('input'));
+        expect(input.value).toBe(expected);
+        expect(form.get(fieldName)?.value).toBe(expected);
+      }
+    },
+  );
 });

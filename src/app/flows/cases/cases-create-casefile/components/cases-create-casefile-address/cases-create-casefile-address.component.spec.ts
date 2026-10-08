@@ -134,4 +134,14 @@ describe('CasesCreateCasefileAddressComponent', () => {
     expect(autocomplete.errors).toBe(errors[fieldNames.countryId]);
     expect(autocomplete.autoCompleteItems).toBe(countryAutocompleteItems);
   });
+
+  it('applies the opted-in postal casing through the address wrapper without changing address lines', () => {
+    component.capitalisePostalOrZipCode = true;
+    fixture.detectChanges();
+    const postal = fixture.nativeElement.querySelector(`#${fieldNames.postalOrZipCode}`) as HTMLInputElement;
+    postal.value = 'ab1 2cd';
+    postal.dispatchEvent(new Event('input'));
+    expect(postal.value).toBe('AB1 2CD');
+    expect(form.get(fieldNames.postalOrZipCode)?.value).toBe('AB1 2CD');
+  });
 });

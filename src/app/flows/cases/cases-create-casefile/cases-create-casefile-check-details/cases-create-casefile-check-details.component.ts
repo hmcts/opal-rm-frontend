@@ -40,7 +40,6 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, UrlTree } from '@angular/router';
 import { getState } from '@ngrx/signals';
-import { GovukButtonComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-button';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
 import type { IOpalMaintenanceCountryReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-item.interface';
 import type { IOpalMaintenanceApplicationReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-application-reference-data-item.interface';
@@ -62,7 +61,6 @@ import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-ca
     GovukSummaryListRowActionItemComponent,
     GovukCancelLinkComponent,
     GovukBackLinkComponent,
-    GovukButtonComponent,
     CasesCreateCasefileReviewSectionComponent,
     CasesCreateCasefileOrderTermCardComponent,
   ],
@@ -124,6 +122,9 @@ export class CasesCreateCasefileCheckDetailsComponent {
         (this.globalStore.featureFlags() as Record<string, unknown>)[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] ===
           true,
       ),
+  );
+  public readonly deleteUrl = computed(() =>
+    this.reviewable() ? this.draftNavigation.deleteCasefileUrl(this.draft()!.draft_casefile_id) : null,
   );
   // Recreate page-local decision state when another eligible draft replaces the current one.
   public readonly decisionDrafts = computed(() => (this.reviewable() ? [this.persistedStore.draft()!] : []));
@@ -339,10 +340,12 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   /** Opens only the authorised walkthrough; it does not delete the saved casefile. */
-  public async handleDelete(): Promise<void> {
-    const draft = this.persistedStore.draft();
-    if (!this.reviewable() || this.busy() || !draft) return;
-    await this.navigate(this.draftNavigation.deleteCasefileUrl(draft.draft_casefile_id));
+  public async handleDelete(event?: MouseEvent): Promise<void> {
+    if (event && (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)) return;
+    event?.preventDefault();
+    const url = this.deleteUrl();
+    if (!url || this.busy()) return;
+    await this.navigate(url);
   }
 
   public handleBack(): void {

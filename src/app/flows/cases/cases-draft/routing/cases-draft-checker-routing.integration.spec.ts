@@ -127,7 +127,9 @@ describe('checker production route boundaries', () => {
     const owner = shell.componentInstance;
     const store = shell.injector.get(CasesDraftCasefileStore);
     const before = structuredClone(getState(store));
-    harness.routeNativeElement!.querySelector<HTMLButtonElement>('#create_casefile_review_delete')!.click();
+    const deleteLink = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a#create_casefile_review_delete')!;
+    expect(deleteLink.getAttribute('href')).toBe(deleteUrl);
+    deleteLink.click();
     await flushPersisted();
     await settle(harness);
     expect(TestBed.inject(Router).url).toBe(deleteUrl);

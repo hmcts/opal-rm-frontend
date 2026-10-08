@@ -12,15 +12,17 @@ import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import { toMinorCreditorFormData } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-minor-creditor-details/utils/cases-create-casefile-minor-creditor-mapper';
 import { COUNTRIES_RESPONSE } from '../../mocks/countries.mock';
+import type { ICasesCreateCasefileMinorCreditorFormData } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-minor-creditor-details/interfaces/cases-create-casefile-minor-creditor-form-data.interface';
 
 export type MinorCreditorStore = InstanceType<typeof CasesCreateCasefileStore>;
 
 interface MinorCreditorSetupOptions {
   details?: ICasesCreateCasefileMinorCreditorDetails;
+  formData?: Partial<ICasesCreateCasefileMinorCreditorFormData>;
   state?: Partial<ICasesCreateCasefileState>;
 }
 
-export function setupMinorCreditor({ details, state = {} }: MinorCreditorSetupOptions = {}) {
+export function setupMinorCreditor({ details, formData, state = {} }: MinorCreditorSetupOptions = {}) {
   const store = new CasesCreateCasefileStore();
   store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
@@ -55,10 +57,10 @@ export function setupMinorCreditor({ details, state = {} }: MinorCreditorSetupOp
       cy.wrap(fixture).as('minorCreditorFixture');
       fixture.detectChanges();
 
-      if (details) {
+      if (details || formData) {
         const child = fixture.debugElement.query(By.directive(CasesCreateCasefileMinorCreditorDetailsFormComponent))
           .componentInstance as CasesCreateCasefileMinorCreditorDetailsFormComponent;
-        child.acceptSavedData(toMinorCreditorFormData(details));
+        child.acceptSavedData({ ...toMinorCreditorFormData(details ?? null), ...structuredClone(formData) });
         fixture.detectChanges();
       }
     });

@@ -1,6 +1,7 @@
 import type { IOpalMaintenanceCountryReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { COUNTRIES_RESPONSE } from '../../mocks/countries.mock';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
@@ -50,6 +51,7 @@ interface CreditorSetupOptions {
   countriesSource?:
     | Observable<IOpalMaintenanceCountryReferenceDataResponse>
     | (() => Observable<IOpalMaintenanceCountryReferenceDataResponse>);
+  useHttpCountries?: boolean;
   seedFiveMinorCreditors?: boolean;
   state?: Partial<ICasesCreateCasefileState>;
 }
@@ -60,6 +62,7 @@ export function setupCreditor({
   initialChild = PATHS.children.orderTermCreditor,
   majorSource,
   countriesSource,
+  useHttpCountries = false,
   seedFiveMinorCreditors = false,
   state = {},
 }: CreditorSetupOptions = {}) {
@@ -119,7 +122,7 @@ export function setupCreditor({
           },
           { path: 'creditor-test-external', component: ExternalDestinationComponent },
         ]),
-        provideHttpClient(),
+        useHttpCountries ? provideHttpClient(withInterceptors([httpErrorInterceptor])) : provideHttpClient(),
         { provide: AppInsightsService, useValue: { logException: cy.stub(), logPageView: cy.stub() } },
         { provide: SessionService, useValue: { getTokenExpiry: () => EMPTY } },
         {
@@ -133,18 +136,21 @@ export function setupCreditor({
         { provide: CasesCreateCasefileStore, useValue: store },
         {
           provide: OpalMaintenanceService,
-          useValue: {
-            getMajorCreditors,
-            getCountries: cy
-              .stub()
-              .callsFake(() =>
-                typeof countriesSource === 'function'
-                  ? countriesSource()
-                  : (countriesSource ?? of(structuredClone(COUNTRIES_RESPONSE))),
-              )
-              .as('countriesRequest'),
-            getResults: () => of(structuredClone(ORDER_TERMS_MOCK.response)),
-            getResult: (id: string) => of(structuredClone(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[id]) ?? null),
+          useFactory: () => {
+            const service = new OpalMaintenanceService();
+            service.getMajorCreditors = getMajorCreditors;
+            if (!useHttpCountries)
+              service.getCountries = cy
+                .stub()
+                .callsFake(() =>
+                  typeof countriesSource === 'function'
+                    ? countriesSource()
+                    : (countriesSource ?? of(structuredClone(COUNTRIES_RESPONSE))),
+                )
+                .as('countriesRequest');
+            service.getResults = () => of(structuredClone(ORDER_TERMS_MOCK.response));
+            service.getResult = (id: string) => of(structuredClone(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[id]) ?? null);
+            return service;
           },
         },
       ],
@@ -152,6 +158,7 @@ export function setupCreditor({
       TestBed.inject(GlobalStore).setAuthenticated(true);
       const router = TestBed.inject(Router);
       cy.wrap(store).as('casesCreateCasefileStore');
+      cy.wrap(TestBed.inject(GlobalStore)).as('globalStore');
       cy.wrap(router).as('angularRouter');
       cy.wrap(counters).as('majorCreditorRequestCounters');
       const navigation = router

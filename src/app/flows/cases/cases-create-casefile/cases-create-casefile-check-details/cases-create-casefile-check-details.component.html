@@ -2,6 +2,11 @@
   <div class="govuk-grid-column-two-thirds">
     <opal-lib-govuk-back-link (clickEvent)="handleBack()" />
     <h1 id="review-heading" class="govuk-heading-l" tabindex="-1">Check case details</h1>
+    @if (draft(); as savedDraft) {
+      @if (persistedResult(); as resolved) {
+        <app-cases-draft-casefile-history [draft]="savedDraft" [context]="resolved.context" />
+      }
+    }
     @for (section of beforeTerms(); track section.id) {
       <app-cases-create-casefile-review-section
         [section]="section"
@@ -53,22 +58,19 @@
         (changeEvent)="handleChange($event)"
       />
     }
-    @if (draft(); as savedDraft) {
-      @if (persistedResult(); as resolved) {
-        <app-cases-draft-casefile-history [draft]="savedDraft" [context]="resolved.context" />
-      }
-    }
     @for (decisionDraft of decisionDrafts(); track decisionDraft.draft_casefile_id) {
       <app-cases-draft-casefile-decision (decisionEvent)="handleDecision()" />
     }
     @if (reviewable()) {
-      <opal-lib-govuk-button
-        buttonId="create_casefile_review_delete"
-        buttonClasses="govuk-button--warning"
-        (buttonClickEvent)="handleDelete()"
-      >
-        Delete casefile
-      </opal-lib-govuk-button>
+      <p class="govuk-body govuk-!-margin-top-6">
+        <a
+          id="create_casefile_review_delete"
+          class="govuk-link govuk-link--no-visited-state"
+          [href]="deleteUrl()"
+          (click)="handleDelete($event)"
+          >Delete case</a
+        >
+      </p>
     }
     @if (editable()) {
       <div class="govuk-button-group">

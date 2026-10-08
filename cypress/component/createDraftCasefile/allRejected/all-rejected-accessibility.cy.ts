@@ -53,7 +53,7 @@ describe('All rejected cases native keyboard and accessibility', () => {
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.row(26)).find('a').should('be.focused');
     pressDashboardEnter();
-    cy.get(R.heading).should('have.text', 'Check case details').and('be.focused');
+    cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
     cy.get('@allRejectedDetailRequest').should('have.been.calledOnceWithExactly', 26);
     cy.get(R.decisionHost).should('not.exist');
     cy.get(R.rowValue('respondent', 'FirstNames')).should('contain.text', 'Synthetic');

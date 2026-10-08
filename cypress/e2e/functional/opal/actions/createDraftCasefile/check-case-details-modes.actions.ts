@@ -163,7 +163,7 @@ export class CheckCaseDetailsModesActions {
 
   /** Verifies independently restored parties, dynamic term values and chronological history. */
   public expectSummary(): void {
-    cy.get(S.heading).should('have.text', 'Check case details').and('be.focused');
+    cy.get(S.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
     cy.get(S.section('respondent'))
       .should('contain.text', 'Synthetic')
       .and('contain.text', 'Respondent')
@@ -345,6 +345,7 @@ export class CheckCaseDetailsModesActions {
     });
     this.decide('reject', '251');
     this.navigate(this.path('review', '18'));
+    cy.get(S.heading).should('have.text', 'Second Respondent');
     cy.get(S.section('respondent')).should('contain.text', 'Second').and('not.contain.text', 'Synthetic');
     cy.get(S.host).should((host) => expect(host[0], 'reused Angular component host').to.eq(this.host));
     cy.get(S.decisionApprove).should('not.be.checked');

@@ -78,7 +78,7 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
   for (const kind of ['review', 'view'] as const) {
     it('AC3. should render the saved ' + kind + ' route accessibly', { tags: buildTags() }, () => {
       setupCheckerDashboard({ targetUrl: '/' + PATHS.root + '/' + PATHS.children[kind] + '/101' });
-      cy.get(R.heading).should('have.text', 'Check case details').and('be.focused');
+      cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
       cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 101);
       cy.get('@checkerCountriesRequest').should('have.been.calledOnceWithExactly', null);
       cy.get('@checkerApplicationsRequest').should('have.been.calledOnceWithExactly', null);
@@ -157,7 +157,7 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
     for (let i = 0; i < 10; i++) cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.row(1)).find('a').should('be.focused');
     pressDashboardEnter();
-    cy.get(R.heading).should('have.text', 'Check case details').and('be.focused');
+    cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
     cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 1);
     cy.get(R.back).focus().should('be.focused');
     pressDashboardEnter();
@@ -183,7 +183,7 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
       cy.get(S.primaryNavigation).should('be.visible');
       cy.screenshot('po10606-shell-checker-' + role);
       cy.get(S.row(1)).find('a').click();
-      cy.get(R.heading).should('have.text', 'Check case details').and('be.focused');
+      cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
       cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 1);
       cy.get(R.decisionHost).should('be.visible');
       cy.get(S.primaryNavigation).should('not.exist');

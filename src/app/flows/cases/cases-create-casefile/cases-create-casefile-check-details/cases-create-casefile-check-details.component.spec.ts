@@ -155,16 +155,42 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   const decisionForm = (): CasesDraftCasefileDecisionComponent =>
     fixture.debugElement.query(By.directive(CasesDraftCasefileDecisionComponent))?.componentInstance;
 
+  it.each(['inputter-view', 'checker-view', 'checker-review'] as const)(
+    'places saved status and history above the case details in %s',
+    (intent) => {
+      loadReview(persisted({ intent, mode: intent === 'checker-review' ? 'review' : 'view' }));
+      fixture.detectChanges();
+      const page: HTMLElement = fixture.nativeElement;
+      const heading = page.querySelector('#review-heading')!;
+      const status = page.querySelector('#create_casefile_review_status')!;
+      const history = page.querySelector('.moj-timeline')!;
+      const firstDetails = page.querySelector('#review-caseType')!;
+      expect(heading.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(status.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(history.compareDocumentPosition(firstDetails) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      if (intent === 'checker-review') {
+        const sections = page.querySelectorAll('app-cases-create-casefile-review-section');
+        const decision = page.querySelector('app-cases-draft-casefile-decision')!;
+        expect(
+          sections[sections.length - 1].compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+      }
+    },
+  );
+
   it('navigates an eligible review Delete action without changing saved or creation state', async () => {
     loadReview();
     fixture.detectChanges();
     const saved = structuredClone(getState(TestBed.inject(CasesDraftCasefileStore)));
     const creation = structuredClone(getState(store));
-    const button = fixture.nativeElement.querySelector('opal-lib-govuk-button #create_casefile_review_delete');
-    expect(button).not.toBeNull();
-    expect(button.type).toBe('button');
-    expect(button.textContent.trim()).toBe('Delete casefile');
-    button.click();
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector('a#create_casefile_review_delete');
+    expect(link).not.toBeNull();
+    expect(link.getAttribute('href')).toBe('/cases/draft/check-and-validate/delete/' + saved.draft!.draft_casefile_id);
+    expect(link.classList.contains('govuk-link')).toBe(true);
+    expect(link.textContent.trim()).toBe('Delete case');
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    link.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(true);
     await fixture.whenStable();
     expect(router.navigateByUrl).toHaveBeenCalledExactlyOnceWith(
       '/cases/draft/check-and-validate/delete/' + saved.draft!.draft_casefile_id,
@@ -174,6 +200,18 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(getState(store)).toEqual(creation);
     expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
   });
+
+  it.each([{ button: 1 }, { ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }])(
+    'preserves native Delete link behaviour for %j',
+    (options) => {
+      loadReview();
+      fixture.detectChanges();
+      const click = new MouseEvent('click', { ...options, cancelable: true });
+      fixture.debugElement.query(By.css('#create_casefile_review_delete')).triggerEventHandler('click', click);
+      expect(click.defaultPrevented).toBe(false);
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     'create',

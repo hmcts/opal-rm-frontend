@@ -38,6 +38,16 @@ const assertPerson = (section: string, firstNames: string, lastName: string) => 
     .invoke('text')
     .should((text) => expect(text.trim()).to.equal(lastName));
 };
+const assertHistoryAboveDetails = () =>
+  cy.get('@reviewHost').should(($host) => {
+    const heading = $host.find(S.heading)[0].getBoundingClientRect();
+    const status = $host.find(S.status)[0].getBoundingClientRect();
+    const history = $host.find(S.history)[0].getBoundingClientRect();
+    const details = $host.find(S.section('caseType'))[0].getBoundingClientRect();
+    expect(status.top, 'status below heading').to.be.at.least(heading.bottom);
+    expect(history.top, 'history below status').to.be.at.least(status.bottom);
+    expect(details.top, 'case details below history').to.be.at.least(history.bottom);
+  });
 const assertSavedEnvelope = (draft = createPersistedCasefileDetail()) =>
   cy.get<InstanceType<typeof CasesDraftCasefileStore>>('@persistedCasefileStore').should((store) => {
     expect(store.draft()).to.deep.equal(draft);
@@ -89,6 +99,7 @@ describe('Persisted case details', () => {
       cy.get(S.decisionHost).should('not.exist');
       cy.get(S.delete).should('not.exist');
       cy.get(S.status).should('have.text', 'In review');
+      assertHistoryAboveDetails();
       cy.screenshot('po-10608-persisted-inputter-view-1280');
       cy.get('@reviewHost').find(S.backLink).click();
       cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) =>
@@ -214,14 +225,20 @@ describe('Persisted case details', () => {
   });
 
   it(
-    'AC1, AC3, AC5. should show an eligible review with no decision selected and no editor actions',
+    'AC1, AC2, AC3, AC5. should show an eligible review with no decision selected and no editor actions',
     { tags: buildTags() },
     () => {
       setupReview({ resolved: createPersistedCasefileResolved() });
       cy.get(S.decisionApprove).should('not.be.checked');
       cy.get(S.decisionReject).should('not.be.checked');
       cy.get(S.rejectionReason).should('not.exist');
-      cy.get(S.delete).should('be.visible');
+      cy.get(S.delete).should('be.visible').and('match', 'a.govuk-link').and('have.text', 'Delete case');
+      assertHistoryAboveDetails();
+      cy.get(S.decisionHost).should(($decision) => {
+        const decision = $decision[0].getBoundingClientRect();
+        const details = $decision.prev()[0].getBoundingClientRect();
+        expect(decision.top, 'decision below case details').to.be.at.least(details.bottom);
+      });
       cy.get(S.status).should('have.text', 'To review');
       cy.get(CreateCasefileSelectors.orderTerms.add).should('not.exist');
       cy.get('@reviewHost').find('a[id$="-change"], a[id^="review-term-remove-"]').should('not.exist');
@@ -484,7 +501,12 @@ describe('Persisted case details', () => {
     () => {
       setupReview({ resolved: createPersistedCasefileResolved() });
       spyCompletion();
-      cy.get(S.delete).click();
+      cy.get(S.delete)
+        .should('match', 'a.govuk-link')
+        .and('have.attr', 'href', '/cases/draft/check-and-validate/delete/17')
+        .focus();
+      cy.get(S.delete).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.ENTER);
       cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) =>
         expect(navigate.firstCall.args[0].toString()).to.equal(
           '/' +

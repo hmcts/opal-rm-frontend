@@ -230,8 +230,6 @@ yarn dev:ssr
 
 Leave `FEATURE_FLAGS_OVERRIDE` unset or set to `false` in deployed environments so Launch Darkly remains the source of truth.
 
-The existing `release-1c-rm-create-case-files` flag (`RELEASE_1C_RM_CREATE_CASE_FILES_ENABLED` locally) also controls persisted RM case details. Users with owning-business-unit permission 21 or 22 can read the saved summary; permission 22 enables review of a submitted or resubmitted case from another user in that business unit. The selected case GET restores the saved parties, order terms and historical reference labels before rendering. Review decisions and the Delete walkthrough currently return locally without changing the saved casefile; persistence, amendment and full Delete confirmation remain follow-up work.
-
 ## Build
 
 Run `yarn build:ssr` to build the project. The build artifacts will be stored in the `dist/opal-rm-frontend` directory. This compiles both the node.js server-side code and angular code.

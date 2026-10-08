@@ -346,9 +346,7 @@ export class AllRejectedActions {
       cy.get('@rejectedWrites').should('not.have.been.called');
       return;
     }
-    cy.get(S.placeholderHeading)
-      .should('have.text', kind === 'details' ? 'Check case details' : 'Amend case')
-      .and('be.focused');
+    cy.get(S.placeholderHeading).should('have.text', 'Amend case').and('be.focused');
     cy.get(S.placeholderBack)
       .should('have.text', 'Back')
       .and('have.attr', 'href', DASHBOARD + '#in-review');
@@ -358,7 +356,7 @@ export class AllRejectedActions {
   }
   /** Restores complete saved details while keeping the summary non-actionable. */
   private expectSavedSummary(): void {
-    cy.get(CREATE.review.heading).should('have.text', 'Check case details').and('be.focused');
+    cy.get(CREATE.review.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
     cy.get(CREATE.review.section('respondent')).should('contain.text', 'Synthetic').and('contain.text', 'Respondent');
     cy.get(CREATE.review.section('orderTerms'))
       .should('contain.text', 'Test order term')

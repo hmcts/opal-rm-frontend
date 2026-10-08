@@ -168,7 +168,9 @@ describe('draft production route boundaries', () => {
   );
   it('resolves direct persisted details without local creation state and hides every editing control', async () => {
     const harness = await openPersisted(details + '?mode=amendment#rejected');
-    expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe('Check case details');
+    expect(harness.routeNativeElement?.querySelector('h1#review-heading')?.textContent?.trim()).toBe(
+      'Synthetic Respondent',
+    );
     expect(harness.routeNativeElement?.textContent).toContain('Test Country One');
     expect(harness.routeNativeElement?.querySelector('#create_casefile_review_submit')).toBeNull();
     expect(harness.routeNativeElement?.querySelector('#review-term-change-1')).toBeNull();

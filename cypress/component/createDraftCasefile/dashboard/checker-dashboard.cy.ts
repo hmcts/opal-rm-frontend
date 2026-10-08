@@ -127,7 +127,7 @@ describe('Checker routed dashboard', () => {
   it('AC3. should restore metadata and fetch fresh rows with page clamp on Back', { tags: buildTags() }, () => {
     setupCheckerDashboard({ tab: 'rejected', page: 2, sort: 'respondent', direction: 'descending' });
     cy.get(S.tableRows).first().find('a').click();
-    cy.get(R.heading).should('have.text', 'Check case details').and('be.focused');
+    cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
     cy.get(R.back).should('have.attr', 'href', '#');
     cy.get(R.decisionHost).should('not.exist');
     cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 1);
@@ -153,7 +153,7 @@ describe('Checker routed dashboard', () => {
     cy.get(S.sort('respondent')).click();
     cy.get(S.tab('rejected')).click();
     cy.get(S.row(1)).find('a').click();
-    cy.get(R.heading).should('have.text', 'Check case details');
+    cy.get(R.heading).should('have.text', 'Synthetic Respondent');
     cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 1);
     cy.get(R.back).click();
     cy.get(S.table).should('be.visible');

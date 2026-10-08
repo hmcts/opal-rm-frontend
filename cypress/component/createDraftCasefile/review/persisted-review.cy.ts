@@ -80,7 +80,7 @@ describe('Persisted case details', () => {
         user: reviewUser('inputter'),
       });
       spyCompletion();
-      cy.get(S.heading).should('have.text', 'Check case details');
+      cy.get(S.heading).should('have.text', 'Synthetic Respondent');
       assertPerson('respondent', 'Synthetic', 'Respondent');
       assertPerson('applicant', 'Synthetic', 'Applicant');
       cy.get(S.section('respondent')).should('contain.text', 'Test Country One');
@@ -376,6 +376,7 @@ describe('Persisted case details', () => {
       second.casefile.respondent_account.order_details.order_terms[0].result_responses[0].response = '200.00';
       const resolvedB = createPersistedCasefileResolved({ draft: second });
       setupReview({ resolved: createPersistedCasefileResolved() });
+      cy.get(S.heading).should('have.text', 'Synthetic Respondent');
       cy.get(S.decisionReject).check();
       cy.get(S.rejectionReason).type('R'.repeat(251));
       cy.get(S.decisionContinue).click();
@@ -383,6 +384,7 @@ describe('Persisted case details', () => {
       cy.get<BehaviorSubject<Data>>('@reviewRouteData').then((data) =>
         data.next({ casefileIntent: 'checker-review', draftCasefile: resolvedB }),
       );
+      cy.get(S.heading).should('have.text', 'Second Respondent');
       assertPerson('respondent', 'Second', 'Respondent');
       assertPerson('applicant', 'Second', 'Applicant');
       cy.get(S.section('orderTerms')).should('contain.text', '£200.00').and('not.contain.text', '£100.00');
@@ -394,6 +396,7 @@ describe('Persisted case details', () => {
       cy.get(S.rejectionReason).should('have.value', '');
       assertSavedEnvelope(second);
       setupReview();
+      cy.get(S.heading).should('have.text', 'Check case details');
       cy.get(S.submit).should('be.visible');
       assertPerson('respondent', 'Test', 'Respondent');
       cy.get(S.history).should('not.exist');

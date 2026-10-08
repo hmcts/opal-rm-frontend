@@ -84,6 +84,132 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
     vi.restoreAllMocks();
   });
 
+  it.each([
+    ['create_casefile_respondent_details_last_name', 'McRespondent', 'MCRESPONDENT'],
+    ['create_casefile_respondent_details_national_insurance_number', 'ab123456c', 'AB123456C'],
+    ['create_casefile_respondent_details_postal_or_zip_code', 'sw1a 1aa', 'SW1A 1AA'],
+  ])('uppercases typed %s in the control and submitted form', (fieldName, enteredValue, expectedValue) => {
+    component.initialFormData = CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData;
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector(`#${fieldName}`) as HTMLInputElement;
+    input.value = enteredValue;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(input.value).toBe(expectedValue);
+    expect(component.form.controls[fieldName].value).toBe(expectedValue);
+    expect(formSubmitSpy).toHaveBeenCalledOnce();
+    expect(formSubmitSpy).toHaveBeenCalledWith({
+      formData: {
+        ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+        [fieldName]: expectedValue,
+      },
+      nestedFlow: false,
+    });
+  });
+
+  it('uppercases every newly added alias surname while preserving typed first names', async () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+      create_casefile_respondent_details_add_aliases: false,
+      create_casefile_respondent_details_aliases: [],
+    };
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+
+    (
+      fixture.nativeElement.querySelector('#create_casefile_respondent_details_add_aliases') as HTMLInputElement
+    ).click();
+    fixture.detectChanges();
+    for (let index = 1; index < 5; index += 1) {
+      (fixture.nativeElement.querySelector('#addRespondentAlias') as HTMLButtonElement).click();
+      fixture.detectChanges();
+    }
+    await fixture.whenStable();
+
+    const expectedAliases = [];
+    for (let index = 0; index < 5; index += 1) {
+      const firstNames = `MiXeD Alias ${index + 1}`;
+      const lastName = `McAlias ${index + 1}`;
+      const firstNamesInput = fixture.nativeElement.querySelector(
+        `#create_casefile_respondent_details_alias_first_names_${index}`,
+      ) as HTMLInputElement;
+      const lastNameInput = fixture.nativeElement.querySelector(
+        `#create_casefile_respondent_details_alias_last_name_${index}`,
+      ) as HTMLInputElement;
+      firstNamesInput.value = firstNames;
+      firstNamesInput.dispatchEvent(new Event('input', { bubbles: true }));
+      lastNameInput.value = lastName;
+      lastNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+      expectedAliases.push({ firstNames, lastName: `MCALIAS ${index + 1}` });
+    }
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(formSubmitSpy).toHaveBeenCalledOnce();
+    expect(formSubmitSpy.mock.calls[0]?.[0]?.formData.create_casefile_respondent_details_aliases).toEqual(
+      expectedAliases,
+    );
+    for (let index = 0; index < 5; index += 1) {
+      expect(
+        (
+          fixture.nativeElement.querySelector(
+            `#create_casefile_respondent_details_alias_last_name_${index}`,
+          ) as HTMLInputElement
+        ).value,
+      ).toBe(expectedAliases[index].lastName);
+      expect(
+        (
+          fixture.nativeElement.querySelector(
+            `#create_casefile_respondent_details_alias_first_names_${index}`,
+          ) as HTMLInputElement
+        ).value,
+      ).toBe(expectedAliases[index].firstNames);
+    }
+  });
+
+  it('uppercases typed employee references and employer postal codes without changing other employer fields', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+      create_casefile_respondent_details_add_employer_details: true,
+      create_casefile_respondent_details_employer_name: 'Mixed Employer',
+      create_casefile_respondent_details_employer_address_line_1: '3 Mixed Street',
+      create_casefile_respondent_details_employer_country_id: 1,
+    };
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+
+    const enteredValues = {
+      create_casefile_respondent_details_employee_reference: 'emp/ab-123',
+      create_casefile_respondent_details_employer_postal_or_zip_code: 'k1a 0b1',
+      create_casefile_respondent_details_employer_name: 'MiXeD Employer',
+      create_casefile_respondent_details_employer_email_address: 'MiXeD@example.com',
+      create_casefile_respondent_details_employer_address_line_1: '3 MiXeD Street',
+    };
+    for (const [fieldName, value] of Object.entries(enteredValues)) {
+      const input = fixture.nativeElement.querySelector(`#${fieldName}`) as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(formSubmitSpy).toHaveBeenCalledOnce();
+    expect(formSubmitSpy).toHaveBeenCalledWith({
+      formData: {
+        ...component.initialFormData,
+        ...enteredValues,
+        create_casefile_respondent_details_employee_reference: 'EMP/AB-123',
+        create_casefile_respondent_details_employer_postal_or_zip_code: 'K1A 0B1',
+      },
+      nestedFlow: false,
+    });
+    expect(component.form.controls['create_casefile_respondent_details_employee_reference'].value).toBe('EMP/AB-123');
+    expect(component.form.controls['create_casefile_respondent_details_employer_postal_or_zip_code'].value).toBe(
+      'K1A 0B1',
+    );
+  });
+
   it('uses canonical, unique identifiers for every form control and error-summary target', () => {
     fixture.detectChanges();
     component.form.controls['create_casefile_respondent_details_add_aliases'].setValue(true);

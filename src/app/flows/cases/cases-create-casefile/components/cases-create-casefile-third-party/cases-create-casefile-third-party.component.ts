@@ -10,6 +10,7 @@ import {
 import { GovukSelectComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-select';
 import type { IGovUkSelectOptions } from '@hmcts/opal-frontend-common/components/govuk/govuk-select/interfaces';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
+import { CapitalisationDirective } from '@hmcts/opal-frontend-common/directives/capitalisation';
 import { CasesCreateCasefileAddressTextFieldsComponent } from '../cases-create-casefile-address-text-fields/cases-create-casefile-address-text-fields.component';
 import type { ICasesCreateCasefileThirdPartyFieldNames } from './interfaces/cases-create-casefile-third-party-field-names.interface';
 
@@ -21,6 +22,7 @@ import type { ICasesCreateCasefileThirdPartyFieldNames } from './interfaces/case
     GovukCheckboxesItemComponent,
     GovukSelectComponent,
     GovukTextInputComponent,
+    CapitalisationDirective,
     CasesCreateCasefileAddressTextFieldsComponent,
   ],
   templateUrl: './cases-create-casefile-third-party.component.html',

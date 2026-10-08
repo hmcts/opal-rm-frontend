@@ -233,7 +233,9 @@ describe('checker production route boundaries', () => {
     'resolves the %s summary before mounting without creation controls',
     async (kind) => {
       const harness = await openPersisted('/cases/draft/check-and-validate/' + kind + '/123?mode=amendment#rejected');
-      expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe('Check case details');
+      expect(harness.routeNativeElement?.querySelector('h1#review-heading')?.textContent?.trim()).toBe(
+        'Synthetic Respondent',
+      );
       expect(harness.routeNativeElement?.querySelector('#create_casefile_review_submit')).toBeNull();
       expect(harness.routeNativeElement?.querySelector('#review-term-change-1')).toBeNull();
       expect(harness.routeNativeElement?.textContent).toContain('Test Country One');

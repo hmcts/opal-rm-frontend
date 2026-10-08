@@ -98,6 +98,11 @@ export class CasesCreateCasefileCheckDetailsComponent {
   public readonly persistedResult = signal<ICasesDraftCasefileResolved | null>(null);
   public readonly draft = this.persistedStore.draft;
   public readonly editable = computed(() => this.route?.snapshot.data['casefileIntent'] === 'create');
+  public readonly heading = computed(() => {
+    if (this.editable()) return 'Check case details';
+    const respondent = this.store.respondentDetails();
+    return [respondent?.title, respondent?.firstNames, respondent?.lastName].filter(Boolean).join(' ');
+  });
   public readonly readable = computed(() => {
     const result = this.persistedResult();
     const draft = this.persistedStore.draft();

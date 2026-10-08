@@ -1,7 +1,7 @@
 @if (editable() || readable()) {
   <div class="govuk-grid-column-two-thirds">
     <opal-lib-govuk-back-link (clickEvent)="handleBack()" />
-    <h1 id="review-heading" class="govuk-heading-l" tabindex="-1">Check case details</h1>
+    <h1 id="review-heading" class="govuk-heading-l" tabindex="-1">{{ heading() }}</h1>
     @if (draft(); as savedDraft) {
       @if (persistedResult(); as resolved) {
         <app-cases-draft-casefile-history [draft]="savedDraft" [context]="resolved.context" />

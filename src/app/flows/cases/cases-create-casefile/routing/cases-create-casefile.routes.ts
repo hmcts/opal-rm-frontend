@@ -256,7 +256,7 @@ export const routing: Routes = [
       ),
     canActivate: [casesCreateCasefileCheckDetailsGuard],
     canDeactivate: [casesCreateCasefileSubmissionPendingGuard],
-    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.checkCaseDetails },
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.checkCaseDetails, casefileIntent: 'create' },
     resolve: {
       title: TitleResolver,
       countries: fetchCasesCreateCasefileCountriesResolver,

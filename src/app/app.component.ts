@@ -321,6 +321,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const checkerShells = [
       CASES_DRAFT_CHECKER_ROUTING_PATHS.children.review,
       CASES_DRAFT_CHECKER_ROUTING_PATHS.children.view,
+      CASES_DRAFT_CHECKER_ROUTING_PATHS.children.delete,
     ];
     return (
       path === journeyRoot ||

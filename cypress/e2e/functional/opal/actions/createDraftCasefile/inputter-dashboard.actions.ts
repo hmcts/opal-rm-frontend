@@ -1,3 +1,4 @@
+import { selectedPersistedCasefile, stubPersistedCasefileReferences } from './check-case-details-modes.actions';
 import { CasesDraftSelectors as S } from '../../../../../shared/selectors/cases-draft.selectors';
 import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selectors/create-casefile.selectors';
 import { ReleaseFlagsSelectors as RELEASE } from '../../../../../shared/selectors/release-flags.selectors';
@@ -31,10 +32,20 @@ export class InputterDashboardActions {
     this.badgeFailures = 0;
     this.listDelay = 0;
     cy.intercept('GET', '**/api/user-state', { body: structuredClone(INPUTTER_USER) });
-    cy.intercept('GET', PERSISTED, cy.spy().as('dashboardDetails'));
+    const details = cy.spy().as('dashboardDetails');
+    cy.intercept('GET', PERSISTED, (request) => {
+      details(request);
+      const id = Number(new URL(request.url).pathname.split('/').pop());
+      expect(id, 'supported selected inputter fixture').to.be.oneOf([1, 123]);
+      request.reply({ body: selectedPersistedCasefile(id, 'REJECTED', 'BUU-SYNTHETIC'), headers: { ETag: '"0"' } });
+    });
+    const mutation = cy.spy().as('dashboardMutation');
     cy.intercept(
       { method: '+(POST|PUT|PATCH|DELETE)', url: /\/opal-maintenance-service\/draft-casefiles(?:[/?]|$)/ },
-      cy.spy().as('dashboardMutation'),
+      (request) => {
+        mutation(request);
+        request.reply({ statusCode: 405, body: {} });
+      },
     );
     cy.intercept('GET', COLLECTION, (request) => {
       this.requests.push({ ...request.query });
@@ -171,11 +182,13 @@ export class InputterDashboardActions {
   /** Opens persisted details with native Enter and changes the next collection response.
    * @param id Synthetic draft identifier displayed in the current page. */
   public openDetails(id: number): void {
+    stubPersistedCasefileReferences();
     cy.get(S.row(id)).find('a').should('not.have.attr', 'target');
     cy.get(S.row(id)).find('a').focus().should('be.focused');
     pressDashboardEnter();
-    cy.get('#cases-draft-placeholder-heading').should('have.text', 'Check case details').and('be.focused');
-    this.assertNoPersistence();
+    this.expectSavedSummary();
+    cy.get('@dashboardDetails').should('have.been.calledOnce');
+    this.assertNoMutation();
     // Return must load fresh rows while retaining only navigation metadata.
     this.stubCollection(
       'rejected',
@@ -191,7 +204,7 @@ export class InputterDashboardActions {
 
   /** Returns with native keyboard activation of Back. */
   public returnFromPlaceholder(): void {
-    cy.get('#cases-draft-placeholder-back').focus();
+    cy.get(CREATE.review.back).focus();
     pressDashboardEnter();
   }
 
@@ -203,7 +216,8 @@ export class InputterDashboardActions {
     cy.get(S.pageStatus).should('contain.text', 'Page 2 of 2');
     cy.get('th[columnKey="applicant"]').should('have.attr', 'aria-sort', 'descending');
     cy.get(S.row(1)).should('contain.text', fresh ? 'Refreshed synthetic respondent 1' : 'Synthetic respondent 01');
-    this.assertNoPersistence();
+    this.assertNoMutation();
+    if (!fresh) cy.get('@dashboardDetails').should('not.have.been.called');
   }
 
   /** Opens the all-rejected destination in the same tab using native Enter. */
@@ -394,20 +408,56 @@ export class InputterDashboardActions {
    * @param id Valid or malformed route identifier. */
   public openPersisted(kind: string, id: string): void {
     const child = kind === 'details' ? CREATE_PATHS.children.checkCaseDetails : CREATE_PATHS.children.taskList;
-    cy.visit('/' + CREATE_PATHS.root + '/' + child + '/' + id);
+    const path = '/' + CREATE_PATHS.root + '/' + child + '/' + id;
+    if (kind === 'details') stubPersistedCasefileReferences();
+    if (kind === 'details' && id === '0') {
+      cy.visit('/dashboard/cases');
+      cy.get(RELEASE.createCaseLink).should('be.visible');
+      cy.window().then((window) => {
+        window.history.pushState({}, '', path);
+        window.dispatchEvent(new window.PopStateEvent('popstate'));
+      });
+    } else cy.visit(path);
   }
+
   /** Checks safe placeholder copy and the closed persistence boundary.
    * @param kind Expected destination type.
    * @param message Expected safe recovery or future-work copy. */
   public expectShell(kind: string, message: string): void {
-    cy.get('#cases-draft-placeholder-heading')
-      .should('have.text', kind === 'details' ? 'Check case details' : 'Amend case')
-      .and('be.focused');
+    if (kind === 'details') {
+      if (message === 'Saved case details') {
+        this.expectSavedSummary();
+        cy.get(CREATE.review.decisionContinue).should('not.exist');
+        cy.get('@dashboardDetails').should('have.been.calledOnce');
+        this.assertNoMutation();
+      } else {
+        cy.get(RELEASE.createCaseLink).should('be.visible');
+        cy.get(CREATE.globalErrorBanner).should('be.visible');
+        cy.get(CREATE.review.heading).should('not.exist');
+        this.assertNoPersistence();
+      }
+      return;
+    }
+    cy.get('#cases-draft-placeholder-heading').should('have.text', 'Amend case').and('be.focused');
     cy.contains('p', message).should('be.visible');
     cy.get('.govuk-grid-column-two-thirds').should('be.visible');
     cy.get(CREATE.caseTypeGroup).should('not.exist');
     cy.get('@inputterCollection.all').should('have.length', 0);
     this.assertNoPersistence();
+  }
+  /** Checks saved parties and order terms after the actual selected GET has resolved. */
+  public expectSavedSummary(): void {
+    cy.get(CREATE.review.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+    cy.get(CREATE.review.section('respondent')).should('contain.text', 'Synthetic').and('contain.text', 'Respondent');
+    cy.get(CREATE.review.section('orderTerms'))
+      .should('contain.text', 'Test order term')
+      .and('contain.text', '£100.00');
+    cy.get(CREATE.review.submit).should('not.exist');
+  }
+
+  /** Allows the expected selected read while retaining the closed write boundary. */
+  private assertNoMutation(): void {
+    cy.get('@dashboardMutation').should('not.have.been.called');
   }
   /** Supplies permission 21 exclusively in another business unit. */
   public crossBusinessUnit(): void {
@@ -508,7 +558,9 @@ export class InputterDashboardActions {
    * @param kind Evidence name distinguishing valid and malformed destinations. */
   public screenshotShell(kind: string): void {
     cy.viewport(1440, 1000);
-    cy.get(kind === 'all-rejected' ? S.allRejectedHeading : S.placeholderHeading).should('be.focused');
+    if (kind === 'malformed-details') cy.get(CREATE.globalErrorBanner).should('be.visible');
+    else if (kind === 'details') cy.get(CREATE.review.heading).should('be.focused');
+    else cy.get(kind === 'all-rejected' ? S.allRejectedHeading : S.placeholderHeading).should('be.focused');
     cy.screenshot('po10605-after-' + kind + '-shell');
   }
 }

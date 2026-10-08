@@ -1,3 +1,4 @@
+import { selectedPersistedCasefile, stubPersistedCasefileReferences } from './check-case-details-modes.actions';
 import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CasesDraftSelectors as S } from '../../../../../shared/selectors/cases-draft.selectors';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
@@ -21,6 +22,7 @@ export class AllRejectedActions {
   private otherRows = allRejectedRows();
   private user = structuredClone(INPUTTER_USER);
   private listFailures = 0;
+  private detailsOpened = false;
 
   /** Resets every mutable fixture and observes collection/persisted traffic separately. */
   public available(): void {
@@ -29,17 +31,35 @@ export class AllRejectedActions {
     this.otherRows = allRejectedRows();
     this.user = structuredClone(INPUTTER_USER);
     this.listFailures = 0;
+    this.detailsOpened = false;
     cy.intercept('GET', '**/api/user-state', (request) => request.reply({ body: structuredClone(this.user) }));
-    cy.intercept('GET', PERSISTED, cy.spy().as('rejectedPersistedReads'));
+    const reads = cy.spy().as('rejectedPersistedReads');
+    cy.intercept('GET', PERSISTED, (request) => {
+      reads(request);
+      const id = Number(new URL(request.url).pathname.split('/').pop());
+      expect(id, 'supported selected rejected fixture').to.be.oneOf([1, 123]);
+      request.reply({ body: selectedPersistedCasefile(id, 'REJECTED'), headers: { ETag: '"0"' } });
+    });
+    const writes = cy.spy().as('rejectedWrites');
     cy.intercept(
       { method: '+(POST|PUT|PATCH|DELETE)', url: /\/opal-maintenance-service\/draft-casefiles(?:[/?]|$)/ },
-      cy.spy().as('rejectedWrites'),
+      (request) => {
+        writes(request);
+        request.reply({ statusCode: 405, body: {} });
+      },
     );
     cy.intercept('GET', COLLECTION, (request) => {
       if (request.query['not_submitted_by'] === undefined) {
-        expect(request.query).to.deep.equal(OWN_QUERY);
+        if (request.query['restrict'] === 'counts') {
+          expect(request.query).to.deep.equal({ ...OWN_QUERY, restrict: 'counts' });
+          request.reply({ body: { count: inputterRows('rejected').length } });
+          return;
+        }
+        const inReview = request.query['casefile_status'] === 'SUBMITTED,RESUBMITTED';
+        const ownQuery = inReview ? { ...OWN_QUERY, casefile_status: 'SUBMITTED,RESUBMITTED' } : OWN_QUERY;
+        expect(request.query).to.deep.equal(ownQuery);
         this.dashboardRequests.push({ ...request.query });
-        const summaries = inputterRows('rejected');
+        const summaries = inputterRows(inReview ? 'in-review' : 'rejected');
         request.reply({ body: { count: summaries.length, summaries: structuredClone(summaries) } });
         return;
       }
@@ -113,7 +133,7 @@ export class AllRejectedActions {
       .should('have.class', 'govuk-visually-hidden')
       .and('have.attr', 'aria-atomic', 'true');
     cy.then(() => expect(this.rejectionRequests).to.have.length(expectedRequests));
-    this.assertNoPersistence();
+    this.assertJourneyPersistence();
   }
   /** Expect defaults for the controlled browser journey.
    */
@@ -178,6 +198,8 @@ export class AllRejectedActions {
   /** Open details for the controlled browser journey.
    */
   public openDetails(): void {
+    this.detailsOpened = true;
+    stubPersistedCasefileReferences();
     cy.get(S.tableRows)
       .find('a')
       .first()
@@ -189,14 +211,14 @@ export class AllRejectedActions {
         cy.location('pathname').should('eq', href!);
         cy.location('search').should('eq', '');
       });
-    cy.get(S.placeholderHeading).should('have.text', 'Check case details').and('be.focused');
-    cy.get(S.placeholderBack).should('have.text', 'Back').and('have.attr', 'href', LIST);
-    this.assertNoPersistence();
+    this.expectSavedSummary();
+    cy.get('@rejectedPersistedReads').should('have.been.calledOnce');
+    this.assertJourneyPersistence();
   }
   /** Return list for the controlled browser journey.
    */
   public returnList(): void {
-    cy.get(S.placeholderBack).focus();
+    cy.get(CREATE.review.back).focus();
     pressDashboardEnter();
   }
   /** Browser back for the controlled browser journey.
@@ -245,7 +267,7 @@ export class AllRejectedActions {
     cy.get(S.tableRows).should('have.length', 1);
     cy.get(S.row(1)).should('be.visible');
     cy.then(() => expect(this.dashboardRequests).to.deep.equal([OWN_QUERY, OWN_QUERY]));
-    this.assertNoPersistence();
+    this.assertJourneyPersistence();
   }
   /** Empty for the controlled browser journey.
    */
@@ -261,7 +283,7 @@ export class AllRejectedActions {
     cy.get(S.table).should('not.exist');
     cy.get(S.pagination).should('not.exist');
     cy.then(() => expect(this.rejectionRequests).to.have.length(1));
-    this.assertNoPersistence();
+    this.assertJourneyPersistence();
   }
   /** Fail once for the controlled browser journey.
    */
@@ -277,7 +299,7 @@ export class AllRejectedActions {
     cy.get(S.allRejectedHeading).should('not.exist');
     cy.get(S.allRejectedEmpty).should('not.exist');
     cy.then(() => expect(this.rejectionRequests).to.have.length(1));
-    this.assertNoPersistence();
+    this.assertJourneyPersistence();
   }
   /** Denied role for the controlled browser journey.
    * @param role Expected or configured role.
@@ -306,6 +328,8 @@ export class AllRejectedActions {
    * @param kind Expected or configured kind.
    */
   public directShell(kind: string): void {
+    this.detailsOpened = kind === 'details';
+    if (this.detailsOpened) stubPersistedCasefileReferences();
     const child = kind === 'details' ? CREATE_PATHS.children.checkCaseDetails : CREATE_PATHS.children.taskList;
     cy.visit('/' + CREATE_PATHS.root + '/' + child + '/123');
   }
@@ -313,15 +337,37 @@ export class AllRejectedActions {
   /** Checks safe fallback navigation from a directly opened protected shell.
    * @param kind Protected destination kind. */
   public expectDirectShell(kind: string): void {
-    cy.get(S.placeholderHeading)
-      .should('have.text', kind === 'details' ? 'Check case details' : 'Amend case')
-      .and('be.focused');
+    if (kind === 'details') {
+      this.expectSavedSummary();
+      cy.get('@rejectedPersistedReads').should('have.been.calledOnce');
+      cy.get(CREATE.review.back).click();
+      cy.location('pathname').should('eq', DASHBOARD);
+      cy.location('hash').should('eq', '#in-review');
+      cy.get('@rejectedWrites').should('not.have.been.called');
+      return;
+    }
+    cy.get(S.placeholderHeading).should('have.text', 'Amend case').and('be.focused');
     cy.get(S.placeholderBack)
       .should('have.text', 'Back')
       .and('have.attr', 'href', DASHBOARD + '#in-review');
     cy.location('search').should('eq', '');
     cy.then(() => expect(this.rejectionRequests).to.have.length(0));
-    this.assertNoPersistence();
+    this.assertJourneyPersistence();
+  }
+  /** Restores complete saved details while keeping the summary non-actionable. */
+  private expectSavedSummary(): void {
+    cy.get(CREATE.review.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+    cy.get(CREATE.review.section('respondent')).should('contain.text', 'Synthetic').and('contain.text', 'Respondent');
+    cy.get(CREATE.review.section('orderTerms'))
+      .should('contain.text', 'Test order term')
+      .and('contain.text', '£100.00');
+    cy.get(CREATE.review.submit).should('not.exist');
+  }
+
+  /** Keeps dashboard-only no-read checks strict; a deliberately opened details journey may read. */
+  private assertJourneyPersistence(): void {
+    if (!this.detailsOpened) this.assertNoPersistence();
+    else cy.get('@rejectedWrites').should('not.have.been.called');
   }
   /** Assert no persistence for the controlled browser journey.
    */

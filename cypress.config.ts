@@ -275,6 +275,7 @@ export default defineConfig({
           plugins: [
             new TsconfigPathsPlugin({
               configFile: componentTsconfigPath,
+              baseUrl: __dirname,
             }),
           ],
         },

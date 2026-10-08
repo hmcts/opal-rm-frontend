@@ -1,3 +1,8 @@
+import {
+  createPersistedCasefileDetail,
+  PERSISTED_CASEFILE_REFERENCES,
+  PERSISTED_CASEFILE_RESULT_DETAIL,
+} from '../../services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { Component, PLATFORM_ID, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
@@ -57,6 +62,7 @@ describe('draft production route boundaries', () => {
         provideRouter([
           ...routing,
           { path: 'access-denied', component: DeniedComponent },
+          { path: 'error/permission-denied', component: DeniedComponent },
           { path: 'account-created', component: DeniedComponent },
         ]),
         provideHttpClient(),
@@ -73,27 +79,50 @@ describe('draft production route boundaries', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
-  it.each([
-    [details, 'Check case details', 'Case details will be available here.', 'govuk-grid-column-two-thirds'],
-    [amendment, 'Amend case', 'Case amendment will be available here.', 'govuk-grid-column-two-thirds'],
-  ])('allows %s with no local create state or API request', async (url, heading, body, grid) => {
-    const harness = await RouterTestingHarness.create(
-      url + '?tab=approved&page=2&sort=created&direction=descending#rejected',
+  async function flushPersisted(id = 123) {
+    await vi.waitFor(() => {
+      const draft = createPersistedCasefileDetail();
+      draft.draft_casefile_id = id;
+      http.expectOne('/opal-maintenance-service/draft-casefiles/' + id).flush(draft, { headers: { ETag: '"0"' } });
+    });
+    await vi.waitFor(() =>
+      http
+        .expectOne((request) => request.url === '/opal-maintenance-service/maintenance-applications')
+        .flush({ refData: PERSISTED_CASEFILE_REFERENCES.applications }),
     );
-    const element = harness.routeNativeElement!;
-    expect(element.querySelector('h1')?.textContent?.trim()).toBe(heading);
-    expect(document.title).toBe('OPAL - ' + heading);
-    expect(element.textContent).toContain(body);
-    expect(element.querySelector(':scope > div')?.className).toBe(grid);
-    expect(element.querySelector('h1')?.getAttribute('tabindex')).toBe('-1');
-    expect(document.activeElement).toBe(element.querySelector('h1'));
-    expect(element.querySelector('a')?.getAttribute('href')).toBe(dashboard + '#rejected');
-    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
-    expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
-    const parent = TestBed.inject(Router).routerState.snapshot.root.firstChild!;
-    expect(parent.component).toBeNull();
-    expect(parent.firstChild?.data['hidePrimaryNav']).toBe(url !== rejections ? true : undefined);
-  });
+    for (const request of http.match((request) => request.url === '/opal-maintenance-service/countries'))
+      request.flush({ refData: PERSISTED_CASEFILE_REFERENCES.countries });
+    for (const request of http.match((request) => request.url === '/opal-maintenance-service/major-creditors'))
+      request.flush({ refData: [] });
+    http.expectOne('/opal-maintenance-service/results/TEST01').flush(PERSISTED_CASEFILE_RESULT_DETAIL);
+  }
+  async function openPersisted(url = details, id = 123) {
+    const arrival = RouterTestingHarness.create(url);
+    await flushPersisted(id);
+    return arrival;
+  }
+
+  it.each([[amendment, 'Amend case', 'Case amendment will be available here.', 'govuk-grid-column-two-thirds']])(
+    'allows %s with no local create state or API request',
+    async (url, heading, body, grid) => {
+      const harness = await RouterTestingHarness.create(
+        url + '?tab=approved&page=2&sort=created&direction=descending#rejected',
+      );
+      const element = harness.routeNativeElement!;
+      expect(element.querySelector('h1')?.textContent?.trim()).toBe(heading);
+      expect(document.title).toBe('OPAL - ' + heading);
+      expect(element.textContent).toContain(body);
+      expect(element.querySelector(':scope > div')?.className).toBe(grid);
+      expect(element.querySelector('h1')?.getAttribute('tabindex')).toBe('-1');
+      expect(document.activeElement).toBe(element.querySelector('h1'));
+      expect(element.querySelector('a')?.getAttribute('href')).toBe(dashboard + '#rejected');
+      http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+      expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
+      const parent = TestBed.inject(Router).routerState.snapshot.root.firstChild!;
+      expect(parent.component).toBeNull();
+      expect(parent.firstChild?.data['hidePrimaryNav']).toBe(url !== rejections ? true : undefined);
+    },
+  );
   it('activates the full-width list after one exclusive resolved consultation', async () => {
     const harness = await RouterTestingHarness.create();
     const arrival = harness.navigateByUrl(rejections);
@@ -137,20 +166,15 @@ describe('draft production route boundaries', () => {
       http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
     },
   );
-  it('updates a reused shell for valid and malformed route IDs and origin metadata', async () => {
-    const harness = await RouterTestingHarness.create(details);
-    const first = harness.routeDebugElement?.componentInstance;
-    await harness.navigateByUrl(
-      '/cases/create-casefile/check-case-details/0?tab=rejected&page=3&sort=approved&direction=descending#approved',
+  it('resolves direct persisted details without local creation state and hides every editing control', async () => {
+    const harness = await openPersisted(details + '?mode=amendment#rejected');
+    expect(harness.routeNativeElement?.querySelector('h1#review-heading')?.textContent?.trim()).toBe(
+      'Synthetic Respondent',
     );
-    expect(harness.routeDebugElement?.componentInstance).toBe(first);
-    expect(harness.routeNativeElement?.textContent).toContain('This case could not be opened.');
-    expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toContain('#approved');
-    await harness.navigateByUrl(
-      '/cases/create-casefile/check-case-details/9007199254740991?tab=approved&page=0&returnUrl=https://example.test#wrong',
-    );
-    expect(harness.routeNativeElement?.textContent).toContain('Case details will be available here.');
-    expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toBe(dashboard + '#in-review');
+    expect(harness.routeNativeElement?.textContent).toContain('Test Country One');
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_review_submit')).toBeNull();
+    expect(harness.routeNativeElement?.querySelector('#review-term-change-1')).toBeNull();
+    expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
   });
   it.each([dashboard, rejections, details, amendment])(
     'denies %s before any maintenance request when permission is absent',
@@ -252,7 +276,7 @@ describe('draft production route boundaries', () => {
   it.each(['decoder', 'network', 'server'] as const)(
     'propagates initial %s failure without activating or rendering an empty list',
     async (failure) => {
-      const harness = await RouterTestingHarness.create(details);
+      const harness = await openPersisted(details);
       const arrival = harness.navigateByUrl(rejections);
       const rejected = expect(arrival).rejects.toBeTruthy();
       await vi.waitFor(() => {
@@ -272,7 +296,7 @@ describe('draft production route boundaries', () => {
     },
   );
   it('does not activate pending arrival and defensively excludes own, foreign and wrong-status rows', async () => {
-    const harness = await RouterTestingHarness.create(details);
+    const harness = await openPersisted(details);
     const arrival = harness.navigateByUrl(rejections);
     let pending!: import('@angular/common/http/testing').TestRequest;
     await vi.waitFor(() => {
@@ -399,7 +423,9 @@ describe('draft production route boundaries', () => {
     const page = harness.routeDebugElement!.componentInstance as CasesDraftCreateAndManageViewAllRejectedComponent;
     page.changeSort({ key: 'respondent', direction: 'descending' });
     page.changePage(2);
-    await page.openRow(26);
+    const open = page.openRow(26);
+    await flushPersisted(26);
+    await open;
     expect(TestBed.inject(Router).url).toBe(details.replace('123', '26'));
     harness.detectChanges();
     harness.routeNativeElement!.querySelector('a')!.click();
@@ -469,7 +495,9 @@ describe('draft production route boundaries', () => {
     original.changePage(2);
     expect(original.navigation.selection().page).toBe(2);
     expect(TestBed.inject(Router).url).toBe(dashboard + '#rejected');
-    await harness.navigateByUrl(details + '#rejected');
+    const detailsArrival = harness.navigateByUrl(details + '#rejected');
+    await flushPersisted();
+    await detailsArrival;
     harness.routeNativeElement!.querySelector('a')!.click();
     await flushList('REJECTED', 1);
     harness.detectChanges();
@@ -616,7 +644,7 @@ describe('draft production route boundaries', () => {
     expect(harness.routeNativeElement?.querySelector('tbody')).toBeNull();
   });
   it('cancels resolver arrival on failed list without rendering a successful empty table', async () => {
-    const harness = await RouterTestingHarness.create(details);
+    const harness = await openPersisted(details);
     const arrival = harness.navigateByUrl(dashboard + '#rejected');
     await vi.waitFor(() =>
       http
@@ -628,13 +656,14 @@ describe('draft production route boundaries', () => {
     expect(harness.routeNativeElement?.querySelector('#cases-draft-empty')).toBeNull();
   });
   it('denies Back after permission is removed without consulting a collection', async () => {
-    const harness = await RouterTestingHarness.create(details);
+    const harness = await openPersisted(details);
     const user = permittedUser();
     user.business_unit_users[0].permissions = [];
     userState.set(user);
     harness.routeNativeElement!.querySelector('a')!.click();
+    harness.detectChanges();
     await harness.fixture.whenStable();
-    expect(TestBed.inject(Router).url).toBe('/access-denied');
+    expect(TestBed.inject(Router).url).toBe('/error/permission-denied');
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
   });
   it('redirects only the empty dashboard root and resolves before dashboard arrival', async () => {

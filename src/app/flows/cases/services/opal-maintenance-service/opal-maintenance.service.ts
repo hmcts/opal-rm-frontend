@@ -1,3 +1,5 @@
+import { decodeDraftCasefileDetail } from './utils/opal-maintenance-draft-casefile-detail';
+import type { IOpalMaintenanceDraftCasefileDetail } from './interfaces/opal-maintenance-draft-casefile-detail.interface';
 import type { ICasesDraftIdentity } from '../../cases-draft/interfaces/cases-draft-identity.interface';
 import type { IOpalMaintenanceDraftCasefileListParams } from './interfaces/opal-maintenance-draft-casefile-list-params.interface';
 import type { IOpalMaintenanceDraftCasefileListResponse } from './interfaces/opal-maintenance-draft-casefile-list-response.interface';
@@ -22,7 +24,7 @@ export class OpalMaintenanceService {
   private readonly http = inject(HttpClient);
   private readonly countriesUrl = '/opal-maintenance-service/countries';
   private readonly majorCreditorsUrl = '/opal-maintenance-service/major-creditors';
-  private readonly countriesCache = new Map<boolean, Observable<IOpalMaintenanceCountryReferenceDataResponse>>();
+  private readonly countriesCache = new Map<boolean | null, Observable<IOpalMaintenanceCountryReferenceDataResponse>>();
   private readonly majorCreditorsCache = new Map<
     string,
     Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse>
@@ -70,6 +72,18 @@ export class OpalMaintenanceService {
     return request;
   }
 
+  /** Loads a selected persisted resource without retries, transfer-cache reuse or fabricated version values. */
+  public getDraftCasefile(id: number): Observable<{ draft: IOpalMaintenanceDraftCasefileDetail; etag: string }> {
+    if (!Number.isSafeInteger(id) || id < 1) throw new Error('Invalid draft casefile identifier');
+    return this.http
+      .get<unknown>(`/opal-maintenance-service/draft-casefiles/${id}`, {
+        observe: 'response',
+        context: withoutHttpRetry(),
+        transferCache: false,
+      })
+      .pipe(map((response) => decodeDraftCasefileDetail(response.body, response.headers.get('ETag'), id)));
+  }
+
   public createDraftCasefile(
     request: IOpalMaintenanceDraftCasefileRequest,
   ): Observable<HttpResponse<IOpalMaintenanceDraftCasefileResponse>> {
@@ -114,11 +128,15 @@ export class OpalMaintenanceService {
     });
   }
 
-  public getMaintenanceApplications(): Observable<IOpalMaintenanceApplicationReferenceDataResponse> {
+  public getMaintenanceApplications(
+    active: boolean | null = true,
+  ): Observable<IOpalMaintenanceApplicationReferenceDataResponse> {
+    const params: Record<string, string | boolean> =
+      active === null ? { application_group: 'Create Casefile' } : { application_group: 'Create Casefile', active };
     return this.http.get<IOpalMaintenanceApplicationReferenceDataResponse>(
       '/opal-maintenance-service/maintenance-applications',
       {
-        params: { application_group: 'Create Casefile', active: true },
+        params,
         context: withoutHttpRetry(),
       },
     );
@@ -138,14 +156,16 @@ export class OpalMaintenanceService {
     );
   }
 
-  public getCountries(active: boolean): Observable<IOpalMaintenanceCountryReferenceDataResponse> {
+  public getCountries(active: boolean | null = true): Observable<IOpalMaintenanceCountryReferenceDataResponse> {
     const cached = this.countriesCache.get(active);
     if (cached) return cached;
 
     return this.cacheRequest(
       this.countriesCache,
       active,
-      this.http.get<IOpalMaintenanceCountryReferenceDataResponse>(this.countriesUrl, { params: { active } }),
+      this.http.get<IOpalMaintenanceCountryReferenceDataResponse>(this.countriesUrl, {
+        params: active === null ? {} : { active },
+      }),
     );
   }
 

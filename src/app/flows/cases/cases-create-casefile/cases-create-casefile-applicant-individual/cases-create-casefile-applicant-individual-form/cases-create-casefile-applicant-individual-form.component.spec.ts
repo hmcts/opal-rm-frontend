@@ -1233,6 +1233,121 @@ describe('CasesCreateCasefileApplicantIndividualFormComponent', () => {
     }
   });
 
+  it('uppercases the rendered surname, postal code and UK payment reference in submitted form data', () => {
+    component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData;
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+    const uppercaseValues = {
+      create_casefile_applicant_individual_last_name: ['o’example-smith', 'O’EXAMPLE-SMITH'],
+      create_casefile_applicant_individual_postal_or_zip_code: ['ab1 2cd', 'AB1 2CD'],
+      create_casefile_applicant_individual_uk_bank_payment_reference: ['pay-Ab12', 'PAY-AB12'],
+    } as const;
+    const unchangedValues = {
+      create_casefile_applicant_individual_title: 'Dr',
+      create_casefile_applicant_individual_first_names: 'Example First',
+      create_casefile_applicant_individual_main_email_address: 'Mixed.Case@example.com',
+      create_casefile_applicant_individual_address_line_1: '1 Mixed Street',
+      create_casefile_applicant_individual_uk_bank_name_on_account: 'Example Account',
+    } as const;
+    for (const [controlName, [entered, expected]] of Object.entries(uppercaseValues)) {
+      expect(setRenderedInputValue(controlName, entered).value).toBe(expected);
+      expect(component.form.get(controlName)?.value).toBe(expected);
+    }
+    for (const [controlName, value] of Object.entries(unchangedValues)) {
+      expect(setRenderedInputValue(controlName, value).value).toBe(value);
+      expect(component.form.get(controlName)?.value).toBe(value);
+    }
+
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(formSubmitSpy).toHaveBeenCalledWith({
+      formData: {
+        ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+        ...unchangedValues,
+        create_casefile_applicant_individual_last_name: 'O’EXAMPLE-SMITH',
+        create_casefile_applicant_individual_postal_or_zip_code: 'AB1 2CD',
+        create_casefile_applicant_individual_uk_bank_payment_reference: 'PAY-AB12',
+      },
+      nestedFlow: false,
+    });
+  });
+
+  it('uppercases every dynamically added alias surname and emits canonical alias rows', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      create_casefile_applicant_individual_add_aliases: false,
+      create_casefile_applicant_individual_aliases: [],
+    };
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector('#create_casefile_applicant_individual_add_aliases') as HTMLInputElement
+    ).click();
+    fixture.detectChanges();
+    for (let index = 1; index < 5; index += 1) {
+      (fixture.nativeElement.querySelector('#addApplicantAlias') as HTMLButtonElement).click();
+      fixture.detectChanges();
+    }
+    for (let index = 0; index < 5; index += 1) {
+      expect(
+        setRenderedInputValue(`create_casefile_applicant_individual_alias_first_names_${index}`, 'Alias First').value,
+      ).toBe('Alias First');
+      expect(
+        setRenderedInputValue(`create_casefile_applicant_individual_alias_last_name_${index}`, `alias-${index}`).value,
+      ).toBe(`ALIAS-${index}`);
+    }
+
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(formSubmitSpy).toHaveBeenCalledWith({
+      formData: {
+        ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+        create_casefile_applicant_individual_aliases: Array.from({ length: 5 }, (_, index) => ({
+          firstNames: 'Alias First',
+          lastName: `ALIAS-${index}`,
+        })),
+      },
+      nestedFlow: false,
+    });
+  });
+
+  it('uppercases the rendered non-UK payment reference without changing account or bank names', () => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData,
+      create_casefile_applicant_individual_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
+      create_casefile_applicant_individual_uk_bank_name_on_account: null,
+      create_casefile_applicant_individual_uk_bank_sort_code: null,
+      create_casefile_applicant_individual_uk_bank_account_number: null,
+      create_casefile_applicant_individual_uk_bank_payment_reference: null,
+      create_casefile_applicant_individual_non_uk_bank_name_on_account: 'Example Account',
+      create_casefile_applicant_individual_non_uk_bank_bic_swift_code: 'EXAMGB2L',
+      create_casefile_applicant_individual_non_uk_bank_payment_reference: 'PAY-1',
+    };
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+
+    expect(
+      setRenderedInputValue('create_casefile_applicant_individual_non_uk_bank_payment_reference', 'ref-Ab12').value,
+    ).toBe('REF-AB12');
+    expect(
+      setRenderedInputValue('create_casefile_applicant_individual_non_uk_bank_name_on_account', 'Mixed Account').value,
+    ).toBe('Mixed Account');
+    expect(setRenderedInputValue('create_casefile_applicant_individual_non_uk_bank_name', 'Mixed Bank').value).toBe(
+      'Mixed Bank',
+    );
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(formSubmitSpy).toHaveBeenCalledWith({
+      formData: {
+        ...component.initialFormData,
+        create_casefile_applicant_individual_non_uk_bank_payment_reference: 'REF-AB12',
+        create_casefile_applicant_individual_non_uk_bank_name_on_account: 'Mixed Account',
+        create_casefile_applicant_individual_non_uk_bank_name: 'Mixed Bank',
+      },
+      nestedFlow: false,
+    });
+  });
+
   it('emits canonical alias rows and every raw control when valid Return is selected', () => {
     component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS.validFormData;
     const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');

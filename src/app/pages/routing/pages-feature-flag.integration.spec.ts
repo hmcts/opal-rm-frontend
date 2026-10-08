@@ -6,6 +6,7 @@ import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { LaunchDarklyService } from '@hmcts/opal-frontend-common/services/launch-darkly-service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { routing } from './pages.routes';
+import { routing as casesCreateCasefileRouting } from '../../flows/cases/cases-create-casefile/routing/cases-create-casefile.routes';
 
 import { AuthService } from '@hmcts/opal-frontend-common/services/auth-service';
 import { OpalUserService } from '@hmcts/opal-frontend-common/services/opal-user-service';
@@ -32,7 +33,9 @@ describe('create-casefile feature access', () => {
     flags.set({});
     initializeFlags.mockReset().mockResolvedValue(undefined);
     resolver.mockClear();
-    const shell = routing.find((route) => route.path === 'cases/create-casefile' && route.loadComponent)!;
+    const shell = routing.find(
+      (route) => route.path === 'cases/create-casefile' && route.children === casesCreateCasefileRouting,
+    )!;
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { checkAuthenticated: () => of(true) } },

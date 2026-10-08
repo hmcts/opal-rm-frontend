@@ -105,6 +105,42 @@ describe('CasesCreateCasefileRespondentDetailsComponent', () => {
     expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
   });
 
+  it('stores typed uppercase surname and National Insurance number while preserving other personal details', () => {
+    document.body.classList.add('govuk-frontend-supported', 'js-enabled');
+    store.setRespondentDetails(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
+    component = createComponent();
+    fixture.detectChanges();
+
+    const enteredValues = {
+      create_casefile_respondent_details_last_name: 'McRespondent',
+      create_casefile_respondent_details_national_insurance_number: 'ab123456c',
+      create_casefile_respondent_details_first_names: 'MiXeD First Names',
+      create_casefile_respondent_details_title: 'MiXeD',
+      create_casefile_respondent_details_main_email_address: 'MiXeD@example.com',
+      create_casefile_respondent_details_other_personal_information: 'MiXeD information',
+    };
+    for (const [fieldName, value] of Object.entries(enteredValues)) {
+      const input = fixture.nativeElement.querySelector(`#${fieldName}`) as HTMLInputElement | HTMLTextAreaElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    expect(store.respondentDetails()).toEqual({
+      ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved,
+      lastName: 'MCRESPONDENT',
+      nationalInsuranceNumber: 'AB123456C',
+      firstNames: 'MiXeD First Names',
+      title: 'MiXeD',
+      otherPersonalInformation: 'MiXeD information',
+      contactDetails: {
+        ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved.contactDetails,
+        mainEmailAddress: 'MiXeD@example.com',
+      },
+    });
+    expect(router['navigate']).toHaveBeenCalledWith(['/cases/create-casefile/task-list'], {});
+  });
+
   it('tracks dirty state and cancels without replacing saved respondent data', () => {
     store.setRespondentDetails(CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.saved);
     component = createComponent();

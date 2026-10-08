@@ -1,3 +1,8 @@
+import {
+  createPersistedCasefileDetail,
+  PERSISTED_CASEFILE_REFERENCES,
+  PERSISTED_CASEFILE_RESULT_DETAIL,
+} from '../../services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -18,6 +23,9 @@ import { CasesCreateCasefileStore } from '../../cases-create-casefile/stores/cas
 import { CASES_CREATE_CASEFILE_STATE } from '../../cases-create-casefile/constants/cases-create-casefile-state.constant';
 import { CasesDraftCheckAndValidateTabsComponent } from '../cases-draft-check-and-validate-tabs/cases-draft-check-and-validate-tabs.component';
 import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
+import { CasesDraftCasefileStore } from '../stores/cases-draft-casefile.store';
+import { CasesCreateCasefileComponent } from '../../cases-create-casefile/cases-create-casefile.component';
+import { By } from '@angular/platform-browser';
 import { createCasesDraftSummary } from '../mocks/cases-draft-summary.mock';
 
 @Component({ template: '<p>Denied</p>' })
@@ -54,36 +62,156 @@ describe('checker production route boundaries', () => {
         provideRouter([
           ...routing,
           { path: 'access-denied', component: DeniedComponent },
+          { path: 'error/permission-denied', component: DeniedComponent },
           { path: 'account-created', component: DeniedComponent },
         ]),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: AuthService, useValue: { checkAuthenticated: () => of(authenticated()) } },
         { provide: OpalUserService, useValue: { getLoggedInUserState: () => of(userState()) } },
-        { provide: GlobalStore, useValue: { userState, featureFlags, authenticated, setBannerError: vi.fn() } },
+        {
+          provide: GlobalStore,
+          useValue: { userState, featureFlags, authenticated, setBannerError: vi.fn(), resetBannerError: vi.fn() },
+        },
         { provide: LaunchDarklyService, useValue: { initializeLaunchDarklyFlags: initializeFlags } },
       ],
     });
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
+  async function flushPersisted(id = 123, status: 'SUBMITTED' | 'RESUBMITTED' = 'SUBMITTED') {
+    await vi.waitFor(() => {
+      const draft = createPersistedCasefileDetail();
+      draft.draft_casefile_id = id;
+      draft.casefile_status = status;
+      http.expectOne('/opal-maintenance-service/draft-casefiles/' + id).flush(draft, { headers: { ETag: '"0"' } });
+    });
+    await vi.waitFor(() =>
+      http
+        .expectOne((request) => request.url === '/opal-maintenance-service/maintenance-applications')
+        .flush({ refData: PERSISTED_CASEFILE_REFERENCES.applications }),
+    );
+    for (const request of http.match((request) => request.url === '/opal-maintenance-service/countries'))
+      request.flush({ refData: PERSISTED_CASEFILE_REFERENCES.countries });
+    for (const request of http.match((request) => request.url === '/opal-maintenance-service/major-creditors'))
+      request.flush({ refData: [] });
+    http.expectOne('/opal-maintenance-service/results/TEST01').flush(PERSISTED_CASEFILE_RESULT_DETAIL);
+  }
+  async function openPersisted(url = details, id = 123) {
+    const arrival = RouterTestingHarness.create(url);
+    await flushPersisted(id);
+    return arrival;
+  }
 
-  it.each([dashboard, '/cases/draft/check-and-validate/review/123', '/cases/draft/check-and-validate/view/123'])(
-    'denies inputter-only %s without traffic',
-    async (url) => {
-      const user = permittedUser();
-      user.business_unit_users[0].permissions[0].permission_id = 21;
-      userState.set(user);
-      await RouterTestingHarness.create(url);
-      expect(TestBed.inject(Router).url).toBe('/access-denied');
-      http.expectNone((request) => request.url.includes('/draft-casefiles'));
+  const deleteUrl = '/cases/draft/check-and-validate/delete/123';
+  it.each(['SUBMITTED', 'RESUBMITTED'] as const)(
+    'loads an eligible %s Delete deep link with its complete saved envelope',
+    async (status) => {
+      const arrival = RouterTestingHarness.create(deleteUrl);
+      await flushPersisted(123, status);
+      const harness = await arrival;
+      const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+      const store = shell.injector.get(CasesDraftCasefileStore);
+      expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe('Delete casefile');
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).not.toBeNull();
+      expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
+      expect(store.draft()?.casefile_status).toBe(status);
+      expect(store.etag()).toBe('"0"');
+      expect(harness.routeNativeElement?.querySelector('form, input, textarea, select')).toBeNull();
+      http.expectNone((request) => request.method !== 'GET');
     },
   );
+  it('keeps review and Delete in the same persisted shell and returns to fresh review cases', async () => {
+    const harness = await openPersisted('/cases/draft/check-and-validate/review/123');
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const owner = shell.componentInstance;
+    const store = shell.injector.get(CasesDraftCasefileStore);
+    const before = structuredClone(getState(store));
+    const deleteLink = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a#create_casefile_review_delete')!;
+    expect(deleteLink.getAttribute('href')).toBe(deleteUrl);
+    deleteLink.click();
+    await flushPersisted();
+    await settle(harness);
+    expect(TestBed.inject(Router).url).toBe(deleteUrl);
+    expect(harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent)).componentInstance).toBe(
+      owner,
+    );
+    expect(getState(store)).toEqual(before);
+    harness.routeNativeElement!.querySelector<HTMLButtonElement>('#create_casefile_delete_return')!.click();
+    await vi.waitFor(() => flushList('SUBMITTED', 1));
+    await settle(harness);
+    expect(TestBed.inject(Router).url).toBe(dashboard + '#to-review');
+    expect(store.draft()).toBeNull();
+    expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
+    http.expectNone((request) => request.method !== 'GET');
+  });
+  it.each(['own submission', '21-only', 'published', 'loaded other BU'])(
+    'denies direct Delete after permitted read for %s',
+    async (condition) => {
+      if (condition === '21-only') {
+        const user = permittedUser();
+        user.business_unit_users[0].permissions = [{ permission_id: 21, permission_name: 'Create' }];
+        userState.set(user);
+      }
+      const arrival = RouterTestingHarness.create(deleteUrl);
+      await vi.waitFor(() => {
+        const draft = createPersistedCasefileDetail();
+        draft.draft_casefile_id = 123;
+        if (condition === 'own submission') draft.submitted_by = 'BUU-SYNTHETIC';
+        if (condition === 'published') draft.casefile_status = 'PUBLISHED';
+        if (condition === 'loaded other BU') {
+          draft.business_unit_id = 45;
+          draft.casefile.respondent_account.business_unit_id = 45;
+        }
+        http.expectOne('/opal-maintenance-service/draft-casefiles/123').flush(draft, { headers: { ETag: '"0"' } });
+      });
+      const harness = await arrival;
+      await settle(harness);
+      expect(TestBed.inject(Router).url).toBe('/error/permission-denied');
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
+      http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+    },
+  );
+  it.each(['cross BU', 'no read permission'])('denies direct Delete before selected GET for %s', async (condition) => {
+    const user = permittedUser();
+    if (condition === 'cross BU') user.business_unit_users[0].business_unit_id = 45;
+    else user.business_unit_users[0].permissions = [];
+    userState.set(user);
+    await RouterTestingHarness.create(deleteUrl);
+    expect(TestBed.inject(Router).url).toBe('/access-denied');
+    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+  });
+  it.each(['0', '-1', '01', '1.5', '9007199254740992', 'invalid'])('keeps malformed Delete ID %s local', async (id) => {
+    const harness = await RouterTestingHarness.create('/cases/draft/check-and-validate/delete/' + id);
+    expect(harness.routeNativeElement).toBeNull();
+    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+  });
+  it('replaces Delete with shared permission denial on live 22-to-21 loss while retaining read access', async () => {
+    const harness = await openPersisted(deleteUrl);
+    const user = permittedUser();
+    user.business_unit_users[0].permissions = [{ permission_id: 21, permission_name: 'Create' }];
+    userState.set(user);
+    await settle(harness);
+    expect(harness.routeNativeElement?.textContent).toContain('Denied');
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
+    expect(TestBed.inject(Router).url).toBe('/error/permission-denied');
+    expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
+    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+  });
+
+  it.each([dashboard])('denies inputter-only %s without traffic', async (url) => {
+    const user = permittedUser();
+    user.business_unit_users[0].permissions[0].permission_id = 21;
+    userState.set(user);
+    await RouterTestingHarness.create(url);
+    expect(TestBed.inject(Router).url).toBe('/access-denied');
+    http.expectNone((request) => request.url.includes('/draft-casefiles'));
+  });
   it.each([dashboard, '/cases/draft/check-and-validate/review/123', '/cases/draft/check-and-validate/view/123'])(
     'does not aggregate permission 22 from another BU for %s',
     async (url) => {
       const user = permittedUser();
-      user.business_unit_users[0].permissions = [{ permission_id: 21, permission_name: 'Create' }];
+      user.business_unit_users[0].permissions = [];
       user.business_unit_users.push({
         business_unit_id: 45,
         business_unit_user_id: 'BUU-OTHER',
@@ -95,29 +223,42 @@ describe('checker production route boundaries', () => {
       http.expectNone((request) => request.url.includes('/draft-casefiles'));
     },
   );
-  it.each(['/cases/create-casefile/case-type', details, amendment])('denies checker-only creation %s', async (url) => {
+  it.each(['/cases/create-casefile/case-type', amendment])('denies checker-only creation %s', async (url) => {
     await RouterTestingHarness.create(url);
     expect(TestBed.inject(Router).url).toBe('/access-denied');
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
     expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
   });
-  it.each([
-    ['review', 'Review case'],
-    ['view', 'View case details'],
-  ])('opens protected %s shell with safe Back and no requests', async (kind, heading) => {
-    const harness = await RouterTestingHarness.create(
-      '/cases/draft/check-and-validate/' +
-        kind +
-        '/123?tab=rejected&page=2&sort=applicant&direction=descending&mode=inputter&placeholderKind=amendment&returnUrl=https://example.test#rejected',
-    );
-    expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe(heading);
-    expect(document.title).toBe('OPAL - ' + heading);
-    expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
-    expect(harness.routeNativeElement?.querySelector('a')?.getAttribute('href')).toBe(dashboard + '#rejected');
-    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
-    expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
+  it.each(['review', 'view'] as const)(
+    'resolves the %s summary before mounting without creation controls',
+    async (kind) => {
+      const harness = await openPersisted('/cases/draft/check-and-validate/' + kind + '/123?mode=amendment#rejected');
+      expect(harness.routeNativeElement?.querySelector('h1#review-heading')?.textContent?.trim()).toBe(
+        'Synthetic Respondent',
+      );
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_review_submit')).toBeNull();
+      expect(harness.routeNativeElement?.querySelector('#review-term-change-1')).toBeNull();
+      expect(harness.routeNativeElement?.textContent).toContain('Test Country One');
+      expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
+      http.expectNone((request) => request.url.includes('/opal-maintenance-service/'));
+    },
+  );
+  it.each(['review', 'view'] as const)(
+    'allows 21-only persisted %s as read-only with inputter dashboard fallback',
+    async (kind) => {
+      const user = permittedUser();
+      user.business_unit_users[0].permissions = [{ permission_id: 21, permission_name: 'Create' }];
+      userState.set(user);
+      const harness = await openPersisted('/cases/draft/check-and-validate/' + kind + '/123');
+      expect(harness.routeNativeElement?.textContent).toContain('Test Country One');
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_review_submit')).toBeNull();
+    },
+  );
+  it('allows checker-only inputter persisted details without enabling creation', async () => {
+    const harness = await openPersisted(details);
+    expect(harness.routeNativeElement?.textContent).toContain('Test Country One');
+    expect(harness.routeNativeElement?.querySelector('#review-term-change-1')).toBeNull();
   });
-
   it.each(['blank', 'inactive', 'other BU', 'flag', 'authentication'])(
     'blocks invalid checker access %s',
     async (condition) => {
@@ -140,9 +281,7 @@ describe('checker production route boundaries', () => {
     'keeps malformed checker ID %s local',
     async (id) => {
       const harness = await RouterTestingHarness.create('/cases/draft/check-and-validate/review/' + id);
-      expect(harness.routeNativeElement?.textContent).toContain(
-        'This case could not be opened. Return to Review cases.',
-      );
+      expect(harness.routeNativeElement).toBeNull();
       http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
     },
   );
@@ -193,6 +332,7 @@ describe('checker production route boundaries', () => {
     const rootOrigin = TestBed.inject(Router).serializeUrl(rootNavigation.creationReturnUrl());
     expect(original.navigation).not.toBe(rootNavigation);
     harness.routeNativeElement!.querySelector<HTMLAnchorElement>('tbody a')!.click();
+    await flushPersisted(26);
     await settle(harness);
     expect(TestBed.inject(Router).url).toContain('/cases/draft/check-and-validate/' + shell + '/');
     harness.routeNativeElement!.querySelector('a')!.click();

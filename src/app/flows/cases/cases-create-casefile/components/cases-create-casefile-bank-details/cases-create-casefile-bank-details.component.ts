@@ -4,6 +4,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AbstractNestedFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-nested-form-base';
 import type { IAbstractFormControlErrorMessage } from '@hmcts/opal-frontend-common/components/abstract/interfaces';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
+import { CapitalisationDirective } from '@hmcts/opal-frontend-common/directives/capitalisation';
 import type { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
 import type { CasesCreateCasefileApplicantBankType } from '../../types/cases-create-casefile-applicant-bank-type.type';
 import type { ICasesCreateCasefileBankDetailsFieldNames } from './interfaces/cases-create-casefile-bank-details-field-names.interface';
@@ -36,7 +37,7 @@ interface ICasesCreateCasefileBankDetailsLayout {
 
 @Component({
   selector: 'app-cases-create-casefile-bank-details',
-  imports: [NgTemplateOutlet, ReactiveFormsModule, GovukTextInputComponent],
+  imports: [NgTemplateOutlet, ReactiveFormsModule, GovukTextInputComponent, CapitalisationDirective],
   templateUrl: './cases-create-casefile-bank-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -52,6 +53,8 @@ export class CasesCreateCasefileBankDetailsComponent extends AbstractNestedFormB
   @Input({ required: true }) public ukBankConditionalId!: string;
   @Input({ required: true }) public nonUkBankConditionalId!: string;
   @Input({ required: true }) public layout!: ICasesCreateCasefileBankDetailsLayout;
+
+  @Input() public capitalisePaymentReference = false;
 
   public get bankTypeControl(): FormControl<CasesCreateCasefileApplicantBankType | null> {
     return this.form.controls[this.fieldNames.bankType] as FormControl<CasesCreateCasefileApplicantBankType | null>;

@@ -82,6 +82,25 @@ const exactInlineError = (field: string, message: string) =>
 
 describe('Order term input', () => {
   beforeEach(() => cy.viewport(1280, 900));
+  it('AC1, AC3. should preserve typed Order Terms text casing when accepting the term', { tags: buildTags() }, () => {
+    setupOrderTerms({
+      savedId: 'MAT',
+      initialChild: inputPath(),
+      detailSource: of(structuredClone(M.allControls)),
+      draftDetail: M.allControls,
+      draftValues: M.controlValues,
+    });
+
+    cy.get(S.orderTermsInput.shortText).clear().type('MiXeD').should('have.value', 'MiXeD');
+    cy.get(S.orderTermsInput.longText).clear().type('Mixed order term').should('have.value', 'Mixed order term');
+    cy.get(S.orderTermsInput.continueButton).click();
+
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      expect(store.orderTerms()).to.have.length(1);
+      expect(store.orderTerms()[0].parameters).to.include({ short_text: 'MiXeD', long_text: 'Mixed order term' });
+    });
+  });
+
   it(
     'AC1, AC3. should render documented metadata from HTTP and save signed amounts and checkbox labels',
     { tags: buildTags() },

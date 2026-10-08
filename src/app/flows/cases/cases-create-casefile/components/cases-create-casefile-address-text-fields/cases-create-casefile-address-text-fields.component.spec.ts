@@ -71,4 +71,61 @@ describe('CasesCreateCasefileAddressTextFieldsComponent', () => {
       expect(input.errors).toBe(errors[input.inputId]);
     }
   });
+
+  it('uppercases an opted-in postal code while keeping address lines in their entered case', () => {
+    component.capitalisePostalOrZipCode = true;
+    fixture.detectChanges();
+    const postal = fixture.nativeElement.querySelector(`#${fieldNames.postalOrZipCode}`) as HTMLInputElement;
+    const address = fixture.nativeElement.querySelector(`#${fieldNames.addressLine1}`) as HTMLInputElement;
+    postal.value = 'ab1 2cd';
+    postal.dispatchEvent(new Event('input'));
+    address.value = 'Mixed Case Street';
+    address.dispatchEvent(new Event('input'));
+    expect(postal.value).toBe('AB1 2CD');
+    expect(form.get(fieldNames.postalOrZipCode)?.value).toBe('AB1 2CD');
+    expect(form.get(fieldNames.addressLine1)?.value).toBe('Mixed Case Street');
+    postal.value = '';
+    postal.dispatchEvent(new Event('input'));
+    expect(form.get(fieldNames.postalOrZipCode)?.value).toBe('');
+  });
+
+  it.each([
+    { start: 2, end: 2, characters: 'xy', expected: 'ABXYCD', caret: 4 },
+    { start: 1, end: 3, characters: 'xy', expected: 'AXYD', caret: 3 },
+    { start: 2, end: 2, characters: 'ßy', expected: 'ABSSYCD', caret: 5 },
+  ])('preserves the editing position when uppercasing $characters at $start–$end', (example) => {
+    component.capitalisePostalOrZipCode = true;
+    fixture.detectChanges();
+    const postal = fixture.nativeElement.querySelector(`#${fieldNames.postalOrZipCode}`) as HTMLInputElement;
+    postal.focus();
+    postal.value = 'ABCD';
+    postal.dispatchEvent(new Event('input', { bubbles: true }));
+    postal.setSelectionRange(example.start, example.end);
+
+    for (const character of example.characters) {
+      postal.setRangeText(character, postal.selectionStart!, postal.selectionEnd!, 'end');
+      postal.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    expect(postal.value).toBe(example.expected);
+    expect(form.get(fieldNames.postalOrZipCode)?.value).toBe(example.expected);
+    expect(postal.selectionStart).toBe(example.caret);
+    expect(postal.selectionEnd).toBe(example.caret);
+  });
+
+  it('preserves postal-code casing by default for Order Terms address consumers', () => {
+    fixture.detectChanges();
+    const postal = fixture.nativeElement.querySelector(`#${fieldNames.postalOrZipCode}`) as HTMLInputElement;
+    postal.value = 'ab1 2cd';
+    postal.dispatchEvent(new Event('input'));
+    expect(postal.value).toBe('ab1 2cd');
+    expect(form.get(fieldNames.postalOrZipCode)?.value).toBe('ab1 2cd');
+  });
+
+  it('preserves an existing postal code on initial render even when typing is opted in', () => {
+    component.capitalisePostalOrZipCode = true;
+    form.get(fieldNames.postalOrZipCode)?.setValue('ab1 2cd');
+    fixture.detectChanges();
+    expect(form.get(fieldNames.postalOrZipCode)?.value).toBe('ab1 2cd');
+  });
 });

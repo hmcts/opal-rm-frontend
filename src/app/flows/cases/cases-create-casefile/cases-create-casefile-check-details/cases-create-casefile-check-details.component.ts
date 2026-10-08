@@ -1,3 +1,15 @@
+import { CasesDraftCasefileDecisionComponent } from '../../cases-draft/components/cases-draft-casefile-decision/cases-draft-casefile-decision.component';
+import { defaultCasesDraftNavigation } from '../../cases-draft/utils/cases-draft-navigation';
+import { CasesDraftCasefileStore } from '../../cases-draft/stores/cases-draft-casefile.store';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import type { ICasesDraftCasefileResolved } from '../../cases-draft/interfaces/cases-draft-casefile-resolved.interface';
+import {
+  canReviewDraftCasefile,
+  resolveCasesDraftReadIdentity,
+} from '../../cases-draft/utils/cases-draft-casefile-permissions';
+import { resolveCasesDraftIdentity, sameCasesDraftIdentity } from '../../cases-draft/utils/cases-draft-identity';
+import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '../../constants/release-1c-rm-create-case-files-feature-flag.constant';
+import { CasesDraftCasefileHistoryComponent } from '../../cases-draft/components/cases-draft-casefile-history/cases-draft-casefile-history.component';
 import { GovukSummaryListRowActionItemComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-summary-list';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
@@ -23,9 +35,10 @@ import {
   computed,
   ElementRef,
   inject,
+  Injector,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, UrlTree } from '@angular/router';
 import { getState } from '@ngrx/signals';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
 import type { IOpalMaintenanceCountryReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-item.interface';
@@ -43,6 +56,8 @@ import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-ca
 @Component({
   selector: 'app-cases-create-casefile-check-details',
   imports: [
+    CasesDraftCasefileDecisionComponent,
+    CasesDraftCasefileHistoryComponent,
     GovukSummaryListRowActionItemComponent,
     GovukCancelLinkComponent,
     GovukBackLinkComponent,
@@ -58,6 +73,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
   private readonly payloadService = inject(CasesCreateCasefilePayloadService);
   private readonly maintenance = inject(OpalMaintenanceService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -65,16 +81,58 @@ export class CasesCreateCasefileCheckDetailsComponent {
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS.children;
   private readonly root = '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/';
-  private readonly countries: readonly IOpalMaintenanceCountryReferenceDataItem[] =
-    this.route?.snapshot.data['countries']?.refData ?? [];
-  private readonly applications: readonly IOpalMaintenanceApplicationReferenceDataItem[] =
-    this.route?.snapshot.data['applications']?.refData ?? [];
+  private readonly persistedStore = inject(CasesDraftCasefileStore);
+  private readonly draftNavigation = inject(CasesDraftNavigationService);
+  private readonly countries = computed<readonly IOpalMaintenanceCountryReferenceDataItem[]>(
+    () => this.persistedResult()?.references.countries ?? this.route?.snapshot.data['countries']?.refData ?? [],
+  );
+  private readonly applications = computed<readonly IOpalMaintenanceApplicationReferenceDataItem[]>(
+    () => this.persistedResult()?.references.applications ?? this.route?.snapshot.data['applications']?.refData ?? [],
+  );
   private readonly navigating = signal(false);
   private readonly snapshot = computed(() => getState(this.store));
   private readonly caseSections = computed(() =>
-    reviewCaseSections(this.snapshot(), this.countries, this.applications),
+    reviewCaseSections(this.snapshot(), this.countries(), this.applications()),
   );
   private readonly submitting = signal(false);
+  public readonly persistedResult = signal<ICasesDraftCasefileResolved | null>(null);
+  public readonly draft = this.persistedStore.draft;
+  public readonly editable = computed(() => this.route?.snapshot.data['casefileIntent'] === 'create');
+  public readonly heading = computed(() => {
+    if (this.editable()) return 'Check case details';
+    const respondent = this.store.respondentDetails();
+    return [respondent?.title, respondent?.firstNames, respondent?.lastName].filter(Boolean).join(' ');
+  });
+  public readonly readable = computed(() => {
+    const result = this.persistedResult();
+    const draft = this.persistedStore.draft();
+    const released =
+      (this.globalStore.featureFlags() as Record<string, unknown>)[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] ===
+      true;
+    return (
+      !!result &&
+      !!draft &&
+      draft.business_unit_id === result.identity.businessUnitId &&
+      this.globalStore.authenticated() &&
+      sameCasesDraftIdentity(resolveCasesDraftReadIdentity(this.globalStore.userState(), released), result.identity)
+    );
+  });
+  public readonly reviewable = computed(
+    () =>
+      this.readable() &&
+      this.persistedResult()?.intent === 'checker-review' &&
+      canReviewDraftCasefile(
+        this.persistedStore.draft()!,
+        this.globalStore.userState(),
+        (this.globalStore.featureFlags() as Record<string, unknown>)[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] ===
+          true,
+      ),
+  );
+  public readonly deleteUrl = computed(() =>
+    this.reviewable() ? this.draftNavigation.deleteCasefileUrl(this.draft()!.draft_casefile_id) : null,
+  );
+  // Recreate page-local decision state when another eligible draft replaces the current one.
+  public readonly decisionDrafts = computed(() => (this.reviewable() ? [this.persistedStore.draft()!] : []));
   public readonly submissionPending = this.submitting.asReadonly();
   public readonly busy = computed(() => this.navigating() || this.submitting());
   public readonly blocked = computed(() => this.busy() || this.store.submissionSucceeded());
@@ -88,8 +146,8 @@ export class CasesCreateCasefileCheckDetailsComponent {
         : isCasesCreateCasefileIndividualApplicantSelection(snapshot.caseTypeSelection));
     return [
       ...this.caseSections().filter((section) => section.id === 'caseType'),
-      ...(snapshot.respondentDetails ? [reviewRespondent(snapshot.respondentDetails, this.countries)] : []),
-      ...(applicableApplicant ? [reviewApplicant(applicant, this.countries)] : []),
+      ...(snapshot.respondentDetails ? [reviewRespondent(snapshot.respondentDetails, this.countries())] : []),
+      ...(applicableApplicant ? [reviewApplicant(applicant, this.countries())] : []),
       ...this.caseSections().filter((section) => ['centralAuthority', 'orderDetails'].includes(section.id)),
     ];
   });
@@ -113,7 +171,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
         ariaLabel: `${card.title}, order term ${index + 1}`,
         minor: minor
           ? {
-              ...reviewMinorCreditor(minor, this.countries),
+              ...reviewMinorCreditor(minor, this.countries()),
               id: `minor-creditor-${minor.sequenceNumber}-term-${term.termId}`,
             }
           : null,
@@ -121,13 +179,22 @@ export class CasesCreateCasefileCheckDetailsComponent {
     });
   });
   constructor() {
+    this.route?.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
+      const resolved: ICasesDraftCasefileResolved | undefined = data['draftCasefile'];
+      if (!resolved) return;
+      this.store.hydratePersistedCasefile(resolved.state);
+      this.persistedStore.loadResolved(resolved);
+      this.persistedResult.set(resolved);
+      this.reviewNavigation.clearContext();
+      afterNextRender(() => this.focusTarget('review-heading'), { injector: this.injector });
+    });
     afterNextRender(() => {
       this.focusTarget(this.reviewNavigation.focusId());
       this.reviewNavigation.clearContext();
     });
   }
 
-  private async navigate(path: string): Promise<boolean> {
+  private async navigate(path: string | UrlTree): Promise<boolean> {
     this.navigating.set(true);
     try {
       const navigated = await this.router.navigateByUrl(path);
@@ -158,8 +225,16 @@ export class CasesCreateCasefileCheckDetailsComponent {
     target?.focus();
   }
 
+  /** Returns validated local completion to the checker queue without recording a decision. */
+  public async handleDecision(): Promise<void> {
+    if (!this.reviewable() || this.busy()) return;
+    const current = this.draftNavigation.selection();
+    const selection = current.tab === 'to-review' ? current : defaultCasesDraftNavigation('to-review', 'checker');
+    await this.navigate(this.draftNavigation.dashboardUrl(selection));
+  }
+
   public async handleSubmit(): Promise<void> {
-    if (this.busy()) return;
+    if (!this.editable() || this.busy()) return;
     this.globalStore.resetBannerError();
     if (this.store.submissionSucceeded()) {
       await this.navigate(this.root + this.paths.submissionConfirmation);
@@ -186,8 +261,8 @@ export class CasesCreateCasefileCheckDetailsComponent {
       const request = this.payloadService.buildAddCasefilePayload(
         state,
         {
-          countries: this.countries,
-          applications: this.applications,
+          countries: this.countries(),
+          applications: this.applications(),
           majorCreditors: [...majorCreditors, ...(centralAuthority ? [centralAuthority] : [])],
         },
         OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID,
@@ -221,7 +296,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   public async handleChange(section: string): Promise<void> {
-    if (this.blocked()) return;
+    if (!this.editable() || this.blocked()) return;
     const destinations: Record<string, string> = {
       respondent: this.paths.respondentDetails,
       applicant: isCasesCreateCasefileOrganisationApplicantSelection(this.store.caseTypeSelection())
@@ -239,7 +314,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   public async handleTermChange(termId: number): Promise<void> {
-    if (this.blocked()) return;
+    if (!this.editable() || this.blocked()) return;
     const term = this.store.orderTerms().find((item) => item.termId === termId);
     const previous = this.store.orderTermAmendment();
     if (!term || !this.store.beginOrderTermAmendment(termId)) return;
@@ -259,7 +334,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   public async handleTermRemove(termId: number): Promise<void> {
-    if (this.blocked()) return;
+    if (!this.editable() || this.blocked()) return;
     const selection = this.store.beginOrderTermRemoval(termId);
     if (!selection) return;
     this.reviewNavigation.setContext({ origin: 'review', section: 'orderTerm', termId });
@@ -269,14 +344,49 @@ export class CasesCreateCasefileCheckDetailsComponent {
     }
   }
 
+  /** Opens only the authorised walkthrough; it does not delete the saved casefile. */
+  public async handleDelete(event?: MouseEvent): Promise<void> {
+    if (event && (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)) return;
+    event?.preventDefault();
+    const url = this.deleteUrl();
+    if (!url || this.busy()) return;
+    await this.navigate(url);
+  }
+
   public handleBack(): void {
     if (this.blocked()) return;
+    if (!this.editable()) {
+      const result = this.persistedResult();
+      if (!result || !this.readable()) return;
+      const idText = this.route?.snapshot.paramMap?.get('draftCasefileId') ?? String(result.draft.draft_casefile_id);
+      const user = this.globalStore.userState();
+      const released =
+        (this.globalStore.featureFlags() as Record<string, unknown>)[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] ===
+        true;
+      const inputterIdentity = resolveCasesDraftIdentity(user, released, 'inputter');
+      if (inputterIdentity && this.draftNavigation.contextForPlaceholder('details', idText)) {
+        this.navigating.set(true);
+        void this.draftNavigation
+          .returnFromPlaceholder('details', idText)
+          .then((accepted) => {
+            if (!accepted) this.showError();
+          })
+          .catch(() => this.showError())
+          .finally(() => this.navigating.set(false));
+      } else {
+        const preferredIdentity = resolveCasesDraftIdentity(user, released, result.dashboardMode);
+        const fallbackMode = result.dashboardMode === 'checker' ? 'inputter' : 'checker';
+        const dashboardMode = preferredIdentity ? result.dashboardMode : fallbackMode;
+        void this.navigate(this.draftNavigation.persistedDashboardUrl(dashboardMode));
+      }
+      return;
+    }
     this.reviewNavigation.clearContext();
     void this.navigate(this.root + this.paths.taskList);
   }
 
   public handleCancel(): void {
-    if (this.blocked()) return;
+    if (!this.editable() || this.blocked()) return;
     void this.navigate(this.root + this.paths.cancel);
   }
 }

@@ -150,6 +150,10 @@ export const CreateCasefileSelectors = {
     cancel: '#create_casefile_order_term_creditor_cancel a',
   },
   minorCreditor: {
+    fieldError: (field: keyof typeof MINOR_FIELDS) =>
+      `#${MINOR_FIELDS[field]}${field === 'countryId' ? '-autocomplete' : ''}-error-message`,
+    typeLabels: `#${MINOR_FIELDS.creditorType} .govuk-radios__label`,
+    bankLabels: `#${MINOR_FIELDS.bankType} .govuk-radios__label`,
     individual: `#${MINOR_FIELDS.creditorType}-individual`,
     organisation: `#${MINOR_FIELDS.creditorType}-organisation`,
     type: `#${MINOR_FIELDS.creditorType}`,

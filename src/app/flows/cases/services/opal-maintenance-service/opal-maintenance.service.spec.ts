@@ -77,12 +77,22 @@ describe('OpalMaintenanceService', () => {
     service.getCountries(active).subscribe();
     http.expectNone((item) => item.url.endsWith('/countries'));
   });
-  it('defaults countries to active and separates all historical cache entries', () => {
+  it('defaults countries to active and separates all historical cache entries', async () => {
     for (const active of [true, false, null]) {
-      service.getCountries(active).subscribe();
-      http.expectOne((item) => item.url.endsWith('/countries')).flush(countries);
+      const response = {
+        ...countries,
+        refData: countries.refData.map((country) => ({
+          ...country,
+          country_name: active === true ? country.country_name : `Historical countries (${active})`,
+        })),
+      };
+      const loaded = firstValueFrom(service.getCountries(active));
+      const request = http.expectOne((item) => item.url.endsWith('/countries'));
+      expect(request.request.params.get('active')).toBe(active === null ? null : String(active));
+      request.flush(response);
+      expect(await loaded).toEqual(response);
     }
-    service.getCountries().subscribe();
+    expect(await firstValueFrom(service.getCountries())).toEqual(countries);
     http.expectNone((item) => item.url.endsWith('/countries'));
   });
   it.each([true, false, null])('retains the application group for active %s', (active) => {

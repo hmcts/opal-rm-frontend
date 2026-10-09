@@ -13,7 +13,7 @@ type SavedTerm =
   IOpalMaintenanceDraftCasefileRequest['casefile']['respondent_account']['order_details']['order_terms'][number];
 type Field = ICasesCreateCasefileOrderTermField;
 type Parameter = ICasesCreateCasefileOrderTerm['parameters'][string];
-const supportedKinds = [
+const supportedKinds = new Set([
   'money',
   'integer',
   'text',
@@ -24,8 +24,8 @@ const supportedKinds = [
   'autocomplete',
   'checkbox',
   'readonly',
-];
-const choices = ['radio', 'select', 'autocomplete'];
+]);
+const choices = new Set(['radio', 'select', 'autocomplete']);
 const fail = (): never => {
   throw new Error('Unusable saved order term');
 };
@@ -43,7 +43,7 @@ function validateOptions(field: Field): void {
   const values = field.options.map((option) => option.value);
   if (values.some((value) => typeof value !== 'string' || !value.trim()) || new Set(values).size !== values.length)
     return fail();
-  if (choices.includes(field.kind) && !values.length) return fail();
+  if (choices.has(field.kind) && !values.length) return fail();
   if (field.kind === 'checkbox' && values.some((value) => value.includes(','))) return fail();
   if (![...choices, 'checkbox', 'readonly'].includes(field.kind) && values.length) return fail();
 }
@@ -53,7 +53,7 @@ function validateField(field: Field): void {
     !field ||
     typeof field.name !== 'string' ||
     !/^[A-Za-z]\w*$/.test(field.name) ||
-    !supportedKinds.includes(field.kind) ||
+    !supportedKinds.has(field.kind) ||
     typeof field.required !== 'boolean'
   )
     return fail();
@@ -130,7 +130,7 @@ function decodeCheckbox(response: string | undefined, field: Field): Parameter {
 
 function decodeValue(response: string, field: Field): Parameter {
   if (field.kind === 'money' || field.kind === 'integer') return decodeNumber(response, field);
-  if (choices.includes(field.kind)) {
+  if (choices.has(field.kind)) {
     if (!field.options.some((option) => option.value === response)) return fail();
     return response;
   }

@@ -79,11 +79,12 @@ describe('checker production route boundaries', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
-  async function flushPersisted(id = 123, status: 'SUBMITTED' | 'RESUBMITTED' = 'SUBMITTED') {
+  async function flushPersisted(id = 123, status: 'SUBMITTED' | 'RESUBMITTED' = 'SUBMITTED', reason?: string | null) {
     await vi.waitFor(() => {
       const draft = createPersistedCasefileDetail();
       draft.draft_casefile_id = id;
       draft.casefile_status = status;
+      if (reason !== undefined) draft.timeline_data[0].reason_text = reason;
       http.expectOne('/opal-maintenance-service/draft-casefiles/' + id).flush(draft, { headers: { ETag: '"0"' } });
     });
     await vi.waitFor(() =>
@@ -241,6 +242,32 @@ describe('checker production route boundaries', () => {
       expect(harness.routeNativeElement?.textContent).toContain('Test Country One');
       expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
       http.expectNone((request) => request.url.includes('/opal-maintenance-service/'));
+    },
+  );
+  it.each(['review', 'view'] as const)(
+    'opens the saved %s route and hydrates its stores when a timeline reason is null',
+    async (kind) => {
+      const url = '/cases/draft/check-and-validate/' + kind + '/123';
+      const arrival = RouterTestingHarness.create(url);
+      await flushPersisted(123, 'SUBMITTED', null);
+      const harness = await arrival;
+      const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+      const draftStore = shell.injector.get(CasesDraftCasefileStore);
+      const creationStore = shell.injector.get(CasesCreateCasefileStore);
+      expect(TestBed.inject(Router).url).toBe(url);
+      expect(harness.routeNativeElement?.querySelector('h1#review-heading')?.textContent?.trim()).toBe(
+        'Synthetic Respondent',
+      );
+      expect(harness.routeNativeElement?.querySelector('.moj-timeline__title')?.textContent?.trim()).toBe('Submitted');
+      expect(harness.routeNativeElement?.querySelector('.moj-timeline__item [description]')).toBeNull();
+      expect(draftStore.draft()?.draft_casefile_id).toBe(123);
+      expect(draftStore.draft()?.timeline_data[0].reason_text).toBeNull();
+      expect(draftStore.etag()).toBe('"0"');
+      expect(creationStore.respondentDetails()).toMatchObject({ firstNames: 'Synthetic', lastName: 'Respondent' });
+      expect(creationStore.orderTerms()).toHaveLength(1);
+      expect(creationStore.unsavedChanges()).toBe(false);
+      expect(TestBed.inject(GlobalStore).setBannerError).not.toHaveBeenCalled();
+      http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
     },
   );
   it.each(['review', 'view'] as const)(

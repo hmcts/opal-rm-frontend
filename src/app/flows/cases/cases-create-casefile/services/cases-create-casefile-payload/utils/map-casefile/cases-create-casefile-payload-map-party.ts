@@ -180,7 +180,10 @@ export function mapSavedRespondent(
   };
 }
 
-export function mapSavedApplicant(value: SavedApplicant, countries: Countries): CasesCreateCasefileApplicantDetails {
+export function mapSavedApplicant(
+  value: SavedApplicant,
+  countries: Countries,
+): CasesCreateCasefileApplicantDetails & { bankDetails: ReturnType<typeof mapSavedBank> } {
   const party = value?.party_details;
   if (party?.organisation !== true) {
     return {

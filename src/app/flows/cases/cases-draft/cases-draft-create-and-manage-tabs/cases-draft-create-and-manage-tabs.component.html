@@ -1,0 +1,68 @@
+<div class="govuk-grid-column-full">
+  <opal-lib-custom-page-header
+    ><ng-container pageHeaderHeading
+      ><h1 #heading id="cases-draft-heading" tabindex="-1" class="govuk-heading-l">Create cases</h1></ng-container
+    ><ng-container pageHeaderButtons
+      ><button type="button" opalLibGovukButton buttonId="cases-draft-create" (click)="startNewCase()">
+        Create a case
+      </button></ng-container
+    ></opal-lib-custom-page-header
+  >
+  @let rejected = rejectedCount$ | async;
+  <opal-lib-moj-sub-navigation subNavId="cases-draft-tabs">
+    @for (item of tabLinks(); track item.tab) {
+      <li class="moj-sub-navigation__item">
+        <a
+          [id]="'cases-draft-' + item.tab + '-tab'"
+          class="moj-sub-navigation__link"
+          [href]="item.href"
+          [attr.aria-current]="navigation.selection().tab === item.tab ? 'page' : null"
+          (click)="activateTab($event, item.tab)"
+        >
+          {{ item.label }}
+          @if (
+            item.tab === 'rejected' &&
+            rejected &&
+            isCurrentIdentity(rejected.identity) &&
+            formatRejectedCount(rejected.count)
+          ) {
+            <opal-lib-moj-notification-badge badge badgeId="cases-draft-rejected-count">{{
+              formatRejectedCount(rejected.count)
+            }}</opal-lib-moj-notification-badge>
+          }
+        </a>
+      </li>
+    }
+  </opal-lib-moj-sub-navigation>
+  <h2 id="cases-draft-selected-heading" tabindex="-1" class="govuk-heading-m">{{ selectedTabLabel() }}</h2>
+  @if (tabData$ | async; as result) {
+    @if (isCurrentData(result)) {
+      @if (result.rows === null) {
+        <output id="cases-draft-loading" aria-live="polite" aria-atomic="true" class="govuk-body govuk-!-display-block">
+          Loading {{ selectedTabLabel() }} cases.
+        </output>
+      } @else if (result.rows.length === 0) {
+        <p id="cases-draft-empty" class="govuk-body">{{ emptyMessage() }}</p>
+      } @else {
+        <app-cases-draft-table
+          [rows]="result.rows"
+          [selection]="navigation.selection()"
+          (sortChanged)="changeSort($event)"
+          (pageChanged)="changePage($event)"
+          (rowOpened)="openRow($event)"
+        />
+      }
+      @if (result.tab === 'rejected' && result.rows !== null) {
+        <p class="govuk-body">
+          <a
+            id="cases-draft-all-rejected"
+            class="govuk-link"
+            [href]="allRejectedUrl()"
+            (click)="openAllRejected($event)"
+            >View all rejected cases</a
+          >
+        </p>
+      }
+    }
+  }
+</div>

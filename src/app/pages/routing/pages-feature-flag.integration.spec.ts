@@ -32,7 +32,7 @@ describe('create-casefile feature access', () => {
     flags.set({});
     initializeFlags.mockReset().mockResolvedValue(undefined);
     resolver.mockClear();
-    const shell = routing.find((route) => route.path === 'cases/create-casefile')!;
+    const shell = routing.find((route) => route.path === 'cases/create-casefile' && route.loadComponent)!;
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { checkAuthenticated: () => of(true) } },

@@ -39,6 +39,12 @@ const mockTokenExpiry: ISessionTokenExpiry = SESSION_TOKEN_EXPIRY_MOCK;
 class DummyDashboardRouteComponent {}
 
 const testRoutes = [
+  {
+    path: 'persisted',
+    data: PRIMARY_NAV_HIDDEN_ROUTE_DATA,
+    children: [{ path: ':id', component: DummyDashboardRouteComponent }],
+  },
+
   { path: 'dashboard', component: DummyDashboardRouteComponent },
   { path: 'dashboard/:dashboardType', component: DummyDashboardRouteComponent },
   { path: 'hidden', component: DummyDashboardRouteComponent, data: PRIMARY_NAV_HIDDEN_ROUTE_DATA },
@@ -563,6 +569,30 @@ describe('AppComponent - browser', () => {
       expect(fixture.componentInstance['isPrimaryNavigationHiddenForInitialUrl'](url)).toBe(false);
     },
   );
+
+  it.each([
+    ['/cases/create-casefile/check-case-details/123', true],
+    ['/cases/create-casefile/task-list/123?tab=rejected&page=2', true],
+    ['/cases/draft/create-and-manage/tabs', false],
+    ['/cases/draft/create-and-manage/rejections?tab=rejected', false],
+  ])('reads draft initial navigation visibility for %s before NavigationEnd', (url, hidden) => {
+    vi.spyOn(TestBed.inject(Location), 'path').mockReturnValue(url);
+    expect(TestBed.inject(Router).navigated).toBe(false);
+    const fixture = TestBed.createComponent(AppComponent);
+    expect(fixture.componentInstance.primaryNavigationHidden()).toBe(hidden);
+  });
+
+  it('inherits hidden navigation metadata from a containerless parent', async () => {
+    globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([21]));
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    await TestBed.inject(Router).navigateByUrl('/persisted/123');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.primaryNavigationHidden()).toBe(true);
+    expect(hasPrimaryNavigation(fixture)).toBe(false);
+  });
 
   it('should use Location.path before document location for the initial URL', () => {
     const fixture = TestBed.createComponent(AppComponent);

@@ -1,0 +1,242 @@
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { signal } from '@angular/core';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { CasesDraftTableComponent } from './cases-draft-table.component';
+import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
+import { mapCasesDraftRows } from '../utils/cases-draft-summary';
+import { createCasesDraftSummary } from '../mocks/cases-draft-summary.mock';
+import type { CasesDraftTab } from '../types/cases-draft-tab.type';
+
+describe('CasesDraftTableComponent rendered table', () => {
+  beforeEach(() =>
+    TestBed.configureTestingModule({
+      imports: [CasesDraftTableComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: GlobalStore,
+          useValue: { authenticated: signal(false), userState: signal(null), featureFlags: signal({}) },
+        },
+      ],
+    }),
+  );
+  function render(tab: CasesDraftTab = 'in-review', count = 1, page = 1) {
+    const fixture = TestBed.createComponent(CasesDraftTableComponent);
+    fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(tab), page });
+    fixture.componentRef.setInput(
+      'rows',
+      mapCasesDraftRows(
+        Array.from({ length: count }, (_, i) =>
+          createCasesDraftSummary({
+            draft_casefile_id: i + 1,
+            casefile_status:
+              tab === 'approved'
+                ? 'PUBLISHED'
+                : tab === 'rejected'
+                  ? 'REJECTED'
+                  : tab === 'deleted'
+                    ? 'DELETED'
+                    : 'RESUBMITTED',
+            validated_date: '2026-10-01T10:00:00Z',
+            casefile_snapshot: {
+              respondent_account: { respondent_name: `Synthetic ${i}`, account_number: '000123A' },
+              applicant_account: { account_number: null },
+              minor_creditor_accounts: [{ account_number: 'M10' }, { account_number: 'M2' }],
+            },
+          }),
+        ),
+        tab,
+      ),
+    );
+    fixture.detectChanges();
+    return fixture;
+  }
+  it.each([
+    ['in-review', ['Respondent', 'Applicant', 'Case type', 'Created']],
+    ['rejected', ['Respondent', 'Applicant', 'Case type', 'Created', 'Rejected']],
+    ['deleted', ['Respondent', 'Applicant', 'Case type', 'Created', 'Deleted']],
+    ['approved', ['Respondent Account', 'Applicant Account', 'Minor Creditor Account', 'Case type', 'Approved']],
+  ] as const)('renders exact %s columns', (tab, columns) => {
+    expect(
+      Array.from(render(tab).nativeElement.querySelectorAll('th')).map((el: unknown) =>
+        (el as HTMLElement).textContent?.trim(),
+      ),
+    ).toEqual(columns);
+  });
+  it('names each native table region and leaves keyboard focus on its sort controls', () => {
+    const element: HTMLElement = render().nativeElement;
+    const region = element.querySelector('#cases-draft-table-scroll');
+    expect(region?.tagName).toBe('SECTION');
+    expect(region?.getAttribute('aria-label')).toBe('In review cases');
+    expect(region?.hasAttribute('role')).toBe(false);
+    expect(region?.hasAttribute('tabindex')).toBe(false);
+    expect(region?.querySelectorAll('th button')).toHaveLength(4);
+  });
+  it('renders published accounts as text in snapshot order', () => {
+    const element: HTMLElement = render('approved').nativeElement;
+    expect(element.querySelector('[data-column="respondentAccount"]')?.textContent?.trim()).toBe('000123A');
+    expect(element.querySelector('[data-column="applicantAccount"]')?.textContent?.trim()).toBe('—');
+    expect(Array.from(element.querySelectorAll('li')).map((el) => el.textContent?.trim())).toEqual(['M10', 'M2']);
+    expect(element.querySelectorAll('tbody a, tbody button')).toHaveLength(0);
+  });
+  it('uses shared sort buttons and emits both directions without mutating rows', () => {
+    const fixture = render();
+    const emit = vi.spyOn(fixture.componentInstance.sortChanged, 'emit');
+    const button = fixture.nativeElement.querySelector('th button') as HTMLButtonElement;
+    button.click();
+    expect(emit).toHaveBeenCalledWith({ key: 'respondent', direction: 'ascending' });
+    fixture.componentRef.setInput('selection', {
+      ...defaultCasesDraftNavigation(),
+      sort: 'respondent',
+      direction: 'ascending',
+    });
+    fixture.detectChanges();
+    expect(button.closest('th')?.getAttribute('aria-sort')).toBe('ascending');
+    button.click();
+    expect(emit).toHaveBeenLastCalledWith({ key: 'respondent', direction: 'descending' });
+    fixture.componentInstance.onSortChange({ key: 'approved', sortType: 'ascending' });
+    expect(emit).toHaveBeenCalledTimes(2);
+  });
+  it('keeps inactive column state as none and allows an entirely unsorted table', () => {
+    const fixture = render();
+    const element: HTMLElement = fixture.nativeElement;
+    expect(element.querySelector('th[columnKey="created"]')?.getAttribute('aria-sort')).toBe('ascending');
+    expect(element.querySelector('th[columnKey="respondent"]')?.getAttribute('aria-sort')).toBe('none');
+    expect(element.querySelectorAll('th[aria-sort="ascending"], th[aria-sort="descending"]')).toHaveLength(1);
+    fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(), direction: 'none' });
+    fixture.detectChanges();
+    expect(element.querySelectorAll('th[aria-sort="none"]')).toHaveLength(4);
+    expect(fixture.componentInstance.sortedColumnDirectionSignal()).toBe('none');
+  });
+
+  it('retains numeric, missing-last and stable-ID ordering through shared table sorting', () => {
+    const fixture = render('approved', 0);
+    fixture.componentRef.setInput(
+      'rows',
+      mapCasesDraftRows(
+        [
+          createCasesDraftSummary({
+            draft_casefile_id: 3,
+            casefile_status: 'PUBLISHED',
+            casefile_snapshot: { respondent_account: { account_number: 'A10' } },
+          }),
+          createCasesDraftSummary({
+            draft_casefile_id: 2,
+            casefile_status: 'PUBLISHED',
+            casefile_snapshot: { respondent_account: { account_number: 'A2' } },
+          }),
+          createCasesDraftSummary({
+            draft_casefile_id: 1,
+            casefile_status: 'PUBLISHED',
+            casefile_snapshot: { respondent_account: { account_number: 'A2' } },
+          }),
+          createCasesDraftSummary({
+            draft_casefile_id: 4,
+            casefile_status: 'PUBLISHED',
+            casefile_snapshot: { respondent_account: { account_number: null } },
+          }),
+        ],
+        'approved',
+      ),
+    );
+    fixture.componentRef.setInput('selection', {
+      ...defaultCasesDraftNavigation('approved'),
+      sort: 'respondentAccount',
+      direction: 'descending',
+    });
+    fixture.detectChanges();
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll('tbody tr')).map(
+        (element) => (element as HTMLElement).dataset['draftId'],
+      ),
+    ).toEqual(['3', '1', '2', '4']);
+  });
+
+  it('paginates 26 rows and clamps shrinking results', () => {
+    const fixture = render('in-review', 26, 2);
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(el.querySelector('output')?.textContent).toContain('Page 2 of 2, showing cases 26 to 26 of 26');
+    fixture.componentRef.setInput('rows', mapCasesDraftRows([createCasesDraftSummary()], 'in-review'));
+    fixture.detectChanges();
+    expect(el.querySelector('output')?.textContent).toContain('Page 1 of 1');
+    expect(el.querySelector('opal-lib-moj-pagination')).toBeNull();
+  });
+  it('ignores an unsorted event from the shared table', () => {
+    const fixture = render();
+    const emit = vi.spyOn(fixture.componentInstance.sortChanged, 'emit');
+    fixture.componentInstance.onSortChange({ key: 'respondent', sortType: 'none' });
+    expect(emit).not.toHaveBeenCalled();
+  });
+  it('omits pagination at 25 rows and opens only respondent links', () => {
+    const fixture = render('in-review', 25);
+    const emit = vi.spyOn(fixture.componentInstance.rowOpened, 'emit');
+    expect(fixture.nativeElement.querySelector('opal-lib-moj-pagination')).toBeNull();
+    const link = fixture.nativeElement.querySelector('tbody a') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toContain('/cases/create-casefile/check-case-details/');
+    link.click();
+    expect(emit).toHaveBeenCalled();
+  });
+  it('renders missing approved dates as an em dash', () => {
+    const fixture = render('approved');
+    fixture.componentRef.setInput(
+      'rows',
+      mapCasesDraftRows([createCasesDraftSummary({ casefile_status: 'PUBLISHED' })], 'approved'),
+    );
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-column="approved"]').textContent.trim()).toBe('—');
+  });
+  it('preserves native modified respondent activation', () => {
+    const f = render();
+    const emit = vi.spyOn(f.componentInstance.rowOpened, 'emit');
+    for (const options of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }]) {
+      const event = new MouseEvent('click', { ...options, cancelable: true });
+      f.componentInstance.openRespondent(event, 1);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(emit).not.toHaveBeenCalled();
+  });
+  it('keeps original Created and uses validated Approved dates', () => {
+    const f = render();
+    expect(f.nativeElement.querySelector('[data-column="created"]').textContent).toContain('ago');
+    const created = f.componentInstance.dates.getDaysAgo('2026-09-01T10:00:00Z');
+    expect(f.nativeElement.querySelector('[data-column="created"]').textContent).toContain(String(created));
+    f.componentRef.setInput('selection', defaultCasesDraftNavigation('approved'));
+    f.componentRef.setInput(
+      'rows',
+      mapCasesDraftRows(
+        [createCasesDraftSummary({ casefile_status: 'PUBLISHED', validated_date: '2026-10-01T10:00:00Z' })],
+        'approved',
+      ),
+    );
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('[data-column="approved"]').textContent).toContain(
+      String(f.componentInstance.dates.getDaysAgo('2026-10-01T10:00:00Z')),
+    );
+  });
+  it('announces zero results without a phantom row or page', () => {
+    const f = render('in-review', 0, 4);
+    expect(f.nativeElement.querySelectorAll('tbody tr')).toHaveLength(0);
+    expect(f.nativeElement.querySelector('output').textContent).toContain('Page 1 of 1, showing cases 0 to 0 of 0');
+  });
+  it('announces paging and focuses the first read-only account cell through shared pagination', async () => {
+    const f = render('approved', 26);
+    f.componentInstance.onPageChange(2);
+    f.detectChanges();
+    await f.whenStable();
+    expect(f.componentInstance.currentPageSignal()).toBe(2);
+    expect(f.componentInstance.pageChangeAnnouncement()).toBe('Create cases, page 2 of 2');
+    expect(f.nativeElement.querySelector('[data-draft-id="26"]')).not.toBeNull();
+    expect(document.activeElement).toBe(f.nativeElement.querySelector('[data-column="respondentAccount"]'));
+  });
+  it('does not navigate again when shared pagination keeps the current page', () => {
+    const fixture = render('in-review', 26);
+    const emit = vi.spyOn(fixture.componentInstance.pageChanged, 'emit');
+    fixture.componentInstance.onPageChange(1);
+    expect(fixture.componentInstance.currentPageSignal()).toBe(1);
+    expect(emit).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelectorAll('tbody tr')).toHaveLength(25);
+  });
+});

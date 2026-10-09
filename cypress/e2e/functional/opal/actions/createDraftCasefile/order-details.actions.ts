@@ -10,7 +10,10 @@ export class OrderDetailsActions {
   public completeParties(): void {
     cy.intercept('GET', '**/opal-maintenance-service/countries*', { body: COUNTRIES_RESPONSE });
     cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', cy.spy().as('draftCreation'));
-    cy.visit('/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.location('pathname').then((pathname) => {
+      const caseType = '/' + PATHS.root + '/' + PATHS.children.caseType;
+      if (pathname !== caseType) cy.visit(caseType);
+    });
     cy.get(S.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).check();
     cy.get(S.applicantType).select('Individual');
     cy.get(S.continueButton).click();

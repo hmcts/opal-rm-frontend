@@ -1,3 +1,6 @@
+import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { getState, patchState, type WritableStateSource } from '@ngrx/signals';
@@ -30,17 +33,52 @@ describe('Submission confirmation', () => {
     expect(element.querySelector('.govuk-panel--confirmation')).not.toBeNull();
     expect(element.querySelector('h2')?.textContent?.trim()).toBe('Next steps');
     const links = Array.from(element.querySelectorAll('a'));
-    expect(links.map((link) => link.textContent?.trim())).toEqual(['Create a new case']);
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['Create a new case', 'See your cases in review']);
     const inReview = element.querySelector('#create_casefile_confirmation_in_review');
     expect(inReview?.textContent?.trim()).toBe('See your cases in review');
-    expect(inReview?.tagName).toBe('SPAN');
+    expect(inReview?.tagName).toBe('A');
     expect(inReview?.getAttribute('tabindex')).toBeNull();
     expect(inReview?.getAttribute('role')).toBeNull();
-    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/cases/create-casefile/case-type']);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/cases/create-casefile/case-type',
+      '/cases/draft/create-and-manage/tabs#in-review',
+    ]);
     expect(element.querySelector('form')).toBeNull();
     expect(element.querySelector('.govuk-back-link')).toBeNull();
     expect(element.textContent).not.toContain('This is a simulated submission');
   });
+
+  it.each([{ button: 1 }, { ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }])(
+    'preserves local table state when opening In review with %j',
+    async (mouseOptions) => {
+      const global = TestBed.inject(GlobalStore);
+      const user = structuredClone(OPAL_USER_STATE_MOCK);
+      user.status = 'active';
+      user.business_unit_users = [
+        {
+          business_unit_id: 44,
+          business_unit_user_id: 'BUU-SYNTHETIC',
+          permissions: [{ permission_id: 21, permission_name: 'Create and Manage Draft Casefiles' }],
+        },
+      ];
+      global.setUserState(user);
+      global.setAuthenticated(true);
+      global.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+      const navigation = TestBed.inject(CasesDraftNavigationService);
+      const selection = { tab: 'in-review', page: 2, sort: 'respondent', direction: 'descending' } as const;
+      navigation.setSelection(selection);
+      navigation.rememberCreateOrigin();
+      const clearOrigin = vi.spyOn(navigation, 'clearCreateOrigin');
+      const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const link = fixture.nativeElement.querySelector('#create_casefile_confirmation_in_review');
+      link.dispatchEvent(new MouseEvent('click', { bubbles: true, ...mouseOptions }));
+      await fixture.whenStable();
+      expect(navigation.selection()).toEqual(selection);
+      expect(clearOrigin).not.toHaveBeenCalled();
+    },
+  );
 
   it('retains the draft and review context on activation without submitting again', async () => {
     const store = TestBed.inject(CasesCreateCasefileStore);
@@ -87,6 +125,7 @@ describe('Submission confirmation', () => {
       const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
       fixture.detectChanges();
       await fixture.whenStable();
+      const clearOrigin = vi.spyOn(TestBed.inject(CasesDraftNavigationService), 'clearCreateOrigin');
       const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
       if (outcome === 'rejected') navigate.mockRejectedValue(new Error('Synthetic navigation failure'));
       else navigate.mockResolvedValue(outcome === 'success');
@@ -94,6 +133,7 @@ describe('Submission confirmation', () => {
       await fixture.whenStable();
       fixture.detectChanges();
       await fixture.whenStable();
+      expect(clearOrigin).toHaveBeenCalledOnce();
       expect(navigate).toHaveBeenCalledOnce();
       expect(navigate).toHaveBeenCalledWith('/cases/create-casefile/case-type', {
         state: { startNewCase: true, focusCaseTypeHeading: true },

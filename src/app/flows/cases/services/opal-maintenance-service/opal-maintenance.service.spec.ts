@@ -90,6 +90,95 @@ describe('OpalMaintenanceService', () => {
 
   afterEach(() => http.verify());
 
+  describe('draft casefile collections', () => {
+    const params = {
+      business_unit_id: 44 as const,
+      submitted_by: 'BUU-SYNTHETIC',
+      casefile_status: 'SUBMITTED,RESUBMITTED',
+    };
+    const identity = { userId: 7, businessUnitId: 44 as const, submittedBy: 'BUU-SYNTHETIC' };
+    const expectCollection = () =>
+      http.expectOne((request) => request.url === '/opal-maintenance-service/draft-casefiles');
+    const expectManualRetry = (context: ReturnType<typeof withoutHttpRetry>) => {
+      for (const key of withoutHttpRetry().keys()) expect(context.get(key)).toEqual(withoutHttpRetry().get(key));
+    };
+
+    it('consults the full selected list with BU user scope and manual retry only', async () => {
+      const pending = firstValueFrom(service.getDraftCasefiles(params));
+      const get = expectCollection();
+      expect(get.request.method).toBe('GET');
+      expect(get.request.params.keys().sort()).toEqual(['business_unit_id', 'casefile_status', 'submitted_by']);
+      expect(get.request.params.get('business_unit_id')).toBe('44');
+      expect(get.request.params.get('submitted_by')).toBe('BUU-SYNTHETIC');
+      expect(get.request.params.get('casefile_status')).toBe('SUBMITTED,RESUBMITTED');
+      expectManualRetry(get.request.context);
+      get.flush({ count: 0, summaries: [] });
+      expect(await pending).toEqual({ count: 0, summaries: [] });
+    });
+
+    it.each([
+      { casefile_status_from_date: '2026-09-01T00:00:00Z' },
+      { casefile_status_to_date: '2026-10-01T00:00:00Z' },
+      { casefile_status_from_date: '2026-09-01T00:00:00Z', casefile_status_to_date: '2026-10-01T00:00:00Z' },
+    ])('includes only provided optional date filters: %j', async (dates) => {
+      const pending = firstValueFrom(service.getDraftCasefiles({ ...params, ...dates }));
+      const get = expectCollection();
+      expect(get.request.params.keys().sort()).toEqual([...Object.keys(params), ...Object.keys(dates)].sort());
+      for (const [key, value] of Object.entries(dates)) expect(get.request.params.get(key)).toBe(value);
+      get.flush({ count: 0, summaries: [] });
+      await pending;
+    });
+
+    it('counts rejected work without retrieving summaries', async () => {
+      const pending = firstValueFrom(service.getRejectedDraftCasefileCount(identity));
+      const get = expectCollection();
+      expect(get.request.method).toBe('GET');
+      expect(get.request.params.keys().sort()).toEqual([
+        'business_unit_id',
+        'casefile_status',
+        'restrict',
+        'submitted_by',
+      ]);
+      expect(get.request.params.get('business_unit_id')).toBe('44');
+      expect(get.request.params.get('submitted_by')).toBe('BUU-SYNTHETIC');
+      expect(get.request.params.get('casefile_status')).toBe('REJECTED');
+      expect(get.request.params.get('restrict')).toBe('counts');
+      expectManualRetry(get.request.context);
+      get.flush({ count: 107 });
+      expect(await pending).toEqual({ count: 107 });
+    });
+
+    it.each(['list', 'count'])('fetches %s afresh for each subscription', async (operation) => {
+      const source =
+        operation === 'list' ? service.getDraftCasefiles(params) : service.getRejectedDraftCasefileCount(identity);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const pending = firstValueFrom(source);
+        const response = operation === 'list' ? { count: 0, summaries: [] } : { count: 0 };
+        expectCollection().flush(response);
+        expect(await pending).toEqual(response);
+      }
+    });
+
+    it.each([401, 403, 500])('propagates HTTP %s from both collection operations without retry', async (status) => {
+      for (const source of [service.getDraftCasefiles(params), service.getRejectedDraftCasefileCount(identity)]) {
+        const pending = firstValueFrom(source);
+        const assertion = expect(pending).rejects.toMatchObject({ status });
+        expectCollection().flush({ detail: 'Unavailable' }, { status, statusText: 'Unavailable' });
+        await assertion;
+        http.expectNone((request) => request.url === '/opal-maintenance-service/draft-casefiles');
+      }
+    });
+
+    it('rejects malformed wrappers from both HTTP boundaries', async () => {
+      for (const source of [service.getDraftCasefiles(params), service.getRejectedDraftCasefileCount(identity)]) {
+        const pending = firstValueFrom(source);
+        const assertion = expect(pending).rejects.toThrow('Invalid draft casefile');
+        expectCollection().flush({ count: -1 });
+        await assertion;
+      }
+    });
+  });
+
   it('requests active order terms afresh for each subscription and preserves server ordering', () => {
     const results = {
       count: 2,

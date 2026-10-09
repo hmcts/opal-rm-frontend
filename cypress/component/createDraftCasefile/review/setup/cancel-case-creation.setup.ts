@@ -1,3 +1,4 @@
+import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
@@ -30,6 +31,9 @@ export function setupCancellation(options: CancelSetupOptions = {}) {
       providers: [provideRouter([]), { provide: CasesCreateCasefileStore, useValue: store }],
     }).then(({ fixture }) => {
       const reviewNavigation = TestBed.inject(CasesCreateCasefileReviewNavigationService);
+      cy.wrap(TestBed.inject(Router).serializeUrl(TestBed.inject(CasesDraftNavigationService).creationReturnUrl())).as(
+        'cancelReturnUrl',
+      );
       cy.stub(TestBed.inject(Router), 'navigateByUrl').as('cancelRouterNavigate').resolves(!options.failNavigation);
       cy.spy(store, 'resetStore').as('cancelStoreReset');
       cy.spy(reviewNavigation, 'clearContext').as('cancelReviewContextClear');

@@ -1,4 +1,9 @@
-import { ActivatedRoute, Router } from '@angular/router';
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { EMPTY } from 'rxjs';
+import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
+import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
+import { ActivatedRoute, Router, DefaultUrlSerializer } from '@angular/router';
 import { mount } from 'cypress/angular';
 import { CasesCreateCasefileCaseTypeComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/cases-create-casefile-case-type.component';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
@@ -6,8 +11,17 @@ import { CasesCreateCasefileCaseTypeSelection } from 'src/app/flows/cases/cases-
 
 export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCasefileStore>;
 
-export const setupCreateCasefileCaseType = (initialSelection: CasesCreateCasefileCaseTypeSelection | null = null) => {
+export const setupCreateCasefileCaseType = (
+  initialSelection: CasesCreateCasefileCaseTypeSelection | null = null,
+  navigationFailure?: 'false' | 'throw',
+  completedArrival = false,
+) => {
   const store = new CasesCreateCasefileStore();
+  const returnPath =
+    '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.tabs + '#in-review';
+  const navigateByUrl = cy.stub().as('cancelRouterNavigate').resolves(true);
+  if (navigationFailure === 'false') navigateByUrl.resolves(false);
+  if (navigationFailure === 'throw') navigateByUrl.rejects(new Error('Synthetic router failure'));
   const navigate = cy.stub().as('routerNavigate').resolves(true);
 
   if (initialSelection) {
@@ -22,7 +36,30 @@ export const setupCreateCasefileCaseType = (initialSelection: CasesCreateCasefil
     return mount(CasesCreateCasefileCaseTypeComponent, {
       providers: [
         { provide: CasesCreateCasefileStore, useValue: store },
-        { provide: Router, useValue: { navigate, currentNavigation: () => null } },
+        { provide: GlobalStore, useValue: { setBannerError: cy.stub().as('caseTypeGlobalBannerError') } },
+        { provide: CasesDraftNavigationService, useValue: { prepareCreationReturn: () => returnPath } },
+        {
+          provide: Router,
+          useValue: {
+            navigate,
+            navigateByUrl,
+            events: EMPTY,
+            currentNavigation: () => null,
+            lastSuccessfulNavigation: () =>
+              completedArrival
+                ? {
+                    trigger: 'imperative',
+                    finalUrl: new DefaultUrlSerializer().parse(
+                      '/' +
+                        CASES_CREATE_CASEFILE_ROUTING_PATHS.root +
+                        '/' +
+                        CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType,
+                    ),
+                    extras: { state: { startNewCase: true, focusCaseTypeHeading: true } },
+                  }
+                : null,
+          },
+        },
         { provide: ActivatedRoute, useValue: { parent: null } },
       ],
     }).then(() => {

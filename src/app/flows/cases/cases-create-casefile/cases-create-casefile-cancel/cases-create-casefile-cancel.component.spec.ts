@@ -1,5 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
+import { signal } from '@angular/core';
+import { Router, UrlTree, provideRouter } from '@angular/router';
 import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
@@ -12,6 +16,8 @@ import { CasesCreateCasefileCancelComponent } from './cases-create-casefile-canc
 
 describe('CasesCreateCasefileCancelComponent', () => {
   const router = { navigateByUrl: vi.fn<(...args: unknown[]) => Promise<boolean>>() };
+  const returnUrl = new UrlTree();
+  const dashboardNavigation = { prepareCreationReturn: () => returnUrl };
   const reviewNavigation = { clearContext: vi.fn() };
   let store: InstanceType<typeof CasesCreateCasefileStore>;
   let fixture: ComponentFixture<CasesCreateCasefileCancelComponent>;
@@ -23,6 +29,7 @@ describe('CasesCreateCasefileCancelComponent', () => {
       imports: [CasesCreateCasefileCancelComponent],
       providers: [
         CasesCreateCasefileStore,
+        { provide: CasesDraftNavigationService, useValue: dashboardNavigation },
         { provide: Router, useValue: router },
         { provide: CasesCreateCasefileReviewNavigationService, useValue: reviewNavigation },
       ],
@@ -89,9 +96,7 @@ describe('CasesCreateCasefileCancelComponent', () => {
       click('#create_casefile_cancel_confirm');
       await fixture.whenStable();
 
-      expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/case-type', {
-        state: { focusCaseTypeHeading: true },
-      });
+      expect(router.navigateByUrl).toHaveBeenCalledWith(returnUrl);
       expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
     },
   );
@@ -165,6 +170,22 @@ describe('CasesCreateCasefileCancelComponent', () => {
     await fixture.whenStable();
   });
 
+  it('discards only once when confirmed deletion is activated again before navigation settles', async () => {
+    let finish!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const reset = vi.spyOn(store, 'resetStore');
+    const action = fixture.componentInstance.handleConfirm();
+    await fixture.componentInstance.handleConfirm();
+    expect(reset).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    finish(true);
+    await action;
+  });
+
   it('retains the complete state when the component is destroyed', () => {
     const before = structuredClone(getState(store));
     fixture.detectChanges();
@@ -174,4 +195,60 @@ describe('CasesCreateCasefileCancelComponent', () => {
     expect(getState(store)).toEqual(before);
     expect(reviewNavigation.clearContext).not.toHaveBeenCalled();
   });
+});
+
+describe('Confirmed cancellation dashboard metadata', () => {
+  it.each(['false', 'throw'])(
+    'retries %s navigation without discarding twice or clearing the remembered origin',
+    async (failure) => {
+      const user = structuredClone(OPAL_USER_STATE_MOCK);
+      user.status = 'active';
+      user.business_unit_users = [
+        {
+          business_unit_id: 44,
+          business_unit_user_id: 'BUU-SYNTHETIC',
+          permissions: [{ permission_id: 21, permission_name: 'Create and Manage Draft Casefiles' }],
+        },
+      ];
+      await TestBed.configureTestingModule({
+        imports: [CasesCreateCasefileCancelComponent],
+        providers: [
+          provideRouter([]),
+          {
+            provide: GlobalStore,
+            useValue: {
+              authenticated: signal(true),
+              userState: signal(user),
+              featureFlags: signal({ 'release-1c-rm-create-case-files': true }),
+            },
+          },
+        ],
+      }).compileComponents();
+      const navigation = TestBed.inject(CasesDraftNavigationService);
+      navigation.setSelection({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
+      navigation.rememberCreateOrigin();
+      navigation.setSelection({ tab: 'in-review', page: 1, sort: 'created', direction: 'ascending' });
+      const store = TestBed.inject(CasesCreateCasefileStore);
+      patchState(
+        store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+        createCasesCreateCasefileCancellationState(),
+      );
+      const fixture = TestBed.createComponent(CasesCreateCasefileCancelComponent);
+      const reset = vi.spyOn(store, 'resetStore');
+      const router = TestBed.inject(Router);
+      const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      if (failure === 'false') navigate.mockResolvedValueOnce(false);
+      else navigate.mockRejectedValueOnce(new Error('Synthetic router failure'));
+      await fixture.componentInstance.handleConfirm();
+      expect(fixture.componentInstance.navigationFailed()).toBe(true);
+      await fixture.componentInstance.handleConfirm();
+      expect(reset).toHaveBeenCalledOnce();
+      expect(navigate).toHaveBeenLastCalledWith(navigation.creationReturnUrl());
+      expect(router.serializeUrl(navigate.mock.lastCall![0] as UrlTree)).toBe(
+        '/cases/draft/create-and-manage/tabs#rejected',
+      );
+      expect(navigation.selection()).toEqual({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
+      expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+    },
+  );
 });

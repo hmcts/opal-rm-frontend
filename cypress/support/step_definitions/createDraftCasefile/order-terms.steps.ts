@@ -31,4 +31,4 @@ Then('the new minor creditor is not selectable', () => flow.assertNewCreditorUna
 When('I open removal for the second order and return to order terms', () => flow.openSecondRemovalAndReturn());
 Then('both original orders remain on the summary', () => flow.assertBothOriginalOrders());
 When('I open removal for the second maintenance order', () => flow.openSecondRemoval());
-When('I return from the order term removal placeholder', () => flow.returnFromRemoval());
+When('I cancel order term removal', () => flow.returnFromRemoval());

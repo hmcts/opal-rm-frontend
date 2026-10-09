@@ -7,6 +7,7 @@ import { setupOrderTerms, type OrderTermsStore } from '../orderTerms/setup/order
 import { SUMMARY_CREDITORS, SUMMARY_TERMS } from './mocks/order-terms-summary.mock';
 
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9811', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
+const removalTags = (): string[] => ['@JIRA-STORY:PO-9812', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
 const path = (child: string): string => '/' + PATHS.root + '/' + child;
 const setupSummary = (populated = true) =>
   setupOrderTerms({
@@ -273,28 +274,36 @@ describe('Order terms summary', () => {
     });
   });
 
-  it('AC2. should open Remove by array index and return without changing journey state', { tags: buildTags() }, () => {
-    setupSummary();
+  it(
+    'AC2. should open Remove by array index and cancel without changing journey state',
+    { tags: removalTags() },
+    () => {
+      setupSummary();
 
-    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
-      const before = structuredClone(getState(store));
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        const before = structuredClone(getState(store));
 
-      cy.get(S.orderTermsSummary.card(2)).contains('a', 'Remove').click();
-      cy.get<Router>('@angularRouter')
-        .its('url')
-        .should('eq', path(PATHS.children.orderTermsRemove + '/1'));
-      cy.get(S.orderTerms.heading).should('have.text', 'Remove order term');
-      cy.get(S.orderTermsSummary.removeReturn).click();
-      cy.get<Router>('@angularRouter').its('url').should('eq', path(PATHS.children.orderTermsSummary));
+        cy.get(S.orderTermsSummary.card(2)).contains('a', 'Remove').click();
+        cy.get<Router>('@angularRouter')
+          .its('url')
+          .should('eq', path(PATHS.children.orderTermsRemove + '/1'));
+        cy.get(S.orderTerms.heading).should('have.text', 'Are you sure you want to remove these order terms?');
+        cy.get(S.orderTermsRemoval.cancel).click();
+        cy.get<Router>('@angularRouter').its('url').should('eq', path(PATHS.children.orderTermsSummary));
+        cy.get(S.orderTermsSummary.remove(2)).should('be.focused');
+        cy.get<OrderTermsStore>('@casesCreateCasefileStore').should((currentStore) => {
+          expect(currentStore.orderTermRemoval()).to.eq(null);
+        });
 
-      cy.then(() => {
-        expect(getState(store)).to.deep.equal(before);
-        expect(store.orderTerms()).to.deep.equal(SUMMARY_TERMS);
-        expect(store.minorCreditors()).to.deep.equal(SUMMARY_CREDITORS);
-        expect(store.taskStatuses()).to.deep.equal(before.taskStatuses);
+        cy.then(() => {
+          expect(getState(store)).to.deep.equal(before);
+          expect(store.orderTerms()).to.deep.equal(SUMMARY_TERMS);
+          expect(store.minorCreditors()).to.deep.equal(SUMMARY_CREDITORS);
+          expect(store.taskStatuses()).to.deep.equal(before.taskStatuses);
+        });
       });
-    });
-  });
+    },
+  );
 });
 
 describe('Order terms summary visual evidence', () => {
@@ -332,10 +341,10 @@ describe('Order terms summary visual evidence', () => {
     cy.screenshot('po-9811-order-terms-summary-expanded');
   });
 
-  it('AC2. should capture the removal placeholder', { tags: buildTags() }, () => {
+  it('AC2. should capture the removal confirmation', { tags: removalTags() }, () => {
     setupSummary();
     cy.get(S.orderTermsSummary.remove(2)).click();
-    cy.get(S.orderTerms.heading).should('have.text', 'Remove order term');
-    cy.screenshot('po-9811-order-terms-remove');
+    cy.get(S.orderTerms.heading).should('have.text', 'Are you sure you want to remove these order terms?');
+    cy.screenshot('po-9812-order-terms-remove-confirmation');
   });
 });

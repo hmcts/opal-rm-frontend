@@ -82,6 +82,8 @@ const pageDefinitions = [
 ];
 
 const templatePaths = {
+  removalNotification:
+    'components/cases-create-casefile-removal-notification/cases-create-casefile-removal-notification.component.html',
   applicantIndividual:
     'cases-create-casefile-applicant-individual/cases-create-casefile-applicant-individual-form/cases-create-casefile-applicant-individual-form.component.html',
   applicantOrganisation:
@@ -139,6 +141,21 @@ const taskListItems = [
 
 // Structural exceptions are exact path/tag/attribute/value tuples. They are never valid as field names elsewhere.
 const structuralIdentifierAllowlist = new Set([
+  // Removal summary content and actions are structural, not form-control identifiers.
+  structuralIdentifierKey(templatePaths.orderTermsSummary, 'h1', 'id', 'create_casefile_order_terms_heading'),
+  structuralIdentifierKey(
+    templatePaths.orderTermsRemove,
+    'opal-lib-govuk-cancel-link',
+    'id',
+    'create_casefile_order_terms_remove_cancel',
+  ),
+  structuralIdentifierKey(templatePaths.removalNotification, 'div', 'id', 'create_casefile_order_terms_removal_notice'),
+  structuralIdentifierKey(
+    templatePaths.removalNotification,
+    'button',
+    'id',
+    'create_casefile_order_terms_removal_dismiss',
+  ),
   structuralIdentifierKey(templatePaths.caseType, 'div', '[id]', 'applicantTypeConditionalId'),
   structuralIdentifierKey(templatePaths.caseType, 'button', 'id', 'continue'),
   structuralIdentifierKey(templatePaths.caseType, 'span', 'id', 'cancelCaseType'),

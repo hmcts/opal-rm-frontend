@@ -134,7 +134,7 @@ export class OrderTermsFlow {
     this.actions.openSecondRemoval();
   }
 
-  /** Returns from the removal placeholder. */
+  /** Cancels removal and returns to the summary. */
   public returnFromRemoval(): void {
     this.actions.returnFromRemoval();
   }

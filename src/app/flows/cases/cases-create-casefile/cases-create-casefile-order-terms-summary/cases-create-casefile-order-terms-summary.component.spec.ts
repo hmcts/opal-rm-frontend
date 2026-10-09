@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CasesCreateCasefileOrderTermCardComponent } from '../components/cases-create-casefile-order-term-card/cases-create-casefile-order-term-card.component';
 import { CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_MOCKS } from '../cases-create-casefile-applicant-individual/mocks/cases-create-casefile-applicant-individual.mock';
 import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from '../cases-create-casefile-applicant-organisation/mocks/cases-create-casefile-applicant-organisation.mock';
 import { MINOR_CREDITOR_DETAILS_MOCK } from '../cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
@@ -123,6 +125,7 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
       'Maintenance',
       'Maintenance',
     ]);
+    expect(fixture.debugElement.queryAll(By.directive(CasesCreateCasefileOrderTermCardComponent))).toHaveLength(2);
   });
 
   for (const failure of ['false', 'rejection'] as const) {
@@ -272,16 +275,182 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     await change;
   });
 
-  it('navigates Remove by the current array index without changing accepted data', () => {
+  it('captures the selected term before navigating to removal without changing accepted data', async () => {
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
       orderTerms: structuredClone(acceptedTerms),
     });
     const before = structuredClone(store.orderTerms());
 
-    fixture.componentInstance.handleRemove(fixture.componentInstance.cards()[1].removePath);
+    const click = new MouseEvent('click', { cancelable: true });
+    await fixture.componentInstance.handleRemove(click, 12);
 
+    expect(click.defaultPrevented).toBe(true);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/order-terms/remove/1');
+    expect(store.orderTermRemoval()?.termId).toBe(12);
     expect(store.orderTerms()).toEqual(before);
+  });
+
+  it.each(['false', 'rejection'])(
+    'clears only its own removal selection when navigation returns %s',
+    async (failure) => {
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+        orderTerms: structuredClone(acceptedTerms),
+      });
+      if (failure === 'false') router.navigateByUrl.mockResolvedValueOnce(false);
+      else router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic failure'));
+
+      await fixture.componentInstance.handleRemove(new MouseEvent('click', { cancelable: true }), 7);
+
+      expect(store.orderTermRemoval()).toBeNull();
+      expect(store.orderTerms()).toEqual(acceptedTerms);
+    },
+  );
+
+  it('preserves a newer removal selection when an older navigation fails late', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    let resolveNavigation!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(new Promise<boolean>((resolve) => (resolveNavigation = resolve)));
+    const first = fixture.componentInstance.handleRemove(new MouseEvent('click', { cancelable: true }), 7);
+    const newer = store.beginOrderTermRemoval(12);
+
+    resolveNavigation(false);
+    await first;
+
+    expect(store.orderTermRemoval()).toBe(newer);
+    expect(store.orderTermRemovalOutcome()).toBeNull();
+  });
+
+  it('does not navigate Change for a term absent from the current summary', async () => {
+    await fixture.componentInstance.handleChange(99);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(store.orderTermAmendment()).toBeNull();
+  });
+
+  it('does not begin removal while an amendment is active', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    store.beginOrderTermAmendment(7);
+
+    await fixture.componentInstance.handleRemove(new MouseEvent('click', { cancelable: true }), 12);
+
+    expect(store.orderTermRemoval()).toBeNull();
+    expect(store.orderTermAmendment()?.termId).toBe(7);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('blocks Remove and Back while Change navigation is pending', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    let resolveNavigation!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(new Promise<boolean>((resolve) => (resolveNavigation = resolve)));
+    const change = fixture.componentInstance.handleChange(7);
+
+    const removeClick = new MouseEvent('click', { cancelable: true });
+    await fixture.componentInstance.handleRemove(removeClick, 12);
+    await fixture.componentInstance.handleBack();
+
+    expect(removeClick.defaultPrevented).toBe(true);
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    expect(store.orderTermRemoval()).toBeNull();
+    resolveNavigation(false);
+    await change;
+  });
+
+  it('releases the Back navigation lock after rejection', async () => {
+    router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
+    await fixture.componentInstance.handleBack();
+    await fixture.componentInstance.handleBack();
+    expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the success notice and focuses its host on summary entry', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    const selection = store.beginOrderTermRemoval(7)!;
+    store.confirmOrderTermRemoval(selection);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const notice = fixture.nativeElement.querySelector('#create_casefile_order_terms_removal_notice');
+    expect(notice.textContent).toContain('Order terms removed.');
+    expect(document.activeElement).toBe(notice);
+    expect(store.orderTerms().map((term) => term.termId)).toEqual([12]);
+  });
+
+  it('does not steal focus again for the same success outcome after an unrelated render', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    const selection = store.beginOrderTermRemoval(7)!;
+    store.confirmOrderTermRemoval(selection);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const heading = fixture.nativeElement.querySelector('#create_casefile_order_terms_heading') as HTMLElement;
+    heading.focus();
+
+    store.setUnsavedChanges(true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(heading);
+    expect(store.orderTermRemovalOutcome()).toBe('removed');
+  });
+
+  it('dismisses the notice and focuses the summary heading', async () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    const selection = store.beginOrderTermRemoval(7)!;
+    store.confirmOrderTermRemoval(selection);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    fixture.nativeElement.querySelector('#create_casefile_order_terms_removal_dismiss').click();
+    fixture.detectChanges();
+
+    expect(store.orderTermRemovalOutcome()).toBeNull();
+    expect(fixture.nativeElement.querySelector('#create_casefile_order_terms_removal_notice')).toBeNull();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#create_casefile_order_terms_heading'));
+  });
+
+  it.each([7, 99])('restores cancellation focus to an existing Remove link or heading for term %s', async (termId) => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    store.setOrderTermRemovalReturnFocusId(termId);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const expected = termId === 7 ? `#order-term-${termId}-remove` : '#create_casefile_order_terms_heading';
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector(expected));
+    expect(store.orderTermRemovalReturnFocusId()).toBeNull();
+  });
+
+  it('clears a transient outcome when the summary is actually destroyed', () => {
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: structuredClone(acceptedTerms),
+    });
+    store.markOrderTermRemovalUnavailable();
+    fixture.detectChanges();
+
+    fixture.destroy();
+
+    expect(store.orderTermRemovalOutcome()).toBeNull();
+  });
+
+  it('returns quietly from an invalid removal link without showing an unavailable notice', async () => {
+    store.markOrderTermRemovalUnavailable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('#create_casefile_order_terms_removal_notice')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('These order terms are no longer available');
+    expect(fixture.nativeElement.querySelector('h1')?.textContent.trim()).toBe('Order terms');
   });
 
   it('cancels an existing amendment only after Return navigation succeeds', async () => {
@@ -410,7 +579,7 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     let finish!: (value: boolean) => void;
     router.navigateByUrl.mockReturnValueOnce(new Promise<boolean>((resolve) => (finish = resolve)));
     const change = fixture.componentInstance.handleChange(7);
-    fixture.componentInstance.handleRemove(fixture.componentInstance.cards()[0].removePath);
+    await fixture.componentInstance.handleRemove(new Event('click', { cancelable: true }), 7);
     await fixture.componentInstance.handleBack();
     expect(router.navigateByUrl).toHaveBeenCalledOnce();
     expect(store.orderTermAmendment()?.termId).toBe(7);

@@ -8,8 +8,19 @@ export const casesCreateCasefileOrderTermsRemoveGuard: CanActivateFn = (route) =
   const router = inject(Router);
   const raw = route.paramMap.get('orderTermIndex') ?? '';
   const index = Number(raw);
+  const selection = store.orderTermRemoval();
   const paths = CASES_CREATE_CASEFILE_ROUTING_PATHS;
-  return /^(0|[1-9]\d*)$/.test(raw) && Number.isSafeInteger(index) && index < store.orderTerms().length
-    ? true
-    : router.parseUrl('/' + paths.root + '/' + paths.children.orderTermsSummary);
+  if (
+    /^(0|[1-9]\d*)$/.test(raw) &&
+    Number.isSafeInteger(index) &&
+    selection?.index === index &&
+    store.orderTerms()[index]?.termId === selection.termId &&
+    store.isOrderTermRemovalCurrent(selection)
+  ) {
+    return true;
+  }
+  // A fresh invalid entry must not replay a success notice left by a completed removal.
+  store.clearOrderTermRemovalOutcome();
+  store.markOrderTermRemovalUnavailable();
+  return router.parseUrl('/' + paths.root + '/' + paths.children.orderTermsSummary);
 };

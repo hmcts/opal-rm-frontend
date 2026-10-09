@@ -19,6 +19,7 @@ import {
   MINOR_CREDITOR_NON_UK_MOCK,
   MINOR_CREDITOR_UK_MOCK,
   MINOR_CREDITOR_SAVED_STATE_MOCK,
+  MINOR_CREDITOR_PENDING_STATE_MOCK,
   MINOR_CREDITOR_BIC_MOCK,
   MINOR_CREDITOR_IBAN_MOCK,
   MINOR_CREDITOR_RESTORATION_CASES,
@@ -39,12 +40,17 @@ const buildTags = (): string[] => ['@JIRA-STORY:PO-9809', '@JIRA-EPIC:PO-6506', 
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
 const error = (field: keyof typeof F, key: string): string => COPY[field][key];
 
-const assertAccepted = (details: ICasesCreateCasefileMinorCreditorDetails, displayName: string): void => {
+const assertPending = (details: ICasesCreateCasefileMinorCreditorDetails): void => {
   cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-    expect(store.minorCreditors()).to.deep.equal([{ sequenceNumber: 1, displayName, details }]);
-    expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
-    expect(store.nextMinorCreditorSequence()).to.eq(2);
-    expect(store.creditorDraft()).to.eq(null);
+    expect(store.minorCreditors()).to.deep.equal([]);
+    expect(store.orderTerms()[0].creditor).to.eq(null);
+    expect(store.nextMinorCreditorSequence()).to.eq(1);
+    expect(store.creditorDraft()).to.deep.equal({
+      termId: 1,
+      branch: 'add-new',
+      details,
+      countryName: 'United Kingdom',
+    });
     expect(store.unsavedChanges()).to.eq(false);
     expect(store.stateChanges()).to.eq(true);
   });
@@ -283,10 +289,11 @@ describe('Minor creditor details', () => {
         cy.get(S.minorCreditor.save).click();
         cy.get(S.errorSummary).should('not.exist');
         cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-          expect(store.minorCreditors()).to.have.length(1);
-          expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
+          expect(store.minorCreditors()).to.deep.equal([]);
+          expect(store.orderTerms()[0].creditor).to.eq(null);
+          expect(store.nextMinorCreditorSequence()).to.eq(1);
           for (const { maximum, character, storedPath } of lengthBoundaries) {
-            cy.wrap(store.minorCreditors()[0].details).its(storedPath).should('eq', character.repeat(maximum));
+            cy.wrap(store.creditorDraft()?.details).its(storedPath).should('eq', character.repeat(maximum));
           }
         });
         cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.minorCreditorSummary));
@@ -298,8 +305,10 @@ describe('Minor creditor details', () => {
         setupMinorCreditor({ details: MINOR_CREDITOR_BRANCH_MOCKS[branch], formData: { [F[field]]: value } });
         cy.get(S.minorCreditor.save).click();
         cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-          expect(store.minorCreditors()).to.have.length(1);
-          cy.wrap(store.minorCreditors()[0].details).its(storedPath).should('eq', value);
+          expect(store.minorCreditors()).to.deep.equal([]);
+          expect(store.orderTerms()[0].creditor).to.eq(null);
+          expect(store.nextMinorCreditorSequence()).to.eq(1);
+          cy.wrap(store.creditorDraft()?.details).its(storedPath).should('eq', value);
         });
         cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.minorCreditorSummary));
       });
@@ -327,7 +336,7 @@ describe('Minor creditor details', () => {
           }
           cy.get(S.minorCreditor.save).click();
           cy.get(S.errorSummary).should('not.exist');
-          assertAccepted(MINOR_CREDITOR_BRANCH_MOCKS[branch], 'Example creditor');
+          assertPending(MINOR_CREDITOR_BRANCH_MOCKS[branch]);
         },
       );
     }
@@ -340,7 +349,7 @@ describe('Minor creditor details', () => {
     it(`AC2, AC4. should save a non-UK bank with ${identifier}`, { tags: buildTags() }, () => {
       setupMinorCreditor({ details });
       cy.get(S.minorCreditor.save).click();
-      assertAccepted(details, 'Example creditor');
+      assertPending(details);
     });
   }
 
@@ -368,7 +377,7 @@ describe('Minor creditor details', () => {
       setupMinorCreditor({ details: MINOR_CREDITOR_UK_MOCK });
       cy.get(S.minorCreditor.ukSortCode).clear().type('00-11-22');
       cy.get(S.minorCreditor.save).click();
-      assertAccepted(MINOR_CREDITOR_UK_MOCK, 'Example creditor');
+      assertPending(MINOR_CREDITOR_UK_MOCK);
     },
   );
 
@@ -383,7 +392,10 @@ describe('Minor creditor details', () => {
       cy.get(S.minorCreditor.bankNone).check();
       cy.get(S.minorCreditor.save).click();
       cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-        expect(store.minorCreditors()[0].details).to.deep.equal({
+        expect(store.minorCreditors()).to.deep.equal([]);
+        expect(store.orderTerms()[0].creditor).to.eq(null);
+        expect(store.nextMinorCreditorSequence()).to.eq(1);
+        expect(store.creditorDraft()?.details).to.deep.equal({
           identity: { type: 'individual', title: null, firstNames: 'Example', lastName: 'Person' },
           address: MINOR_CREDITOR_BIC_MOCK.address,
           bank: { type: 'none' },
@@ -416,7 +428,7 @@ describe('Minor creditor details', () => {
       cy.get(S.minorCreditor.nonUkNameOnAccount).should('not.be.visible').and('be.disabled');
       cy.get(S.minorCreditor.save).click();
       cy.get(S.errorSummary).should('not.exist');
-      assertAccepted({ ...MINOR_CREDITOR_BIC_MOCK, bank: { type: 'none' } }, 'Example creditor');
+      assertPending({ ...MINOR_CREDITOR_BIC_MOCK, bank: { type: 'none' } });
     },
   );
 
@@ -425,11 +437,11 @@ describe('Minor creditor details', () => {
     cy.intercept({ method: '+(POST|PUT|PATCH)', url: /\/draft-casefiles(?:\/[^?]*)?(?:\?.*)?$/ }, write);
     setupMinorCreditor({ details: MINOR_CREDITOR_UK_MOCK });
     cy.get(S.minorCreditor.save).click();
-    assertAccepted(MINOR_CREDITOR_UK_MOCK, 'Example creditor');
+    assertPending(MINOR_CREDITOR_UK_MOCK);
     cy.get('@draftCasefileWrite').should('not.have.been.called');
   });
 
-  it('AC1, AC4. should create and assign a new Individual creditor with no bank details', { tags: buildTags() }, () => {
+  it('AC1, AC4. should stage a new Individual creditor with no bank details', { tags: buildTags() }, () => {
     setupMinorCreditor({ details: MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK });
 
     cy.get(S.minorCreditor.individual).should('be.checked');
@@ -437,7 +449,7 @@ describe('Minor creditor details', () => {
     cy.get(S.minorCreditor.bankNone).should('be.checked');
     cy.get(S.minorCreditor.save).click();
 
-    assertAccepted(MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK, 'Dr Example Person');
+    assertPending(MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK);
   });
 
   it('AC1, AC4. should save Organisation, UK bank and the Country ID', { tags: buildTags() }, () => {
@@ -449,7 +461,7 @@ describe('Minor creditor details', () => {
     cy.get(S.minorCreditor.ukSortCode).should('have.value', '001122');
     cy.get(S.minorCreditor.save).click();
 
-    assertAccepted(MINOR_CREDITOR_UK_MOCK, 'Example creditor');
+    assertPending(MINOR_CREDITOR_UK_MOCK);
   });
 
   it(
@@ -464,7 +476,7 @@ describe('Minor creditor details', () => {
       cy.get(S.minorCreditor.nonUkPaymentReference).should('have.value', 'Example reference');
       cy.get(S.minorCreditor.save).click();
 
-      assertAccepted(MINOR_CREDITOR_NON_UK_MOCK, 'Example creditor');
+      assertPending(MINOR_CREDITOR_NON_UK_MOCK);
       cy.get(S.errorSummary).should('not.exist');
     },
   );
@@ -566,7 +578,7 @@ describe('Minor creditor details', () => {
     });
   });
 
-  it('AC4. should retry failed navigation without allocating another creditor', { tags: buildTags() }, () => {
+  it('AC4. should retry failed navigation without accepting the pending creditor', { tags: buildTags() }, () => {
     setupMinorCreditor({ details: MINOR_CREDITOR_UK_MOCK });
     cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
       navigate.onFirstCall().resolves(false),
@@ -577,14 +589,15 @@ describe('Minor creditor details', () => {
     cy.get(S.minorCreditor.save).click();
 
     cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.minorCreditors()).to.have.length(1);
-      expect(store.nextMinorCreditorSequence()).to.eq(2);
-      expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
+      expect(store.minorCreditors()).to.deep.equal([]);
+      expect(store.nextMinorCreditorSequence()).to.eq(1);
+      expect(store.orderTerms()[0].creditor).to.eq(null);
+      expect(store.creditorDraft()?.details).to.deep.equal(MINOR_CREDITOR_UK_MOCK);
     });
     cy.get('@routerNavigate').should('have.been.calledTwice');
   });
 
-  it('AC4. should save new edits to the same creditor after navigation failure', { tags: buildTags() }, () => {
+  it('AC4. should update the same pending draft after navigation failure', { tags: buildTags() }, () => {
     setupMinorCreditor({ details: MINOR_CREDITOR_UK_MOCK });
     cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
       navigate.onFirstCall().rejects(new Error('Synthetic navigation failure')),
@@ -596,14 +609,13 @@ describe('Minor creditor details', () => {
     cy.get(S.minorCreditor.save).click();
 
     cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.minorCreditors()).to.have.length(1);
-      expect(store.minorCreditors()[0].sequenceNumber).to.eq(1);
-      expect(store.minorCreditors()[0].displayName).to.eq('Updated creditor');
-      expect(store.minorCreditors()[0].details.identity).to.deep.equal({
+      expect(store.minorCreditors()).to.deep.equal([]);
+      expect(store.nextMinorCreditorSequence()).to.eq(1);
+      expect(store.orderTerms()[0].creditor).to.eq(null);
+      expect(store.creditorDraft()?.details?.identity).to.deep.equal({
         type: 'organisation',
         organisationName: 'Updated creditor',
       });
-      expect(store.nextMinorCreditorSequence()).to.eq(2);
     });
   });
 
@@ -743,7 +755,8 @@ describe('Minor creditor details accessibility', () => {
     cy.get(S.minorCreditor.save).focus().type('{enter}');
     cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.minorCreditorSummary));
     cy.get<MinorCreditorStore>('@casesCreateCasefileStore').then((store) => {
-      expect(store.orderTerms()[0].creditor).to.deep.equal({ type: 'minor', sequenceNumber: 1 });
+      expect(store.orderTerms()[0].creditor).to.eq(null);
+      expect(store.creditorDraft()?.details).to.deep.equal(MINOR_CREDITOR_UK_MOCK);
     });
   });
 
@@ -766,6 +779,7 @@ describe('Minor creditor details accessibility', () => {
   for (const [name, details] of [
     ['Individual and UK bank', { ...MINOR_CREDITOR_UK_MOCK, identity: MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK.identity }],
     ['Organisation and non-UK bank', MINOR_CREDITOR_BIC_MOCK],
+    ['Organisation and non-UK bank without identifiers', MINOR_CREDITOR_NON_UK_MOCK],
   ] as const) {
     it(`AC5. should pass Axe for ${name}`, { tags: buildTags() }, () => {
       setupMinorCreditor({ details });
@@ -788,10 +802,40 @@ describe('Minor creditor details accessibility', () => {
     setupCreditor({
       shell: true,
       initialChild: PATHS.children.minorCreditorSummary,
-      state: MINOR_CREDITOR_SAVED_STATE_MOCK,
+      state: MINOR_CREDITOR_PENDING_STATE_MOCK,
     });
     cy.get(S.heading).should('have.text', 'Minor creditor summary');
     scan();
     cy.screenshot('po-9809-minor-creditor-summary');
   });
+  it(
+    'AC5. should reflow Details and Summary at 320 CSS pixels without horizontal overflow',
+    { tags: buildTags() },
+    () => {
+      cy.viewport(320, 900);
+      setupCreditor({
+        shell: true,
+        initialChild: PATHS.children.minorCreditorDetails,
+        state: MINOR_CREDITOR_SAVED_STATE_MOCK,
+      });
+      cy.get(S.heading).should('be.visible').and('have.text', 'Minor creditor details');
+      cy.document().then((document) => {
+        expect(document.documentElement.scrollWidth).to.be.at.most(document.defaultView!.innerWidth);
+      });
+      cy.get(S.minorCreditor.save).should('be.visible');
+      cy.get(S.minorCreditor.cancel).should('be.visible');
+      cy.screenshot('po-9809-minor-creditor-details-320px');
+
+      setupCreditor({
+        shell: true,
+        initialChild: PATHS.children.minorCreditorSummary,
+        state: MINOR_CREDITOR_PENDING_STATE_MOCK,
+      });
+      cy.get(S.heading).should('be.visible').and('have.text', 'Minor creditor summary');
+      cy.document().then((document) => {
+        expect(document.documentElement.scrollWidth).to.be.at.most(document.defaultView!.innerWidth);
+      });
+      cy.screenshot('po-9809-minor-creditor-summary-320px');
+    },
+  );
 });

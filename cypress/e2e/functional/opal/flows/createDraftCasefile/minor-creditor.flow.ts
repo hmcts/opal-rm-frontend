@@ -44,6 +44,24 @@ export class MinorCreditorFlow {
     this.actions.assertSummaryWithoutDraftWrite();
   }
 
+  /**
+   * Activates the selected minor creditor review action.
+   * @param action The review action to perform.
+   */
+  public reviewAction(action: 'Change' | 'Remove' | 'Continue' | 'Cancel' | 'Back'): void {
+    this.actions.reviewAction(action);
+  }
+
+  /** Checks acceptance reached Order Terms Summary without a casefile write. */
+  public assertAcceptedReview(): void {
+    this.actions.assertAcceptedReview();
+  }
+
+  /** Checks the removal placeholder destination. */
+  public assertRemoval(): void {
+    this.actions.assertRemoval();
+  }
+
   /** Enters an unsaved identity name. */
   public enterUnsavedName(): void {
     this.actions.enterUnsavedName();

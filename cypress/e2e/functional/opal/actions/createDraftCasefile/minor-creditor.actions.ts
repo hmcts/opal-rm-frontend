@@ -53,6 +53,36 @@ export class MinorCreditorActions {
     cy.get('@draftCreation').should('not.have.been.called');
   }
 
+  /**
+   * Activates the selected minor creditor review action.
+   * @param action The review action to perform.
+   */
+  public reviewAction(action: 'Change' | 'Remove' | 'Continue' | 'Cancel' | 'Back'): void {
+    const selectors = S.minorCreditorSummary;
+    const targets = {
+      Change: selectors.change,
+      Remove: selectors.remove,
+      Continue: selectors.continue,
+      Cancel: selectors.cancel,
+      Back: selectors.back,
+    };
+    cy.get(targets[action]).click();
+  }
+
+  /** Checks review acceptance navigated without writing a draft casefile. */
+  public assertAcceptedReview(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermsSummary);
+    cy.get('@draftCreation').should('not.have.been.called');
+  }
+
+  /** Checks the guarded removal placeholder is ready for its accessibility scan. */
+  public assertRemoval(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.minorCreditorRemove);
+    cy.get(S.heading).should('have.text', 'Remove minor creditor');
+    cy.get(S.minorCreditorSummary.back).should('be.visible');
+    cy.get('@draftCreation').should('not.have.been.called');
+  }
+
   /** Creates an unsaved Organisation identity edit. */
   public enterUnsavedName(): void {
     cy.get(S.minorCreditor.organisation).check();

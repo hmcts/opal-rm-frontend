@@ -106,6 +106,15 @@ export function setupCreditor({
     })
     .as('majorCreditorsRequest');
 
+  const getCountries = cy
+    .stub()
+    .callsFake(() =>
+      typeof countriesSource === 'function'
+        ? countriesSource()
+        : (countriesSource ?? of(structuredClone(COUNTRIES_RESPONSE))),
+    )
+    .as('countriesRequest');
+
   return cy.document().then((document) => {
     document.documentElement.lang = 'en';
     document.body.classList.add('govuk-template__body');
@@ -139,15 +148,7 @@ export function setupCreditor({
           useFactory: () => {
             const service = new OpalMaintenanceService();
             service.getMajorCreditors = getMajorCreditors;
-            if (!useHttpCountries)
-              service.getCountries = cy
-                .stub()
-                .callsFake(() =>
-                  typeof countriesSource === 'function'
-                    ? countriesSource()
-                    : (countriesSource ?? of(structuredClone(COUNTRIES_RESPONSE))),
-                )
-                .as('countriesRequest');
+            if (!useHttpCountries) service.getCountries = getCountries;
             service.getResults = () => of(structuredClone(ORDER_TERMS_MOCK.response));
             service.getResult = (id: string) => of(structuredClone(OPAL_MAINTENANCE_RESULT_DETAILS_MOCK[id]) ?? null);
             return service;

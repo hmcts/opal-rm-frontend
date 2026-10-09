@@ -5,8 +5,10 @@ import { isDashboardPageType } from '@app/pages/dashboard/constants/dashboard-co
 import { DashboardPageType } from '@app/pages/dashboard/types/dashboard.type';
 import { PAGES_ROUTING_PATHS as COMMON_PAGES_ROUTING_PATHS } from '@hmcts/opal-frontend-common/pages/routing/constants';
 import { OpalUserService } from '@hmcts/opal-frontend-common/services/opal-user-service';
-import { catchError, map, Observable, of } from 'rxjs';
-import { DASHBOARD_SECTION_PERMISSIONS } from '@app/pages/dashboard/constants/dashboard-section-permissions.constant';
+import { firstValueFrom } from 'rxjs';
+import { resolveCreateCaseFilesRelease } from '@app/flows/cases/utils/resolve-create-case-files-release.utils';
+import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '@app/flows/cases/constants/release-1c-rm-create-case-files-feature-flag.constant';
+import { DASHBOARD_SECTION_FEATURE_FLAGS } from '@app/pages/dashboard/constants/dashboard-section-feature-flags.constant';
 
 const getSectionKey = (route: ActivatedRouteSnapshot): DashboardPageType | null => {
   const routeSectionKey = route.data['sectionKey'] ?? route.parent?.data['sectionKey'];
@@ -24,28 +26,30 @@ const getSectionKey = (route: ActivatedRouteSnapshot): DashboardPageType | null 
   return null;
 };
 
-export const dashboardSectionPermissionsGuard: CanActivateFn = (
-  route: ActivatedRouteSnapshot,
-): boolean | UrlTree | Observable<boolean | UrlTree> => {
+/** Blocks direct dashboard URLs unless the section is released and the user has access. */
+export const dashboardSectionPermissionsGuard: CanActivateFn = async (route, state): Promise<boolean | UrlTree> => {
   const router = inject(Router);
   const opalUserService = inject(OpalUserService);
   const sectionKey = getSectionKey(route);
-  const requiredPermissionIds = sectionKey ? DASHBOARD_SECTION_PERMISSIONS[sectionKey] : undefined;
-
-  if (!sectionKey) {
-    return true;
+  const denied = router.createUrlTree([`/${COMMON_PAGES_ROUTING_PATHS.children.accessDenied}`]);
+  if (!sectionKey || !DASHBOARD_SECTION_FEATURE_FLAGS[sectionKey]?.length) {
+    return denied;
   }
-
-  if (!requiredPermissionIds?.length) {
-    return router.createUrlTree([`/${COMMON_PAGES_ROUTING_PATHS.children.accessDenied}`]);
+  const enabled = await resolveCreateCaseFilesRelease(route, state);
+  if (enabled === null) {
+    return false;
   }
-
-  return opalUserService.getLoggedInUserState().pipe(
-    map((userState) =>
-      canAccessFinesPrimaryNavigationSection(sectionKey, userState)
-        ? true
-        : router.createUrlTree([`/${COMMON_PAGES_ROUTING_PATHS.children.accessDenied}`]),
-    ),
-    catchError(() => of(false)),
-  );
+  if (!enabled) {
+    return denied;
+  }
+  try {
+    const userState = await firstValueFrom(opalUserService.getLoggedInUserState());
+    return canAccessFinesPrimaryNavigationSection(sectionKey, userState, {
+      [RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG]: enabled,
+    })
+      ? true
+      : denied;
+  } catch {
+    return denied;
+  }
 };

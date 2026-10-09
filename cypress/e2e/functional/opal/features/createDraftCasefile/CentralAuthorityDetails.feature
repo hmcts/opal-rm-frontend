@@ -1,3 +1,4 @@
+@R1CRmCreateCaseFiles
 @JIRA-LABEL:create-draft-casefile
 Feature: Create Draft Casefile Central Authority details
 

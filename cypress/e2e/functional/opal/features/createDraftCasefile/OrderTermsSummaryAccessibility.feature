@@ -1,3 +1,4 @@
+@R1CRmCreateCaseFiles
 @JIRA-LABEL:create-draft-casefile @functional
 Feature: Review order terms accessibility
   Background:

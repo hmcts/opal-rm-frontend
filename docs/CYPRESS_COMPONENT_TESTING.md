@@ -13,6 +13,8 @@ Use this guide when writing or updating Cypress component specs in `opal-rm-fron
 ## Structure and setup helpers
 
 - Keep specs under `cypress/component/**`, grouped by feature area.
+- Keep functional, keyboard, accessibility, and reflow tests for a component together in its owning `.cy.ts` spec.
+  Use logical `describe(...)` groups within that file instead of a separate accessibility component spec.
 - Reuse the nearest maintained setup helper when it accurately represents the feature boundary.
 - For a new feature area without a suitable helper, create one targeted helper under the feature's `setup/` folder rather than repeating `mount(...)` in specs.
 - Mount the smallest real parent component that coordinates the behaviour under test. Use the real feature store when store interaction is part of the component contract.

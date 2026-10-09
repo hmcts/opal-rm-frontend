@@ -158,18 +158,38 @@ describe('Minor creditor removal', () => {
 
   it('AC4. should move focus through confirmation and cancellation with the keyboard', { tags: buildTags() }, () => {
     setupCreditor({ initialChild: PATHS.children.minorCreditorSummary, state: MINOR_CREDITOR_PENDING_STATE_MOCK });
-    cy.get(S.minorCreditorSummary.remove).focus();
-    cy.press(Cypress.Keyboard.Keys.ENTER);
-    cy.get(R.heading).should('be.focused');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(R.confirm).should('be.focused');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(R.cancel).should('be.focused');
-    cy.press(Cypress.Keyboard.Keys.ENTER);
-    cy.get<Router>('@angularRouter').its('url').should('eq', route(PATHS.children.minorCreditorSummary));
-    cy.get(S.heading).should('be.focused');
-    cy.get(S.minorCreditorSummary.remove).should('not.be.focused');
-    cy.get(R.heading).should('not.exist');
+    cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
+      const before = structuredClone(getState(store));
+      cy.get(S.minorCreditorSummary.remove).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get(R.heading).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(R.confirm).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(R.cancel).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get<Router>('@angularRouter').its('url').should('eq', route(PATHS.children.minorCreditorSummary));
+      cy.get(S.heading).should('be.focused');
+      cy.get(S.minorCreditorSummary.remove).should('not.be.focused');
+      cy.get(R.heading).should('not.exist');
+      cy.then(() => expect(getState(store)).to.deep.equal(before));
+    });
+  });
+
+  it('AC3, AC4. should not reopen removal on an Enter keyup after cancellation', { tags: buildTags() }, () => {
+    setupCreditor({ initialChild: PATHS.children.minorCreditorSummary, state: MINOR_CREDITOR_PENDING_STATE_MOCK });
+    cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
+      const before = structuredClone(getState(store));
+      cy.get(S.minorCreditorSummary.remove).click();
+      cy.get(R.cancel).click();
+      cy.get(S.heading).should('be.focused');
+      cy.get<Router>('@angularRouter').then((router) => cy.spy(router, 'navigateByUrl').as('navigationAfterCancel'));
+      cy.get(S.minorCreditorSummary.remove).focus().trigger('keyup', { key: 'Enter', code: 'Enter' });
+      cy.get('@navigationAfterCancel').should('not.have.been.called');
+      cy.get<Router>('@angularRouter').its('url').should('eq', route(PATHS.children.minorCreditorSummary));
+      cy.get(S.minorCreditorSummary.remove).should('be.focused');
+      cy.then(() => expect(getState(store)).to.deep.equal(before));
+    });
   });
 
   for (const key of ['{enter}', ' '] as const) {

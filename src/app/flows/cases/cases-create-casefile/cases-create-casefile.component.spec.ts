@@ -6,6 +6,7 @@ import { CASES_CREATE_CASEFILE_CASE_TYPES } from './constants/cases-create-casef
 import type { ICasesCreateCasefileState } from './interfaces/cases-create-casefile-state.interface';
 import { CasesCreateCasefileStore } from './stores/cases-create-casefile.store';
 import { CasesCreateCasefileComponent } from './cases-create-casefile.component';
+import { CasesCreateCasefileReviewNavigationService } from './services/cases-create-casefile-review-navigation.service';
 
 describe('CasesCreateCasefileComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileComponent>;
@@ -118,9 +119,24 @@ describe('CasesCreateCasefileComponent', () => {
   });
 
   it('resets journey state on shell destruction', () => {
+    store.setSubmissionSucceeded(true);
     store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     component.ngOnDestroy();
     expect(store.caseTypeSelection()).toBeNull();
     expect(store.stateChanges()).toBe(false);
+    expect(store.submissionSucceeded()).toBe(false);
+  });
+
+  it('clears draft and review context on shell destruction', () => {
+    const reviewNavigation = TestBed.inject(CasesCreateCasefileReviewNavigationService);
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
+    reviewNavigation.setContext({ origin: 'review', section: 'respondent' });
+
+    component.ngOnDestroy();
+
+    expect(store.caseTypeSelection()).toBeNull();
+    expect(store.stateChanges()).toBe(false);
+    expect(store.submissionSucceeded()).toBe(false);
+    expect(reviewNavigation.context()).toBeNull();
   });
 });

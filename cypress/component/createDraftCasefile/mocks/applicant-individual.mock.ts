@@ -104,7 +104,7 @@ export const VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL: ICasesCreateCasefileApplica
     type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
     nameOnAccount: 'Test Applicant',
     accountNumber: null,
-    paymentReference: null,
+    paymentReference: 'PAY-NONUK',
     bicSwiftCode: null,
     iban: 'GB82WEST12345698765432',
     bankName: null,

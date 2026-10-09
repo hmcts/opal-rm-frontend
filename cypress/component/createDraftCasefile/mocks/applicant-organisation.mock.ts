@@ -75,7 +75,7 @@ export const VALID_NON_UK_IBAN_APPLICANT_ORGANISATION: ICasesCreateCasefileAppli
     type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
     nameOnAccount: 'Test Organisation',
     accountNumber: null,
-    paymentReference: null,
+    paymentReference: 'PAY-NONUK',
     bicSwiftCode: null,
     iban: 'GB29NWBK60161331926819',
     bankName: null,

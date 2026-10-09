@@ -118,7 +118,7 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     nonUkPaymentReference: {
       control: controls.nonUkBankPaymentReference,
       fieldName: fieldNames.nonUkPaymentReference,
-      validators: [],
+      validators: [requiredTextValidator],
     },
     nonUkBicSwiftCode: {
       control: controls.nonUkBankBicSwiftCode,

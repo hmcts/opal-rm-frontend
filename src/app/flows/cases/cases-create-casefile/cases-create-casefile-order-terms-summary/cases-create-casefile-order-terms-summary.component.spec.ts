@@ -1,3 +1,5 @@
+import { createCasesCreateCasefileReviewState } from '../mocks/cases-create-casefile-review-state.mock';
+import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
@@ -594,5 +596,68 @@ describe('CasesCreateCasefileOrderTermsSummaryComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
     expect(router.navigateByUrl).toHaveBeenLastCalledWith('/cases/create-casefile/task-list');
     expect(store.orderTermAmendment()).toBeNull();
+  });
+  it.each(['orderTermAmendment', 'creditorDraft', 'orderTermRemoval', 'orderTermDraft', 'unsavedChanges'] as const)(
+    'waits for %s to clear before returning to review',
+    async (pending) => {
+      const state = createCasesCreateCasefileReviewState();
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
+      const term = state.orderTerms[0];
+      if (pending === 'orderTermAmendment') store.beginOrderTermAmendment(term.termId);
+      if (pending === 'creditorDraft') {
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+          creditorDraft: { termId: term.termId, branch: 'add-new' },
+        });
+      }
+      if (pending === 'orderTermRemoval') store.beginOrderTermRemoval(term.termId);
+      if (pending === 'orderTermDraft') {
+        patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+          orderTermDraft: {
+            resultId: term.resultId,
+            fieldTypes: {},
+            values: {},
+            dirty: false,
+            presentation: term.presentation,
+          },
+        });
+      }
+      store.setUnsavedChanges(pending === 'unsavedChanges');
+      TestBed.inject(CasesCreateCasefileReviewNavigationService).setContext({
+        origin: 'review',
+        section: 'orderTerm',
+        termId: term.termId,
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+        orderTermAmendment: null,
+        creditorDraft: null,
+        orderTermRemoval: null,
+        orderTermDraft: null,
+        unsavedChanges: false,
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(router.navigateByUrl).toHaveBeenCalledOnce();
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/check-case-details');
+      expect(store.orderTerms()).toEqual(state.orderTerms);
+    },
+  );
+
+  it('keeps accepted terms intact if returning to review rejects navigation', async () => {
+    const state = createCasesCreateCasefileReviewState();
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
+    TestBed.inject(CasesCreateCasefileReviewNavigationService).setContext({
+      origin: 'review',
+      section: 'orderTerm',
+      termId: state.orderTerms[0].termId,
+    });
+    router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/check-case-details');
+    expect(store.orderTerms()).toEqual(state.orderTerms);
   });
 });

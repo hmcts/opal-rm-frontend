@@ -415,12 +415,32 @@ describe('Create Casefile Applicant Individual', () => {
         type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
         nameOnAccount: 'Test Applicant',
         accountNumber: null,
-        paymentReference: null,
+        paymentReference: 'PAY-NONUK',
         bicSwiftCode: null,
         iban: 'GB82WEST12345698765432',
         bankName: null,
         branchSortCode: null,
       });
+    });
+  });
+
+  it('AC2. should require a non-UK payment reference before saving', { tags: buildTags('@JIRA-STORY:PO-9817') }, () => {
+    setupApplicantIndividual({ savedApplicant: VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL });
+    cy.get(Page.applicantIndividual.nonUkBankPaymentReference).clear();
+    cy.get(Page.applicantIndividual.returnToCaseDetails).click();
+    assertRouterPath(applicantPath);
+    cy.get(Page.applicantIndividual.errorSummaryLinks).should(
+      'contain.text',
+      APPLICANT_INDIVIDUAL_ERROR_MESSAGES.nonUkBankPaymentReference,
+    );
+    cy.get(Page.applicantIndividual.errorSummaryLinks)
+      .contains(APPLICANT_INDIVIDUAL_ERROR_MESSAGES.nonUkBankPaymentReference)
+      .click();
+    cy.get(Page.applicantIndividual.nonUkBankPaymentReference).should('be.focused').type('PAY-9817');
+    cy.get(Page.applicantIndividual.returnToCaseDetails).click();
+    assertRouterPath(taskListPath);
+    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
+      expect(store.applicantDetails()?.bankDetails).to.include({ type: 'non-uk', paymentReference: 'PAY-9817' });
     });
   });
 

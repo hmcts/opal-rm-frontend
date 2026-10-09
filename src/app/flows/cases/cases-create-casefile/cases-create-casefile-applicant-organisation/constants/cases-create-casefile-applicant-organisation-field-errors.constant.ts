@@ -33,7 +33,8 @@ export const CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS: ICasesCr
       CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankBicSwiftCode,
     create_casefile_applicant_organisation_non_uk_bank_iban:
       CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankIban,
-    create_casefile_applicant_organisation_non_uk_bank_payment_reference: {},
+    create_casefile_applicant_organisation_non_uk_bank_payment_reference:
+      CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankPaymentReference,
     create_casefile_applicant_organisation_non_uk_bank_name: {},
     create_casefile_applicant_organisation_non_uk_bank_branch_sort_code:
       CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankBranchSortCode,

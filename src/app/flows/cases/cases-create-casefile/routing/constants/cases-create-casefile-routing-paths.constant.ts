@@ -23,5 +23,6 @@ export const CASES_CREATE_CASEFILE_ROUTING_PATHS: ICasesCreateCasefileRoutingPat
     commentsAndNotes: 'comments-and-notes',
     checkCaseDetails: 'check-case-details',
     cancel: 'cancel',
+    submissionConfirmation: 'submission-confirmation',
   },
 };

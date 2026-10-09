@@ -7,8 +7,10 @@ import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from 'src/app/flows/cases/
 
 /** Exercises intercepted HTTP submission through the real rendered journey. */
 export class CheckCaseDetailsActions {
+  private expectedSubmissionCount = 0;
   /** Stubs the create boundary so this journey never sends a live submission. */
   public prepareSubmission(): void {
+    this.expectedSubmissionCount = 0;
     cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', {
       statusCode: 201,
       body: structuredClone(SUBMISSION.receipt),
@@ -45,6 +47,7 @@ export class CheckCaseDetailsActions {
 
   /** Submits the accepted case through the real HTTP service. */
   public submit(): void {
+    this.expectedSubmissionCount = 1;
     cy.get(S.review.submit).click();
   }
 
@@ -73,9 +76,56 @@ export class CheckCaseDetailsActions {
       expect(payload).not.to.have.property('taskStatuses');
     });
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
-    cy.get(S.review.confirmationHeading).should('have.text', 'Submission confirmation').and('be.focused');
+    cy.get(S.review.confirmationHeading)
+      .should('be.focused')
+      .and(($heading) => expect($heading.text().trim()).to.equal('You’ve submitted this case for review'));
+    cy.get(S.review.confirmationNextSteps).should('have.text', 'Next steps');
     cy.get('@draftSubmission.all').should('have.length', 1);
     cy.get(S.primaryNavigation).should('not.exist');
+  }
+
+  /** Activates Create a new case using native keyboard navigation. */
+  public startNextCase(): void {
+    cy.get(S.review.confirmationHeading).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.review.createNew).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get(S.caseTypeHeading).should('be.focused');
+  }
+
+  /** Opens confirmation in a fresh document without a draft in the store. */
+  public openFreshConfirmation(): void {
+    this.prepareSubmission();
+    cy.visit('/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
+  }
+
+  /** Returns through browser history after acceptance. */
+  public backFromConfirmation(): void {
+    cy.go('back');
+  }
+
+  /** Checks that submission leaves an empty journey with no way to resubmit the accepted case. */
+  public assertClearedJourneyAfterSubmission(): void {
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.get(S.caseTypeHeading).should('have.text', 'Create a case').and('be.visible');
+    cy.get(S.caseTypeGroup).find('input[type="radio"]:checked').should('not.exist');
+    cy.get(S.applicantTypeSelectedOption).should('have.text', 'Select');
+    cy.get(S.review.submit).should('not.exist');
+    cy.get(S.respondentDetails.firstNames).should('not.exist');
+    cy.get('@draftSubmission.all').should('have.length', 1);
+  }
+
+  /** Checks that direct entry cannot reopen any submitted party form or review page. */
+  public assertSubmittedFormsBlocked(): void {
+    for (const path of [
+      PATHS.children.respondentDetails,
+      PATHS.children.applicantIndividual,
+      PATHS.children.applicantOrganisation,
+      PATHS.children.checkCaseDetails,
+    ]) {
+      cy.visit('/' + PATHS.root + '/' + path);
+      this.assertClearedJourneyAfterSubmission();
+    }
   }
 
   /** Reloads the confirmation page to verify the existing in-memory journey reset. */
@@ -86,7 +136,7 @@ export class CheckCaseDetailsActions {
   /** Checks that refresh resets the journey without replaying the successful submission. */
   public assertRestartedJourney(): void {
     cy.get(S.caseTypeGroup).should('be.visible');
-    cy.get('@draftSubmission.all').should('have.length', 1);
+    cy.get('@draftSubmission.all').should('have.length', this.expectedSubmissionCount);
     cy.get(S.primaryNavigation).should('not.exist');
   }
 

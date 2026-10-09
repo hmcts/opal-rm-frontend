@@ -18,6 +18,10 @@ export const CreateCasefileSelectors = {
   },
   review: {
     heading: '#review-heading',
+    confirmationNextSteps: '#submission-confirmation-next-steps',
+    confirmationError: '#submission-confirmation-error',
+    createNew: '#create_casefile_confirmation_create_new',
+    inReview: '#create_casefile_confirmation_in_review',
     confirmationHeading: '#submission-confirmation-heading',
     section: (id: string) => `#review-${id}`,
     change: (id: string) => `#review-${id}-change`,

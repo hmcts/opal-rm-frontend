@@ -36,7 +36,7 @@ export const routing: Routes = [
         (m) => m.CasesCreateCasefileSubmissionConfirmationComponent,
       ),
     canActivate: [casesCreateCasefileSubmissionGuard],
-    data: { title: 'Case submitted for review' },
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.submissionConfirmation },
     resolve: { title: TitleResolver },
   },
   {

@@ -28,7 +28,7 @@ export const MINOR_CREDITOR_UK_MOCK: ICasesCreateCasefileMinorCreditorDetails = 
   },
 };
 
-export const MINOR_CREDITOR_NON_UK_MOCK: ICasesCreateCasefileMinorCreditorDetails = {
+export const MINOR_CREDITOR_NON_UK_MOCK = {
   ...structuredClone(MINOR_CREDITOR_DETAILS_MOCK),
   bank: {
     type: 'non-uk',
@@ -40,7 +40,7 @@ export const MINOR_CREDITOR_NON_UK_MOCK: ICasesCreateCasefileMinorCreditorDetail
     bankName: null,
     branchSortCode: null,
   },
-};
+} satisfies ICasesCreateCasefileMinorCreditorDetails;
 
 export const MINOR_CREDITOR_SAVED_STATE_MOCK: Partial<ICasesCreateCasefileState> = {
   orderTerms: [
@@ -143,3 +143,78 @@ export const MINOR_CREDITOR_STAGED_REMOVAL_STATE_MOCK: Partial<ICasesCreateCasef
     ready: true,
   },
 };
+
+export const MINOR_CREDITOR_BIC_MOCK: ICasesCreateCasefileMinorCreditorDetails = {
+  ...structuredClone(MINOR_CREDITOR_NON_UK_MOCK),
+  bank: { ...MINOR_CREDITOR_NON_UK_MOCK.bank, type: 'non-uk', bicSwiftCode: 'ABCDEFGH' },
+};
+
+export const MINOR_CREDITOR_IBAN_MOCK: ICasesCreateCasefileMinorCreditorDetails = {
+  ...structuredClone(MINOR_CREDITOR_NON_UK_MOCK),
+  bank: { ...MINOR_CREDITOR_NON_UK_MOCK.bank, type: 'non-uk', iban: 'GB00EXAMPLE00000001' },
+};
+
+const individualSavedState: Partial<ICasesCreateCasefileState> = {
+  ...structuredClone(MINOR_CREDITOR_SAVED_STATE_MOCK),
+  minorCreditors: [
+    { sequenceNumber: 1, displayName: 'Dr Example Person', details: MINOR_CREDITOR_INDIVIDUAL_NONE_MOCK },
+  ],
+};
+const nonUkSavedState: Partial<ICasesCreateCasefileState> = {
+  ...structuredClone(MINOR_CREDITOR_SAVED_STATE_MOCK),
+  minorCreditors: [{ sequenceNumber: 1, displayName: 'Example creditor', details: MINOR_CREDITOR_BIC_MOCK }],
+};
+
+export const MINOR_CREDITOR_RESTORATION_CASES = [
+  {
+    name: 'Individual and None',
+    identityRadio: 'individual',
+    bankRadio: 'bankNone',
+    state: individualSavedState,
+    fields: [
+      ['title', 'Dr'],
+      ['firstNames', 'Example'],
+      ['lastName', 'Person'],
+    ],
+  },
+  {
+    name: 'Organisation and UK bank',
+    identityRadio: 'organisation',
+    bankRadio: 'bankUk',
+    state: structuredClone(MINOR_CREDITOR_SAVED_STATE_MOCK),
+    fields: [
+      ['organisationName', 'Example creditor'],
+      ['ukNameOnAccount', 'Example creditor'],
+      ['ukSortCode', '001122'],
+      ['ukAccountNumber', '00112233'],
+      ['ukPaymentReference', 'Example reference'],
+    ],
+  },
+  {
+    name: 'Organisation and non-UK bank',
+    identityRadio: 'organisation',
+    bankRadio: 'bankNonUk',
+    state: nonUkSavedState,
+    fields: [
+      ['organisationName', 'Example creditor'],
+      ['nonUkNameOnAccount', 'Example creditor'],
+      ['nonUkAccountNumber', ''],
+      ['nonUkPaymentReference', 'Example reference'],
+      ['nonUkBicSwiftCode', 'ABCDEFGH'],
+      ['nonUkIban', ''],
+      ['nonUkBankName', ''],
+      ['nonUkBranchSortCode', ''],
+    ],
+  },
+] as const;
+
+export const MINOR_CREDITOR_RESTORED_ADDRESS_FIELDS = [
+  ['addressLine1', '1 Test Street'],
+  ['addressLine2', ''],
+  ['addressLine3', ''],
+  ['addressLine4', ''],
+  ['addressLine5', ''],
+  ['postalOrZipCode', ''],
+  ['countryAutocomplete', 'United Kingdom'],
+  ['countryId', '826'],
+] as const;

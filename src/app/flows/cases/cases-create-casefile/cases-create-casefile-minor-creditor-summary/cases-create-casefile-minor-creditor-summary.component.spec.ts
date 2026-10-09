@@ -70,14 +70,17 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
   it('captures the reviewed creditor before navigating to removal', async () => {
     const { component, store, router } = await setup();
     const reviewed = store.creditorDraft();
+    const event = new Event('click', { cancelable: true });
     vi.spyOn(router, 'navigateByUrl').mockImplementation(async () => {
       expect(store.minorCreditorRemoval()?.expectedDraft).toBe(reviewed);
+      expect(event.defaultPrevented).toBe(true);
       return true;
     });
 
-    await component.handleRemove();
+    await component.handleRemove(event);
 
     expect(store.creditorDraft()).toBe(reviewed);
+    expect(router.navigateByUrl).toHaveBeenCalledWith(component.removePath);
   });
 
   it.each([false, new Error('Synthetic navigation failure')])(
@@ -88,7 +91,7 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
       if (result instanceof Error) navigate.mockRejectedValue(result);
       else navigate.mockResolvedValue(result);
 
-      await component.handleRemove();
+      await component.handleRemove(new Event('click', { cancelable: true }));
 
       expect(store.creditorDraft()).toBe(draft);
       expect(store.minorCreditorRemoval()).toBeNull();
@@ -102,11 +105,13 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     const navigate = vi
       .spyOn(router, 'navigateByUrl')
       .mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
-    const first = component.handleRemove();
+    const first = component.handleRemove(new Event('click', { cancelable: true }));
     const selection = store.minorCreditorRemoval();
+    const repeatedEvent = new Event('click', { cancelable: true });
 
-    await component.handleRemove();
+    await component.handleRemove(repeatedEvent);
 
+    expect(repeatedEvent.defaultPrevented).toBe(true);
     expect(navigate).toHaveBeenCalledOnce();
     expect(store.minorCreditorRemoval()).toBe(selection);
     finish(true);
@@ -118,9 +123,11 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     const replacement = { ...draft };
     patch(store, { creditorDraft: replacement });
     const navigate = vi.spyOn(router, 'navigateByUrl');
+    const event = new Event('click', { cancelable: true });
 
-    await component.handleRemove();
+    await component.handleRemove(event);
 
+    expect(event.defaultPrevented).toBe(true);
     expect(navigate).not.toHaveBeenCalled();
     expect(store.minorCreditorRemoval()).toBeNull();
     expect(store.creditorDraft()).toBe(replacement);
@@ -131,9 +138,11 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     const before = getState(store);
     vi.spyOn(store, 'beginMinorCreditorRemoval').mockReturnValue(null);
     const navigate = vi.spyOn(router, 'navigateByUrl');
+    const event = new Event('click', { cancelable: true });
 
-    await component.handleRemove();
+    await component.handleRemove(event);
 
+    expect(event.defaultPrevented).toBe(true);
     expect(navigate).not.toHaveBeenCalled();
     expect(getState(store)).toEqual(before);
   });
@@ -143,7 +152,7 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     vi.spyOn(router, 'navigateByUrl').mockResolvedValue(false);
     fixture.detectChanges();
 
-    await component.handleRemove();
+    await component.handleRemove(new Event('click', { cancelable: true }));
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -154,7 +163,7 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     const { component, store, router } = await setup();
     let finish!: (result: boolean) => void;
     vi.spyOn(router, 'navigateByUrl').mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
-    const first = component.handleRemove();
+    const first = component.handleRemove(new Event('click', { cancelable: true }));
     const original = store.minorCreditorRemoval();
     const newer = store.beginMinorCreditorRemoval();
 
@@ -212,6 +221,10 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     expect(fixture.nativeElement.querySelector('#Remove strong').textContent).toBe('Remove');
     expect(fixture.nativeElement.querySelector('#Remove .govuk-visually-hidden').textContent).toBe(
       'minor creditor details',
+    );
+    expect(fixture.nativeElement.querySelector('#Remove').getAttribute('href')).toBe(component.removePath);
+    expect(fixture.nativeElement.querySelector('#Remove').closest('li').classList).toContain(
+      'govuk-summary-card__action',
     );
     expect(component.detailsPath).toBe('/cases/create-casefile/order-terms/creditor/minor-creditor-details');
     expect(component.removePath).toBe('/cases/create-casefile/order-terms/creditor/minor-creditor-remove');

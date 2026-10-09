@@ -30,13 +30,15 @@ export function setupCancellation(options: CancelSetupOptions = {}) {
     return mount(CasesCreateCasefileCancelComponent, {
       providers: [provideRouter([]), { provide: CasesCreateCasefileStore, useValue: store }],
     }).then(({ fixture }) => {
-      cy.spy(store, 'resetStore').as('cancelResetStore');
+      const reviewNavigation = TestBed.inject(CasesCreateCasefileReviewNavigationService);
       cy.wrap(TestBed.inject(Router).serializeUrl(TestBed.inject(CasesDraftNavigationService).creationReturnUrl())).as(
         'cancelReturnUrl',
       );
       cy.stub(TestBed.inject(Router), 'navigateByUrl').as('cancelRouterNavigate').resolves(!options.failNavigation);
+      cy.spy(store, 'resetStore').as('cancelStoreReset');
+      cy.spy(reviewNavigation, 'clearContext').as('cancelReviewContextClear');
       cy.wrap(store, { log: false }).as('cancelStore');
-      cy.wrap(TestBed.inject(CasesCreateCasefileReviewNavigationService), { log: false }).as('cancelReviewNavigation');
+      cy.wrap(reviewNavigation, { log: false }).as('cancelReviewNavigation');
       fixture.detectChanges();
     });
   });

@@ -180,7 +180,8 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
   }
 
   /** Captures the reviewed draft and opens its removal confirmation. */
-  public async handleRemove(): Promise<void> {
+  public async handleRemove(event: Event): Promise<void> {
+    event.preventDefault();
     if (this.navigationInFlight || this.pendingDraft() !== this.reviewedDraft) return;
     const selection = this.store.beginMinorCreditorRemoval();
     if (!selection) return;

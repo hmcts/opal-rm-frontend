@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ICasesCreateCasefileOrderTermDraft } from '../../interfaces/cases-create-casefile-order-term-draft.interface';
 import type { ICasesCreateCasefileOrderTermPage } from '../interfaces/cases-create-casefile-order-term-page.interface';
 import { restoreOrderTermDraft } from './cases-create-casefile-order-term-draft';
+import { orderTermPresentation } from './cases-create-casefile-order-term-presentation';
 
 const page: ICasesCreateCasefileOrderTermPage = {
   resultId: 'MAT',
@@ -68,6 +69,7 @@ const previous: ICasesCreateCasefileOrderTermDraft = {
   values: { amount: '12.30', expiry_date: '31/03/2027', creditor: 'C1', removed: 'stale', frequency: 'Weekly' },
 
   dirty: true,
+  presentation: orderTermPresentation(page),
 };
 
 describe('restoreOrderTermDraft', () => {
@@ -78,6 +80,7 @@ describe('restoreOrderTermDraft', () => {
       values: { amount: '12.30', expiry_date: '31/03/2027', creditor: 'C1' },
 
       dirty: true,
+      presentation: orderTermPresentation(page),
     });
   });
 
@@ -95,6 +98,7 @@ describe('restoreOrderTermDraft', () => {
       values: { creditor: 'C1' },
 
       dirty: true,
+      presentation: orderTermPresentation(changedPage),
     });
   });
 
@@ -105,6 +109,7 @@ describe('restoreOrderTermDraft', () => {
       values: {},
 
       dirty: false,
+      presentation: orderTermPresentation({ ...page, resultId: 'MCHILD' }),
     });
   });
 
@@ -137,6 +142,7 @@ describe('restoreOrderTermDraft', () => {
       values: { amount: '12.30', expiry_date: '31/03/2027', creditor: 'C1' },
 
       dirty: true,
+      presentation: orderTermPresentation(editableFrequency),
     });
   });
 });

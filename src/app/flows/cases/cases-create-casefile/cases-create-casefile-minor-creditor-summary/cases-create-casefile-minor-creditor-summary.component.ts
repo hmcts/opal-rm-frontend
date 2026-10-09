@@ -12,6 +12,7 @@ import {
 import type { ICasesCreateCasefileCreditorDraft } from '../interfaces/cases-create-casefile-creditor-draft.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
+import { cancelOrderTermAmendmentAfterNavigation } from '../utils/cases-create-casefile-order-term-amendment-navigation';
 import { minorCreditorSummaryRows } from './utils/cases-create-casefile-minor-creditor-summary-rows';
 
 @Component({
@@ -62,6 +63,29 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
   });
 
   public async handleContinue(): Promise<void> {
+    const pending = this.store.orderTermAmendment();
+    if (pending) {
+      if (
+        this.entryTermId !== pending.termId ||
+        this.navigationInFlight ||
+        !this.store.prepareAmendmentCompletion(pending.termId)
+      ) {
+        return;
+      }
+      const ready = this.store.orderTermAmendment()!;
+      const draft = this.store.creditorDraft();
+      this.navigationInFlight = true;
+      try {
+        if (await this.router.navigateByUrl(this.orderTermsPath)) {
+          this.store.completeOrderTermAmendment(ready, draft);
+        }
+      } catch {
+        return;
+      } finally {
+        this.navigationInFlight = false;
+      }
+      return;
+    }
     if (this.navigationInFlight || this.entryTermId === null || this.store.currentOrderTermId() !== this.entryTermId) {
       return;
     }
@@ -89,6 +113,23 @@ export class CasesCreateCasefileMinorCreditorSummaryComponent {
   }
 
   public async handleCancel(): Promise<void> {
+    const amendment = this.store.orderTermAmendment();
+    if (amendment) {
+      if (
+        this.navigationInFlight ||
+        this.entryTermId !== amendment.termId ||
+        this.store.currentOrderTermId() !== this.entryTermId
+      ) {
+        return;
+      }
+      this.navigationInFlight = true;
+      try {
+        await cancelOrderTermAmendmentAfterNavigation(this.router, this.store, this.orderTermsPath, amendment);
+      } finally {
+        this.navigationInFlight = false;
+      }
+      return;
+    }
     const draft = this.store.creditorDraft();
     if (
       this.navigationInFlight ||

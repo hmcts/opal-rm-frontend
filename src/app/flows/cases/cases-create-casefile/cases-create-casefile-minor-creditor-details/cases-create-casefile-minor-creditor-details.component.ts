@@ -4,6 +4,7 @@ import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/com
 import type { IOpalMaintenanceCountryReferenceDataResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
+import { cancelOrderTermAmendmentAfterNavigation } from '../utils/cases-create-casefile-order-term-amendment-navigation';
 import { CasesCreateCasefileMinorCreditorDetailsFormComponent } from './cases-create-casefile-minor-creditor-details-form/cases-create-casefile-minor-creditor-details-form.component';
 import type { ICasesCreateCasefileMinorCreditorForm } from './interfaces/cases-create-casefile-minor-creditor-form.interface';
 import { toMinorCreditorDetails, toMinorCreditorFormData } from './utils/cases-create-casefile-minor-creditor-mapper';
@@ -98,6 +99,18 @@ export class CasesCreateCasefileMinorCreditorDetailsComponent
   }
 
   public async handleCancel(): Promise<void> {
+    const amendment = this.store.orderTermAmendment();
+    if (amendment) {
+      if (this.navigationInFlight) return;
+      this.navigationInFlight = true;
+      try {
+        const destination = '/' + this.paths.root + '/' + this.paths.children.orderTermsSummary;
+        await cancelOrderTermAmendmentAfterNavigation(this.navigationRouter, this.store, destination, amendment);
+      } finally {
+        this.navigationInFlight = false;
+      }
+      return;
+    }
     if (this.navigationInFlight) return;
     this.navigationInFlight = true;
     try {

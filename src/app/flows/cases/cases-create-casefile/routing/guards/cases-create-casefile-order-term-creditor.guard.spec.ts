@@ -9,7 +9,16 @@ import { casesCreateCasefileOrderTermCreditorGuard } from './cases-create-casefi
 describe('casesCreateCasefileOrderTermCreditorGuard', () => {
   const route = new ActivatedRouteSnapshot();
   const state = {} as RouterStateSnapshot;
-  const accepted = { termId: 1, resultId: 'MAT', parameters: { amount: '12.30' }, creditor: null };
+  const accepted = {
+    termId: 1,
+    resultId: 'MAT',
+    parameters: { amount: '12.30' },
+    creditor: null,
+    presentation: {
+      title: 'Maintenance',
+      fields: [{ name: 'amount', label: 'Amount', kind: 'money' as const, options: [] }],
+    },
+  };
 
   beforeEach(() => TestBed.configureTestingModule({ providers: [provideRouter([]), CasesCreateCasefileStore] }));
 
@@ -43,5 +52,46 @@ describe('casesCreateCasefileOrderTermCreditorGuard', () => {
     });
 
     expect(TestBed.runInInjectionContext(() => casesCreateCasefileOrderTermCreditorGuard(route, state))).toBe(true);
+  });
+
+  it('requires completed amendment input before creditor selection', () => {
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: [accepted],
+      currentOrderTermId: 1,
+      orderTermAmendment: { termId: 1, term: accepted, inputComplete: false, ready: false },
+    });
+
+    const result = TestBed.runInInjectionContext(() => casesCreateCasefileOrderTermCreditorGuard(route, state));
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/cases/create-casefile/order-terms/add/MAT');
+
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTermAmendment: { termId: 1, term: accepted, inputComplete: true, ready: false },
+    });
+    expect(TestBed.runInInjectionContext(() => casesCreateCasefileOrderTermCreditorGuard(route, state))).toBe(true);
+  });
+
+  it('allows amendment details only for a matching add-new draft', () => {
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    const detailsRoute = new ActivatedRouteSnapshot();
+    Object.defineProperty(detailsRoute, 'routeConfig', {
+      value: { path: 'order-terms/creditor/minor-creditor-details' },
+    });
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      orderTerms: [accepted],
+      currentOrderTermId: 1,
+      orderTermAmendment: { termId: 1, term: accepted, inputComplete: true, ready: false },
+      creditorDraft: null,
+    });
+
+    const result = TestBed.runInInjectionContext(() => casesCreateCasefileOrderTermCreditorGuard(detailsRoute, state));
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/cases/create-casefile/order-terms/creditor');
+
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+      creditorDraft: { termId: 1, branch: 'add-new' },
+    });
+    expect(TestBed.runInInjectionContext(() => casesCreateCasefileOrderTermCreditorGuard(detailsRoute, state))).toBe(
+      true,
+    );
   });
 });

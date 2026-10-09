@@ -4,7 +4,7 @@ import { Router, provideRouter } from '@angular/router';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileStore } from '../../cases-create-casefile/stores/cases-create-casefile.store';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
@@ -50,6 +50,594 @@ describe('CasesDraftNavigationService', () => {
     });
     service = TestBed.inject(CasesDraftNavigationService);
     router = TestBed.inject(Router);
+  });
+  it('keeps dashboard metadata independent from the oldest-first rejection list', () => {
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    navigation.setSelection({ tab: 'rejected', page: 3, sort: 'created', direction: 'descending' });
+    navigation.rememberAllRejectedDashboardOrigin();
+    expect(navigation.allRejectedSelection()).toEqual({ page: 1, sort: 'statusDate', direction: 'ascending' });
+    navigation.setAllRejectedSelection({ page: 2, sort: 'submittedByName', direction: 'descending' });
+    const router = TestBed.inject(Router);
+    expect(router.serializeUrl(navigation.allRejectedDashboardUrl())).toBe(
+      '/cases/draft/create-and-manage/tabs#rejected',
+    );
+    expect(router.serializeUrl(navigation.allRejectedPlaceholderUrl('details', 123))).toBe(
+      '/cases/create-casefile/check-case-details/123',
+    );
+    expect(router.serializeUrl(navigation.allRejectedPlaceholderUrl('amendment', 123))).toBe(
+      '/cases/create-casefile/task-list/123',
+    );
+  });
+  it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])('rejects unsafe identifier %s', (id) => {
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    expect(() => navigation.allRejectedPlaceholderUrl('details', id)).toThrow('Invalid draft casefile identifier');
+  });
+
+  it('restores independent list and dashboard state after a details return', async () => {
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    const router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    const dashboard = { tab: 'rejected' as const, page: 3, sort: 'created' as const, direction: 'descending' as const };
+    const list = { page: 2, sort: 'submittedByName' as const, direction: 'descending' as const };
+    navigation.setSelection(dashboard);
+    await navigation.navigateToAllRejected();
+    navigation.setAllRejectedSelection(list);
+    await navigation.navigateToPlaceholder('details', 123, 'all-rejected');
+    expect(navigation.contextForPlaceholder('details', '123')).not.toBeNull();
+    expect(navigation.contextForPlaceholder('details', '124')).toBeNull();
+    expect(navigation.contextForPlaceholder('amendment', '123')).toBeNull();
+    expect(navigation.contextForPlaceholder('details', '01')).toBeNull();
+    await navigation.returnFromPlaceholder('details', '123');
+    expect(navigation.allRejectedSelection()).toEqual(list);
+    expect(navigation.contextForPlaceholder('details', '123')).toBeNull();
+    await navigation.returnFromAllRejected();
+    expect(navigation.selection()).toEqual(dashboard);
+    expect(navigation.allRejectedSelection()).toEqual(list);
+  });
+  it('rolls cancelled row context back without losing selection', async () => {
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    const router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(false);
+    navigation.setAllRejectedSelection({ page: 2, sort: 'created', direction: 'descending' });
+    expect(await navigation.navigateToPlaceholder('details', 123, 'all-rejected')).toBe(false);
+    expect(navigation.contextForPlaceholder('details', '123')).toBeNull();
+    expect(navigation.allRejectedSelection()).toEqual({ page: 2, sort: 'created', direction: 'descending' });
+  });
+  it('keeps PO-10606 creation cancellation restoration intact', () => {
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    const saved = { tab: 'rejected' as const, page: 3, sort: 'created' as const, direction: 'descending' as const };
+    navigation.setSelection(saved);
+    navigation.rememberCreateOrigin();
+    navigation.setSelection({ tab: 'in-review', page: 1, sort: 'created', direction: 'ascending' });
+    expect(TestBed.inject(Router).serializeUrl(navigation.prepareCreationReturn())).toBe(
+      '/cases/draft/create-and-manage/tabs#rejected',
+    );
+    expect(navigation.selection()).toEqual(saved);
+  });
+
+  const dashboardState: ICasesDraftNavigation = { tab: 'rejected', page: 3, sort: 'created', direction: 'descending' };
+  const listState = { page: 2, sort: 'submittedByName' as const, direction: 'descending' as const };
+  const success = () => ({
+    origin: 'all-rejected',
+    identity: { userId: 100, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+    draftCasefileId: 123,
+    respondentForename: ' Synthetic ',
+    respondentSurname: ' Respondent ',
+  });
+  it('copies valid selections and rejects invalid state without changing the table', () => {
+    const value = { ...listState };
+    service.setAllRejectedSelection(value);
+    value.page = 9;
+    service.setAllRejectedSelection({ ...listState, page: 0 });
+    expect(service.allRejectedSelection()).toEqual(listState);
+  });
+  it('uses the default rejected dashboard when entry originated on another tab', async () => {
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    service.setSelection(selected);
+    await service.navigateToAllRejected();
+    await service.returnFromAllRejected();
+    expect(service.selection()).toEqual(defaultCasesDraftNavigation('rejected'));
+  });
+  it.each(['cancel', 'throw'] as const)('rolls back list entry and dashboard Back on %s', async (outcome) => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    service.setSelection(dashboardState);
+    await service.navigateToAllRejected();
+    service.setSelection(selected);
+    if (outcome === 'cancel') navigate.mockResolvedValue(false);
+    else navigate.mockRejectedValue(new Error('Synthetic navigation error'));
+    const entry = service.navigateToAllRejected();
+    if (outcome === 'cancel') expect(await entry).toBe(false);
+    else await expect(entry).rejects.toThrow('Synthetic navigation error');
+    const back = service.returnFromAllRejected();
+    if (outcome === 'cancel') expect(await back).toBe(false);
+    else await expect(back).rejects.toThrow('Synthetic navigation error');
+    expect(service.selection()).toEqual(selected);
+    navigate.mockResolvedValue(true);
+    await service.returnFromAllRejected();
+    expect(service.selection()).toEqual(dashboardState);
+  });
+  it.each(['cancel', 'throw'] as const)('preserves old row context and list selection on %s', async (outcome) => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    service.setAllRejectedSelection(listState);
+    await service.navigateToPlaceholder('amendment', 123, 'all-rejected');
+    if (outcome === 'cancel') navigate.mockResolvedValue(false);
+    else navigate.mockRejectedValue(new Error('Synthetic navigation error'));
+    const entry = service.navigateToPlaceholder('details', 124, 'all-rejected');
+    if (outcome === 'cancel') expect(await entry).toBe(false);
+    else await expect(entry).rejects.toThrow('Synthetic navigation error');
+    expect(service.contextForPlaceholder('amendment', '123')).not.toBeNull();
+    expect(service.contextForPlaceholder('details', '124')).toBeNull();
+    const back = service.returnFromPlaceholder('amendment', '123');
+    if (outcome === 'cancel') expect(await back).toBe(false);
+    else await expect(back).rejects.toThrow('Synthetic navigation error');
+    expect(service.contextForPlaceholder('amendment', '123')).not.toBeNull();
+    expect(service.allRejectedSelection()).toEqual(listState);
+  });
+  const pendingNavigation = () => {
+    let resolve!: (accepted: boolean) => void;
+    let reject!: (error: Error) => void;
+    const promise = new Promise<boolean>((done, fail) => {
+      resolve = done;
+      reject = fail;
+    });
+    return { promise, resolve, reject };
+  };
+  const settleOlderNavigation = async (
+    pending: ReturnType<typeof pendingNavigation>,
+    navigation: Promise<boolean>,
+    outcome: 'cancel' | 'throw',
+  ) => {
+    if (outcome === 'cancel') {
+      pending.resolve(false);
+      expect(await navigation).toBe(false);
+    } else {
+      const rejected = expect(navigation).rejects.toThrow('Synthetic navigation error');
+      pending.reject(new Error('Synthetic navigation error'));
+      await rejected;
+    }
+  };
+  it.each([
+    ['cancel', false],
+    ['throw', false],
+    ['cancel', true],
+    ['throw', true],
+  ] as const)('keeps newer row context on older %s with newer already accepted=%s', async (outcome, newerAccepted) => {
+    const older = pendingNavigation();
+    const newer = pendingNavigation();
+    vi.spyOn(router, 'navigateByUrl').mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+    service.setAllRejectedSelection(listState);
+    const first = service.navigateToPlaceholder('details', 123, 'all-rejected');
+    const second = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+    if (newerAccepted) {
+      newer.resolve(true);
+      expect(await second).toBe(true);
+    }
+    await settleOlderNavigation(older, first, outcome);
+    expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ kind: 'amendment', id: 124 });
+    if (!newerAccepted) {
+      newer.resolve(true);
+      expect(await second).toBe(true);
+    }
+    expect(service.contextForPlaceholder('details', '123')).toBeNull();
+    expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ kind: 'amendment', id: 124 });
+    expect(service.allRejectedSelection()).toEqual(listState);
+  });
+  it.each([
+    [false, false, 'cancel', 'throw'],
+    [false, true, 'throw', 'cancel'],
+    [true, false, 'throw', 'cancel'],
+    [true, true, 'cancel', 'throw'],
+  ] as const)(
+    'restores original row context=%s when every overlapping row fails, latest first=%s (%s/%s)',
+    async (hasContext, latestFirst, olderOutcome, latestOutcome) => {
+      const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      if (hasContext) await service.navigateToPlaceholder('details', 122, 'all-rejected');
+      const original = service.contextForPlaceholder('details', '122');
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      const first = service.navigateToPlaceholder('details', 123, 'all-rejected');
+      const second = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+      service.setAllRejectedSelection(listState);
+      if (latestFirst) {
+        await settleOlderNavigation(newer, second, latestOutcome);
+        expect(service.contextForPlaceholder('details', '122')).toEqual(original);
+        expect(service.contextForPlaceholder('details', '123')).toBeNull();
+        await settleOlderNavigation(older, first, olderOutcome);
+      } else {
+        await settleOlderNavigation(older, first, olderOutcome);
+        await settleOlderNavigation(newer, second, latestOutcome);
+      }
+      expect(service.contextForPlaceholder('details', '122')).toEqual(original);
+      expect(service.contextForPlaceholder('details', '123')).toBeNull();
+      expect(service.contextForPlaceholder('amendment', '124')).toBeNull();
+      expect(service.allRejectedSelection()).toEqual(listState);
+    },
+  );
+  it.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])('restores original entry origin=%s when every entry fails, latest first=%s', async (hasOrigin, latestFirst) => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    service.setSelection(dashboardState);
+    if (hasOrigin) await service.navigateToAllRejected();
+    const older = pendingNavigation();
+    const newer = pendingNavigation();
+    navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+    service.setSelection({ ...dashboardState, page: 6 });
+    const first = service.navigateToAllRejected();
+    service.setSelection({ ...dashboardState, page: 7 });
+    const second = service.navigateToAllRejected();
+    if (latestFirst) {
+      await settleOlderNavigation(newer, second, 'throw');
+      await settleOlderNavigation(older, first, 'cancel');
+    } else {
+      await settleOlderNavigation(older, first, 'cancel');
+      await settleOlderNavigation(newer, second, 'throw');
+    }
+    service.setSelection(selected);
+    await service.returnFromAllRejected();
+    expect(service.selection()).toEqual(hasOrigin ? dashboardState : defaultCasesDraftNavigation('rejected'));
+  });
+  it.each([false, true])(
+    'restores original dashboard selection when every Back fails, latest first=%s',
+    async (latestFirst) => {
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      vi.spyOn(router, 'navigateByUrl').mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      service.setSelection(dashboardState);
+      service.rememberAllRejectedDashboardOrigin();
+      service.setSelection(selected);
+      const first = service.returnFromAllRejected();
+      const second = service.returnFromAllRejected();
+      if (latestFirst) {
+        await settleOlderNavigation(newer, second, 'cancel');
+        expect(service.selection()).toEqual(selected);
+        await settleOlderNavigation(older, first, 'throw');
+      } else {
+        await settleOlderNavigation(older, first, 'throw');
+        await settleOlderNavigation(newer, second, 'cancel');
+      }
+      expect(service.selection()).toEqual(selected);
+    },
+  );
+  it('uses the accepted latest row as the baseline for a later failure while older navigation remains pending', async () => {
+    const older = pendingNavigation();
+    const newer = pendingNavigation();
+    const last = pendingNavigation();
+    vi.spyOn(router, 'navigateByUrl')
+      .mockReturnValueOnce(older.promise)
+      .mockReturnValueOnce(newer.promise)
+      .mockReturnValueOnce(last.promise);
+    const first = service.navigateToPlaceholder('details', 123, 'all-rejected');
+    const second = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+    newer.resolve(true);
+    expect(await second).toBe(true);
+    const third = service.navigateToPlaceholder('details', 125, 'all-rejected');
+    await settleOlderNavigation(last, third, 'throw');
+    await settleOlderNavigation(older, first, 'cancel');
+    expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ id: 124 });
+    expect(service.contextForPlaceholder('details', '123')).toBeNull();
+    expect(service.contextForPlaceholder('details', '125')).toBeNull();
+  });
+  it('preserves an unrelated dashboard selection update while dashboard Back fails', async () => {
+    const pending = pendingNavigation();
+    vi.spyOn(router, 'navigateByUrl').mockReturnValueOnce(pending.promise);
+    service.setSelection(selected);
+    const back = service.returnFromAllRejected();
+    service.setSelection(dashboardState);
+    await settleOlderNavigation(pending, back, 'cancel');
+    expect(service.selection()).toEqual(dashboardState);
+  });
+  it.each([
+    ['cancel', false],
+    ['throw', false],
+    ['cancel', true],
+    ['throw', true],
+  ] as const)(
+    'rolls superseded Back selection back while retaining accepted row (%s, latest first=%s)',
+    async (outcome, latestFirst) => {
+      service.setSelection(dashboardState);
+      service.rememberAllRejectedDashboardOrigin();
+      service.setSelection(selected);
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      vi.spyOn(router, 'navigateByUrl').mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      const back = service.returnFromAllRejected();
+      const row = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+      if (!latestFirst) await settleOlderNavigation(older, back, outcome);
+      newer.resolve(true);
+      expect(await row).toBe(true);
+      expect(service.selection()).toEqual(selected);
+      if (latestFirst) await settleOlderNavigation(older, back, outcome);
+      expect(service.selection()).toEqual(selected);
+      expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ id: 124 });
+    },
+  );
+  it.each([
+    ['cancel', false],
+    ['throw', false],
+    ['cancel', true],
+    ['throw', true],
+  ] as const)(
+    'rolls superseded entry origin back while retaining accepted row (%s, latest first=%s)',
+    async (outcome, latestFirst) => {
+      const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      service.setSelection(dashboardState);
+      await service.navigateToAllRejected();
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      service.setSelection({ ...dashboardState, page: 7 });
+      const entry = service.navigateToAllRejected();
+      const row = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+      if (!latestFirst) await settleOlderNavigation(older, entry, outcome);
+      newer.resolve(true);
+      expect(await row).toBe(true);
+      if (latestFirst) await settleOlderNavigation(older, entry, outcome);
+      expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ id: 124 });
+      service.setSelection(selected);
+      await service.returnFromAllRejected();
+      expect(service.selection()).toEqual(dashboardState);
+    },
+  );
+  it('restores both dashboard selection and row context when overlapping Back and row navigation fail', async () => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    service.setSelection(dashboardState);
+    service.rememberAllRejectedDashboardOrigin();
+    await service.navigateToPlaceholder('details', 122, 'all-rejected');
+    service.setSelection(selected);
+    const older = pendingNavigation();
+    const newer = pendingNavigation();
+    navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+    const back = service.returnFromAllRejected();
+    const row = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+    await settleOlderNavigation(older, back, 'cancel');
+    await settleOlderNavigation(newer, row, 'throw');
+    expect(service.selection()).toEqual(selected);
+    expect(service.contextForPlaceholder('details', '122')).toMatchObject({ id: 122 });
+    expect(service.contextForPlaceholder('amendment', '124')).toBeNull();
+  });
+  it('discards all overlapping rollback baselines on reset before a fresh failed navigation', async () => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    await service.navigateToPlaceholder('details', 122, 'all-rejected');
+    const older = pendingNavigation();
+    const newer = pendingNavigation();
+    navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+    const first = service.navigateToPlaceholder('details', 123, 'all-rejected');
+    const second = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+    authenticated.set(false);
+    flush();
+    authenticated.set(true);
+    flush();
+    navigate.mockResolvedValueOnce(false);
+    expect(await service.navigateToPlaceholder('details', 125, 'all-rejected')).toBe(false);
+    await settleOlderNavigation(newer, second, 'throw');
+    await settleOlderNavigation(older, first, 'cancel');
+    for (const id of ['122', '123', '125']) expect(service.contextForPlaceholder('details', id)).toBeNull();
+    expect(service.contextForPlaceholder('amendment', '124')).toBeNull();
+  });
+  it.each(['placeholder Back', 'dashboard Back'] as const)(
+    'keeps newer row context when an older accepted %s completes',
+    async (operation) => {
+      const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      await service.navigateToPlaceholder('details', 123, 'all-rejected');
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      navigate.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      service.setAllRejectedSelection(listState);
+      const first =
+        operation === 'placeholder Back'
+          ? service.returnFromPlaceholder('details', '123')
+          : service.returnFromAllRejected();
+      const second = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+      newer.resolve(true);
+      expect(await second).toBe(true);
+      older.resolve(true);
+      expect(await first).toBe(true);
+      expect(service.contextForPlaceholder('amendment', '124')).toMatchObject({ kind: 'amendment', id: 124 });
+      expect(service.allRejectedSelection()).toEqual(listState);
+    },
+  );
+  it.each(['cancel', 'throw'] as const)(
+    'keeps the newer dashboard origin when an older list entry settles with %s',
+    async (outcome) => {
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      vi.spyOn(router, 'navigateByUrl')
+        .mockReturnValueOnce(older.promise)
+        .mockReturnValueOnce(newer.promise)
+        .mockResolvedValue(true);
+      service.setSelection(dashboardState);
+      const first = service.navigateToAllRejected();
+      const latestDashboard = { ...dashboardState, page: 7 };
+      service.setSelection(latestDashboard);
+      const second = service.navigateToAllRejected();
+      newer.resolve(true);
+      expect(await second).toBe(true);
+      await settleOlderNavigation(older, first, outcome);
+      service.setSelection(selected);
+      await service.returnFromAllRejected();
+      expect(service.selection()).toEqual(latestDashboard);
+    },
+  );
+  it.each(['cancel', 'throw'] as const)(
+    'keeps newer dashboard Back selection when an older Back settles with %s',
+    async (outcome) => {
+      const older = pendingNavigation();
+      const newer = pendingNavigation();
+      vi.spyOn(router, 'navigateByUrl').mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+      service.setSelection(dashboardState);
+      service.rememberAllRejectedDashboardOrigin();
+      service.setSelection(selected);
+      const first = service.returnFromAllRejected();
+      service.setSelection({ ...dashboardState, page: 7 });
+      service.rememberAllRejectedDashboardOrigin();
+      const second = service.returnFromAllRejected();
+      await settleOlderNavigation(older, first, outcome);
+      expect(service.selection()).toEqual({ ...dashboardState, page: 7 });
+      newer.resolve(true);
+      expect(await second).toBe(true);
+      expect(service.selection()).toEqual({ ...dashboardState, page: 7 });
+    },
+  );
+  it('invalidates pending settlement on scope reset even when the original identity returns', async () => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    await service.navigateToPlaceholder('details', 123, 'all-rejected');
+    const older = pendingNavigation();
+    navigate.mockReturnValueOnce(older.promise);
+    const first = service.navigateToPlaceholder('amendment', 124, 'all-rejected');
+    authenticated.set(false);
+    flush();
+    authenticated.set(true);
+    flush();
+    older.resolve(false);
+    expect(await first).toBe(false);
+    expect(service.contextForPlaceholder('details', '123')).toBeNull();
+    expect(service.contextForPlaceholder('amendment', '124')).toBeNull();
+  });
+  it('retains context across browser Back but clears it on a same-ID dashboard entry', async () => {
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    await service.navigateToPlaceholder('details', 123, 'all-rejected');
+    expect(service.contextForPlaceholder('details', '123')).not.toBeNull();
+    service.setAllRejectedSelection(listState);
+    await router.navigateByUrl(service.allRejectedUrl());
+    expect(service.contextForPlaceholder('details', '123')).not.toBeNull();
+    await service.navigateToPlaceholder('details', 123);
+    expect(service.contextForPlaceholder('details', '123')).toBeNull();
+  });
+  it.each([null, '', '0', '-1', '+123', '01', '123 ', '1.5', '9007199254740992'])(
+    'rejects invalid context ID %s',
+    async (id) => {
+      vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      await service.navigateToPlaceholder('details', 123, 'all-rejected');
+      expect(service.contextForPlaceholder('details', id)).toBeNull();
+      expect(await service.returnFromPlaceholder('details', id)).toBe(false);
+      expect(service.contextForPlaceholder('review', '123')).toBeNull();
+    },
+  );
+  it('rejects unsafe row navigation before changing captured context', async () => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    await service.navigateToPlaceholder('details', 123, 'all-rejected');
+    await expect(service.navigateToPlaceholder('amendment', 0, 'all-rejected')).rejects.toThrow(
+      'Invalid draft casefile identifier',
+    );
+    expect(service.contextForPlaceholder('details', '123')).not.toBeNull();
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+  it('accepts the largest safe identifier and uses pure URL construction', async () => {
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    await service.navigateToPlaceholder('details', Number.MAX_SAFE_INTEGER, 'all-rejected');
+    expect(service.contextForPlaceholder('details', String(Number.MAX_SAFE_INTEGER))).not.toBeNull();
+    const context = service.contextForPlaceholder('details', String(Number.MAX_SAFE_INTEGER));
+    service.allRejectedDashboardUrl();
+    service.allRejectedUrl();
+    service.allRejectedPlaceholderUrl('amendment', 124);
+    expect(service.contextForPlaceholder('details', String(Number.MAX_SAFE_INTEGER))).toEqual(context);
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate.mock.calls[0]).toHaveLength(1);
+    expect((navigate.mock.calls[0][0] as import('@angular/router').UrlTree).queryParams).toEqual({});
+  });
+  it('consumes only an explicitly recorded validated success once and can dismiss it', () => {
+    expect(service.consumeAllRejectedResubmission()).toBeNull();
+    const event = success();
+    expect(service.recordAllRejectedResubmission(event)).toBe(true);
+    event.respondentForename = 'Changed';
+    event.identity.submittedBy = 'Changed';
+    expect(service.consumeAllRejectedResubmission()).toEqual({
+      ...success(),
+      respondentForename: 'Synthetic',
+      respondentSurname: 'Respondent',
+    });
+    expect(service.consumeAllRejectedResubmission()).toBeNull();
+    service.recordAllRejectedResubmission(success());
+    service.clearAllRejectedSuccess();
+    expect(service.consumeAllRejectedResubmission()).toBeNull();
+    service.recordAllRejectedResubmission(success());
+    expect(service.recordAllRejectedResubmission({ success: true })).toBe(false);
+    expect(service.consumeAllRejectedResubmission()).toBeNull();
+  });
+  it.each([
+    'global user',
+    'BU user',
+    'BU',
+    'permission',
+    'status',
+    'missing user',
+    'authentication',
+    'release',
+    'missing flag',
+  ])('hides list origins and success immediately on %s change', async (change) => {
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    service.setSelection(dashboardState);
+    await service.navigateToAllRejected();
+    service.setAllRejectedSelection(listState);
+    await service.navigateToPlaceholder('details', 123, 'all-rejected');
+    service.recordAllRejectedResubmission(success());
+    flush();
+    const user = permittedUser();
+    if (change === 'global user') user.user_id = 101;
+    if (change === 'BU user') user.business_unit_users[0].business_unit_user_id = 'OTHER-SYNTHETIC';
+    if (change === 'BU') user.business_unit_users[0].business_unit_id = 45;
+    if (change === 'permission') user.business_unit_users[0].permissions = [];
+    if (change === 'status') user.status = 'suspended';
+    userState.set(change === 'missing user' ? null : user);
+    if (change === 'authentication') authenticated.set(false);
+    if (change === 'release') featureFlags.set({ [flag]: false });
+    if (change === 'missing flag') featureFlags.set({});
+    expect(service.allRejectedSelection()).toEqual({ page: 1, sort: 'statusDate', direction: 'ascending' });
+    expect(service.contextForPlaceholder('details', '123')).toBeNull();
+    expect(router.serializeUrl(service.allRejectedDashboardUrl())).toBe('/cases/draft/create-and-manage/tabs#rejected');
+    expect(service.consumeAllRejectedResubmission()).toBeNull();
+    flush();
+    authenticated.set(true);
+    userState.set(permittedUser());
+    featureFlags.set({ [flag]: true });
+    flush();
+    expect(service.allRejectedSelection()).toEqual({ page: 1, sort: 'statusDate', direction: 'ascending' });
+    expect(service.contextForPlaceholder('details', '123')).toBeNull();
+  });
+  it.each(['entry', 'row', 'dashboard Back', 'placeholder Back'] as const)(
+    'does not roll %s metadata into a new identity after an in-flight navigation',
+    async (operation) => {
+      const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      await service.navigateToPlaceholder('details', 123, 'all-rejected');
+      let resolve!: (value: boolean) => void;
+      navigate.mockImplementation(
+        () =>
+          new Promise<boolean>((done) => {
+            resolve = done;
+          }),
+      );
+      let pending: Promise<boolean>;
+      if (operation === 'entry') pending = service.navigateToAllRejected();
+      else if (operation === 'row') pending = service.navigateToPlaceholder('details', 124, 'all-rejected');
+      else if (operation === 'dashboard Back') pending = service.returnFromAllRejected();
+      else pending = service.returnFromPlaceholder('details', '123');
+      userState.set({ ...permittedUser(), user_id: 101 });
+      service.setAllRejectedSelection(listState);
+      resolve(operation === 'placeholder Back');
+      await pending;
+      expect(service.contextForPlaceholder('details', '123')).toBeNull();
+      expect(service.contextForPlaceholder('details', '124')).toBeNull();
+      expect(service.allRejectedSelection()).toEqual(listState);
+    },
+  );
+  it('refuses protected memory operations without live inputter permission', async () => {
+    authenticated.set(false);
+    service.setAllRejectedSelection(listState);
+    service.rememberAllRejectedDashboardOrigin();
+    expect(await service.navigateToAllRejected()).toBe(false);
+    expect(await service.navigateToPlaceholder('details', 123, 'all-rejected')).toBe(false);
+    expect(await service.returnFromAllRejected()).toBe(false);
+    expect(service.recordAllRejectedResubmission(success())).toBe(false);
+  });
+  it('returns to the default rejected dashboard with no remembered origin', async () => {
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    await service.returnFromAllRejected();
+    expect(service.selection()).toEqual(defaultCasesDraftNavigation('rejected'));
   });
   it('starts with the default selection and return URL', () => {
     flush();
@@ -213,6 +801,27 @@ describe('checker CasesDraftNavigationService', () => {
     });
     service = TestBed.inject(CasesDraftNavigationService);
     router = TestBed.inject(Router);
+  });
+  it('cannot retain inputter list metadata, placeholder context or success', async () => {
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    service.setAllRejectedSelection({ page: 2, sort: 'created', direction: 'descending' });
+    service.rememberAllRejectedDashboardOrigin();
+    expect(service.allRejectedSelection()).toEqual({ page: 1, sort: 'statusDate', direction: 'ascending' });
+    expect(await service.navigateToAllRejected()).toBe(false);
+    expect(await service.navigateToPlaceholder('details', 123, 'all-rejected')).toBe(false);
+    expect(await service.returnFromAllRejected()).toBe(false);
+    expect(service.contextForPlaceholder('details', '123')).toBeNull();
+    expect(
+      service.recordAllRejectedResubmission({
+        origin: 'all-rejected',
+        identity: { userId: 100, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+        draftCasefileId: 123,
+        respondentForename: 'Synthetic',
+        respondentSurname: 'Respondent',
+      }),
+    ).toBe(false);
+    expect(service.consumeAllRejectedResubmission()).toBeNull();
+    expect(navigate).not.toHaveBeenCalled();
   });
   it('starts with the checker default and constructs its dashboard URL', () => {
     TestBed.tick();

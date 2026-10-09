@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -8,6 +8,8 @@ import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { mapCasesDraftRows } from '../utils/cases-draft-summary';
 import { createCasesDraftSummary } from '../mocks/cases-draft-summary.mock';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
+import type { ICasesDraftRow } from '../interfaces/cases-draft-row.interface';
+import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
 import type { CasesDraftTab, CasesDraftCheckerTab } from '../types/cases-draft-tab.type';
 
 describe('CasesDraftTableComponent rendered table', () => {
@@ -155,6 +157,12 @@ describe('CasesDraftTableComponent rendered table', () => {
     ).toEqual(['3', '1', '2', '4']);
   });
 
+  it('retains inputter dashboard caption and visible result counts', () => {
+    const element: HTMLElement = render('rejected', 26).nativeElement;
+    expect(element.querySelector('caption')?.textContent?.trim()).toBe('Rejected cases');
+    expect(element.querySelector('opal-lib-moj-pagination')?.textContent).toContain('26');
+    expect(element.querySelector('opal-lib-govuk-pagination')).toBeNull();
+  });
   it('paginates 26 rows and clamps shrinking results', () => {
     const fixture = render('in-review', 26, 2);
     const el: HTMLElement = fixture.nativeElement;
@@ -256,8 +264,9 @@ describe('checker rendered table', () => {
       ],
     }),
   );
-  function render(tab: CasesDraftCheckerTab = 'to-review', count = 1) {
+  function render(tab: CasesDraftCheckerTab = 'to-review', count = 1, presentation = 'dashboard') {
     const fixture = TestBed.createComponent(CasesDraftTableComponent);
+    fixture.componentRef.setInput('presentation', presentation);
     fixture.componentRef.setInput('selection', defaultCasesDraftNavigation(tab, 'checker'));
     fixture.componentRef.setInput(
       'rows',
@@ -302,6 +311,22 @@ describe('checker rendered table', () => {
       );
     },
   );
+  it('uses the inputter details destination for all-rejected even with checker providers', () => {
+    const element: HTMLElement = render('rejected', 26, 'all-rejected').nativeElement;
+    expect(element.querySelector('caption')?.textContent?.trim()).toBe('All rejected cases');
+    expect(element.querySelector('tbody a')?.getAttribute('href')).toBe('/cases/create-casefile/check-case-details/1');
+    expect(element.querySelectorAll('th')).toHaveLength(6);
+    expect(element.querySelector('opal-lib-moj-pagination')).not.toBeNull();
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
+      /Showing \d+ to \d+ of \d+ total results/,
+    );
+  });
+  it('retains checker dashboard caption and visible result counts', () => {
+    const element: HTMLElement = render('rejected', 26).nativeElement;
+    expect(element.querySelector('caption')?.textContent?.trim()).toBe('Rejected cases');
+    expect(element.querySelector('opal-lib-moj-pagination')?.textContent).toContain('26');
+    expect(element.querySelector('opal-lib-govuk-pagination')).toBeNull();
+  });
   it('displays missing submitter fallback and sorts names with missing last', () => {
     const fixture = render('to-review', 2);
     expect(fixture.nativeElement.querySelectorAll('[data-column="submittedByName"]')[1].textContent.trim()).toBe('—');
@@ -479,5 +504,312 @@ describe.each(['inputter', 'checker'] as const)('%s controlled page announcement
 
     expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(element.querySelector('output')?.textContent).toBe('Page 1 of 1, showing cases 1 to 1 of 1');
+  });
+});
+
+describe('all-rejected rendered table', () => {
+  beforeEach(() =>
+    TestBed.configureTestingModule({
+      imports: [CasesDraftTableComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: GlobalStore,
+          useValue: { authenticated: signal(false), userState: signal(null), featureFlags: signal({}) },
+        },
+      ],
+    }),
+  );
+
+  function render(count = 26, page = 1) {
+    const fixture = TestBed.createComponent(CasesDraftTableComponent);
+    fixture.componentRef.setInput('presentation', 'all-rejected');
+    fixture.componentRef.setInput('selection', {
+      tab: 'rejected',
+      page,
+      sort: 'statusDate',
+      direction: 'ascending',
+    });
+    fixture.componentRef.setInput(
+      'rows',
+      mapCasesDraftRows(
+        Array.from({ length: count }, (_, index) =>
+          createCasesDraftSummary({
+            draft_casefile_id: index + 1,
+            casefile_status: 'REJECTED',
+            submitted_by_name: index === 0 ? 'Synthetic submitter' : null,
+          }),
+        ),
+        'rejected',
+      ),
+    );
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('renders six columns, inputter detail links and shared MOJ paging', () => {
+    const fixture = render();
+    const element: HTMLElement = fixture.nativeElement;
+    expect([...element.querySelectorAll('th')].map((cell) => cell.textContent?.trim())).toEqual([
+      'Respondent',
+      'Applicant',
+      'Case type',
+      'Submitted by',
+      'Created',
+      'Rejected',
+    ]);
+    expect(element.querySelector('caption')?.textContent?.trim()).toBe('All rejected cases');
+    expect(element.querySelector('[data-column="submittedByName"]')?.textContent?.trim()).toBe('Synthetic submitter');
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
+    expect(element.querySelector('tbody a')?.getAttribute('href')).toBe('/cases/create-casefile/check-case-details/1');
+    expect(element.querySelector('opal-lib-moj-pagination')).not.toBeNull();
+    expect(element.querySelector('opal-lib-moj-pagination nav')).not.toBeNull();
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
+      /Showing \d+ to \d+ of \d+ total results/,
+    );
+    expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 1 of 2');
+  });
+
+  const sortOrders: readonly [CasesDraftSortColumn, readonly number[], readonly number[]][] = [
+    [
+      'respondent',
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+      [24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 25, 26],
+    ],
+    [
+      'applicant',
+      [24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 25, 26],
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+    ],
+    [
+      'caseType',
+      [3, 6, 9, 12, 15, 18, 21, 24, 1, 4, 7, 10, 13, 16, 19, 22, 25, 2, 5, 8, 11, 14, 17, 20, 23, 26],
+      [2, 5, 8, 11, 14, 17, 20, 23, 26, 1, 4, 7, 10, 13, 16, 19, 22, 25, 3, 6, 9, 12, 15, 18, 21, 24],
+    ],
+    [
+      'submittedByName',
+      [19, 20, 21, 22, 23, 24, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26],
+      [18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 24, 23, 22, 21, 20, 19, 25, 26],
+    ],
+    [
+      'created',
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+      [26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    ],
+    [
+      'statusDate',
+      [26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+    ],
+  ];
+  function scrambledRows(): ICasesDraftRow[] {
+    return [14, 2, 26, 8, 21, 3, 19, 1, 25, 9, 12, 4, 23, 16, 7, 18, 10, 5, 22, 13, 6, 24, 11, 20, 15, 17].map(
+      (id) => ({
+        id,
+        respondent: id > 24 ? null : `Respondent ${id}`,
+        applicant: id > 24 ? null : `Applicant ${27 - id}`,
+        submittedByName: id > 24 ? null : `Submitter ${((id + 7) % 26) + 1}`,
+        caseType: (['REMO In', 'REMO Out', 'REMO Out (CMS)'] as const)[id % 3],
+        created: `2026-09-${String(id).padStart(2, '0')}T10:00:00Z`,
+        statusDate: `2026-10-${String(27 - id).padStart(2, '0')}T10:00:00Z`,
+        approved: null,
+        respondentAccount: null,
+        applicantAccount: null,
+        minorCreditorAccounts: [],
+      }),
+    );
+  }
+  function renderedIds(element: HTMLElement): number[] {
+    return [...element.querySelectorAll('tbody tr')].map((row) => Number(row.getAttribute('data-draft-id')));
+  }
+  it.each(sortOrders)(
+    'sorts the complete scrambled collection by %s in both directions before slicing',
+    (key, ascending, descending) => {
+      const fixture = render();
+      const original = scrambledRows();
+      const snapshot = structuredClone(original);
+      fixture.componentRef.setInput('rows', original);
+      fixture.componentRef.setInput('selection', { tab: 'rejected', page: 1, sort: 'statusDate', direction: 'none' });
+      fixture.detectChanges();
+      const element: HTMLElement = fixture.nativeElement;
+      const changed = vi.spyOn(fixture.componentInstance.sortChanged, 'emit');
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+      const routerNavigate = vi.spyOn(TestBed.inject(Router), 'navigate');
+      for (const [direction, expected] of [
+        ['ascending', ascending],
+        ['descending', descending],
+      ] as const) {
+        fixture.componentInstance.onPageChange(2);
+        fixture.detectChanges();
+        (element.querySelector(`th[columnKey="${key}"] button`) as HTMLButtonElement).click();
+        fixture.detectChanges();
+        expect(changed).toHaveBeenLastCalledWith({ key, direction });
+        expect(fixture.componentInstance.currentPageSignal()).toBe(1);
+        expect(renderedIds(element)).toEqual(expected.slice(0, 25));
+        expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 1 of 2');
+        fixture.componentInstance.onPageChange(2);
+        fixture.detectChanges();
+        expect(renderedIds(element)).toEqual(expected.slice(25));
+      }
+      expect(original).toEqual(snapshot);
+      expect(navigate).not.toHaveBeenCalled();
+      expect(routerNavigate).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([0, 1, 25, 26])('renders %s rows with pagination only above 25', (count) => {
+    const element: HTMLElement = render(count).nativeElement;
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(Math.min(count, 25));
+    expect(Boolean(element.querySelector('#cases-draft-pagination'))).toBe(count > 25);
+    expect(element.querySelector('output')?.textContent).toBe(`All rejected cases, page 1 of ${count > 25 ? 2 : 1}`);
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toBe(
+      count > 25 ? 'Showing 1 to 25 of 26 total results' : undefined,
+    );
+  });
+
+  it('uses local native page links, two inactive ellipses and one current page across edges', () => {
+    const fixture = render(251);
+    const element: HTMLElement = fixture.nativeElement;
+    const pageChanged = vi.spyOn(fixture.componentInstance.pageChanged, 'emit');
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    const routerNavigate = vi.spyOn(TestBed.inject(Router), 'navigate');
+    expect(element.querySelector('[rel="prev"]')).toBeNull();
+    (element.querySelector('[rel="next"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    expect(pageChanged).toHaveBeenLastCalledWith(2);
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
+    expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 2 of 11');
+    fixture.componentRef.setInput('selection', {
+      tab: 'rejected',
+      page: 5,
+      sort: 'statusDate',
+      direction: 'ascending',
+    });
+    fixture.detectChanges();
+    expect(element.querySelectorAll('#cases-draft-pagination [aria-current="page"]')).toHaveLength(1);
+    expect(element.querySelector('#cases-draft-pagination a[aria-current="page"]')?.getAttribute('aria-label')).toBe(
+      'Page 5',
+    );
+    const ellipses = element.querySelectorAll('.govuk-pagination__item--ellipses');
+    expect(ellipses).toHaveLength(2);
+    expect([...ellipses].every((item) => item.querySelector('a, button') === null)).toBe(true);
+    (element.querySelector('[aria-label="Page 11"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(element.querySelector('[rel="next"]')).toBeNull();
+    expect(element.querySelector('#cases-draft-pagination a[aria-current="page"]')?.getAttribute('aria-label')).toBe(
+      'Page 11',
+    );
+    (element.querySelector('[rel="prev"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    expect(pageChanged).toHaveBeenLastCalledWith(10);
+    expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 10 of 11');
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
+      /Showing \d+ to \d+ of \d+ total results/,
+    );
+    expect(navigate).not.toHaveBeenCalled();
+    expect(routerNavigate).not.toHaveBeenCalled();
+  });
+
+  it('clamps stored pages and shrinking data, clearing stale announcements without counts', () => {
+    const fixture = render(26, 99);
+    const element: HTMLElement = fixture.nativeElement;
+    expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 2 of 2');
+    fixture.componentInstance.onPageChange(1);
+    fixture.detectChanges();
+    fixture.componentRef.setInput('selection', {
+      tab: 'rejected',
+      page: 2,
+      sort: 'statusDate',
+      direction: 'ascending',
+    });
+    fixture.detectChanges();
+    fixture.componentInstance.onPageChange(1);
+    fixture.componentInstance.onPageChange(2);
+    fixture.detectChanges();
+    fixture.componentRef.setInput(
+      'rows',
+      mapCasesDraftRows([createCasesDraftSummary({ casefile_status: 'REJECTED' })], 'rejected'),
+    );
+    fixture.detectChanges();
+    expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 1 of 1');
+    expect(element.querySelector('#cases-draft-pagination')).toBeNull();
+  });
+
+  it('reapplies presentation when rows and selection keep the same references', () => {
+    const fixture = render();
+    const element: HTMLElement = fixture.nativeElement;
+    fixture.componentInstance.onPageChange(2);
+    fixture.detectChanges();
+    fixture.componentRef.setInput('presentation', 'dashboard');
+    fixture.detectChanges();
+    expect(element.querySelectorAll('th')).toHaveLength(5);
+    expect(element.querySelector('caption')?.textContent?.trim()).toBe('Rejected cases');
+    expect(element.querySelector('opal-lib-moj-pagination')).not.toBeNull();
+    expect(element.querySelector('output')?.textContent).toBe('Page 1 of 2, showing cases 1 to 25 of 26');
+    fixture.componentRef.setInput('presentation', 'all-rejected');
+    fixture.detectChanges();
+    expect(element.querySelectorAll('th')).toHaveLength(6);
+    expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 1 of 2');
+  });
+
+  it.each([{ button: 1 }, { ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }])(
+    'preserves native respondent activation for %j',
+    (options) => {
+      const fixture = render(1);
+      const link = fixture.nativeElement.querySelector('tbody a') as HTMLAnchorElement;
+      const opened = vi.spyOn(fixture.componentInstance.rowOpened, 'emit');
+      const event = new MouseEvent('click', { ...options, bubbles: true, cancelable: true });
+      link.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+      expect(opened).not.toHaveBeenCalled();
+      expect(link.getAttribute('href')).toBe('/cases/create-casefile/check-case-details/1');
+    },
+  );
+
+  it('emits only unmodified respondent activation and retains missing name display', () => {
+    const fixture = render(26);
+    const opened = vi.spyOn(fixture.componentInstance.rowOpened, 'emit');
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    fixture.nativeElement.querySelector('tbody a').dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(opened).toHaveBeenCalledExactlyOnceWith(1);
+    expect(fixture.nativeElement.querySelectorAll('[data-column="submittedByName"]')[1].textContent.trim()).toBe('—');
+  });
+
+  it.each([
+    [-2, 1],
+    [99, 2],
+  ])('clamps stored page %s to page %s', (page, expected) => {
+    const element: HTMLElement = render(26, page).nativeElement;
+    expect(element.querySelector('output')?.textContent).toBe(`All rejected cases, page ${expected} of 2`);
+    expect(element.querySelector('#cases-draft-pagination a[aria-current="page"]')?.getAttribute('aria-label')).toBe(
+      `Page ${expected}`,
+    );
+  });
+
+  it('focuses the first respondent after intentional paging and preserves a parent page commit', async () => {
+    const fixture = render();
+    const element: HTMLElement = fixture.nativeElement;
+    const changed = vi.spyOn(fixture.componentInstance.pageChanged, 'emit');
+    (element.querySelector('[rel="next"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(element.querySelector('tbody a'));
+    expect(changed).toHaveBeenCalledExactlyOnceWith(2);
+    fixture.componentRef.setInput('selection', {
+      tab: 'rejected',
+      page: 2,
+      sort: 'statusDate',
+      direction: 'ascending',
+    });
+    fixture.detectChanges();
+    expect(element.querySelector('output')?.textContent).toBe('All rejected cases, page 2 of 2');
+    fixture.componentInstance.onPageChange(2);
+    fixture.detectChanges();
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
+      /Showing \d+ to \d+ of \d+ total results/,
+    );
   });
 });

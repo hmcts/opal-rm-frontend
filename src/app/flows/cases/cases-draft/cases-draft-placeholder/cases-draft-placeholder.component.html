@@ -1,5 +1,11 @@
 <div [class]="gridClass()">
-  <a id="cases-draft-placeholder-back" class="govuk-back-link" [routerLink]="backUrl()">Back</a>
+  @if (allRejectedContext()) {
+    <a id="cases-draft-placeholder-back" class="govuk-back-link" [href]="backUrl()" (click)="backToAllRejected($event)"
+      >Back</a
+    >
+  } @else {
+    <a id="cases-draft-placeholder-back" class="govuk-back-link" [routerLink]="backUrl()">Back</a>
+  }
   <h1 #heading id="cases-draft-placeholder-heading" class="govuk-heading-l" tabindex="-1">{{ headingText() }}</h1>
   <p class="govuk-body">{{ bodyText() }}</p>
 </div>

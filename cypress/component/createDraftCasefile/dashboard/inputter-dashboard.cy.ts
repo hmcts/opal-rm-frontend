@@ -3,6 +3,7 @@ import { setupInputterDashboard, setupResolvedInputterDashboard } from './setup/
 import { dashboardFixtures } from './mocks/dashboard.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
+import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import type { CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 const buildTags = (): string[] => [
   '@JIRA-STORY:PO-10605',
@@ -81,8 +82,12 @@ describe('Inputter casefile dashboard', () => {
   });
   it('AC4. should expose all rejected cases with populated results', { tags: buildTags() }, () => {
     setupInputterDashboard({ tab: 'rejected', rows: [createCasesDraftSummary({ casefile_status: 'REJECTED' })] });
-    cy.get(S.allRejected).click();
-    cy.get('@routerNavigate').should('have.been.calledOnce');
+    const expected = '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.rejections;
+    cy.get(S.allRejected).should('have.attr', 'href', expected).click();
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
+      expect(navigate).to.have.been.calledOnce;
+      expect(navigate.firstCall.args[0].toString()).to.equal(expected);
+    });
     cy.get('@countRequest').should('not.have.been.called');
   });
   it(

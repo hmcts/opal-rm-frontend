@@ -48,9 +48,7 @@ export class CasesDraftCreateAndManageTabsComponent extends CasesDraftDashboardB
   protected readonly mode = 'inputter';
   protected readonly identity = computed(() => (this.httpDenied() ? null : this.data.getIdentity()));
   public readonly tabs: readonly CasesDraftTab[] = ['in-review', 'rejected', 'approved', 'deleted'];
-  public readonly allRejectedUrl = computed(() =>
-    this.dashboardRouter.serializeUrl(this.navigation.placeholderUrl('rejections')),
-  );
+  public readonly allRejectedUrl = computed(() => this.dashboardRouter.serializeUrl(this.navigation.allRejectedUrl()));
   public readonly tabData$: Observable<ICasesDraftTabData | null>;
   public readonly rejectedCount$: Observable<{ identity: ICasesDraftIdentity; count: number | null }>;
 
@@ -97,12 +95,20 @@ export class CasesDraftCreateAndManageTabsComponent extends CasesDraftDashboardB
     }
   }
   public async openRow(id: number): Promise<void> {
-    await this.navigate(this.navigation.placeholderUrl('details', id));
+    try {
+      await this.navigation.navigateToPlaceholder('details', id);
+    } catch (error: unknown) {
+      this.data.reportError(error);
+    }
   }
   public async openAllRejected(event: MouseEvent): Promise<void> {
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    await this.navigate(this.navigation.placeholderUrl('rejections'));
+    try {
+      await this.navigation.navigateToAllRejected();
+    } catch (error: unknown) {
+      this.data.reportError(error);
+    }
   }
   public async startNewCase(): Promise<void> {
     this.navigation.rememberCreateOrigin();

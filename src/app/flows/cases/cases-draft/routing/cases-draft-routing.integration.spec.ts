@@ -17,6 +17,7 @@ import { CasesCreateCasefileStore } from '../../cases-create-casefile/stores/cas
 import { CASES_CREATE_CASEFILE_STATE } from '../../cases-create-casefile/constants/cases-create-casefile-state.constant';
 import { CasesCreateCasefileComponent } from '../../cases-create-casefile/cases-create-casefile.component';
 import { CasesDraftCreateAndManageTabsComponent } from '../cases-draft-create-and-manage-tabs/cases-draft-create-and-manage-tabs.component';
+import { CasesDraftCreateAndManageViewAllRejectedComponent } from '../cases-draft-create-and-manage-tabs/cases-draft-create-and-manage-view-all-rejected/cases-draft-create-and-manage-view-all-rejected.component';
 import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
 import { CASES_DRAFT_TABS } from '../constants/cases-draft-tabs.constant';
 import { createCasesDraftSummary } from '../mocks/cases-draft-summary.mock';
@@ -28,7 +29,7 @@ const dashboard = '/cases/draft/create-and-manage/tabs';
 const details = '/cases/create-casefile/check-case-details/123';
 const amendment = '/cases/create-casefile/task-list/123';
 const rejections = '/cases/draft/create-and-manage/rejections';
-const permittedUser = () => ({
+const permittedUser = (): typeof OPAL_USER_STATE_MOCK => ({
   ...structuredClone(OPAL_USER_STATE_MOCK),
   status: 'active' as const,
   business_unit_users: [
@@ -63,7 +64,10 @@ describe('draft production route boundaries', () => {
         { provide: AuthService, useValue: { checkAuthenticated: () => of(authenticated()) } },
         { provide: OpalUserService, useValue: { getLoggedInUserState: () => of(userState()) } },
         { provide: GlobalStore, useValue: { userState, featureFlags, authenticated, setBannerError: vi.fn() } },
-        { provide: LaunchDarklyService, useValue: { initializeLaunchDarklyFlags: initializeFlags } },
+        {
+          provide: LaunchDarklyService,
+          useValue: { initializeLaunchDarklyFlags: initializeFlags, initializeLaunchDarklyClient: vi.fn() },
+        },
       ],
     });
     http = TestBed.inject(HttpTestingController);
@@ -72,12 +76,6 @@ describe('draft production route boundaries', () => {
   it.each([
     [details, 'Check case details', 'Case details will be available here.', 'govuk-grid-column-two-thirds'],
     [amendment, 'Amend case', 'Case amendment will be available here.', 'govuk-grid-column-two-thirds'],
-    [
-      rejections,
-      'View all rejected cases',
-      'The complete list of rejected cases will be available here.',
-      'govuk-grid-column-full',
-    ],
   ])('allows %s with no local create state or API request', async (url, heading, body, grid) => {
     const harness = await RouterTestingHarness.create(
       url + '?tab=approved&page=2&sort=created&direction=descending#rejected',
@@ -96,6 +94,38 @@ describe('draft production route boundaries', () => {
     expect(parent.component).toBeNull();
     expect(parent.firstChild?.data['hidePrimaryNav']).toBe(url !== rejections ? true : undefined);
   });
+  it('activates the full-width list after one exclusive resolved consultation', async () => {
+    const harness = await RouterTestingHarness.create();
+    const arrival = harness.navigateByUrl(rejections);
+    await vi.waitFor(() => {
+      const request = http.expectOne(
+        (request) =>
+          request.url === '/opal-maintenance-service/draft-casefiles' &&
+          request.params.get('not_submitted_by') === 'BUU-SYNTHETIC',
+      );
+      expect(request.request.params.keys().sort()).toEqual(['business_unit_id', 'casefile_status', 'not_submitted_by']);
+      expect(request.request.params.get('business_unit_id')).toBe('44');
+      expect(request.request.params.get('casefile_status')).toBe('REJECTED');
+      request.flush({
+        count: 1,
+        summaries: [
+          createCasesDraftSummary({
+            casefile_status: 'REJECTED',
+            submitted_by: 'BUU-OTHER',
+            submitted_by_name: 'Synthetic submitter',
+          }),
+        ],
+      });
+    });
+    await arrival;
+    harness.detectChanges();
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe('All rejected cases');
+    expect(document.title).toBe('OPAL - All rejected cases');
+    expect(harness.routeNativeElement?.querySelector('.govuk-grid-column-full')).not.toBeNull();
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-tabs')).toBeNull();
+    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+  });
+
   it.each(['0', '-1', '9007199254740992', '1.5', '01', '1e2', 'not-a-number'])(
     'safely rejects draft ID %s',
     async (id) => {
@@ -154,7 +184,10 @@ describe('draft production route boundaries', () => {
           { provide: AuthService, useValue: { checkAuthenticated: () => of(true) } },
           { provide: OpalUserService, useValue: { getLoggedInUserState: () => of(userState()) } },
           { provide: GlobalStore, useValue: { userState, featureFlags, authenticated, setBannerError: vi.fn() } },
-          { provide: LaunchDarklyService, useValue: { initializeLaunchDarklyFlags: initializeFlags } },
+          {
+            provide: LaunchDarklyService,
+            useValue: { initializeLaunchDarklyFlags: initializeFlags, initializeLaunchDarklyClient: vi.fn() },
+          },
         ],
       });
       http = TestBed.inject(HttpTestingController);
@@ -178,6 +211,237 @@ describe('draft production route boundaries', () => {
     expect(harness.routeNativeElement?.querySelector('app-cases-draft-placeholder')).toBeNull();
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
   });
+
+  const exclusive = (request: import('@angular/common/http').HttpRequest<unknown>) =>
+    request.url === '/opal-maintenance-service/draft-casefiles' && request.params.has('not_submitted_by');
+  async function flushExclusive(count = 1, submittedBy = 'BUU-SYNTHETIC') {
+    await vi.waitFor(() =>
+      http
+        .expectOne((request) => exclusive(request) && request.params.get('not_submitted_by') === submittedBy)
+        .flush({
+          count,
+          summaries: Array.from({ length: count }, (_, index) =>
+            createCasesDraftSummary({
+              draft_casefile_id: index + 1,
+              casefile_status: 'REJECTED',
+              submitted_by: 'BUU-OTHER',
+            }),
+          ),
+        }),
+    );
+  }
+  it.each(['populated', 'empty'] as const)(
+    'activates only the successfully resolved %s collection without local status controls',
+    async (completion) => {
+      const harness = await RouterTestingHarness.create();
+      const arrival = harness.navigateByUrl(rejections);
+      await flushExclusive(completion === 'empty' ? 0 : 1);
+      await arrival;
+      harness.detectChanges();
+      const page = harness.routeDebugElement!.componentInstance as CasesDraftCreateAndManageViewAllRejectedComponent;
+      expect(page.casefiles()?.rows).toHaveLength(completion === 'empty' ? 0 : 1);
+      expect(
+        harness.routeNativeElement!.querySelector(
+          '#cases-draft-all-rejected-loading, #cases-draft-all-rejected-failure, #cases-draft-all-rejected-retry',
+        ),
+      ).toBeNull();
+      expect(document.activeElement).toBe(harness.routeNativeElement!.querySelector('h1'));
+      http.expectNone(exclusive);
+    },
+  );
+  it.each(['decoder', 'network', 'server'] as const)(
+    'propagates initial %s failure without activating or rendering an empty list',
+    async (failure) => {
+      const harness = await RouterTestingHarness.create(details);
+      const arrival = harness.navigateByUrl(rejections);
+      const rejected = expect(arrival).rejects.toBeTruthy();
+      await vi.waitFor(() => {
+        const request = http.expectOne(exclusive);
+        if (failure === 'decoder') request.flush({ count: 1, summaries: 'invalid' });
+        else if (failure === 'network') request.error(new ProgressEvent('error'));
+        else request.flush({}, { status: 500, statusText: 'Failure' });
+      });
+      await rejected;
+      harness.detectChanges();
+      expect(TestBed.inject(Router).url).toBe(details);
+      expect(
+        harness.routeNativeElement!.querySelector(
+          '#cases-draft-all-rejected-heading, #cases-draft-all-rejected-empty, #cases-draft-all-rejected-loading, #cases-draft-all-rejected-failure, #cases-draft-all-rejected-retry',
+        ),
+      ).toBeNull();
+    },
+  );
+  it('does not activate pending arrival and defensively excludes own, foreign and wrong-status rows', async () => {
+    const harness = await RouterTestingHarness.create(details);
+    const arrival = harness.navigateByUrl(rejections);
+    let pending!: import('@angular/common/http/testing').TestRequest;
+    await vi.waitFor(() => {
+      pending = http.expectOne(exclusive);
+    });
+    expect(
+      harness.routeNativeElement!.querySelector(
+        '#cases-draft-all-rejected-heading, #cases-draft-all-rejected-loading, #cases-draft-all-rejected-retry',
+      ),
+    ).toBeNull();
+    pending.flush({
+      count: 4,
+      summaries: [
+        createCasesDraftSummary({ casefile_status: 'REJECTED', submitted_by: 'BUU-OTHER' }),
+        createCasesDraftSummary({ draft_casefile_id: 124, casefile_status: 'REJECTED', submitted_by: 'BUU-SYNTHETIC' }),
+        createCasesDraftSummary({
+          draft_casefile_id: 125,
+          casefile_status: 'REJECTED',
+          submitted_by: 'BUU-OTHER',
+          business_unit_id: 45,
+        }),
+        createCasesDraftSummary({ draft_casefile_id: 126, casefile_status: 'PUBLISHED', submitted_by: 'BUU-OTHER' }),
+      ],
+    });
+    await arrival;
+    harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelectorAll('tbody tr')).toHaveLength(1);
+    http.expectNone(exclusive);
+  });
+  it('cancels B while resolving newest C and hides old success and rows synchronously', async () => {
+    const harness = await RouterTestingHarness.create();
+    const arrival = harness.navigateByUrl(rejections);
+    await flushExclusive();
+    await arrival;
+    const page = harness.routeDebugElement!.componentInstance as CasesDraftCreateAndManageViewAllRejectedComponent;
+    const replacement = permittedUser();
+    replacement.user_id += 1;
+    replacement.business_unit_users[0].business_unit_user_id = 'BUU-B';
+    userState.set(replacement);
+    expect(page.casefiles()).toBeNull();
+    expect(page.successText()).toBeNull();
+    harness.detectChanges();
+    let pending!: import('@angular/common/http/testing').TestRequest;
+    await vi.waitFor(() => {
+      pending = http.expectOne((request) => exclusive(request) && request.params.get('not_submitted_by') === 'BUU-B');
+    });
+    const newest = structuredClone(replacement);
+    newest.user_id += 1;
+    newest.business_unit_users[0].business_unit_user_id = 'BUU-C';
+    userState.set(newest);
+    harness.detectChanges();
+    await flushExclusive(1, 'BUU-C');
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(pending.cancelled).toBe(true);
+    expect(page.casefiles()?.identity.submittedBy).toBe('BUU-C');
+    expect(harness.routeDebugElement!.componentInstance).toBe(page);
+    http.expectNone(exclusive);
+  });
+  it('hides trusted success names and rows synchronously when live access is removed', async () => {
+    const harness = await RouterTestingHarness.create();
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    expect(
+      navigation.recordAllRejectedResubmission({
+        origin: 'all-rejected',
+        identity: { userId: userState().user_id, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+        draftCasefileId: 1,
+        respondentForename: 'Synthetic',
+        respondentSurname: 'Respondent',
+      }),
+    ).toBe(true);
+    const arrival = harness.navigateByUrl(rejections);
+    await flushExclusive();
+    await arrival;
+    harness.detectChanges();
+    const page = harness.routeDebugElement!.componentInstance as CasesDraftCreateAndManageViewAllRejectedComponent;
+    expect(page.successText()).toContain('Synthetic Respondent');
+    expect(harness.routeNativeElement!.querySelector('tbody')).not.toBeNull();
+    featureFlags.set({ [key]: false });
+    expect(page.casefiles()).toBeNull();
+    expect(page.successText()).toBeNull();
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(TestBed.inject(Router).url).toBe('/access-denied');
+    http.expectNone(exclusive);
+  });
+  it.each(['permission', 'flag', 'authentication'] as const)(
+    'hides rows synchronously and cancels pending exclusive list on %s loss',
+    async (loss) => {
+      const harness = await RouterTestingHarness.create();
+      const arrival = harness.navigateByUrl(rejections);
+      await flushExclusive();
+      await arrival;
+      const page = harness.routeDebugElement!.componentInstance as CasesDraftCreateAndManageViewAllRejectedComponent;
+      const replacement = permittedUser();
+      replacement.user_id += 1;
+      replacement.business_unit_users[0].business_unit_user_id = 'BUU-B';
+      userState.set(replacement);
+      harness.detectChanges();
+      let pending!: import('@angular/common/http/testing').TestRequest;
+      await vi.waitFor(() => {
+        pending = http.expectOne(exclusive);
+      });
+      if (loss === 'permission') {
+        replacement.business_unit_users[0].permissions = [];
+        userState.set({ ...replacement });
+      } else if (loss === 'flag') featureFlags.set({ [key]: false });
+      else authenticated.set(false);
+      expect(page.casefiles()).toBeNull();
+      expect(page.successText()).toBeNull();
+      harness.detectChanges();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      expect(pending.cancelled).toBe(true);
+      expect(TestBed.inject(Router).url).toBe('/access-denied');
+    },
+  );
+  it('returns from protected row Back through one fresh list and clamps remembered selection', async () => {
+    const harness = await RouterTestingHarness.create();
+    const arrival = harness.navigateByUrl(rejections);
+    await flushExclusive(26);
+    await arrival;
+    const page = harness.routeDebugElement!.componentInstance as CasesDraftCreateAndManageViewAllRejectedComponent;
+    page.changeSort({ key: 'respondent', direction: 'descending' });
+    page.changePage(2);
+    await page.openRow(26);
+    expect(TestBed.inject(Router).url).toBe(details.replace('123', '26'));
+    harness.detectChanges();
+    harness.routeNativeElement!.querySelector('a')!.click();
+    await flushExclusive(1);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    const returned = harness.routeDebugElement!.componentInstance as CasesDraftCreateAndManageViewAllRejectedComponent;
+    expect(returned.navigation.allRejectedSelection()).toEqual({
+      page: 1,
+      sort: 'respondent',
+      direction: 'descending',
+    });
+    expect(TestBed.inject(Router).url).toBe(rejections);
+    http.expectNone(exclusive);
+  });
+  it.each(['inactive', 'missing-identity', 'other-BU', 'checker-only', 'missing-flag'] as const)(
+    'denies direct exclusive access for %s without request',
+    async (missing) => {
+      const user = permittedUser();
+      if (missing === 'inactive') user.status = 'suspended';
+      if (missing === 'missing-identity') user.business_unit_users[0].business_unit_user_id = '';
+      if (missing === 'other-BU') user.business_unit_users[0].business_unit_id = 45;
+      if (missing === 'checker-only')
+        user.business_unit_users[0].permissions = [{ permission_id: 22, permission_name: 'Checker' }];
+      if (missing === 'missing-flag') featureFlags.set({});
+      userState.set(user);
+      await RouterTestingHarness.create(rejections);
+      expect(TestBed.inject(Router).url).toBe(missing === 'inactive' ? '/account-created' : '/access-denied');
+      http.expectNone(exclusive);
+    },
+  );
+  it('permits a dual-role user in the inputter list scope', async () => {
+    const user = permittedUser();
+    user.business_unit_users[0].permissions.push({ permission_id: 22, permission_name: 'Checker' });
+    userState.set(user);
+    const harness = await RouterTestingHarness.create();
+    const arrival = harness.navigateByUrl(rejections);
+    await flushExclusive();
+    await arrival;
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain('All rejected cases');
+  });
+
   async function flushList(status: string, count: number) {
     await vi.waitFor(() => {
       http

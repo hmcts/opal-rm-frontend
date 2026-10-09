@@ -1,3 +1,4 @@
+import { CasesDraftDashboardService } from '../services/cases-draft-dashboard.service';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import {
   afterNextRender,
@@ -23,6 +24,7 @@ export class CasesDraftPlaceholderComponent {
   private readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
   private readonly route = inject(ActivatedRoute);
   private readonly navigation = inject(CasesDraftNavigationService);
+  private readonly dashboard = inject(CasesDraftDashboardService);
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   private readonly data = toSignal(this.route.data, { initialValue: this.route.snapshot.data });
   private readonly params = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap });
@@ -32,8 +34,13 @@ export class CasesDraftPlaceholderComponent {
     const id = this.params().get('draftCasefileId');
     return id !== null && /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id));
   });
+  public readonly allRejectedContext = computed(() =>
+    this.navigation.contextForPlaceholder(this.kind(), this.params().get('draftCasefileId')),
+  );
   public readonly backUrl = computed(() =>
-    this.navigation.dashboardUrl(parseCasesDraftNavigation(this.fragment(), this.mode)),
+    this.allRejectedContext()
+      ? this.navigation.allRejectedUrl()
+      : this.navigation.dashboardUrl(parseCasesDraftNavigation(this.fragment(), this.mode)),
   );
   public readonly gridClass = computed(() =>
     this.kind() === 'rejections' ? 'govuk-grid-column-full' : 'govuk-grid-column-two-thirds',
@@ -65,5 +72,14 @@ export class CasesDraftPlaceholderComponent {
   });
   constructor() {
     afterNextRender(() => this.heading()?.nativeElement.focus());
+  }
+  public async backToAllRejected(event: MouseEvent): Promise<void> {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    try {
+      await this.navigation.returnFromPlaceholder(this.kind(), this.params().get('draftCasefileId'));
+    } catch (error: unknown) {
+      this.dashboard.reportError(error);
+    }
   }
 }

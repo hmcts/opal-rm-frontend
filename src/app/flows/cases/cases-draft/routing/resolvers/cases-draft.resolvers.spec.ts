@@ -1,3 +1,6 @@
+import { CASES_DRAFT_DASHBOARD_MODE } from '../../constants/cases-draft-dashboard-mode.token';
+import { casesDraftCountResolver } from './cases-draft-count.resolver';
+import { casesDraftTabResolver } from './cases-draft-tab.resolver';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, convertToParamMap, RouterStateSnapshot, ResolveFn } from '@angular/router';
@@ -65,5 +68,50 @@ describe('draft initial route resolvers', () => {
   it('cancels a list resolver with no emission', async () => {
     service.getList.mockReturnValue(EMPTY);
     await expect(resolve('draftCasefiles', 'approved')).rejects.toThrow();
+  });
+});
+
+describe('checker initial resolver behavior', () => {
+  const checker = { getIdentity: vi.fn(), getList: vi.fn(), getOutcomeCount: vi.fn() };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    checker.getIdentity.mockReturnValue(identity);
+    checker.getList.mockReturnValue(of({ count: 0, summaries: [] }));
+    checker.getOutcomeCount.mockReturnValue(of(7));
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'checker' },
+        { provide: CasesDraftDashboardService, useValue: checker },
+      ],
+    });
+  });
+  const run = <T>(resolver: ResolveFn<T>, fragment: string | null) =>
+    firstValueFrom(
+      TestBed.runInInjectionContext(() => resolver(snapshot(fragment), {} as RouterStateSnapshot)) as Observable<T>,
+    );
+  it.each([null, 'to-review', 'rejected', 'failed', 'deleted'])('loads checker arrival %s', async (tab) => {
+    expect(await run(casesDraftTabResolver, tab)).toMatchObject({ identity, tab: tab ?? 'to-review' });
+  });
+  it.each(['rejected', 'failed'] as const)('reuses the selected %s list count', async (outcome) => {
+    expect(await run(casesDraftCountResolver(outcome), outcome)).toBeNull();
+    expect(checker.getOutcomeCount).not.toHaveBeenCalled();
+  });
+  it.each(['rejected', 'failed'] as const)(
+    'loads unselected %s count and tolerates its non-auth failure',
+    async (outcome) => {
+      expect(await run(casesDraftCountResolver(outcome), 'to-review')).toBe(7);
+      expect(checker.getOutcomeCount).toHaveBeenCalledWith(identity, outcome);
+      checker.getOutcomeCount.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      expect(await run(casesDraftCountResolver(outcome), 'to-review')).toBeNull();
+    },
+  );
+  it.each([401, 403])('propagates HTTP%s count denial', async (status) => {
+    checker.getOutcomeCount.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
+    await expect(run(casesDraftCountResolver('failed'), 'to-review')).rejects.toBeInstanceOf(HttpErrorResponse);
+  });
+  it('cancels counts for missing BU identity', async () => {
+    checker.getIdentity.mockReturnValue(null);
+    await expect(run(casesDraftCountResolver('failed'), 'to-review')).rejects.toThrow();
+    expect(checker.getOutcomeCount).not.toHaveBeenCalled();
   });
 });

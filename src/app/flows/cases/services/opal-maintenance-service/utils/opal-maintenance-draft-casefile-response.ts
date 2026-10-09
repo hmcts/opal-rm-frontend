@@ -85,6 +85,7 @@ function isSummary(value: unknown): value is IOpalMaintenanceDraftCasefileSummar
   return (
     statuses.includes(value['casefile_status']) &&
     types.includes(value['casefile_type']) &&
+    isOptionalString(value['submitted_by_name']) &&
     isSnapshot(value['casefile_snapshot'])
   );
 }

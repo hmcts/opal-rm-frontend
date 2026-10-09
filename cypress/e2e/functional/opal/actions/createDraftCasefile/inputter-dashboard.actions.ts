@@ -6,7 +6,7 @@ import { pressDashboardEnter } from '../../../../../support/utils/press-dashboar
 import { CASES_DRAFT_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as CREATE_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CASES_DRAFT_TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-tabs.constant';
-import type { CasesDraftTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
+import type { CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import type { IOpalMaintenanceDraftCasefileSummary } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-summary.interface';
 import { INPUTTER_USER, inputterRows, PUBLISHED_ROWS } from '../../mocks/createDraftCasefile/inputter-dashboard.mock';
 
@@ -16,7 +16,7 @@ const DASHBOARD = '/' + PATHS.root + '/' + PATHS.children.tabs;
 
 /** Owns browser interaction and narrowly bounded synthetic HTTP data for the inputter journey. */
 export class InputterDashboardActions {
-  private collections: Partial<Record<CasesDraftTab, IOpalMaintenanceDraftCasefileSummary[]>> = {};
+  private collections: Partial<Record<CasesDraftInputterTab, IOpalMaintenanceDraftCasefileSummary[]>> = {};
   private requests: Record<string, unknown>[] = [];
   private listFailures = 0;
   private badgeFailures = 0;
@@ -37,7 +37,7 @@ export class InputterDashboardActions {
     );
     cy.intercept('GET', COLLECTION, (request) => {
       this.requests.push({ ...request.query });
-      const tab = (Object.keys(CASES_DRAFT_TABS) as CasesDraftTab[]).find(
+      const tab = (Object.keys(CASES_DRAFT_TABS) as CasesDraftInputterTab[]).find(
         (key) => CASES_DRAFT_TABS[key].statuses === request.query['casefile_status'],
       );
       expect(tab, 'supported exact comma-separated status filter').not.to.equal(undefined);
@@ -60,19 +60,20 @@ export class InputterDashboardActions {
   /** Sets independent list/count data for one status filter.
    * @param tab Lifecycle collection to replace.
    * @param summaries Synthetic wire summaries for that collection. */
-  public stubCollection(tab: CasesDraftTab, summaries: IOpalMaintenanceDraftCasefileSummary[]): void {
+  public stubCollection(tab: CasesDraftInputterTab, summaries: IOpalMaintenanceDraftCasefileSummary[]): void {
     this.collections[tab] = structuredClone(summaries);
   }
 
   /** Supplies authorised synthetic inputter collections for every lifecycle tab. */
   public available(): void {
     this.prepare();
-    for (const tab of Object.keys(CASES_DRAFT_TABS) as CasesDraftTab[]) this.stubCollection(tab, inputterRows(tab));
+    for (const tab of Object.keys(CASES_DRAFT_TABS) as CasesDraftInputterTab[])
+      this.stubCollection(tab, inputterRows(tab));
   }
 
   /** Opens a canonical dashboard fragment.
    * @param tab Lifecycle selection to open. */
-  public open(tab: CasesDraftTab = 'in-review'): void {
+  public open(tab: CasesDraftInputterTab = 'in-review'): void {
     cy.visit(DASHBOARD + '#' + tab);
   }
 
@@ -92,7 +93,7 @@ export class InputterDashboardActions {
 
   /** Checks the routed lifecycle selection and current navigation link.
    * @param tab Expected lifecycle tab. */
-  public expectDashboard(tab: CasesDraftTab): void {
+  public expectDashboard(tab: CasesDraftInputterTab): void {
     cy.location('pathname').should('eq', DASHBOARD);
     cy.location('hash').should('eq', '#' + tab);
     cy.location('search').should('eq', '');
@@ -103,7 +104,7 @@ export class InputterDashboardActions {
   /** Checks permanent tabs, scoped status filters and the counts-only privacy boundary. */
   public expectTabs(): void {
     this.expectDashboard('in-review');
-    for (const tab of Object.keys(CASES_DRAFT_TABS) as CasesDraftTab[])
+    for (const tab of Object.keys(CASES_DRAFT_TABS) as CasesDraftInputterTab[])
       cy.get(S.tab(tab)).should('be.visible').and('contain.text', CASES_DRAFT_TABS[tab].label);
     cy.get(S.table).should('be.visible');
     cy.then(() => {
@@ -337,7 +338,7 @@ export class InputterDashboardActions {
   public expectResolverRecovery(): void {
     this.expectDashboard('in-review');
     cy.get(S.table).should('be.visible');
-    for (const tab of Object.keys(CASES_DRAFT_TABS) as CasesDraftTab[])
+    for (const tab of Object.keys(CASES_DRAFT_TABS) as CasesDraftInputterTab[])
       cy.get(S.tab(tab)).should('be.visible').and('contain.text', CASES_DRAFT_TABS[tab].label);
     cy.get(S.rejectedCount).should('contain.text', '26');
     cy.get(S.obsoleteLocalControls).should('not.exist');
@@ -348,7 +349,7 @@ export class InputterDashboardActions {
   }
   /** Selects a lifecycle tab using native keyboard events.
    * @param tab Lifecycle fragment to activate. */
-  public selectTab(tab: CasesDraftTab): void {
+  public selectTab(tab: CasesDraftInputterTab): void {
     cy.get(S.tab(tab)).focus();
     pressDashboardEnter();
   }
@@ -470,7 +471,7 @@ export class InputterDashboardActions {
     cy.get(S.create).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.tab('in-review')).should('be.focused');
-    for (const tab of Object.keys(CASES_DRAFT_TABS) as CasesDraftTab[]) {
+    for (const tab of Object.keys(CASES_DRAFT_TABS) as CasesDraftInputterTab[]) {
       cy.get(S.tab(tab)).focus();
       pressDashboardEnter();
       cy.get(S.table).should('be.visible');

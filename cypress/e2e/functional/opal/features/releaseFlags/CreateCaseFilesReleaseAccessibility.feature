@@ -4,6 +4,7 @@ Feature: Create case files release accessibility
     Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
 
   @R1CRmCreateCaseFiles
+  @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
   Scenario: The released Cases dashboard and entry page are accessible
     When I open the RM path "/dashboard"
     Then only the Cases section and create case entry point are available
@@ -13,6 +14,7 @@ Feature: Create case files release accessibility
     And I check the page for accessibility
 
   @R1CRmCreateCaseFilesOff
+  @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
   Scenario: The no-release Access Denied page is accessible
     When I open the RM path "/dashboard"
     Then RM access is denied without primary navigation or a create case entry point

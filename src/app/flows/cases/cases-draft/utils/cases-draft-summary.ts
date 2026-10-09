@@ -1,6 +1,7 @@
 import type { IOpalMaintenanceDraftCasefileSummary } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-summary.interface';
 import type { ICasesDraftRow } from '../interfaces/cases-draft-row.interface';
-import { CASES_DRAFT_TABS } from '../constants/cases-draft-tabs.constant';
+import { getCasesDraftTabMetadata } from './cases-draft-tab-metadata';
+import type { CasesDraftDashboardMode } from '../types/cases-draft-dashboard-mode.type';
 import type { CasesDraftTab } from '../types/cases-draft-tab.type';
 
 function populated(value: string | null | undefined): string | null {
@@ -10,8 +11,9 @@ function populated(value: string | null | undefined): string | null {
 export function mapCasesDraftRows(
   summaries: readonly IOpalMaintenanceDraftCasefileSummary[],
   tab: CasesDraftTab,
+  mode: CasesDraftDashboardMode = 'inputter',
 ): ICasesDraftRow[] {
-  const statuses = new Set(CASES_DRAFT_TABS[tab].statuses.split(','));
+  const statuses = new Set(getCasesDraftTabMetadata(tab, mode).statuses.split(','));
   return summaries
     .filter(({ casefile_status }) => statuses.has(casefile_status))
     .map((summary) => {
@@ -20,6 +22,7 @@ export function mapCasesDraftRows(
         id: summary.draft_casefile_id,
         respondent: populated(snapshot.respondent_account?.respondent_name),
         applicant: populated(snapshot.applicant_account?.applicant_name),
+        submittedByName: populated(summary.submitted_by_name),
         caseType: summary.casefile_type,
         created: summary.created_date,
         statusDate: summary.casefile_status_date,

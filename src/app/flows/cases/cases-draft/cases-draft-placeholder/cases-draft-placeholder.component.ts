@@ -1,3 +1,4 @@
+import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -19,6 +20,7 @@ import { parseCasesDraftNavigation } from '../utils/cases-draft-navigation';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesDraftPlaceholderComponent {
+  private readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
   private readonly route = inject(ActivatedRoute);
   private readonly navigation = inject(CasesDraftNavigationService);
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
@@ -30,12 +32,18 @@ export class CasesDraftPlaceholderComponent {
     const id = this.params().get('draftCasefileId');
     return id !== null && /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id));
   });
-  public readonly backUrl = computed(() => this.navigation.dashboardUrl(parseCasesDraftNavigation(this.fragment())));
+  public readonly backUrl = computed(() =>
+    this.navigation.dashboardUrl(parseCasesDraftNavigation(this.fragment(), this.mode)),
+  );
   public readonly gridClass = computed(() =>
     this.kind() === 'rejections' ? 'govuk-grid-column-full' : 'govuk-grid-column-two-thirds',
   );
   public readonly headingText = computed(() => {
     switch (this.kind()) {
+      case 'review':
+        return 'Review case';
+      case 'view':
+        return 'View case details';
       case 'rejections':
         return 'View all rejected cases';
       case 'amendment':
@@ -45,6 +53,10 @@ export class CasesDraftPlaceholderComponent {
     }
   });
   public readonly bodyText = computed(() => {
+    if (this.kind() === 'review' || this.kind() === 'view') {
+      if (!this.validId()) return 'This case could not be opened. Return to Review cases.';
+      return this.kind() === 'review' ? 'Case review will be available here.' : 'Case details will be available here.';
+    }
     if (this.kind() === 'rejections') return 'The complete list of rejected cases will be available here.';
     if (!this.validId()) return 'This case could not be opened. Return to Create cases.';
     return this.kind() === 'amendment'

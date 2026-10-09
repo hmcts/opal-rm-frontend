@@ -1,6 +1,7 @@
+import { PAGES_ROUTING_PATHS as COMMON_PAGES_ROUTING_PATHS } from '@hmcts/opal-frontend-common/pages/routing/constants';
 import { isPlatformServer } from '@angular/common';
 import { inject, PLATFORM_ID } from '@angular/core';
-import { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot } from '@angular/router';
 import { resolveFeatureFlagGuard } from '@hmcts/opal-frontend-common/guards/feature-flag';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '../constants/release-1c-rm-create-case-files-feature-flag.constant';
@@ -20,4 +21,13 @@ export const resolveCreateCaseFilesRelease = (
     return Promise.resolve(enabled === undefined ? null : enabled === true);
   }
   return resolveFeatureFlagGuard(RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG, route, state);
+};
+
+export const release1cRmCreateCaseFilesFeatureFlagGuard: CanActivateFn = async (route, state) => {
+  const router = inject(Router);
+  const enabled = await resolveCreateCaseFilesRelease(route, state);
+  if (enabled === null) {
+    return false;
+  }
+  return enabled || router.createUrlTree([`/${COMMON_PAGES_ROUTING_PATHS.children.accessDenied}`]);
 };

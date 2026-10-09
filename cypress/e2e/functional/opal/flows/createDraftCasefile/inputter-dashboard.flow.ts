@@ -1,4 +1,4 @@
-import type { CasesDraftTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
+import type { CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import { InputterDashboardActions } from '../../actions/createDraftCasefile/inputter-dashboard.actions';
 
 /** Exposes business journeys; HTTP and page details remain in the actions. */
@@ -117,7 +117,7 @@ export class InputterDashboardFlow {
   }
   /** Activates a lifecycle tab using the keyboard.
    * @param tab Lifecycle fragment to activate. */
-  public selectTab(tab: CasesDraftTab): void {
+  public selectTab(tab: CasesDraftInputterTab): void {
     this.actions.selectTab(tab);
   }
   /** Checks failed tab data cannot expose stale rows or local recovery panels. */

@@ -6,6 +6,7 @@ export interface IOpalMaintenanceDraftCasefileSummary {
   draft_casefile_id: number;
   business_unit_id: number;
   submitted_by: string;
+  submitted_by_name?: string | null;
   created_date: string;
   validated_date?: string | null;
   casefile_type: CasesCreateCasefileCaseType;

@@ -77,24 +77,35 @@
         >
           Case type
         </th>
+        @if (mode === 'checker') {
+          <th
+            opal-lib-moj-sortable-table-header
+            columnKey="submittedByName"
+            [dataIndex]="3"
+            [sortDirection]="sortStateSignal()['submittedByName']"
+            (sortChange)="onSortChange($event)"
+          >
+            Submitted by
+          </th>
+        }
         <th
           opal-lib-moj-sortable-table-header
           columnKey="created"
-          [dataIndex]="3"
+          [dataIndex]="mode === 'checker' ? 4 : 3"
           [sortDirection]="sortStateSignal()['created']"
           (sortChange)="onSortChange($event)"
         >
           Created
         </th>
-        @if (selection().tab === 'rejected' || selection().tab === 'deleted') {
+        @if (statusDateLabel()) {
           <th
             opal-lib-moj-sortable-table-header
             columnKey="statusDate"
-            [dataIndex]="4"
+            [dataIndex]="mode === 'checker' ? 5 : 4"
             [sortDirection]="sortStateSignal()['statusDate']"
             (sortChange)="onSortChange($event)"
           >
-            {{ selection().tab === 'rejected' ? 'Rejected' : 'Deleted' }}
+            {{ statusDateLabel() }}
           </th>
         }
       }</ng-container
@@ -149,7 +160,7 @@
                 #paginationFocusTarget
                 class="govuk-link"
                 [href]="row.detailHref"
-                [attr.aria-label]="'View case details for ' + (row.respondent ?? 'this respondent')"
+                [attr.aria-label]="rowActionLabel() + (row.respondent ?? 'this respondent')"
                 (click)="openRespondent($event, row.id)"
                 >{{ row.respondent ?? '—' }}</a
               >
@@ -160,10 +171,19 @@
             <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-caseType'" data-column="caseType">
               {{ row.caseType }}
             </td>
+            @if (mode === 'checker') {
+              <td
+                opal-lib-moj-sortable-table-row-data
+                [id]="'draft-' + row.id + '-submittedByName'"
+                data-column="submittedByName"
+              >
+                {{ row.submittedByName ?? '—' }}
+              </td>
+            }
             <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-created'" data-column="created">
               {{ dates.getDaysAgo(row.created) | daysAgo }}
             </td>
-            @if (selection().tab === 'rejected' || selection().tab === 'deleted') {
+            @if (statusDateLabel()) {
               <td
                 opal-lib-moj-sortable-table-row-data
                 [id]="'draft-' + row.id + '-statusDate'"

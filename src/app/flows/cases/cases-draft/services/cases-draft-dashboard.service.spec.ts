@@ -1,3 +1,4 @@
+import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -27,7 +28,8 @@ describe('stateless dashboard data', () => {
   const userState = signal(permittedUser());
   const featureFlags = signal({ 'release-1c-rm-create-case-files': true });
   const setBannerError = vi.fn();
-  const api = { getDraftCasefiles: vi.fn(), getRejectedDraftCasefileCount: vi.fn() };
+  const api = { getDraftCasefiles: vi.fn(), getRejectedDraftCasefileCount: vi.fn(), getDraftCasefileCount: vi.fn() };
+  const dates = { getDateRange: vi.fn(() => ({ from: '2026-09-29', to: '2026-10-06' })) };
   let service: CasesDraftDashboardService;
   beforeEach(() => {
     vi.clearAllMocks();
@@ -35,16 +37,90 @@ describe('stateless dashboard data', () => {
     userState.set(permittedUser());
     featureFlags.set({ 'release-1c-rm-create-case-files': true });
     api.getDraftCasefiles.mockReturnValue(of({ count: 1, summaries: [createCasesDraftSummary()] }));
+    api.getDraftCasefileCount.mockReturnValue(of({ count: 101 }));
     api.getRejectedDraftCasefileCount.mockReturnValue(of({ count: 7 }));
     TestBed.configureTestingModule({
       providers: [
         CasesDraftDashboardService,
         { provide: GlobalStore, useValue: { authenticated, userState, featureFlags, setBannerError } },
         { provide: OpalMaintenanceService, useValue: api },
-        { provide: DateService, useValue: { getDateRange: () => ({ from: '2026-09-29', to: '2026-10-06' }) } },
+        { provide: DateService, useValue: dates },
       ],
     });
     service = TestBed.inject(CasesDraftDashboardService);
+  });
+  describe('checker consultations', () => {
+    beforeEach(() => {
+      const user = permittedUser();
+      user.business_unit_users[0].permissions = [
+        { permission_id: 22, permission_name: 'Check and Validate Draft Casefiles' },
+      ];
+      userState.set(user);
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          CasesDraftDashboardService,
+          { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'checker' },
+          { provide: GlobalStore, useValue: { authenticated, userState, featureFlags, setBannerError } },
+          { provide: OpalMaintenanceService, useValue: api },
+          { provide: DateService, useValue: dates },
+        ],
+      });
+      service = TestBed.inject(CasesDraftDashboardService);
+    });
+    it('resolves permission 22 identity from the injected mode', () => {
+      expect(service.getIdentity()).toMatchObject({ businessUnitId: 44, submittedBy: identity.submittedBy });
+    });
+    it.each([
+      ['to-review', 'SUBMITTED,RESUBMITTED'],
+      ['rejected', 'REJECTED'],
+      ['failed', 'PUBLISHING_FAILED'],
+      ['deleted', 'DELETED'],
+    ] as const)('consults scoped checker %s', async (tab, status) => {
+      await firstValueFrom(service.getList(identity, tab));
+      expect(dates.getDateRange).toHaveBeenCalledWith(7, 0);
+      expect(api.getDraftCasefiles).toHaveBeenCalledWith({
+        business_unit_id: 44,
+        not_submitted_by: identity.submittedBy,
+        casefile_status: status,
+        ...(tab === 'deleted'
+          ? { casefile_status_from_date: '2026-09-29', casefile_status_to_date: '2026-10-06' }
+          : {}),
+      });
+    });
+    it.each([
+      ['rejected', 'REJECTED'],
+      ['failed', 'PUBLISHING_FAILED'],
+    ] as const)('consults independent %s count on each subscription', async (tab, status) => {
+      const source = service.getOutcomeCount(identity, tab);
+      expect(api.getDraftCasefileCount).not.toHaveBeenCalled();
+      expect(await firstValueFrom(source)).toBe(101);
+      expect(await firstValueFrom(source)).toBe(101);
+      expect(api.getDraftCasefileCount).toHaveBeenCalledTimes(2);
+      expect(api.getDraftCasefileCount).toHaveBeenCalledWith({
+        business_unit_id: 44,
+        not_submitted_by: identity.submittedBy,
+        casefile_status: status,
+      });
+      expect(dates.getDateRange).not.toHaveBeenCalled();
+    });
+    it('cancels an outcome request when checker access is lost', () => {
+      api.getDraftCasefileCount.mockReturnValue(new Subject());
+      const completed = vi.fn();
+      service.getOutcomeCount(service.getIdentity()!, 'failed').subscribe({ complete: completed });
+      authenticated.set(false);
+      TestBed.tick();
+      expect(completed).toHaveBeenCalledOnce();
+      expect(setBannerError).not.toHaveBeenCalled();
+    });
+    it.each(['empty', 'decode', 'http'] as const)('handles outcome %s failure', async (failure) => {
+      const error = failure === 'http' ? new HttpErrorResponse({ status: 500 }) : new Error('private detail');
+      const source = failure === 'empty' ? EMPTY : throwError(() => error);
+      api.getDraftCasefileCount.mockReturnValue(source);
+      await expect(firstValueFrom(service.getOutcomeCount(identity, 'failed'))).rejects.toThrow();
+      expect(setBannerError).toHaveBeenCalledTimes(failure === 'http' ? 0 : 1);
+      expect(JSON.stringify(setBannerError.mock.calls)).not.toContain('private detail');
+    });
   });
   it('consults only on subscription without retaining rows', async () => {
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
@@ -67,6 +143,14 @@ describe('stateless dashboard data', () => {
         casefile_status_to_date: '2026-10-06',
       }),
     );
+  });
+  it('keeps inputter outcome counts in inclusion scope', async () => {
+    expect(await firstValueFrom(service.getOutcomeCount(identity, 'rejected'))).toBe(101);
+    expect(api.getDraftCasefileCount).toHaveBeenCalledWith({
+      business_unit_id: 44,
+      submitted_by: identity.submittedBy,
+      casefile_status: 'REJECTED',
+    });
   });
   it('returns the independent rejected count', async () => {
     expect(await firstValueFrom(service.getRejectedCount(identity))).toBe(7);

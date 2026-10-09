@@ -45,6 +45,20 @@ const testRoutes = [
     children: [{ path: ':id', component: DummyDashboardRouteComponent }],
   },
 
+  {
+    path: 'cases/draft/check-and-validate',
+    children: [
+      { path: 'tabs', component: DummyDashboardRouteComponent },
+      {
+        path: '',
+        data: PRIMARY_NAV_HIDDEN_ROUTE_DATA,
+        children: [
+          { path: 'review/:id', component: DummyDashboardRouteComponent },
+          { path: 'view/:id', component: DummyDashboardRouteComponent },
+        ],
+      },
+    ],
+  },
   { path: 'dashboard', component: DummyDashboardRouteComponent },
   { path: 'dashboard/:dashboardType', component: DummyDashboardRouteComponent },
   { path: 'hidden', component: DummyDashboardRouteComponent, data: PRIMARY_NAV_HIDDEN_ROUTE_DATA },
@@ -439,6 +453,20 @@ describe('AppComponent - browser', () => {
     expect(hasPrimaryNavigation(fixture)).toBe(true);
   });
 
+  it.each(['review', 'view'])('hides navigation during checker %s and restores it on tabs', async (shell) => {
+    globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([22]));
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/cases/draft/check-and-validate/' + shell + '/123');
+    fixture.detectChanges();
+    expect(hasPrimaryNavigation(fixture)).toBe(false);
+    await router.navigateByUrl('/cases/draft/check-and-validate/tabs');
+    fixture.detectChanges();
+    expect(hasPrimaryNavigation(fixture)).toBe(true);
+  });
   it('should show primary navigation on dashboard routes when the user is authenticated and active', async () => {
     globalStore.setAuthenticated(true);
     globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
@@ -451,6 +479,15 @@ describe('AppComponent - browser', () => {
     fixture.detectChanges();
 
     expect(hasPrimaryNavigation(fixture)).toBe(true);
+  });
+
+  it('shows Cases for checker-only permission', () => {
+    globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([22]));
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    expect(getPrimaryNavigationTexts(fixture)).toEqual(['Cases']);
   });
 
   it('hides Cases for an active user without the RM permission', () => {
@@ -573,6 +610,9 @@ describe('AppComponent - browser', () => {
   it.each([
     ['/cases/create-casefile/check-case-details/123', true],
     ['/cases/create-casefile/task-list/123?tab=rejected&page=2', true],
+    ['/cases/draft/check-and-validate/review/123', true],
+    ['/cases/draft/check-and-validate/view/123?tab=failed', true],
+    ['/cases/draft/check-and-validate/tabs', false],
     ['/cases/draft/create-and-manage/tabs', false],
     ['/cases/draft/create-and-manage/rejections?tab=rejected', false],
   ])('reads draft initial navigation visibility for %s before NavigationEnd', (url, hidden) => {

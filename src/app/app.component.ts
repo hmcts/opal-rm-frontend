@@ -1,3 +1,4 @@
+import { CASES_DRAFT_CHECKER_ROUTING_PATHS } from './flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
 import { Component, NgZone, OnDestroy, OnInit, PLATFORM_ID, inject, DOCUMENT, computed } from '@angular/core';
 import { Observable, Subject, filter, from, map, of, startWith, takeUntil, takeWhile, tap, timer } from 'rxjs';
 import { CommonModule, isPlatformBrowser, Location } from '@angular/common';
@@ -310,13 +311,22 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Identifies Create Casefile URLs that need the navigation hidden before the route tree exists.
+   * Identifies creation and checker shell URLs that hide navigation before the route tree exists.
    */
   private isPrimaryNavigationHiddenForInitialUrl(url: string): boolean {
     const path = url.split('#')[0].split('?')[0];
     const journeyRoot = `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}`;
 
-    return path === journeyRoot || path.startsWith(`${journeyRoot}/`);
+    const checkerRoot = `/${CASES_DRAFT_CHECKER_ROUTING_PATHS.root}`;
+    const checkerShells = [
+      CASES_DRAFT_CHECKER_ROUTING_PATHS.children.review,
+      CASES_DRAFT_CHECKER_ROUTING_PATHS.children.view,
+    ];
+    return (
+      path === journeyRoot ||
+      path.startsWith(`${journeyRoot}/`) ||
+      checkerShells.some((shell) => path.startsWith(`${checkerRoot}/${shell}/`))
+    );
   }
 
   /**

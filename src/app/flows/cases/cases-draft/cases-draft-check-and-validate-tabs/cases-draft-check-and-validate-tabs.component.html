@@ -1,0 +1,51 @@
+<div class="govuk-grid-column-full">
+  <opal-lib-custom-page-header
+    ><ng-container pageHeaderHeading
+      ><h1 #heading id="cases-draft-heading" tabindex="-1" class="govuk-heading-l">Review cases</h1></ng-container
+    ></opal-lib-custom-page-header
+  >
+  @let counts = outcomeCounts$ | async;
+  <opal-lib-moj-sub-navigation subNavId="cases-draft-tabs">
+    @for (item of tabLinks(); track item.tab) {
+      <li class="moj-sub-navigation__item">
+        <a
+          [id]="'cases-draft-' + item.tab + '-tab'"
+          class="moj-sub-navigation__link"
+          [href]="item.href"
+          [attr.aria-current]="navigation.selection().tab === item.tab ? 'page' : null"
+          (click)="activateTab($event, item.tab)"
+        >
+          {{ item.label }}
+          @if (counts && isCurrentIdentity(counts.identity)) {
+            @let count = item.tab === 'rejected' ? counts.rejected : item.tab === 'failed' ? counts.failed : null;
+            @if (formatRejectedCount(count)) {
+              <opal-lib-moj-notification-badge badge [badgeId]="'cases-draft-' + item.tab + '-count'">{{
+                formatRejectedCount(count)
+              }}</opal-lib-moj-notification-badge>
+            }
+          }
+        </a>
+      </li>
+    }
+  </opal-lib-moj-sub-navigation>
+  <h2 id="cases-draft-selected-heading" tabindex="-1" class="govuk-heading-m">{{ selectedTabLabel() }}</h2>
+  @if (tabData$ | async; as result) {
+    @if (isCurrentData(result)) {
+      @if (result.rows === null) {
+        <output id="cases-draft-loading" aria-live="polite" aria-atomic="true" class="govuk-body govuk-!-display-block">
+          Loading {{ selectedTabLabel() }} cases.
+        </output>
+      } @else if (result.rows.length === 0) {
+        <p id="cases-draft-empty" class="govuk-body">{{ emptyMessage() }}</p>
+      } @else {
+        <app-cases-draft-table
+          [rows]="result.rows"
+          [selection]="navigation.selection()"
+          (sortChanged)="changeSort($event)"
+          (pageChanged)="changePage($event)"
+          (rowOpened)="openRow($event)"
+        />
+      }
+    }
+  }
+</div>

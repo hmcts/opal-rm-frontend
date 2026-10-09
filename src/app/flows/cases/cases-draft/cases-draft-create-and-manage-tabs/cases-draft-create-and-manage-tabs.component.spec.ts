@@ -15,7 +15,7 @@ import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { CasesDraftCreateAndManageTabsComponent } from './cases-draft-create-and-manage-tabs.component';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { CASES_DRAFT_TABS } from '../constants/cases-draft-tabs.constant';
-import type { CasesDraftTab } from '../types/cases-draft-tab.type';
+import type { CasesDraftInputterTab } from '../types/cases-draft-tab.type';
 import type { IOpalMaintenanceDraftCasefileListResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-list-response.interface';
 import { createCasesDraftSummary } from '../mocks/cases-draft-summary.mock';
 
@@ -30,7 +30,7 @@ const permittedUser = () => ({
     },
   ],
 });
-const response = (tab: CasesDraftTab, id = 123): IOpalMaintenanceDraftCasefileListResponse => ({
+const response = (tab: CasesDraftInputterTab, id = 123): IOpalMaintenanceDraftCasefileListResponse => ({
   count: 1,
   summaries: [
     createCasesDraftSummary({
@@ -78,7 +78,7 @@ describe('resolver-backed dashboard', () => {
     });
   });
   async function render(
-    tab: CasesDraftTab = 'in-review',
+    tab: CasesDraftInputterTab = 'in-review',
     result: IOpalMaintenanceDraftCasefileListResponse = { count: 0, summaries: [] },
     count: number | null = 0,
   ) {
@@ -102,6 +102,10 @@ describe('resolver-backed dashboard', () => {
     fixture.detectChanges();
     return fixture;
   }
+  it('renders the exact inputter heading without surrounding whitespace', async () => {
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Create cases');
+  });
   it('uses an unresolved initial Rejected list for its badge without a count consultation', async () => {
     snapshot.fragment = 'rejected';
     fragment.next('rejected');
@@ -233,7 +237,7 @@ describe('resolver-backed dashboard', () => {
     expect(fixture.componentInstance.navigation.selection().tab).toBe('approved');
     expect(api.getDraftCasefiles).toHaveBeenCalledTimes(2);
   });
-  it.each(Object.keys(CASES_DRAFT_TABS) as CasesDraftTab[])(
+  it.each(Object.keys(CASES_DRAFT_TABS) as CasesDraftInputterTab[])(
     'uses resolved %s rows and count without duplicate GETs',
     async (tab) => {
       const fixture = await render(tab, response(tab), 7);
@@ -246,7 +250,7 @@ describe('resolver-backed dashboard', () => {
       );
     },
   );
-  it.each(Object.keys(CASES_DRAFT_TABS) as CasesDraftTab[])(
+  it.each(Object.keys(CASES_DRAFT_TABS) as CasesDraftInputterTab[])(
     'renders the %s empty message with all four tabs',
     async (tab) => {
       const fixture = await render(tab);

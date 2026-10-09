@@ -269,14 +269,24 @@ describe('casesDraftCasefileResolver', () => {
   });
   it.each([
     null,
+    undefined,
     { ...PERSISTED_CASEFILE_RESULT_DETAIL, result_id: 'WRONG' },
     { ...PERSISTED_CASEFILE_RESULT_DETAIL, result_title: ' ' },
     { ...PERSISTED_CASEFILE_RESULT_DETAIL, result_parameters: '[]' },
     { ...PERSISTED_CASEFILE_RESULT_DETAIL, result_parameters: '{' },
   ])('rejects unusable result %j', (detail) => {
     maintenance.getResult.mockReturnValue(of(detail));
+    const creationLoad = vi.spyOn(TestBed.inject(CasesCreateCasefileStore), 'hydratePersistedCasefile');
+    const envelopeLoad = vi.spyOn(TestBed.inject(CasesDraftCasefileStore), 'loadResolved');
     expect(resolve()).toEqual([]);
-    expect(setBannerError).toHaveBeenCalled();
+    expect(setBannerError).toHaveBeenCalledExactlyOnceWith({
+      ...GLOBAL_ERROR_STATE,
+      error: true,
+      title: GENERIC_HTTP_ERROR_TITLE,
+      message: GENERIC_HTTP_ERROR_MESSAGE,
+    });
+    expect(creationLoad).not.toHaveBeenCalled();
+    expect(envelopeLoad).not.toHaveBeenCalled();
   });
   it('rejects empty choice options', () => {
     lookups.resolve.mockReturnValue(of([{ ...PERSISTED_CASEFILE_RESULT_PAGE.fields[0], kind: 'select', options: [] }]));

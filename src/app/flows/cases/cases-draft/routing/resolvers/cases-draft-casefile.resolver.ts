@@ -35,8 +35,7 @@ function savedResultPages(
         defaultIfEmpty(null),
         switchMap((detail) => {
           if (
-            !detail ||
-            detail.result_id !== resultId ||
+            detail?.result_id !== resultId ||
             !detail.result_title?.trim() ||
             typeof detail.result_parameters !== 'string'
           )

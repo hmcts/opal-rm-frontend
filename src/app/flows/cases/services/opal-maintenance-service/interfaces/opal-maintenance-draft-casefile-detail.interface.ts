@@ -26,7 +26,7 @@ export interface IOpalMaintenanceDraftCasefileDetail {
     username: string;
     status: 'Submitted' | 'Resubmitted' | 'Rejected' | 'Approved' | 'Deleted';
     status_date: string;
-    reason_text?: string;
+    reason_text?: string | null;
   }[];
   validated_date?: string | null;
   validated_by?: string | null;

@@ -64,6 +64,14 @@ describe('decodeDraftCasefileDetail', () => {
     current[parts[parts.length - 1]] = value;
     expect(() => decodeDraftCasefileDetail(body, '"1"', 17)).toThrow('Unusable draft casefile data');
   });
+  it.each([undefined, null, 'Synthetic reason'])('preserves the optional timeline reason %j', (reason) => {
+    const body = createPersistedCasefileDetail();
+    if (reason !== undefined) body.timeline_data[0].reason_text = reason;
+    const result = decodeDraftCasefileDetail(body, '"0"', 17);
+    expect(result).toEqual({ draft: body, etag: '"0"' });
+    expect(result.draft.timeline_data[0].reason_text).toBe(reason);
+    expect(Object.hasOwn(result.draft.timeline_data[0], 'reason_text')).toBe(reason !== undefined);
+  });
   it('rejects unknown timeline display status', () => {
     const body = createPersistedCasefileDetail();
     expect(() =>
@@ -222,7 +230,10 @@ describe('decodeDraftCasefileDetail', () => {
     ['casefile_snapshot.minor_creditor_accounts', [{ creditor_sequence: 0 }]],
     ['timeline_data.0.username', null],
     ['timeline_data.0.status_date', '2026-02-30T09:00:00Z'],
-    ['timeline_data.0.reason_text', null],
+    ['timeline_data.0.reason_text', 123],
+    ['timeline_data.0.reason_text', {}],
+    ['timeline_data.0.reason_text', []],
+    ['timeline_data.0.reason_text', false],
   ])('rejects unusable optional/branch field %s with a constant error', (path, value) => {
     const body = createPersistedCasefileDetail();
     let current: Record<string, unknown> = body as unknown as Record<string, unknown>;

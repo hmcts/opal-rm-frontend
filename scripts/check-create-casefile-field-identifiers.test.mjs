@@ -513,6 +513,7 @@ const minorCreditorSummaryStructure = `<opal-lib-govuk-summary-list summaryListI
     <div opal-lib-govuk-summary-list-row summaryListId="minorCreditorDetails" [summaryListRowId]="row.id"></div>
   }
 </opal-lib-govuk-summary-list>
+<a id="Remove" href="/cases/create-casefile/order-terms/creditor/minor-creditor-remove">Remove</a>
 <button id="minor-creditor-summary-continue" type="button">Continue</button>`;
 
 test('accepts the exact Minor creditor summary and removal structural identifiers', async () => {
@@ -564,6 +565,7 @@ test('rejects the Order term removal return identifier on form controls and unre
 for (const [templatePath, value] of [
   [minorCreditorSummaryTemplatePath, 'minorCreditorDetails'],
   [minorCreditorSummaryTemplatePath, 'minor-creditor-summary-continue'],
+  [minorCreditorSummaryTemplatePath, 'Remove'],
   [minorCreditorRemoveTemplatePath, 'minor-creditor-remove-back'],
 ]) {
   test(`rejects structural identifier ${value} on native and shared form controls`, async () => {
@@ -606,6 +608,7 @@ test('rejects Minor creditor summary structure on a different template', async (
   assertRejected(result, /noncanonical summaryListId="minorCreditorDetails"/);
   assert.match(result.stderr, /noncanonical summaryListRowId="row\.id"/);
   assert.match(result.stderr, /noncanonical id="minor-creditor-summary-continue"/);
+  assert.match(result.stderr, /noncanonical id="Remove"/);
 });
 
 const orderTermCardTemplatePath = `${createCasefilePath}/components/cases-create-casefile-order-term-card/cases-create-casefile-order-term-card.component.html`;

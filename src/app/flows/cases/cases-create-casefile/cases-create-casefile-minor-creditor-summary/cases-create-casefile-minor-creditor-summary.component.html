@@ -31,13 +31,18 @@
         [actionRoute]="detailsPath"
         (clickEvent)="navigateTo($event)"
       ></li>
-      <li
-        opal-lib-govuk-summary-card-action
-        actionText="Remove"
-        visuallyHiddenText="minor creditor details"
-        [actionRoute]="removePath"
-        (clickEvent)="handleRemove()"
-      ></li>
+      <!-- Native activation prevents Cancel's Enter keyup from reopening removal after focus returns. -->
+      <li class="govuk-summary-card__action">
+        <a
+          id="Remove"
+          class="govuk-link govuk-link--no-visited-state"
+          [href]="removePath"
+          (click)="handleRemove($event)"
+        >
+          <strong>Remove</strong>
+          <span class="govuk-visually-hidden">minor creditor details</span>
+        </a>
+      </li>
     </ng-container>
     <ng-container content>
       <opal-lib-govuk-summary-list summaryListId="minorCreditorDetails">

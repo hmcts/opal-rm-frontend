@@ -195,6 +195,7 @@ const structuralIdentifierAllowlist = new Set([
     'id',
     'create_casefile_minor_creditor_summary_navigation_error_title',
   ),
+  structuralIdentifierKey(templatePaths.minorCreditorSummary, 'a', 'id', 'Remove'),
   structuralIdentifierKey(templatePaths.orderTermCard, 'opal-lib-govuk-summary-list', '[summaryListId]', 'id()'),
   structuralIdentifierKey(
     templatePaths.orderTermCard,

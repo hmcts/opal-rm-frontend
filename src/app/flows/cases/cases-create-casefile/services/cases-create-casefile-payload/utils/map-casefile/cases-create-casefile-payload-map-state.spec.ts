@@ -8,6 +8,7 @@ import type { IOpalMaintenanceDraftCasefileDetail } from '../../../../../service
 import type { IOpalMaintenanceMajorCreditorReferenceDataItem } from '../../../../../services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-item.interface';
 import { CASES_CREATE_CASEFILE_STATE } from '../../../../constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_TASK_STATUSES } from '../../../../constants/cases-create-casefile-task-statuses.constant';
+import { acceptedOrderTermsComplete } from '../../../../utils/cases-create-casefile-order-terms-complete';
 import { mapPersistedCasefile } from './cases-create-casefile-payload-map-state';
 
 const context = () =>
@@ -188,6 +189,72 @@ describe('mapPersistedCasefile', () => {
       );
     },
   );
+  it.each([undefined, null, '', ' ', 42])(
+    'rejects an unusable non-UK minor-creditor payment reference %j at the bank boundary',
+    (paymentReference) => {
+      const draft = createPersistedCasefileDetail();
+      const creditor = minor(draft, 5);
+      creditor.bank_account_details = {
+        bank_account_type: 'Non-UK Bank',
+        non_uk_bank_details: { account_name: 'Synthetic', payment_reference: 'REF' },
+      };
+      Object.assign(creditor.bank_account_details.non_uk_bank_details!, { payment_reference: paymentReference });
+      draft.casefile.minor_creditors = [creditor];
+      const before = structuredClone(draft);
+
+      expect(() => mapPersistedCasefile(draft, context())).toThrow('Unusable saved bank');
+      expect(draft).toEqual(before);
+    },
+  );
+  it.each(['Applicant', 'Minor Creditor', 'Major Creditor'] as const)(
+    'marks validated %s terms Provided only with an applicable creditor',
+    (creditorType) => {
+      const draft = createPersistedCasefileDetail();
+      const references = context();
+      const term = draft.casefile.respondent_account.order_details.order_terms[0];
+      term.creditor_type = creditorType;
+      if (creditorType === 'Minor Creditor') {
+        const creditor = minor(draft, 5);
+        creditor.bank_account_details = {
+          bank_account_type: 'Non-UK Bank',
+          non_uk_bank_details: { account_name: 'Synthetic', payment_reference: 'REF' },
+        };
+        draft.casefile.minor_creditors = [creditor];
+        term.minor_creditor_sequence = 5;
+      }
+      if (creditorType === 'Major Creditor') {
+        references.majorCreditors = [major()];
+        term.major_creditor_code = 'MAJOR';
+      }
+      const before = structuredClone(draft);
+
+      const state = mapPersistedCasefile(draft, references);
+
+      expect(acceptedOrderTermsComplete(state)).toBe(true);
+      expect(state.taskStatuses.orderTerms).toBe(CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED);
+      expect(state.orderTerms[0].creditor?.type).toBe(
+        ({ Applicant: 'applicant', 'Minor Creditor': 'minor', 'Major Creditor': 'major' } as const)[creditorType],
+      );
+      if (creditorType === 'Minor Creditor') {
+        expect(state.minorCreditors[0].details.bank).toMatchObject({ type: 'non-uk', paymentReference: 'REF' });
+      }
+      expect(draft).toEqual(before);
+    },
+  );
+  it.each([
+    { creditor_type: 'Minor Creditor', minor_creditor_sequence: 99 },
+    { creditor_type: 'Minor Creditor' },
+    { creditor_type: 'Major Creditor', major_creditor_code: 'MISSING' },
+    { creditor_type: 'Major Creditor' },
+    { creditor_type: 'Unsupported' },
+  ])('rejects unresolved saved creditor assignment %j before deriving Provided statuses', (creditor) => {
+    const draft = createPersistedCasefileDetail();
+    Object.assign(draft.casefile.respondent_account.order_details.order_terms[0], creditor);
+    const before = structuredClone(draft);
+
+    expect(() => mapPersistedCasefile(draft, context())).toThrow('Unusable saved order term');
+    expect(draft).toEqual(before);
+  });
   it('resolves inactive references without filtering them out and clones central data', () => {
     const draft = createPersistedCasefileDetail();
     const refs = context();

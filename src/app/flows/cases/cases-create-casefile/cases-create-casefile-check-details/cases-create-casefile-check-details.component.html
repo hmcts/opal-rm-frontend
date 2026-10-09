@@ -1,4 +1,58 @@
 <div class="govuk-grid-column-two-thirds">
-  <opal-lib-govuk-back-link (clickEvent)="handleBack()"></opal-lib-govuk-back-link>
-  <h1 class="govuk-heading-l">Check case details</h1>
+  <opal-lib-govuk-back-link (clickEvent)="handleBack()" />
+  <h1 id="review-heading" class="govuk-heading-l" tabindex="-1">Check case details</h1>
+  @for (section of beforeTerms(); track section.id) {
+    <app-cases-create-casefile-review-section
+      [section]="section"
+      [actionable]="section.id !== 'caseType'"
+      (changeEvent)="handleChange($event)"
+    />
+  }
+  <section id="review-orderTerms" tabindex="-1" aria-labelledby="review-order-terms-title">
+    <h2 id="review-order-terms-title" class="govuk-heading-m">Order terms</h2>
+
+    @for (card of cards(); track card.termId) {
+      <div [id]="'review-order-term-' + card.termId" tabindex="-1">
+        <app-cases-create-casefile-order-term-card [card]="card">
+          <ng-container actions>
+            <li
+              opal-lib-govuk-summary-list-row-action-item
+              class="govuk-summary-card__action"
+              actionName="Change"
+              [actionId]="'review-term-change-' + card.termId"
+              [visuallyHiddenText]="' ' + card.ariaLabel"
+              (linkClick)="handleTermChange(card.termId)"
+            ></li>
+            <li
+              opal-lib-govuk-summary-list-row-action-item
+              class="govuk-summary-card__action"
+              actionName="Remove"
+              [actionId]="'review-term-remove-' + card.termId"
+              [visuallyHiddenText]="' ' + card.ariaLabel"
+              (linkClick)="handleTermRemove(card.termId)"
+            ></li>
+          </ng-container>
+        </app-cases-create-casefile-order-term-card>
+        @if (card.minor) {
+          <app-cases-create-casefile-review-section
+            [section]="card.minor"
+            (changeEvent)="handleTermChange(card.termId)"
+          />
+        }
+      </div>
+    }
+  </section>
+  @for (section of afterTerms(); track section.id) {
+    <app-cases-create-casefile-review-section [section]="section" (changeEvent)="handleChange($event)" />
+  }
+  <div class="govuk-button-group">
+    <button id="create_casefile_review_submit" class="govuk-button" type="button" (click)="handleSubmit()">
+      Submit for review
+    </button>
+    <opal-lib-govuk-cancel-link
+      id="create_casefile_review_cancel"
+      cancelLinkText="Cancel case creation"
+      (linkClickEvent)="handleCancel()"
+    />
+  </div>
 </div>

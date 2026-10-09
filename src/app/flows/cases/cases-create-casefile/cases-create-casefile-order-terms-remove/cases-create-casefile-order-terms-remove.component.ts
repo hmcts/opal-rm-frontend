@@ -1,3 +1,4 @@
+import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -24,6 +25,7 @@ import { buildOrderTermCard } from '../utils/cases-create-casefile-order-term-ca
 })
 export class CasesCreateCasefileOrderTermsRemoveComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly injector = inject(Injector);
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly selection = this.store.orderTermRemoval();
@@ -45,7 +47,9 @@ export class CasesCreateCasefileOrderTermsRemoveComponent implements OnInit, OnD
   private async navigateToSummary(): Promise<boolean> {
     this.busy.set(true);
     try {
-      return await this.router.navigateByUrl(this.summaryPath);
+      return await this.router.navigateByUrl(
+        this.outcome() ? this.reviewNavigation.returnPath(this.summaryPath) : this.summaryPath,
+      );
     } catch {
       return false;
     } finally {

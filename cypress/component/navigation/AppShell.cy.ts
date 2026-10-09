@@ -10,10 +10,7 @@ import { NEVER } from 'rxjs';
 import { AppComponent } from 'src/app/app.component';
 import { LoginLocators as Login } from '../../shared/selectors/login.locators';
 import { PrimaryNavigationLocators as Nav } from '../../shared/selectors/primary-navigation.locators';
-import {
-  STARTER_USER_STATE_CASES_ONLY,
-  STARTER_USER_STATE_ALL_DASHBOARDS,
-} from '../CommonIntercepts/CommonUserState.mocks';
+import { createStarterUserState, STARTER_USER_STATE_CASES_ONLY } from '../CommonIntercepts/CommonUserState.mocks';
 
 const mountAppShell = ({ authenticated, userState }: { authenticated: boolean; userState: IOpalUserState }) =>
   mount(AppComponent, {
@@ -63,7 +60,7 @@ describe('App shell', () => {
     cy.get(Nav.container).should('not.exist');
   });
 
-  it('shows only Cases when the user only has accounts permissions', () => {
+  it('shows only Cases when the user has the RM casefile permission', () => {
     mountAppShell({
       authenticated: true,
       userState: STARTER_USER_STATE_CASES_ONLY,
@@ -74,23 +71,13 @@ describe('App shell', () => {
     cy.get(Nav.items).first().should('contain.text', Nav.labels.cases);
   });
 
-  it('shows the full dashboard navigation when the user has all starter permissions', () => {
+  it('keeps sections without RM permissions hidden even when legacy Fines permissions are present', () => {
     mountAppShell({
       authenticated: true,
-      userState: STARTER_USER_STATE_ALL_DASHBOARDS,
+      userState: createStarterUserState([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 21]),
     });
 
-    cy.get(Nav.items)
-      .should('have.length', 4)
-      .then(($items) => {
-        const labels = [...$items].map((item) => item.textContent?.trim() ?? '');
-
-        expect(labels).to.deep.equal([
-          Nav.labels.search,
-          Nav.labels.cases,
-          Nav.labels.reports,
-          Nav.labels.administration,
-        ]);
-      });
+    cy.get(Nav.items).should('have.length', 1);
+    cy.get(Nav.items).first().should('contain.text', Nav.labels.cases);
   });
 });

@@ -10,6 +10,7 @@ export const APPLICANT_INDIVIDUAL_ERROR_MESSAGES = {
   bankNameOnAccount: 'Enter name on account',
   bankSortCode: 'Enter sort code',
   bankAccountNumber: 'Enter account number',
+  nonUkBankPaymentReference: 'Enter non-UK bank account payment reference',
   bankPaymentReference: 'Enter UK bank account payment reference',
   restrictedInformationReason: 'Enter a reason',
 } as const;

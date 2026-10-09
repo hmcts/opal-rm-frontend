@@ -1,3 +1,4 @@
+import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,6 +9,7 @@ import {
   OnInit,
   afterRenderEffect,
   computed,
+  effect,
   inject,
   viewChild,
   viewChildren,
@@ -27,6 +29,7 @@ import { cancelOrderTermAmendmentAfterNavigation } from '../utils/cases-create-c
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileOrderTermsSummaryComponent implements OnInit, OnDestroy {
+  private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
   private readonly injector = inject(Injector);
@@ -55,6 +58,24 @@ export class CasesCreateCasefileOrderTermsSummaryComponent implements OnInit, On
       };
     });
   });
+
+  constructor() {
+    effect(() => {
+      // Amendment/cancellation commits happen after navigation to this summary.
+      // Wait for those accepted-state transitions before returning to review.
+      if (
+        this.reviewNavigation.context() &&
+        !this.store.orderTermAmendment() &&
+        !this.store.creditorDraft() &&
+        !this.store.orderTermRemoval() &&
+        !this.store.orderTermDraft() &&
+        !this.store.unsavedChanges()
+      ) {
+        const target = this.reviewNavigation.returnPath(this.taskListPath);
+        void this.router.navigateByUrl(target).catch(() => undefined);
+      }
+    });
+  }
 
   public ngOnInit(): void {
     afterRenderEffect(

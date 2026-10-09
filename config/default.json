@@ -123,6 +123,6 @@
     "cacheKeyPrefix": "USER_STATE_",
     "routePath": "/api/user-state",
     "tokenClaim": "sub",
-    "domain": "fines"
+    "domain": "maintenance"
   }
 }

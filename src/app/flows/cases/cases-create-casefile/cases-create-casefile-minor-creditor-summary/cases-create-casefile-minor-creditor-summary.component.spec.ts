@@ -25,7 +25,7 @@ const draft = {
 const patch = (store: InstanceType<typeof CasesCreateCasefileStore>, state: Partial<ICasesCreateCasefileState>) =>
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, state);
 
-async function setup(state: Partial<ICasesCreateCasefileState> = {}) {
+async function setup(state: Partial<ICasesCreateCasefileState> = {}, restoreRemovalFocus = false) {
   await TestBed.configureTestingModule({
     imports: [CasesCreateCasefileMinorCreditorSummaryComponent],
     providers: [CasesCreateCasefileStore, provideRouter([])],
@@ -38,8 +38,14 @@ async function setup(state: Partial<ICasesCreateCasefileState> = {}) {
     creditorDraft: draft,
     ...state,
   });
+  const router = TestBed.inject(Router);
+  if (restoreRemovalFocus) {
+    vi.spyOn(router, 'currentNavigation').mockReturnValue({
+      extras: { state: { minorCreditorRemovalReturnFocus: true } },
+    } as never);
+  }
   const fixture = TestBed.createComponent(CasesCreateCasefileMinorCreditorSummaryComponent);
-  return { fixture, component: fixture.componentInstance, store, router: TestBed.inject(Router) };
+  return { fixture, component: fixture.componentInstance, store, router };
 }
 
 const amendmentState = (): Partial<ICasesCreateCasefileState> => {
@@ -60,6 +66,140 @@ const amendmentState = (): Partial<ICasesCreateCasefileState> => {
 
 describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
   beforeEach(() => vi.restoreAllMocks());
+
+  it('captures the reviewed creditor before navigating to removal', async () => {
+    const { component, store, router } = await setup();
+    const reviewed = store.creditorDraft();
+    const event = new Event('click', { cancelable: true });
+    vi.spyOn(router, 'navigateByUrl').mockImplementation(async () => {
+      expect(store.minorCreditorRemoval()?.expectedDraft).toBe(reviewed);
+      expect(event.defaultPrevented).toBe(true);
+      return true;
+    });
+
+    await component.handleRemove(event);
+
+    expect(store.creditorDraft()).toBe(reviewed);
+    expect(router.navigateByUrl).toHaveBeenCalledWith(component.removePath);
+  });
+
+  it.each([false, new Error('Synthetic navigation failure')])(
+    'clears only its captured selection after failed removal entry: %s',
+    async (result) => {
+      const { component, store, router } = await setup();
+      const navigate = vi.spyOn(router, 'navigateByUrl');
+      if (result instanceof Error) navigate.mockRejectedValue(result);
+      else navigate.mockResolvedValue(result);
+
+      await component.handleRemove(new Event('click', { cancelable: true }));
+
+      expect(store.creditorDraft()).toBe(draft);
+      expect(store.minorCreditorRemoval()).toBeNull();
+      expect(component.navigationFailed()).toBe(true);
+    },
+  );
+
+  it('ignores repeated removal while entry navigation is pending', async () => {
+    const { component, store, router } = await setup();
+    let finish!: (result: boolean) => void;
+    const navigate = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    const first = component.handleRemove(new Event('click', { cancelable: true }));
+    const selection = store.minorCreditorRemoval();
+    const repeatedEvent = new Event('click', { cancelable: true });
+
+    await component.handleRemove(repeatedEvent);
+
+    expect(repeatedEvent.defaultPrevented).toBe(true);
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(store.minorCreditorRemoval()).toBe(selection);
+    finish(true);
+    await first;
+  });
+
+  it('does not select a replacement draft from an older summary', async () => {
+    const { component, store, router } = await setup();
+    const replacement = { ...draft };
+    patch(store, { creditorDraft: replacement });
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    const event = new Event('click', { cancelable: true });
+
+    await component.handleRemove(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(store.minorCreditorRemoval()).toBeNull();
+    expect(store.creditorDraft()).toBe(replacement);
+  });
+
+  it('does not navigate if removal capture is rejected', async () => {
+    const { component, store, router } = await setup();
+    const before = getState(store);
+    vi.spyOn(store, 'beginMinorCreditorRemoval').mockReturnValue(null);
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    const event = new Event('click', { cancelable: true });
+
+    await component.handleRemove(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(getState(store)).toEqual(before);
+  });
+
+  it('focuses the error heading after removal entry fails', async () => {
+    const { component, fixture, router } = await setup();
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(false);
+    fixture.detectChanges();
+
+    await component.handleRemove(new Event('click', { cancelable: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.govuk-error-summary h2'));
+  });
+
+  it('does not clear a newer selection when earlier removal navigation fails late', async () => {
+    const { component, store, router } = await setup();
+    let finish!: (result: boolean) => void;
+    vi.spyOn(router, 'navigateByUrl').mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    const first = component.handleRemove(new Event('click', { cancelable: true }));
+    const original = store.minorCreditorRemoval();
+    const newer = store.beginMinorCreditorRemoval();
+
+    finish(false);
+    await first;
+
+    expect(newer).not.toBe(original);
+    expect(store.minorCreditorRemoval()).toBe(newer);
+  });
+
+  it('focuses the summary heading after cancellation when the Remove action is absent', async () => {
+    const { fixture } = await setup({}, true);
+    const host = fixture.nativeElement as HTMLElement;
+    const querySelector = host.querySelector.bind(host);
+    vi.spyOn(host, 'querySelector').mockImplementation((selector: string) =>
+      selector === '#Remove' ? null : querySelector(selector),
+    );
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(querySelector('h1'));
+  });
+
+  it('does not move focus on ordinary summary entry', async () => {
+    const sentinel = document.createElement('button');
+    document.body.appendChild(sentinel);
+    sentinel.focus();
+    const { fixture } = await setup();
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(sentinel);
+    sentinel.remove();
+  });
 
   it('renders the review card, semantic actions and escaped stored text', async () => {
     const details = structuredClone(MINOR_CREDITOR_DETAILS_MOCK);
@@ -85,6 +225,10 @@ describe('CasesCreateCasefileMinorCreditorSummaryComponent', () => {
     expect(fixture.nativeElement.querySelector('#Remove strong').textContent).toBe('Remove');
     expect(fixture.nativeElement.querySelector('#Remove .govuk-visually-hidden').textContent).toBe(
       'minor creditor details',
+    );
+    expect(fixture.nativeElement.querySelector('#Remove').getAttribute('href')).toBe(component.removePath);
+    expect(fixture.nativeElement.querySelector('#Remove').closest('li').classList).toContain(
+      'govuk-summary-card__action',
     );
     expect(component.detailsPath).toBe('/cases/create-casefile/order-terms/creditor/minor-creditor-details');
     expect(component.removePath).toBe('/cases/create-casefile/order-terms/creditor/minor-creditor-remove');

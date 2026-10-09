@@ -81,6 +81,14 @@ describe('CasesCreateCasefileOrderTermCreditorFormComponent', () => {
     Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
   });
 
+  it('safely focuses the heading only when the view is available', () => {
+    create();
+    expect(() => component.focusHeading()).not.toThrow();
+    fixture.detectChanges();
+    component.focusHeading();
+    expect(document.activeElement?.id).toBe('create_casefile_order_term_creditor_heading');
+  });
+
   it('renders stable native radios in an application-owned GOV.UK fieldset', () => {
     create();
     fixture.detectChanges();

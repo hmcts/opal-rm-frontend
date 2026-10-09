@@ -1,6 +1,23 @@
 <div class="govuk-grid-column-two-thirds">
   <span class="govuk-caption-l">Order terms</span>
-  <h1 class="govuk-heading-l">Minor creditor summary</h1>
+  <h1 #summaryHeading class="govuk-heading-l" tabindex="-1">Minor creditor summary</h1>
+  @if (navigationFailed()) {
+    <div
+      class="govuk-error-summary"
+      role="alert"
+      aria-labelledby="create_casefile_minor_creditor_summary_navigation_error_title"
+    >
+      <h2
+        #navigationErrorHeading
+        id="create_casefile_minor_creditor_summary_navigation_error_title"
+        class="govuk-error-summary__title"
+        tabindex="-1"
+      >
+        There is a problem
+      </h2>
+      <div class="govuk-error-summary__body">{{ safeNavigationErrorMessage }}</div>
+    </div>
+  }
   <opal-lib-govuk-summary-card-list
     summaryCardListId="minorCreditorDetails"
     cardTitle="Minor creditor details"
@@ -14,13 +31,18 @@
         [actionRoute]="detailsPath"
         (clickEvent)="navigateTo($event)"
       ></li>
-      <li
-        opal-lib-govuk-summary-card-action
-        actionText="Remove"
-        visuallyHiddenText="minor creditor details"
-        [actionRoute]="removePath"
-        (clickEvent)="navigateTo($event)"
-      ></li>
+      <!-- Native activation prevents Cancel's Enter keyup from reopening removal after focus returns. -->
+      <li class="govuk-summary-card__action">
+        <a
+          id="Remove"
+          class="govuk-link govuk-link--no-visited-state"
+          [href]="removePath"
+          (click)="handleRemove($event)"
+        >
+          <strong>Remove</strong>
+          <span class="govuk-visually-hidden">minor creditor details</span>
+        </a>
+      </li>
     </ng-container>
     <ng-container content>
       <opal-lib-govuk-summary-list summaryListId="minorCreditorDetails">

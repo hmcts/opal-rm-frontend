@@ -1,5 +1,5 @@
 import type { IOpalMaintenanceDraftCasefileRequest } from '../../../../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-request.interface';
-import type { CasesCreateCasefileApplicantBankDetails } from '../../../../types/cases-create-casefile-applicant-bank-details.type';
+import type { CasesCreateCasefileMinorCreditorBank } from '../../../../types/cases-create-casefile-minor-creditor-bank.type';
 
 type SavedBank = IOpalMaintenanceDraftCasefileRequest['casefile']['applicant']['bank_account_details'];
 function requireBankText(values: readonly unknown[]): void {
@@ -7,7 +7,7 @@ function requireBankText(values: readonly unknown[]): void {
 }
 
 /** Restore the saved discriminated bank branch without retaining input references. */
-export function mapSavedBank(value: SavedBank): CasesCreateCasefileApplicantBankDetails {
+export function mapSavedBank(value: SavedBank): CasesCreateCasefileMinorCreditorBank {
   if (value?.bank_account_type === 'None or not applicable') {
     if (value.uk_bank_details !== undefined || value.non_uk_bank_details !== undefined)
       throw new Error('Unusable saved bank');

@@ -214,7 +214,7 @@ function timeline(value: unknown): void {
     text(item['username']);
     member(item['status'], ['Submitted', 'Resubmitted', 'Rejected', 'Approved', 'Deleted']);
     date(item['status_date'], true);
-    strings(item, ['reason_text']);
+    strings(item, ['reason_text'], true);
   }
 }
 function isDetail(body: unknown, requestedId: number): body is IOpalMaintenanceDraftCasefileDetail {

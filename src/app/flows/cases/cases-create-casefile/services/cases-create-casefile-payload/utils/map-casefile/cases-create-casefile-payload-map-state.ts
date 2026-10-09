@@ -10,7 +10,6 @@ import { CASES_CREATE_CASEFILE_ORDER_DETAILS_PAYMENT_FREQUENCIES } from '../../.
 import { isCasesCreateCasefileCaseTypeSelectionValid } from '../../../../utils/cases-create-casefile-case-type-selection';
 import { isCasesCreateCasefileIndividualApplicantSelection } from '../../../../utils/cases-create-casefile-individual-applicant-selection';
 import { isCasesCreateCasefileOrganisationApplicantSelection } from '../../../../utils/cases-create-casefile-organisation-applicant-selection';
-import { acceptedOrderTermsComplete } from '../../../../utils/cases-create-casefile-order-terms-complete';
 import { mapSavedApplicant, mapSavedRespondent } from './cases-create-casefile-payload-map-party';
 import { mapSavedOrderTerm } from './cases-create-casefile-payload-map-order-term';
 
@@ -77,10 +76,7 @@ function applicationId(account: Account, context: ICasesCreateCasefileHydrationC
 function mapMinor(value: SavedMinor, context: ICasesCreateCasefileHydrationContext): ICasesCreateCasefileMinorCreditor {
   const party = mapSavedApplicant(value, context.countries);
   const address = party.contactDetails.address;
-  const bank =
-    party.bankDetails.type === 'non-uk'
-      ? { ...party.bankDetails, paymentReference: party.bankDetails.paymentReference ?? fail() }
-      : party.bankDetails;
+  const bank = party.bankDetails;
   if ('organisationName' in party)
     return {
       sequenceNumber: value.creditor_sequence,
@@ -170,8 +166,8 @@ function assertApplicantApplicable(
   if (!applicable) return fail();
 }
 
+/** Mark sections Provided after the saved data and creditor references have been validated. */
 function deriveTaskStatuses(state: ICasesCreateCasefileState): void {
-  if (!acceptedOrderTermsComplete(state)) return fail();
   const provided = CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED;
   state.taskStatuses.respondent = provided;
   state.taskStatuses.applicant = provided;

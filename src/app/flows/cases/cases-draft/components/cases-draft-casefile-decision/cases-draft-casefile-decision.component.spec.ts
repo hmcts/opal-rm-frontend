@@ -75,6 +75,41 @@ describe('CasesDraftCasefileDecisionComponent', () => {
     expect(document.activeElement).toBe(query(`#${decisionId}-approve`));
   });
 
+  it('does not complete a disabled unselected decision and restores required validation when re-enabled', async () => {
+    const emit = vi.spyOn(component.decisionEvent, 'emit');
+    const decision = component.form.controls.create_casefile_review_decision;
+    decision.disable();
+    fixture.detectChanges();
+    const form = query<HTMLFormElement>('form');
+    const submitEvent = (): void => {
+      form.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }));
+      fixture.detectChanges();
+    };
+
+    expect(component.form.valid).toBe(true);
+    expect(decision.value).toBeNull();
+    expect(query<HTMLInputElement>(`#${decisionId}-approve`).disabled).toBe(true);
+    expect(query<HTMLInputElement>(`#${decisionId}-reject`).disabled).toBe(true);
+    submitEvent();
+    expect(emit).not.toHaveBeenCalled();
+    expect(query('.govuk-error-summary')).toBeNull();
+
+    decision.enable();
+    fixture.detectChanges();
+    expect(component.form.invalid).toBe(true);
+    expect(query<HTMLInputElement>(`#${decisionId}-approve`).disabled).toBe(false);
+    submitEvent();
+    await fixture.whenStable();
+    expect(emit).not.toHaveBeenCalled();
+    expect(component.formErrorSummaryMessage).toEqual([{ fieldId: decisionId, message: 'Select a review decision' }]);
+
+    query<HTMLInputElement>(`#${decisionId}-approve`).click();
+    submitEvent();
+    expect(component.form.valid).toBe(true);
+    expect(emit).toHaveBeenCalledExactlyOnceWith({ decision: 'approve', targetStatus: 'PUBLISHING_PENDING' });
+    expect(query('.govuk-error-summary')).toBeNull();
+  });
+
   it.each(['', '   ', '\n\t'])('requires a meaningful rejection reason: %j', async (reason) => {
     const emit = vi.spyOn(component.decisionEvent, 'emit');
     reject(reason);

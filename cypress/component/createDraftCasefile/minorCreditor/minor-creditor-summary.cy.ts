@@ -18,13 +18,15 @@ const route = (child: string): string => '/' + PATHS.root + '/' + child;
 
 describe('Minor creditor summary journey', () => {
   it(
-    'AC2. preserves the pending creditor through Remove and Back without fetching countries',
+    'AC2. preserves the pending creditor through Remove and cancellation without fetching countries',
     { tags: buildTags() },
     () => {
       setupCreditor({ initialChild: PATHS.children.minorCreditorSummary, state: MINOR_CREDITOR_PENDING_STATE_MOCK });
       cy.get(S.minorCreditorSummary.remove).click();
-      cy.get(S.heading).should('have.text', 'Remove minor creditor');
-      cy.get(S.minorCreditorSummary.back).click();
+      cy.get(S.heading)
+        .invoke('text')
+        .then((text) => expect(text.trim()).to.eq('Are you sure you want to remove this minor creditor?'));
+      cy.get(S.minorCreditorRemoval.cancel).click();
       cy.get(S.heading).should('have.text', 'Minor creditor summary');
       cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {
         expect(store.creditorDraft()).to.deep.equal(MINOR_CREDITOR_PENDING_STATE_MOCK.creditorDraft);
@@ -189,7 +191,7 @@ describe('Minor creditor review accessibility', () => {
   for (const [name, selector, initialChild, destination] of [
     ['Change', S.minorCreditorSummary.change, PATHS.children.minorCreditorSummary, PATHS.children.minorCreditorDetails],
     ['Remove', S.minorCreditorSummary.remove, PATHS.children.minorCreditorSummary, PATHS.children.minorCreditorRemove],
-    ['Back', S.minorCreditorSummary.back, PATHS.children.minorCreditorRemove, PATHS.children.minorCreditorSummary],
+    ['Back', S.minorCreditorRemoval.cancel, PATHS.children.minorCreditorRemove, PATHS.children.minorCreditorSummary],
     ['Cancel', S.minorCreditorSummary.cancel, PATHS.children.minorCreditorSummary, PATHS.children.orderTermCreditor],
   ] as const) {
     it(`AC4. activates ${name} with native Enter and preserves the expected state`, { tags: buildTags() }, () => {
@@ -253,8 +255,11 @@ describe('Minor creditor review accessibility', () => {
       initialChild: PATHS.children.minorCreditorRemove,
       state: MINOR_CREDITOR_PENDING_STATE_MOCK,
     });
-    cy.get(S.heading).should('have.length', 1).and('have.text', 'Remove minor creditor');
-    cy.title().should('eq', 'OPAL - Remove minor creditor');
+    cy.get(S.heading)
+      .should('have.length', 1)
+      .invoke('text')
+      .then((text) => expect(text.trim()).to.eq('Are you sure you want to remove this minor creditor?'));
+    cy.title().should('eq', 'OPAL - Are you sure you want to remove this minor creditor?');
     cy.get(S.primaryNavigation).should('not.exist');
     scan();
     cy.screenshot('po-9810-removal');
@@ -275,11 +280,13 @@ describe('Minor creditor review accessibility', () => {
     cy.get(S.minorCreditorSummary.cancel).should('be.visible');
     cy.screenshot('po-9810-summary-320px');
     cy.get(S.minorCreditorSummary.remove).click();
-    cy.get(S.heading).should('have.text', 'Remove minor creditor');
+    cy.get(S.heading)
+      .invoke('text')
+      .then((text) => expect(text.trim()).to.eq('Are you sure you want to remove this minor creditor?'));
     cy.document().then((document) =>
       expect(document.documentElement.scrollWidth).to.be.at.most(document.defaultView!.innerWidth),
     );
-    cy.get(S.minorCreditorSummary.back).should('be.visible');
+    cy.get(S.minorCreditorRemoval.cancel).should('be.visible');
     cy.screenshot('po-9810-removal-320px');
   });
 });

@@ -17,8 +17,13 @@ Then('my minor creditor name remains on the details page', () => flow.assertUnsa
 Then('I return to Creditor without a new minor creditor', () => flow.assertCreditorWithoutNewMinor());
 
 When('I open minor creditor removal', () => flow.reviewAction('Remove'));
-When('I return from minor creditor removal', () => flow.reviewAction('Back'));
+When('I return from minor creditor removal', () => flow.cancelRemoval());
 When('I cancel minor creditor review', () => flow.reviewAction('Cancel'));
 When('I accept the reviewed minor creditor', () => flow.reviewAction('Continue'));
 Then('the reviewed minor creditor is accepted without creating a draft casefile', () => flow.assertAcceptedReview());
-Then('I reach the minor creditor removal placeholder', () => flow.assertRemoval());
+Then('I reach the minor creditor removal confirmation', () => flow.assertRemoval());
+
+When('I confirm minor creditor removal', () => flow.confirmRemoval());
+When('I cancel minor creditor removal', () => flow.cancelRemoval());
+Then('I return to Creditor with minor creditor removal success', () => flow.assertRemovalSuccess());
+When('I dismiss minor creditor removal success', () => flow.dismissRemovalSuccess());

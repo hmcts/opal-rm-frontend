@@ -29,6 +29,8 @@
     "test:component:leaf": "opal-cypress-runner component --serial --no-reports --no-reset",
     "test:functionalOpalVideo": "CYPRESS_VIDEO=true opal-cypress-runner functional --mode=opal --browser=edge --serial --spec 'cypress/e2e/functional/opal/**/PO-530*.feature' --config 'videosFolder=functional-output/videos,screenshotsFolder=functional-output/screenshots/edge'",
     "test:fullfunctional": "opal-cypress-runner fullfunctional",
+    "test:functional:rm-create-case-files": "TAGS='@R1CRmCreateCaseFiles and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and not @skip' opal-cypress-runner functional --serial",
+    "test:functional:rm-create-case-files-off": "TAGS='@R1CRmCreateCaseFilesOff and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFilesOff and not @skip' opal-cypress-runner functional --serial",
     "test:functional:tags": "opal-cypress-runner functional --tags",
     "test:functional:uat_legacy": "TAGS=@UAT-Technical DEV_DEFAULT_APP_MODE=legacy LEGACY_ENABLED=true yarn test:functional:tags",
     "dev:ssr": "ng run opal-rm-frontend:serve-ssr --port 5200",

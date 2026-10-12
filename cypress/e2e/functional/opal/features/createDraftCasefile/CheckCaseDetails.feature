@@ -9,13 +9,13 @@ Feature: Check case details and submit for review
     When I correct the respondent from casefile review
     Then review shows the corrected respondent and unchanged orders
     When I submit the casefile for submission
-    Then the submitted case reference is shown after one create request
+    Then submission confirmation is shown after one create request
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
   Scenario: Refresh the submission confirmation without replaying submission
     Given I am reviewing a complete casefile for submission
     When I submit the casefile for submission
-    Then the submitted case reference is shown after one create request
+    Then submission confirmation is shown after one create request
     When I refresh the submission confirmation
     Then an empty new case journey is shown without submitting data
 
@@ -29,7 +29,7 @@ Feature: Check case details and submit for review
   Scenario: Start an empty case from the confirmation
     Given I am reviewing a complete casefile for submission
     When I submit the casefile for submission
-    Then the submitted case reference is shown after one create request
+    Then submission confirmation is shown after one create request
     When I create a new case from casefile confirmation
     Then an empty new case journey is shown without submitting data
 
@@ -37,7 +37,7 @@ Feature: Check case details and submit for review
   Scenario: Back from confirmation cannot recover the submitted case
     Given I am reviewing a complete casefile for submission
     When I submit the casefile for submission
-    Then the submitted case reference is shown after one create request
+    Then submission confirmation is shown after one create request
     When I go back from casefile confirmation
     Then the submitted case journey is empty without another create request
     And the submitted party forms and review cannot be reopened

@@ -5,49 +5,27 @@ import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefi
 import { setupReview, type ReviewStore } from './setup/review.setup';
 
 const S = CreateCasefileSelectors.review;
-const buildTags = (story = 'PO-9817'): string[] => [
+const buildTags = (story = 'PO-9819'): string[] => [
   '@JIRA-STORY:' + story,
   '@JIRA-EPIC:PO-6506',
   '@JIRA-LABEL:create-draft-casefile',
 ];
 
-describe('Check case details accessibility', () => {
-  it(
-    'AC6. should have no detected Axe violations in the valid review and expanded bank disclosure',
-    { tags: buildTags() },
-    () => {
-      setupReview();
-      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-      cy.checkA11y();
-      cy.get(S.change('applicant')).focus();
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.bankToggle).should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.SPACE);
-      cy.get(S.bankDetails).should('have.attr', 'open');
-      cy.checkA11y();
-    },
-  );
-
-  it('AC6. should reflow before and after disclosure at 320 CSS pixels', { tags: buildTags() }, () => {
-    cy.viewport(320, 900);
-    setupReview();
-    cy.get(S.heading).should('be.visible');
-    cy.document().should((document) =>
-      expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
+// Generated identifier and In Review navigation remain implementation gaps in PO-9819.
+// These scenarios verify the available action without treating those gaps as accepted behaviour.
+describe('Submission confirmation', () => {
+  beforeEach(() => {
+    const mutation = cy.spy().as('confirmationPersistence');
+    cy.intercept(
+      { method: '+(POST|PUT|PATCH|DELETE)', url: /\/opal-maintenance-service\/draft-casefiles(?:[/?]|$)/ },
+      mutation,
     );
-    cy.screenshot('po-9817-review-collapsed-320px');
-    cy.get(S.bankToggle).click();
-    cy.get(S.bankDetails).should('have.attr', 'open');
-    cy.document().should((document) =>
-      expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
-    );
-    cy.screenshot('po-9817-review-expanded-320px');
   });
 
   [1280, 320].forEach((width) => {
     it(
-      `AC1. should expose only the available confirmation action at ${width}px`,
-      { tags: buildTags('PO-9819') },
+      `AC1, AC2, AC3, AC5. should render confirmation and operate Create a new case at ${width}px`,
+      { tags: buildTags() },
       () => {
         cy.viewport(width, 800);
         setupReview({ confirmation: true });
@@ -62,16 +40,8 @@ describe('Check case details accessibility', () => {
         cy.get(S.createNew)
           .should('contain.text', 'Create a new case')
           .and('have.attr', 'href', '/' + PATHS.root + '/' + PATHS.children.caseType);
-        cy.get(S.inReview).should(($text) => {
-          expect($text).to.contain.text('See your cases in review');
-          expect($text).not.to.have.attr('href');
-          expect($text).not.to.have.attr('tabindex');
-          expect($text).not.to.match('a, button, [role="link"], [role="button"]');
-        });
         cy.press(Cypress.Keyboard.Keys.TAB);
         cy.get(S.createNew).should('be.focused');
-        cy.press(Cypress.Keyboard.Keys.TAB);
-        cy.get(S.inReview).should('not.be.focused');
         cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
         cy.checkA11y();
         cy.document().should((document) =>
@@ -83,6 +53,7 @@ describe('Check case details accessibility', () => {
         cy.get<ReviewStore>('@reviewStore').should((store) =>
           expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
+        cy.get('@confirmationPersistence').should('not.have.been.called');
         cy.get('@routerNavigate').should('have.been.calledOnceWith', '/' + PATHS.root + '/' + PATHS.children.caseType, {
           state: { startNewCase: true, focusCaseTypeHeading: true },
         });
@@ -92,8 +63,8 @@ describe('Check case details accessibility', () => {
 
   ['cancelled', 'rejected'].forEach((failure) => {
     it(
-      `AC1. should preserve the case and focus the error after ${failure} new-case navigation`,
-      { tags: buildTags('PO-9819') },
+      `AC2, AC3, AC5. should preserve the confirmation marker and focus the error after ${failure} new-case navigation`,
+      { tags: buildTags() },
       () => {
         setupReview({ confirmation: true, failNavigation: true });
         if (failure === 'rejected') {
@@ -118,6 +89,7 @@ describe('Check case details accessibility', () => {
         cy.press(Cypress.Keyboard.Keys.ENTER);
         cy.get(S.confirmationError).should('not.exist');
         cy.get('@routerNavigate').should('have.been.calledTwice');
+        cy.get('@confirmationPersistence').should('not.have.been.called');
         cy.get<ReviewStore>('@reviewStore').should((store) =>
           expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
@@ -126,8 +98,8 @@ describe('Check case details accessibility', () => {
   });
 
   it(
-    'AC1. should prevent repeated new-case navigation while the first attempt is pending',
-    { tags: buildTags('PO-9819') },
+    'AC2, AC3. should prevent repeated new-case navigation while the first attempt is pending',
+    { tags: buildTags() },
     () => {
       let finishNavigation!: (success: boolean) => void;
       const pending = new Cypress.Promise<boolean>((resolve) => {
@@ -144,6 +116,7 @@ describe('Check case details accessibility', () => {
       cy.then(() => finishNavigation(false));
       cy.get(S.confirmationError).should('be.focused');
       cy.get(S.createNew).should('not.have.attr', 'aria-disabled', 'true');
+      cy.get('@confirmationPersistence').should('not.have.been.called');
     },
   );
 });

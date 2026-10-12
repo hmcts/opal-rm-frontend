@@ -11,7 +11,7 @@ Feature: Check case details submission accessibility
     Then review shows the corrected respondent and unchanged orders
     And I check the page for accessibility
     When I submit the casefile for submission
-    Then the submitted case reference is shown after one create request
+    Then submission confirmation is shown after one create request
     And I check the page for accessibility
     When I create a new case from casefile confirmation
     Then an empty new case journey is shown without submitting data

@@ -1,7 +1,7 @@
 import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { CasesCreateCasefileCheckDetailsComponent } from '../cases-create-casefile-check-details/cases-create-casefile-check-details.component';
-import { By } from '@angular/platform-browser';
+import { By, Title } from '@angular/platform-browser';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { CasesCreateCasefileOrderTermsRemoveComponent } from '../cases-create-casefile-order-terms-remove/cases-create-casefile-order-terms-remove.component';
 import { Component } from '@angular/core';
@@ -53,6 +53,72 @@ describe('Submission route lifecycle', () => {
     }),
   );
   afterEach(() => TestBed.inject(HttpTestingController).verify());
+  it.each(['create_casefile_confirmation_create_new'])(
+    'starts an empty case and focuses its heading through the actual %s link',
+    async (linkId) => {
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          provideRouter([
+            {
+              path: 'cases/create-casefile',
+              component: CasesCreateCasefileComponent,
+              children,
+            },
+          ]),
+        ],
+      });
+      const store = TestBed.inject(CasesCreateCasefileStore);
+      patchState(
+        store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+        createCasesCreateCasefileReviewState(),
+      );
+      const harness = await RouterTestingHarness.create('/cases/create-casefile/check-case-details');
+      await harness.fixture.whenStable();
+      harness.routeNativeElement!.querySelector<HTMLButtonElement>('#create_casefile_review_submit')!.click();
+      TestBed.inject(HttpTestingController)
+        .expectOne(submissionUrl)
+        .flush({ draft_casefile_id: 9817, casefile_status: 'SUBMITTED' }, { status: 201, statusText: 'Created' });
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
+      const link = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('#' + linkId);
+      expect(link).not.toBeNull();
+      link!.focus();
+      expect(document.activeElement).toBe(link);
+      link!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      await harness.fixture.whenStable();
+      expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/case-type');
+      const heading = harness.routeNativeElement!.querySelector('#create_casefile_case_type_heading');
+      expect(heading).not.toBeNull();
+      expect(document.activeElement).toBe(heading);
+      expect(harness.routeNativeElement!.querySelectorAll('input:checked')).toHaveLength(0);
+      expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+    },
+  );
+
+  it('sets the document title through the production confirmation resolver', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children: routing }]),
+      ],
+    });
+    const store = TestBed.inject(CasesCreateCasefileStore);
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    store.setSubmissionSucceeded(true);
+    const setTitle = vi.spyOn(TestBed.inject(Title), 'setTitle');
+    await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
+    expect(setTitle).toHaveBeenCalledWith('OPAL - Submission confirmation');
+  });
+
   it.each([false, true])('denies direct confirmation for an unsubmitted draft (complete: %s)', async (complete) => {
     TestBed.configureTestingModule({
       providers: [
@@ -120,7 +186,7 @@ describe('Submission route lifecycle', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(router.url).toBe('/cases/create-casefile/submission-confirmation');
-    expect(harness.routeNativeElement?.textContent).toContain('Submission confirmation');
+    expect(harness.routeNativeElement?.textContent).toContain('You’ve submitted this case for review');
     expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
     // The harness navigates explicitly; enable the listener used by browser Back.
     router.setUpLocationChangeListener();

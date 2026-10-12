@@ -29,6 +29,26 @@ export class CheckCaseDetailsFlow {
   public assertConfirmation(): void {
     this.review.assertConfirmation();
   }
+  /** Starts an empty case through Create a new case. */
+  public startNextCase(): void {
+    this.review.startNextCase();
+  }
+  /** Opens confirmation after login without an accepted submission. */
+  public openFreshConfirmation(): void {
+    this.review.openFreshConfirmation();
+  }
+  /** Returns through browser history after acceptance. */
+  public backFromConfirmation(): void {
+    this.review.backFromConfirmation();
+  }
+  /** Checks that Back cannot recover the submitted draft or allow another submission. */
+  public assertClearedJourneyAfterSubmission(): void {
+    this.review.assertClearedJourneyAfterSubmission();
+  }
+  /** Checks that submitted party forms and review remain guarded. */
+  public assertSubmittedFormsBlocked(): void {
+    this.review.assertSubmittedFormsBlocked();
+  }
   /** Reloads the confirmation page to verify the existing in-memory journey reset. */
   public refreshConfirmation(): void {
     this.review.refreshConfirmation();

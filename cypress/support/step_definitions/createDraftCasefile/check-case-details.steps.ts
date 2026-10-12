@@ -6,12 +6,22 @@ Given('I am reviewing a complete casefile for submission', () => flow.open());
 When('I correct the respondent from casefile review', () => flow.correctRespondent());
 Then('review shows the corrected respondent and unchanged orders', () => flow.assertCorrection());
 When('I submit the casefile for submission', () => flow.submit());
-Then('the submitted case reference is shown after one create request', () => flow.assertConfirmation());
+Then('submission confirmation is shown after one create request', () => flow.assertConfirmation());
 When('I refresh the submission confirmation', () => flow.refreshConfirmation());
 When('I open cancellation and return to the reviewed draft', () => flow.cancel());
 When('I open case creation cancellation', () => flow.openCancellation());
 When('I confirm discarding the local case', () => flow.discard());
-Then('refresh starts a new journey without repeating the submission', () => flow.assertRestartedJourney());
+Then('an empty new case journey is shown without submitting data', () => flow.assertRestartedJourney());
 Then('the accepted draft is retained without a submission', () => flow.assertRetainedDraft());
 Then('case creation starts with no selected case or applicant type', () => flow.assertFreshCase());
 Then('browser history cannot recover the discarded case', () => flow.assertHistoryStaysEmpty());
+
+When('I create a new case from casefile confirmation', () => flow.startNextCase());
+When('I go back from casefile confirmation', () => flow.backFromConfirmation());
+Then('the submitted case journey is empty without another create request', () =>
+  flow.assertClearedJourneyAfterSubmission(),
+);
+
+When('I open casefile confirmation without submitting a case', () => flow.openFreshConfirmation());
+
+Then('the submitted party forms and review cannot be reopened', () => flow.assertSubmittedFormsBlocked());

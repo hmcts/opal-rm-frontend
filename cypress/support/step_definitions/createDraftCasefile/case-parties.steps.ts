@@ -16,3 +16,18 @@ When('I capture the respondent and individual applicant', () => flow.captureIndi
 Then('both individual party tasks are complete with their details retained locally', () => flow.verifyIndividual());
 When('I capture the respondent and organisation applicant', () => flow.captureOrganisation());
 Then('both organisation party tasks are complete with their details retained locally', () => flow.verifyOrganisation());
+
+When('I open the respondent page for accessibility', () => flow.openRespondentForAccessibility());
+When('I populate the respondent details for accessibility', () => flow.populateRespondentForAccessibility());
+When('I save the respondent details for accessibility', () => flow.saveRespondentForAccessibility());
+When('I exercise the respondent optional details for accessibility', () => flow.scanRespondentOptionalControls());
+When('I open the individual applicant page for accessibility', () => flow.openIndividualForAccessibility());
+When('I populate the individual applicant details for accessibility', () => flow.populateIndividualForAccessibility());
+When('I save the individual applicant details for accessibility', () => flow.saveIndividualForAccessibility());
+When('I exercise the individual applicant bank choices for accessibility', () => flow.scanIndividualBankControls());
+When('I open the organisation applicant page for accessibility', () => flow.openOrganisationForAccessibility());
+When('I populate the organisation applicant details for accessibility', () =>
+  flow.populateOrganisationForAccessibility(),
+);
+When('I save the organisation applicant details for accessibility', () => flow.saveOrganisationForAccessibility());
+When('I exercise the organisation applicant bank choices for accessibility', () => flow.scanOrganisationBankControls());

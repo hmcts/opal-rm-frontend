@@ -2,6 +2,7 @@ import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/cr
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
+import { accessibilityActions } from '../accessibility/accessibility.actions';
 import type { CasePartyPath } from '../../types/createDraftCasefile/case-party-path.type';
 
 /** Interacts with live party pages and verifies their local retention without submitting a draft. */
@@ -24,8 +25,8 @@ export class CasePartiesActions {
     cy.get(S.caseDetails.applicantTypeValue).should('contain.text', path);
   }
 
-  /** Requires a successful live Country lookup and fills only the mandatory respondent details. */
-  public fillRespondent(): void {
+  /** Opens the respondent page and captures the live Country list before interaction. */
+  public openRespondent(): void {
     cy.get(S.caseDetails.respondentLink).click();
     cy.wait('@liveCountries').then(({ response }) => {
       if (!response || response.statusCode !== 200) throw new Error('Live Country lookup must return 200');
@@ -42,10 +43,23 @@ export class CasePartiesActions {
       const remaining = names.filter((name) => name !== 'United Kingdom').sort((a, b) => a.localeCompare(b));
       cy.wrap(['United Kingdom', ...remaining], { log: false }).as('liveCountryNames');
     });
+  }
+
+  /** Opens and populates mandatory respondent details. */
+  public fillRespondent(): void {
+    this.openRespondent();
+    this.populateRespondent();
+  }
+
+  /** Populates mandatory respondent details and verifies browser Tab focus order. */
+  public populateRespondent(): void {
     this.assertCountryOrder(S.respondentDetails.countryAutocomplete, S.respondentDetails.countryOptions);
     cy.get(S.respondentDetails.firstNames).type('Synthetic');
     cy.get(S.respondentDetails.lastName).type('Respondent');
     cy.get(S.respondentDetails.addressLine1).type('1 Test Street');
+    cy.get(S.respondentDetails.firstNames).focus();
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.respondentDetails.lastName).should('be.focused');
   }
 
   /** Saves respondent details locally using keyboard activation and requires task completion. */
@@ -56,8 +70,12 @@ export class CasePartiesActions {
 
   /** Uses the cached Country list and fills mandatory individual details with no bank account. */
   public fillIndividual(): void {
-    cy.get(S.caseDetails.applicantLink).click();
-    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.applicantIndividual);
+    this.openApplicant('Individual');
+    this.populateIndividual();
+  }
+
+  /** Populates the mandatory individual fields using the cached Country list. */
+  public populateIndividual(): void {
     this.assertCountryOrder(S.applicantIndividual.countryAutocomplete, S.applicantIndividual.countryOptions);
     cy.get(S.applicantIndividual.firstNames).type('Synthetic');
     cy.get(S.applicantIndividual.lastName).type('Applicant');
@@ -73,8 +91,12 @@ export class CasePartiesActions {
 
   /** Uses the cached Country list and fills mandatory organisation details with no bank account. */
   public fillOrganisation(): void {
-    cy.get(S.caseDetails.applicantLink).click();
-    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.applicantOrganisation);
+    this.openApplicant('Organisation');
+    this.populateOrganisation();
+  }
+
+  /** Populates the mandatory organisation fields using the cached Country list. */
+  public populateOrganisation(): void {
     this.assertCountryOrder(S.applicantOrganisation.countryAutocomplete, S.applicantOrganisation.countryOptions);
     cy.get(S.applicantOrganisation.organisationName).type('Synthetic Organisation');
     cy.get(S.applicantOrganisation.foreignAuthorityReference).type('SYNTHETIC-ORG');
@@ -86,6 +108,50 @@ export class CasePartiesActions {
   public saveOrganisation(): void {
     cy.get(S.applicantOrganisation.returnToCaseDetails).focus().should('be.focused').type('{enter}');
     this.assertProvided();
+  }
+
+  /**
+   * Opens the selected applicant route before populating its fields.
+   * @param path Applicant category whose page is opened.
+   */
+  public openApplicant(path: CasePartyPath): void {
+    cy.get(S.caseDetails.applicantLink).click();
+    const child = path === 'Individual' ? PATHS.children.applicantIndividual : PATHS.children.applicantOrganisation;
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + child);
+  }
+
+  /** Scans expanded respondent sections and restores the valid mandatory baseline. */
+  public scanExpandedRespondent(): void {
+    const toggles = [
+      S.respondentDetails.addAliases,
+      S.respondentDetails.sendCorrespondenceToThirdParty,
+      S.respondentDetails.addEmployerDetails,
+      S.respondentDetails.restrictedInformation,
+    ];
+    toggles.forEach((selector) => cy.get(selector).check());
+    accessibilityActions.checkAccessibilityOnly();
+    toggles.forEach((selector) => cy.get(selector).uncheck());
+  }
+  /**
+   * Scans each bank branch and optional individual sections before restoring the valid baseline.
+   * @param path Applicant category whose conditional bank controls are scanned.
+   */
+  public scanBankBranches(path: CasePartyPath): void {
+    const page = path === 'Individual' ? S.applicantIndividual : S.applicantOrganisation;
+    cy.get(page.bankTypeRadio('uk')).check();
+    accessibilityActions.checkAccessibilityOnly();
+    cy.get(page.bankTypeRadio('non-uk')).check();
+    accessibilityActions.checkAccessibilityOnly();
+    cy.get(page.bankTypeRadio('none')).check();
+    if (path === 'Individual') {
+      cy.get(S.applicantIndividual.addAliases).check();
+      cy.get(S.applicantIndividual.sendCorrespondenceToThirdParty).check();
+      cy.get(S.applicantIndividual.restrictedInformation).check();
+      accessibilityActions.checkAccessibilityOnly();
+      cy.get(S.applicantIndividual.addAliases).uncheck();
+      cy.get(S.applicantIndividual.sendCorrespondenceToThirdParty).uncheck();
+      cy.get(S.applicantIndividual.restrictedInformation).uncheck();
+    }
   }
 
   /** Requires both party tasks complete and no draft creation request observed. */

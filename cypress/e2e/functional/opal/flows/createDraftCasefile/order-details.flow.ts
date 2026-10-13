@@ -1,8 +1,18 @@
+import { CasePartiesFlow } from './case-parties.flow';
 import { OrderDetailsActions } from '../../actions/createDraftCasefile/order-details.actions';
 
 /** Drives the Order Details acceptance journey. */
 export class OrderDetailsFlow {
   private readonly actions = new OrderDetailsActions();
+  private readonly parties = new CasePartiesFlow();
+
+  /** Prepares an independent live draft with both mandatory parties completed. */
+  public startLive(): void {
+    this.parties.authenticate('authorised');
+    this.parties.start('Individual');
+    this.parties.captureIndividual();
+  }
+
   /** Completes the required party pages through the real UI. */
   public completeParties(): void {
     this.actions.completeParties();
@@ -58,5 +68,30 @@ export class OrderDetailsFlow {
   /** Checks refreshed journey navigation and direct-link protection. */
   public reloadJourney(): void {
     this.actions.reloadJourney();
+  }
+
+  /** Opens the form with observed live active applications. */
+  public openLive(): void {
+    this.actions.openLive();
+  }
+
+  /** Captures and saves the selected live application and associated fields. */
+  public saveLiveDetails(): void {
+    this.actions.saveLiveDetails();
+  }
+
+  /** Checks completed order and party tasks without draft submission. */
+  public assertLiveProvided(): void {
+    this.actions.assertLiveProvided();
+  }
+
+  /** Reopens saved Order Details through the task list. */
+  public reopenLive(): void {
+    this.actions.reopenLive();
+  }
+
+  /** Checks the restored live application and associated fields. */
+  public assertLiveEditable(): void {
+    this.actions.assertLiveEditable();
   }
 }

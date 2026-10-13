@@ -53,7 +53,7 @@ export class CheckCaseDetailsActions {
     cy.get(S.review.submit).click();
   }
 
-  /** Checks the resolved payload, successful receipt and single create request. */
+  /** Checks the resolved payload, confirmation heading and single create request. */
   public assertConfirmation(): void {
     cy.wait('@draftSubmission').then(({ request, response }) => {
       const payload = request.body as IOpalMaintenanceDraftCasefileRequest;
@@ -137,7 +137,10 @@ export class CheckCaseDetailsActions {
 
   /** Checks that refresh resets the journey without replaying the successful submission. */
   public assertRestartedJourney(): void {
-    cy.get(S.caseTypeGroup).should('be.visible');
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.get(S.caseTypeGroup).should('be.visible').find('input[type="radio"]:checked').should('not.exist');
+    cy.get(S.applicantTypeSelectedOption).should('have.text', 'Select');
+    cy.get(S.review.submit).should('not.exist');
     cy.get('@draftSubmission.all').should('have.length', this.expectedSubmissionCount);
     cy.get(S.primaryNavigation).should('not.exist');
   }

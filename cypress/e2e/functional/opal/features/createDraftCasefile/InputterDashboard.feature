@@ -99,6 +99,6 @@ Feature: Inputter casefile dashboard
     Given I started a new case from the rejected inputter dashboard
     And I am reviewing a complete casefile for submission
     When I submit the casefile for submission
-    Then the submitted case reference is shown after one create request
+    Then submission confirmation is shown after one create request
     When I return to the inputter dashboard from confirmation
     Then In review starts on its default page and sort

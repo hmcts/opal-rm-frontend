@@ -11,7 +11,12 @@ import { CasesCreateCasefileSubmissionConfirmationComponent } from 'src/app/flow
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import { CasesCreateCasefileReviewNavigationService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-review-navigation.service';
 import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-state.interface';
-import { createCompleteReviewState, REVIEW_APPLICATIONS, REVIEW_COUNTRIES } from '../mocks/review.mock';
+import {
+  createCompleteReviewState,
+  createSubmittedReviewState,
+  REVIEW_APPLICATIONS,
+  REVIEW_COUNTRIES,
+} from '../mocks/review.mock';
 
 export type ReviewStore = InstanceType<typeof CasesCreateCasefileStore>;
 interface ReviewSetupOptions {
@@ -23,10 +28,9 @@ interface ReviewSetupOptions {
 export function setupReview(options: ReviewSetupOptions = {}) {
   const store = new CasesCreateCasefileStore();
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-    ...createCompleteReviewState(),
+    ...(options.confirmation ? createSubmittedReviewState() : createCompleteReviewState()),
     ...structuredClone(options.state ?? {}),
   });
-  if (options.confirmation) store.setSubmissionSucceeded(true);
   return cy.document().then((document) => {
     document.documentElement.lang = 'en';
     document.body.classList.add('govuk-template__body');

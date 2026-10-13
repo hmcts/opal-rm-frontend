@@ -3,10 +3,8 @@ import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { getState, patchState, type WritableStateSource } from '@ngrx/signals';
+import { getState } from '@ngrx/signals';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
-import { createCasesCreateCasefileReviewState } from '../mocks/cases-create-casefile-review-state.mock';
-import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -20,6 +18,7 @@ describe('Submission confirmation', () => {
       imports: [CasesCreateCasefileSubmissionConfirmationComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     });
+    TestBed.inject(CasesCreateCasefileStore).completeSubmission();
   });
 
   it('renders the confirmation panel and next steps without form or back navigation', async () => {
@@ -80,30 +79,22 @@ describe('Submission confirmation', () => {
     },
   );
 
-  it('retains the draft and review context on activation without submitting again', async () => {
+  it('retains the confirmation marker and empty draft on activation without submitting again', async () => {
     const store = TestBed.inject(CasesCreateCasefileStore);
-    patchState(
-      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
-      createCasesCreateCasefileReviewState(),
-    );
+    store.completeSubmission();
     const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
-    review.setContext({ origin: 'review', section: 'respondent' });
     const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'createDraftCasefile');
     const before = structuredClone(getState(store));
     const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
     expect(getState(store)).toEqual(before);
-    expect(review.context()).toEqual({ origin: 'review', section: 'respondent' });
+    expect(review.context()).toBeNull();
     fixture.detectChanges();
     await fixture.whenStable();
     expect(submit).not.toHaveBeenCalled();
   });
   it('retains successful submission on departure to prevent another POST', () => {
     const store = TestBed.inject(CasesCreateCasefileStore);
-    patchState(
-      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
-      createCasesCreateCasefileReviewState(),
-    );
-    store.setSubmissionSucceeded(true);
+    store.completeSubmission();
     const before = structuredClone(getState(store));
     const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
     fixture.destroy();
@@ -111,16 +102,11 @@ describe('Submission confirmation', () => {
   });
 
   it.each(['success', 'false', 'rejected'])(
-    'preserves submitted data during %s new-case navigation',
+    'preserves the confirmation marker and empty draft during %s new-case navigation',
     async (outcome) => {
       const store = TestBed.inject(CasesCreateCasefileStore);
-      patchState(
-        store as unknown as WritableStateSource<ICasesCreateCasefileState>,
-        createCasesCreateCasefileReviewState(),
-      );
-      store.setSubmissionSucceeded(true);
+      store.completeSubmission();
       const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
-      review.setContext({ origin: 'review', section: 'respondent' });
       const before = structuredClone(getState(store));
       const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
       fixture.detectChanges();
@@ -139,7 +125,7 @@ describe('Submission confirmation', () => {
         state: { startNewCase: true, focusCaseTypeHeading: true },
       });
       expect(getState(store)).toEqual(before);
-      expect(review.context()).toEqual({ origin: 'review', section: 'respondent' });
+      expect(review.context()).toBeNull();
       if (outcome !== 'success') {
         const error = fixture.nativeElement.querySelector('.govuk-error-summary');
         expect(error?.textContent).toContain('The page could not be opened');

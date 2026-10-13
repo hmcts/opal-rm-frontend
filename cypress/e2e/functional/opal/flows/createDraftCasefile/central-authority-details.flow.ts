@@ -3,9 +3,34 @@ import {
   type CentralAuthorityChoice,
 } from '../../actions/createDraftCasefile/central-authority-details.actions';
 
+import { CasePartiesFlow } from './case-parties.flow';
+
 /** Exposes Central Authority business journey verbs to Cucumber steps. */
 export class CentralAuthorityDetailsFlow {
   private readonly actions = new CentralAuthorityDetailsActions();
+  private readonly parties = new CasePartiesFlow();
+
+  /**
+   * Starts an independent live casefile and opens its optional authority task.
+   * @param path REMO In applicant category or the retained REMO Out regression path.
+   */
+  public prepareLivePath(path: string): void {
+    this.parties.authenticate('authorised');
+    this.actions.observeDraftCreation();
+    if (path === 'REMO Out') {
+      this.actions.openInNewRemoOutCasefile();
+      return;
+    }
+    if (path !== 'Individual' && path !== 'Organisation') throw new Error('Unsupported authority casefile path');
+    this.parties.start(path);
+    this.parties.captureMandatory(path);
+    this.actions.openFromTaskList();
+  }
+
+  /** Confirms authority entry retained details locally without draft submission. */
+  public assertNoSubmission(): void {
+    this.actions.assertNoSubmission();
+  }
 
   /** Opens Central Authority details in a new REMO Out casefile. */
   public openInNewRemoOutCasefile(): void {

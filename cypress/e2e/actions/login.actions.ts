@@ -11,15 +11,12 @@ const waitForDashboardLanding = () => {
 };
 
 /** Authenticates without requiring an enabled dashboard section. */
-export function performAuthentication(
-  email: string,
-  password: string = Cypress.env('CYPRESS_TEST_PASSWORD') || '',
-  sessionKey: string = email,
-): void {
+export function performAuthentication(email: string): void {
+  const password = Cypress.env('CYPRESS_TEST_PASSWORD') || '';
   log('action', 'Logging in');
 
   cy.session(
-    sessionKey,
+    email,
     () => {
       cy.visit('/');
 

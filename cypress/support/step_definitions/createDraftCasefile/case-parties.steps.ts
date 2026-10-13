@@ -3,11 +3,12 @@ import { CasePartiesFlow } from '../../../e2e/functional/opal/flows/createDraftC
 
 const flow = new CasePartiesFlow();
 
-Given('I am an authenticated RM user without casefile permission', () => flow.authenticateDenied());
+Given('I have the live RM casefile permission', () => flow.assertPermission(true));
+Given('I do not have the live RM casefile permission', () => flow.assertPermission(false));
+Given('the released RM casefile entry is available', () => flow.assertReleasedEntry());
 When('I attempt to open the protected casefile task {string}', (path: string) => flow.openDeniedTask(path));
 Then('I cannot access the Draft Casefile task', () => flow.assertDenied());
 
-Given('I am an authorised RM casefile inputter', () => flow.authenticate('authorised'));
 Given('I have started a live REMO In casefile with an {string} applicant', (path: string) => {
   if (path !== 'Individual' && path !== 'Organisation') throw new Error('Unsupported RM applicant path');
   flow.start(path);

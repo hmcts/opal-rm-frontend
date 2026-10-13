@@ -1,19 +1,17 @@
 import { CasefilePermissionsActions } from '../../actions/createDraftCasefile/casefile-permissions.actions';
 import { CasePartiesActions } from '../../actions/createDraftCasefile/case-parties.actions';
-import { LiveCasefileSessionActions } from '../../actions/createDraftCasefile/live-casefile-session.actions';
+import { CasefilePermissionPreflightActions } from '../../actions/createDraftCasefile/casefile-permission-preflight.actions';
 import type { CasePartyPath } from '../../types/createDraftCasefile/case-party-path.type';
 
-/** Composes live party capture and local replay for role-based casefile journeys. */
+/** Composes live party capture and local replay for casefile journeys. */
 export class CasePartiesFlow {
   private readonly parties = new CasePartiesActions();
-  private readonly session = new LiveCasefileSessionActions();
+  private readonly preflight = new CasefilePermissionPreflightActions();
   private readonly permissions = new CasefilePermissionsActions();
 
-  /** Proves released entry before switching to the live denied account. */
-  public authenticateDenied(): void {
-    this.session.authenticate('authorised');
+  /** Proves the released case-type entry is available for the signed-in creator. */
+  public assertReleasedEntry(): void {
     this.permissions.assertReleasedEntry();
-    this.session.authenticate('denied');
   }
 
   /**
@@ -30,12 +28,13 @@ export class CasePartiesFlow {
   }
 
   /**
-   * Requires a live role account satisfying the create-casefile prerequisites.
-   * @param role Expected BU 44 create permission for the configured account.
+   * Checks the current user's live create-casefile permission prerequisites.
+   * @param expectedAllowed Whether the current user must have create-casefile permission.
    */
-  public authenticate(role: 'authorised' | 'denied'): void {
-    this.session.authenticate(role);
+  public assertPermission(expectedAllowed: boolean): void {
+    this.preflight.assertPermission(expectedAllowed);
   }
+
   /**
    * Begins a new independent REMO In draft for the selected applicant path.
    * @param path Applicant category selected on the case-type page.

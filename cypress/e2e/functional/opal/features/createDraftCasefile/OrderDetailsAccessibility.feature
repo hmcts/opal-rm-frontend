@@ -1,9 +1,13 @@
 @R1CRmCreateCaseFiles
 @JIRA-LABEL:create-draft-casefile @functional
 Feature: Order Details accessibility
+  Background:
+    Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
+
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805 @JIRA-STORY:PO-10277
   Scenario: Live Order Details initial, invalid and replayed states have no detected Axe violations
-    Given I have started live Order Details with completed mandatory parties
+    Given I have the live RM casefile permission
+    And I have started live Order Details with completed mandatory parties
     When I open Order Details using live active applications
     Then I check the page for accessibility
     When I return from Order Details without entering required fields
@@ -17,7 +21,7 @@ Feature: Order Details accessibility
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805
   Scenario: Empty lookup errors remain accessible and keyboard retryable
-    Given I am an authorised RM casefile inputter
+    Given I have the live RM casefile permission
     And I have completed the parties for a new REMO In casefile
     When no Order Details applications are available
     Then I check the page for accessibility
@@ -26,7 +30,7 @@ Feature: Order Details accessibility
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805
   Scenario: Global service failure remains accessible
-    Given I am an authorised RM casefile inputter
+    Given I have the live RM casefile permission
     And I have completed the parties for a new REMO In casefile
     When the Order Details applications lookup fails
     Then Case Details retains my parties and announces the shared HTTP error and operation reference

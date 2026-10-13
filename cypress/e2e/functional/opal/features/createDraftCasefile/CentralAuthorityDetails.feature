@@ -1,8 +1,12 @@
 @R1CRmCreateCaseFiles @JIRA-LABEL:create-draft-casefile @functional
 Feature: Create Draft Casefile Central Authority details
+  Background:
+    Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
+
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9804
   Scenario Outline: Enter, replay and edit Central Authority details for a <path> casefile
-    Given I have opened live Central Authority for a "<path>" casefile
+    Given I have the live RM casefile permission
+    And I have opened live Central Authority for a "<path>" casefile
     When I save Central Authority details with references "REMO-1" and "CA-1" using the first available authority
     Then Central Authority is marked Provided on Case details
     When I reopen Central Authority details

@@ -8,7 +8,6 @@ export class OrderDetailsFlow {
 
   /** Prepares an independent live draft with both mandatory parties completed. */
   public startLive(): void {
-    this.parties.authenticate('authorised');
     this.parties.start('Individual');
     this.parties.captureIndividual();
   }

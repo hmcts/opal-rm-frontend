@@ -1,8 +1,12 @@
 @R1CRmCreateCaseFiles @JIRA-LABEL:create-draft-casefile @functional
 Feature: Create Draft Casefile Central Authority accessibility
+  Background:
+    Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
+
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9804
   Scenario Outline: Central Authority initial, invalid and replayed states are accessible for <path>
-    Given I have opened live Central Authority for a "<path>" casefile
+    Given I have the live RM casefile permission
+    And I have opened live Central Authority for a "<path>" casefile
     Then I check the page for accessibility
     When I submit over-limit Central Authority references
     Then I check the page for accessibility

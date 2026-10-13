@@ -15,7 +15,6 @@ export class CentralAuthorityDetailsFlow {
    * @param path REMO In applicant category or the retained REMO Out regression path.
    */
   public prepareLivePath(path: string): void {
-    this.parties.authenticate('authorised');
     this.actions.observeDraftCreation();
     if (path === 'REMO Out') {
       this.actions.openInNewRemoOutCasefile();

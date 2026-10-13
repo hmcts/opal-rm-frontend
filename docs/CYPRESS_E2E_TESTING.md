@@ -122,21 +122,26 @@ reference data or release configuration must fail clearly; do not skip or substi
 | Applications        | At least one active record with `application_group=Create Casefile`                      |
 | Central Authorities | At least two active BU 44 records with `central_authority=true`                          |
 
-Inject account values through the existing secret/environment configuration. Never log or commit them, and do not
-create users or change roles as a test side effect.
+The selected features authenticate through the shared `I am authenticated with email {string}` binding, using the
+existing provisioned synthetic usernames `opal-test@dev.platform.hmcts.net` (creator) and
+`opal-test-4@dev.platform.hmcts.net` (denied user), as the Fines suites do. Sessions are cached by the supplied username.
+Each scenario still owns a new draft. Provision these users through the existing User Service data; do not create
+users or change permissions as a test side effect.
 
-| Environment variable           | Purpose                                                     |
-| ------------------------------ | ----------------------------------------------------------- |
-| `TEST_URL`                     | Frontend browser target                                     |
-| `OPAL_TEST_USER_EMAIL`         | Existing authorised account; mapped to `CYPRESS_TEST_EMAIL` |
-| `OPAL_TEST_USER_PASSWORD`      | Authorised SSO password; mapped to `CYPRESS_TEST_PASSWORD`  |
-| `OPAL_RM_DENIED_USER_EMAIL`    | Existing denied account; mapped to `RM_DENIED_USER_EMAIL`   |
-| `OPAL_RM_DENIED_USER_PASSWORD` | Denied SSO password; mapped to `RM_DENIED_USER_PASSWORD`    |
+Local/PR sign-in uses the passwordless stub and requires only the username supplied by the feature. No separate
+role-account environment variables are required. The live User Service must provide ACTIVE Maintenance membership
+and the BU 44 permission state above. The explicit permission preflight reads the actual `/api/user-state` response
+(`domains.maintenance`) after shared authentication; failures in authentication or domain provisioning fail setup.
 
-Passwords are required for Microsoft SSO. Local/PR sign-in retains the passwordless stub while user-state permission
-and reference-data checks use live services. Authentication sessions are cached by role; each scenario still owns a
-new draft. Country and Central Authority lookups may be cached within a journey, so replay must not await another
-request. The raw `/api/user-state` response uses `domains.maintenance`.
+| Environment variable      | Purpose                                                       |
+| ------------------------- | ------------------------------------------------------------- |
+| `TEST_URL`                | Frontend browser target                                       |
+| `OPAL_TEST_USER_EMAIL`    | Existing global test email mapping used by other suite callers |
+| `OPAL_TEST_USER_PASSWORD` | Existing shared SSO password, mapped to `CYPRESS_TEST_PASSWORD` |
+
+Microsoft SSO retains the existing shared password environment configuration. Full browser SSO remains unverified
+by the local passwordless runs. Other suites may still require the existing global email/password mappings.
+Country and Central Authority lookups may be cached within a journey, so replay must not await another request.
 
 Run the individual capture and retention outcome with:
 
@@ -153,7 +158,7 @@ required-versus-optional wording differs from current product validation, which 
 
 `CasefilePermissions.feature` runs exactly five unique protected routes with the release enabled. Each example first
 checks the authorised user's live ACTIVE Maintenance state and BU 44 permission 21, then opens the released case-type
-page. It switches to a distinct secret-injected denied account and checks live ACTIVE status, Maintenance domain and
+page. It explicitly authenticates the provisioned denied username and checks live ACTIVE status, Maintenance domain and
 absence of permission 21 for BU 44 before attempting direct task navigation. Another BU permission is not required;
 an existing user with another BU membership is acceptable when BU 44 permission 21 is absent. The tests use actual
 route guards without role changes, injected store state or mocked denial responses.

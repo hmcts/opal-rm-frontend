@@ -4,8 +4,10 @@ Use this guide when writing or updating Cypress E2E tests and Cucumber feature f
 
 ## Required References
 
-- For any E2E scenario creation or update, read `references/E2E_New_Feature_Codex_Optimized_Instructions.md` and follow it as the governing ruleset.
-- Keep `references/E2E_Refactor_Codex_Optimized_Instructions.md` as legacy reference material; consult it only when explicitly requested or when refactoring older features that need its legacy guidance.
+Read this guide's Feature Layout and Tags, Accessibility Coverage, Step Definitions, Actions, Flows, and Selectors,
+and execution sections together with [AGENTS.md](../AGENTS.md), [REPO_GUIDELINES.md](REPO_GUIDELINES.md),
+[SONAR.md](SONAR.md), and [CONTRIBUTING.md](CONTRIBUTING.md). Apply the installed
+`opal-frontend-e2e-tests` skill and its references when available; repository-contained rules remain authoritative.
 
 ## Feature Layout and Tags
 
@@ -104,3 +106,45 @@ the equivalent `TAGS` parameter. No new release selector or automatic flag mutat
 Release-specific functional and accessibility scenarios live under `features/releaseFlags`. Their Jira story, epic and
 test identifiers are intentionally unassigned pending confirmed ticket metadata. A Cucumber dry run proves scenario
 selection and step binding only; it is not evidence of a completed browser journey or deployed authentication.
+
+## Live create-casefile QA prerequisites
+
+Live QA scenarios observe HTTP requests without replacing responses. Each scenario starts an independent casefile,
+uses synthetic entered data, reopens pages to prove local retention, and stops before submission. Missing accounts,
+reference data or release configuration must fail clearly; do not skip or substitute mocks for a failed prerequisite.
+
+| Prerequisite        | Required configuration                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| Release             | `release-1c-rm-create-case-files=true`                                                   |
+| Authorised account  | ACTIVE; Maintenance domain; permission 21 for BU 44                                      |
+| Denied account      | ACTIVE; Maintenance domain; no permission 21 for BU 44; distinct from authorised account |
+| Countries           | Active dataset containing United Kingdom and at least two other distinct Country names   |
+| Applications        | At least one active record with `application_group=Create Casefile`                      |
+| Central Authorities | At least two active BU 44 records with `central_authority=true`                          |
+
+Inject account values through the existing secret/environment configuration. Never log or commit them, and do not
+create users or change roles as a test side effect.
+
+| Environment variable           | Purpose                                                     |
+| ------------------------------ | ----------------------------------------------------------- |
+| `TEST_URL`                     | Frontend browser target                                     |
+| `OPAL_TEST_USER_EMAIL`         | Existing authorised account; mapped to `CYPRESS_TEST_EMAIL` |
+| `OPAL_TEST_USER_PASSWORD`      | Authorised SSO password; mapped to `CYPRESS_TEST_PASSWORD`  |
+| `OPAL_RM_DENIED_USER_EMAIL`    | Existing denied account; mapped to `RM_DENIED_USER_EMAIL`   |
+| `OPAL_RM_DENIED_USER_PASSWORD` | Denied SSO password; mapped to `RM_DENIED_USER_PASSWORD`    |
+
+Passwords are required for Microsoft SSO. Local/PR sign-in retains the passwordless stub while user-state permission
+and reference-data checks use live services. Authentication sessions are cached by role; each scenario still owns a
+new draft. Country and Central Authority lookups may be cached within a journey, so replay must not await another
+request. The raw `/api/user-state` response uses `domains.maintenance`.
+
+Run the individual capture and retention outcome with:
+
+```bash
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature'
+```
+
+The scenario requires live Country ordering, both party statuses Provided, reopened field values, and zero draft
+creation POSTs. Keyboard interactions and Axe scans provide partial accessibility evidence; specialist WCAG 2.2 AA
+assurance remains separate. Positive order-details scenarios must supply a valid Date order made: the QA ticket's
+required-versus-optional wording differs from current product validation, which this test work does not change.

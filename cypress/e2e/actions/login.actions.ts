@@ -11,20 +11,25 @@ const waitForDashboardLanding = () => {
 };
 
 /** Authenticates without requiring an enabled dashboard section. */
-export function performAuthentication(email: string): void {
-  const password = Cypress.env('CYPRESS_TEST_PASSWORD') || '';
-
-  log('action', 'Logging in', { email });
+export function performAuthentication(
+  email: string,
+  password: string = Cypress.env('CYPRESS_TEST_PASSWORD') || '',
+  sessionKey: string = email,
+): void {
+  log('action', 'Logging in');
 
   cy.session(
-    email,
+    sessionKey,
     () => {
       cy.visit('/');
 
       cy.location('href').then((href) => {
         if (isLocalOrPrEnvironment()) {
           log('navigate', 'Using the local sign-in stub', { href });
-          cy.get(L.usernameInput, { timeout: 20_000 }).should('be.visible').clear().type(email, { delay: 0 });
+          cy.get(L.usernameInput, { timeout: 20_000 })
+            .should('be.visible')
+            .clear()
+            .type(email, { delay: 0, log: false });
           cy.get(L.submitBtn, { timeout: 20_000 }).click();
           assertSignOutLinkVisible();
           return;
@@ -32,7 +37,7 @@ export function performAuthentication(email: string): void {
 
         log('navigate', 'Using Microsoft SSO', { href });
         cy.origin('https://login.microsoftonline.com', { args: { email, password } }, ({ email, password }) => {
-          cy.get('input[type="email"]', { timeout: 12_000 }).type(email, { delay: 0 });
+          cy.get('input[type="email"]', { timeout: 12_000 }).type(email, { delay: 0, log: false });
           cy.get('input[type="submit"]').click();
           cy.get('input[type="password"]', { timeout: 12_000 }).type(password, { log: false, delay: 0 });
           cy.get('input[type="submit"]').click();

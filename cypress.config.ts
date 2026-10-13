@@ -216,6 +216,8 @@ export default defineConfig({
   env: {
     CYPRESS_TEST_EMAIL: process.env.OPAL_TEST_USER_EMAIL,
     CYPRESS_TEST_PASSWORD: process.env.OPAL_TEST_USER_PASSWORD,
+    RM_DENIED_USER_EMAIL: process.env.OPAL_RM_DENIED_USER_EMAIL,
+    RM_DENIED_USER_PASSWORD: process.env.OPAL_RM_DENIED_USER_PASSWORD,
     TEST_MODE: process.env.TEST_MODE || 'OPAL',
     TAGS: process.env.TAGS || 'not @skip and not @R1CRmCreateCaseFilesOff',
     omitFiltered: true,

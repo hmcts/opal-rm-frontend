@@ -71,6 +71,23 @@ export class CasePartiesActions {
     this.assertProvided();
   }
 
+  /** Uses the cached Country list and fills mandatory organisation details with no bank account. */
+  public fillOrganisation(): void {
+    cy.get(S.caseDetails.applicantLink).click();
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.applicantOrganisation);
+    this.assertCountryOrder(S.applicantOrganisation.countryAutocomplete, S.applicantOrganisation.countryOptions);
+    cy.get(S.applicantOrganisation.organisationName).type('Synthetic Organisation');
+    cy.get(S.applicantOrganisation.foreignAuthorityReference).type('SYNTHETIC-ORG');
+    cy.get(S.applicantOrganisation.addressLine1).type('3 Test Street');
+    cy.get(S.applicantOrganisation.bankTypeRadio('none')).check();
+  }
+
+  /** Saves organisation details locally using keyboard activation and requires both tasks complete. */
+  public saveOrganisation(): void {
+    cy.get(S.applicantOrganisation.returnToCaseDetails).focus().should('be.focused').type('{enter}');
+    this.assertProvided();
+  }
+
   /** Requires both party tasks complete and no draft creation request observed. */
   public assertProvided(): void {
     cy.get(S.caseDetails.respondentStatus).should('contain.text', 'Provided');
@@ -97,6 +114,19 @@ export class CasePartiesActions {
     cy.get(S.applicantIndividual.countryAutocomplete).should('have.value', 'United Kingdom');
     cy.get(S.applicantIndividual.bankTypeRadio('none')).should('be.checked');
     cy.get(S.applicantIndividual.returnToCaseDetails).click();
+    this.assertProvided();
+  }
+
+  /** Reopens the organisation page and verifies the synthetic details and bank selection retained. */
+  public verifyOrganisation(): void {
+    cy.get(S.caseDetails.applicantLink).click();
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.applicantOrganisation);
+    cy.get(S.applicantOrganisation.organisationName).should('have.value', 'Synthetic Organisation');
+    cy.get(S.applicantOrganisation.foreignAuthorityReference).should('have.value', 'SYNTHETIC-ORG');
+    cy.get(S.applicantOrganisation.addressLine1).should('have.value', '3 Test Street');
+    cy.get(S.applicantOrganisation.countryAutocomplete).should('have.value', 'United Kingdom');
+    cy.get(S.applicantOrganisation.bankTypeRadio('none')).should('be.checked');
+    cy.get(S.applicantOrganisation.returnToCaseDetails).click();
     this.assertProvided();
   }
 

@@ -34,4 +34,28 @@ export class CasePartiesFlow {
     this.parties.verifyRespondent();
     this.parties.verifyIndividual();
   }
+
+  /** Completes both mandatory organisation-path party tasks through local page saves. */
+  public captureOrganisation(): void {
+    this.parties.fillRespondent();
+    this.parties.saveRespondent();
+    this.parties.fillOrganisation();
+    this.parties.saveOrganisation();
+  }
+
+  /** Proves both completed organisation-path tasks retain their entered values when reopened. */
+  public verifyOrganisation(): void {
+    this.parties.assertProvided();
+    this.parties.verifyRespondent();
+    this.parties.verifyOrganisation();
+  }
+
+  /**
+   * Completes the mandatory parties for the selected applicant path.
+   * @param path Applicant category chosen for this independent casefile.
+   */
+  public captureMandatory(path: CasePartyPath): void {
+    if (path === 'Individual') this.captureIndividual();
+    else this.captureOrganisation();
+  }
 }

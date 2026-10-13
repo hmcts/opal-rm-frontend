@@ -10,3 +10,5 @@ Given('I have started a live REMO In casefile with an {string} applicant', (path
 });
 When('I capture the respondent and individual applicant', () => flow.captureIndividual());
 Then('both individual party tasks are complete with their details retained locally', () => flow.verifyIndividual());
+When('I capture the respondent and organisation applicant', () => flow.captureOrganisation());
+Then('both organisation party tasks are complete with their details retained locally', () => flow.verifyOrganisation());

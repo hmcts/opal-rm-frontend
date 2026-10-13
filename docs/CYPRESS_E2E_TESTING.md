@@ -169,3 +169,30 @@ the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`. Th
 ```bash
 corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
 ```
+
+## Integrated live QA selection and evidence
+
+For PO-10275, PO-10276 and PO-10277, select both tag variables explicitly so a pipeline filter cannot remove the
+permission examples. The enabled release must apply to every test context. This focused selection expands to 15
+scenarios: two mandatory-party outcomes, two authority outcomes, one order outcome, five permission routes and five
+accessibility outcomes. The retained REMO Out authority examples carry PO-9804 and are outside this QA selection.
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and (@JIRA-STORY:PO-10275 or @JIRA-STORY:PO-10276 or @JIRA-STORY:PO-10277) and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and (@JIRA-STORY:PO-10275 or @JIRA-STORY:PO-10276 or @JIRA-STORY:PO-10277) and not @skip' \
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature'
+```
+
+Run affected existing Order Details and Central Authority functional/accessibility features with both `TAGS` and
+`CYPRESS_TAGS` set to `@R1CRmCreateCaseFiles and not @skip`, then run
+`corepack yarn test:smoke:serial --browser=chrome` to check existing login callers. Preserve each run's generated
+reports before the next runner invocation resets its output. Inspect and redact account identifiers, credentials,
+tokens and personal information before retaining or sharing reports or screenshots. Record the actual expanded
+scenario count, command exit code, browser version and safe environment alias; zero tests or skipped denial examples
+are failed verification. Local passwordless authentication and live local APIs do not prove deployed SSO behavior.
+
+Axe and the scenario keyboard interactions provide partial accessibility evidence. Specialist follow-up should verify
+keyboard-only navigation and visible focus across every page, screen-reader announcements and accessible names on
+expanded controls, and magnification behavior, using the same enabled release and provisioned authorised account.
+Required metadata checks still apply to the full configured scope; missing confirmed Jira identifiers must be resolved
+from authoritative ticket context rather than guessed or excluded.

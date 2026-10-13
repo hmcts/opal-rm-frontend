@@ -148,3 +148,24 @@ The scenario requires live Country ordering, both party statuses Provided, reope
 creation POSTs. Keyboard interactions and Axe scans provide partial accessibility evidence; specialist WCAG 2.2 AA
 assurance remains separate. Positive order-details scenarios must supply a valid Date order made: the QA ticket's
 required-versus-optional wording differs from current product validation, which this test work does not change.
+
+## Shared casefile permission coverage
+
+`CasefilePermissions.feature` runs exactly five unique protected routes with the release enabled. Each example first
+checks the authorised user's live ACTIVE Maintenance state and BU 44 permission 21, then opens the released case-type
+page. It switches to a distinct secret-injected denied account and checks live ACTIVE status, Maintenance domain and
+absence of permission 21 for BU 44 before attempting direct task navigation. Another BU permission is not required;
+an existing user with another BU membership is acceptable when BU 44 permission 21 is absent. The tests use actual
+route guards without role changes, injected store state or mocked denial responses.
+
+Require `release-1c-rm-create-case-files=true` for all anonymous LaunchDarkly test contexts, rather than a percentage
+rollout. The positive entry check prevents a release-off failure from masquerading as permission rejection. The
+existing release-off features remain separate because they exercise a different denial cause.
+
+Shared respondent and Central Authority Examples carry both `@JIRA-STORY:PO-10275` and `@JIRA-STORY:PO-10276`, so
+selection by either party ticket includes both shared routes. Individual and organisation applicant Examples carry
+the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`. The outline carries epic PO-6506.
+
+```bash
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```

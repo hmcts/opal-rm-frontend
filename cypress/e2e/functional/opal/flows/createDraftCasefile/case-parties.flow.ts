@@ -1,3 +1,4 @@
+import { CasefilePermissionsActions } from '../../actions/createDraftCasefile/casefile-permissions.actions';
 import { CasePartiesActions } from '../../actions/createDraftCasefile/case-parties.actions';
 import { LiveCasefileSessionActions } from '../../actions/createDraftCasefile/live-casefile-session.actions';
 import type { CasePartyPath } from '../../types/createDraftCasefile/case-party-path.type';
@@ -6,6 +7,27 @@ import type { CasePartyPath } from '../../types/createDraftCasefile/case-party-p
 export class CasePartiesFlow {
   private readonly parties = new CasePartiesActions();
   private readonly session = new LiveCasefileSessionActions();
+  private readonly permissions = new CasefilePermissionsActions();
+
+  /** Proves released entry before switching to the live denied account. */
+  public authenticateDenied(): void {
+    this.session.authenticate('authorised');
+    this.permissions.assertReleasedEntry();
+    this.session.authenticate('denied');
+  }
+
+  /**
+   * Attempts direct navigation as the authenticated denied account.
+   * @param path Protected task route covered by the shared outline.
+   */
+  public openDeniedTask(path: string): void {
+    this.permissions.openTask(path);
+  }
+
+  /** Verifies permission rejection before any protected task form is shown. */
+  public assertDenied(): void {
+    this.permissions.assertDenied();
+  }
 
   /**
    * Requires a live role account satisfying the create-casefile prerequisites.

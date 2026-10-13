@@ -50,8 +50,7 @@ export class CasePartiesActions {
 
   /** Saves respondent details locally using keyboard activation and requires task completion. */
   public saveRespondent(): void {
-    cy.get(S.respondentDetails.returnToCaseDetails).focus();
-    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get(S.respondentDetails.returnToCaseDetails).focus().should('be.focused').type('{enter}');
     cy.get(S.caseDetails.respondentStatus).should('contain.text', 'Provided');
   }
 
@@ -68,8 +67,7 @@ export class CasePartiesActions {
 
   /** Saves individual details locally using keyboard activation and requires both tasks complete. */
   public saveIndividual(): void {
-    cy.get(S.applicantIndividual.returnToCaseDetails).focus();
-    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get(S.applicantIndividual.returnToCaseDetails).focus().should('be.focused').type('{enter}');
     this.assertProvided();
   }
 

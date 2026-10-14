@@ -153,7 +153,7 @@ export class InputterDashboardFlow {
   public expectDenied(): void {
     this.actions.expectDenied();
   }
-  /** Captures confirmation and follows the In review return through native Enter. */
+  /** Captures confirmation and follows the In review return link. */
   public returnFromConfirmation(): void {
     this.actions.returnFromConfirmation();
   }

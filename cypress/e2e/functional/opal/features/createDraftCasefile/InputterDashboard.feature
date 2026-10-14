@@ -76,11 +76,11 @@ Feature: Inputter casefile dashboard
     When I open the persisted "<kind>" destination with identifier "<id>"
     Then the "<kind>" shell shows "<message>" without persistence requests
     Examples:
-      | kind      | id  | message                                              |
-      | details   | 123 | Case details will be available here.                  |
-      | details   | 0   | This case could not be opened. Return to Create cases.|
-      | amendment | 123 | Case amendment will be available here.                |
-      | amendment | bad | This case could not be opened. Return to Create cases.|
+      | kind      | id  | message                                                |
+      | details   | 123 | Case details will be available here.                   |
+      | details   | 0   | This case could not be opened. Return to Create cases. |
+      | amendment | 123 | Case amendment will be available here.                 |
+      | amendment | bad | This case could not be opened. Return to Create cases. |
 
   @JIRA-STORY:PO-10605 @JIRA-EPIC:PO-10817
   Scenario Outline: Permission in another business unit cannot open inputter routes
@@ -88,11 +88,11 @@ Feature: Inputter casefile dashboard
     When I open the protected inputter path "<path>"
     Then inputter access is denied without collection or persistence requests
     Examples:
-      | path                                     |
-      | dashboard                                |
-      | all rejected                             |
-      | details                                  |
-      | amendment                                |
+      | path         |
+      | dashboard    |
+      | all rejected |
+      | details      |
+      | amendment    |
 
   @JIRA-STORY:PO-10605 @JIRA-EPIC:PO-10817
   Scenario: Submission returns to default In review

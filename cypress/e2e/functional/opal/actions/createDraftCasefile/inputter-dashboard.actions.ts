@@ -3,6 +3,7 @@ import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selecto
 import { ReleaseFlagsSelectors as RELEASE } from '../../../../../shared/selectors/release-flags.selectors';
 import { accessibilityActions } from '../accessibility/accessibility.actions';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
+import { UNSAVED_CHANGES_WARNING } from '../../../../../shared/constants/create-casefile-test-copy.constant';
 import { CASES_DRAFT_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as CREATE_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CASES_DRAFT_TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-tabs.constant';
@@ -274,14 +275,13 @@ export class InputterDashboardActions {
   public cancelCaseType(decision: string): void {
     cy.get(CREATE.caseTypeRadio('REMO In')).check();
     cy.get(CREATE.applicantType).select('Individual');
-    cy.once('window:confirm', (message) => {
-      expect(message).to.equal(
-        'WARNING: Are you sure you want to leave this page? Any information you entered will be lost.',
-      );
-      return decision === 'accept';
+    cy.window().then((win) => {
+      cy.stub(win, 'confirm')
+        .as('caseTypeDepartureConfirm')
+        .returns(decision === 'accept');
     });
-    cy.get(CREATE.cancelLink).focus();
-    pressDashboardEnter();
+    cy.get(CREATE.cancelLink).click();
+    cy.get('@caseTypeDepartureConfirm').should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING);
   }
   /** Checks preserved input or discarded input and retained dashboard metadata.
    * @param outcome Expected retained or restored state. */
@@ -344,7 +344,10 @@ export class InputterDashboardActions {
   }
   /** Rejects one subsequent fragment consultation after successful resolver entry. */
   public failNextTab(): void {
-    this.listFailures = 1;
+    cy.get(S.tab('in-review')).should('be.visible');
+    cy.then(() => {
+      this.listFailures = 1;
+    });
   }
   /** Selects a lifecycle tab using native keyboard events.
    * @param tab Lifecycle fragment to activate. */
@@ -416,12 +419,13 @@ export class InputterDashboardActions {
     cy.get('@dashboardDetails').should('not.have.been.called');
     cy.get('@dashboardMutation').should('not.have.been.called');
   }
-  /** Captures confirmation and follows the In review return through native Enter. */
+  /** Captures confirmation and follows the In review return link. */
   public returnFromConfirmation(): void {
     cy.viewport(1440, 1000);
     cy.screenshot('po10605-after-confirmation');
-    cy.get(CREATE.review.inReview).focus();
-    pressDashboardEnter();
+    cy.get(CREATE.review.inReview)
+      .should('have.attr', 'href', DASHBOARD + '#in-review')
+      .click();
   }
   /** Checks confirmation resets In review to first page and Created ascending. */
   public expectDefaultReview(): void {

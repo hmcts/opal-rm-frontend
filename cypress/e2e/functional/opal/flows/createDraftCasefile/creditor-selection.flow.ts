@@ -20,8 +20,14 @@ export class CreditorSelectionFlow {
   public acceptApplicant(): void {
     this.terms.acceptApplicant('firstTerm', '10');
   }
-  /** Requires the synthetic applicant name on the scenario-owned first term. */
+  /** Verifies the saved Applicant choice through reopened UI and preserves the same term on acceptance. */
   public assertApplicant(): void {
+    this.terms.assertTerm('firstTerm', '10');
+    this.actions.assertApplicant();
+    this.termActions.reopenInput('firstTerm', '10');
+    this.terms.completeInput('10', false);
+    this.actions.assertApplicantChoice();
+    this.actions.accept();
     this.terms.assertTerm('firstTerm', '10');
     this.actions.assertApplicant();
   }

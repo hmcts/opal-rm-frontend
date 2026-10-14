@@ -34,6 +34,10 @@ export class CreditorSelectionActions {
       cy.get(S.orderTermsSummary.card(id)).should('contain.text', 'Synthetic Applicant'),
     );
   }
+  /** Requires the saved Applicant choice before replay acceptance can change any creditor selection. */
+  public assertApplicantChoice(): void {
+    cy.get(S.creditor.applicant).should('be.checked');
+  }
   /** Requires the observed Major name on the scenario-owned stable term. */
   public assertMajor(): void {
     cy.get<number>('@firstTerm').then((id) => {

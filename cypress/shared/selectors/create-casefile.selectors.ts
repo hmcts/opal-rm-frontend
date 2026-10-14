@@ -106,6 +106,7 @@ export const CreateCasefileSelectors = {
   },
   orderTermsInput: {
     field: (name: string) => `#create_casefile_order_terms_input_${name.toLowerCase()}`,
+    fieldRadios: (name: string) => `input[name="create_casefile_order_terms_input_${name.toLowerCase()}"]`,
     fieldError: (name: string) => `#create_casefile_order_terms_input_${name.toLowerCase()}-error-message`,
     fieldLabel: (name: string) => `label[for="create_casefile_order_terms_input_${name.toLowerCase()}"]`,
     fieldHint: (name: string) => `#create_casefile_order_terms_input_${name.toLowerCase()}-hint`,

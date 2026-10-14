@@ -156,7 +156,7 @@ required-versus-optional wording differs from current product validation, which 
 
 ## Shared casefile permission coverage
 
-`CasefilePermissions.feature` runs exactly five unique protected routes with the release enabled. Each example first
+`CasefilePermissions.feature` runs exactly nine unique protected routes with the release enabled. Each example first
 checks the authorised user's live ACTIVE Maintenance state and BU 44 permission 21, then opens the released case-type
 page. It explicitly authenticates the provisioned denied username and checks live ACTIVE status, Maintenance domain and
 absence of permission 21 for BU 44 before attempting direct task navigation. Another BU permission is not required;
@@ -169,7 +169,8 @@ existing release-off features remain separate because they exercise a different 
 
 Shared respondent and Central Authority Examples carry both `@JIRA-STORY:PO-10275` and `@JIRA-STORY:PO-10276`, so
 selection by either party ticket includes both shared routes. Individual and organisation applicant Examples carry
-the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`. The outline carries epic PO-6506.
+the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`, and the four Order Term routes carry
+`@JIRA-STORY:PO-10278`. The outline carries epic PO-6506.
 
 ```bash
 corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
@@ -201,3 +202,32 @@ keyboard-only navigation and visible focus across every page, screen-reader anno
 expanded controls, and magnification behavior, using the same enabled release and provisioned authorised account.
 Required metadata checks still apply to the full configured scope; missing confirmed Jira identifiers must be resolved
 from authoritative ticket context rather than guessed or excluded.
+
+## Order Terms QA (PO-10278)
+
+The representative MAT dataset is a prerequisite for this bounded QA pack. The active Order Term list must include
+MAT; its detail must supply a title and a nonempty JSON parameter array. Require mandatory `amount` with a supported
+money/decimal type permitting 10, 20 and 25, and inherited `frequency` (Monthly from saved Order Details). Optional
+`expiry`/`expiry_date` and `arrears` are supported. The observed MAT also requires `Creditor` and `Respondent`
+(`text-60`), `Payment` (`menu-radio`, including `Payable through the Court`) and `Commencement` (`date`). When present,
+the tests complete these fields with synthetic labels, the observed Court option and 01/01/2026 after checking the
+metadata bounds. Replay verifies their retained values before an amount-only amendment. Unknown fields fail the
+bounded fixture guard. This is a test-data contract, not a restriction on product Results.
+The tests compare prompts and rendered controls with the observed metadata without using the production mapper.
+Provision at least one active BU 44 non-Central-Authority Major Creditor for creditor entry. These scenarios use real
+reference data and independent drafts; they observe that no draft-casefile POST occurs and stop before submission.
+
+Select nine expanded scenarios: four Order Term outcomes, one accessibility journey and four permission routes
+(summary, selection, MAT input and removal). Existing mocked regressions retain scenario-local setup.
+
+```bash
+TEST_URL=http://localhost:5000 \
+TAGS='@JIRA-STORY:PO-10278 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10278 and not @skip' \
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/OrderTerms.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsSummary.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```
+
+Use the configured frontend target for `TEST_URL`; localhost is the local execution example. To include affected
+original regressions, run the same specs with both tag variables set to `@R1CRmCreateCaseFiles and not @skip`.
+Preserve reports before the next runner resets output. Axe scans cover selection, input, summary, removal,
+cancellation and removal success, alongside keyboard activation of continuation/removal controls. These are partial
+accessibility evidence; specialist screen-reader, focus and magnification assurance remains separate.

@@ -148,6 +148,7 @@ export const CreateCasefileSelectors = {
     checkbox: '#create_casefile_order_terms_input_confirm',
   },
   creditor: {
+    minorChoices: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice} input[type="radio"][value^="minor:"]`,
     applicant: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-applicant`,
     major: `#${CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES.choice}-major`,
     majorConditional: '#create_casefile_order_term_creditor_major',

@@ -156,7 +156,7 @@ required-versus-optional wording differs from current product validation, which 
 
 ## Shared casefile permission coverage
 
-`CasefilePermissions.feature` runs exactly nine unique protected routes with the release enabled. Each example first
+`CasefilePermissions.feature` runs exactly twelve unique protected routes with the release enabled. Each example first
 checks the authorised user's live ACTIVE Maintenance state and BU 44 permission 21, then opens the released case-type
 page. It explicitly authenticates the provisioned denied username and checks live ACTIVE status, Maintenance domain and
 absence of permission 21 for BU 44 before attempting direct task navigation. Another BU permission is not required;
@@ -170,7 +170,8 @@ existing release-off features remain separate because they exercise a different 
 Shared respondent and Central Authority Examples carry both `@JIRA-STORY:PO-10275` and `@JIRA-STORY:PO-10276`, so
 selection by either party ticket includes both shared routes. Individual and organisation applicant Examples carry
 the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`, and the four Order Term routes carry
-`@JIRA-STORY:PO-10278`. The outline carries epic PO-6506.
+`@JIRA-STORY:PO-10278`. Minor Creditor details, summary and removal carry `@JIRA-STORY:PO-10280`.
+The outline carries epic PO-6506.
 
 ```bash
 corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
@@ -231,3 +232,31 @@ original regressions, run the same specs with both tag variables set to `@R1CRmC
 Preserve reports before the next runner resets output. Axe scans cover selection, input, summary, removal,
 cancellation and removal success, alongside keyboard activation of continuation/removal controls. These are partial
 accessibility evidence; specialist screen-reader, focus and magnification assurance remains separate.
+
+## Minor Creditor QA (PO-10280)
+
+The live scenarios reuse the Order Terms prerequisites above. Each scenario creates its own draft and Minor Creditor
+through the real UI, checks the complete visible Country ordering against the observed active Country names, and
+asserts that no draft-casefile POST occurs. Functional coverage uses bank type None for both Individual and Organisation.
+Change, confirmed removal and abandoned removal are exercised from the locally saved Minor Creditor review page.
+Final acceptance separately proves the expected Minor name is associated with its stable Order Term card. These
+scenarios cover the review actions currently provided by the product; accepted Order Term cards expose term actions.
+Removal checks the success banner, absence from Minor choices and fresh blank details on reopening.
+
+Select eleven expanded examples: six functional outcomes, two accessibility journeys and three permission routes:
+
+```bash
+TEST_URL=http://localhost:5000 \
+TAGS='@JIRA-STORY:PO-10280 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10280 and not @skip' \
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/MinorCreditor.feature,cypress/e2e/functional/opal/features/createDraftCasefile/MinorCreditorAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```
+
+Use the configured frontend target for `TEST_URL`. Run the same three specs with both tag variables set to
+`@R1CRmCreateCaseFiles and not @skip` for the retained non-UK bank, pending review, cancellation and removal regressions.
+Preserve generated reports before each run and clear only generated report outputs if stale XML is retained.
+Both identity accessibility journeys reopen the real details page and scan UK, non-UK and None conditional bank
+controls, review, removal confirmation, abandoned removal and removal success. Keyboard activation uses focused
+controls, with native Enter for anchors. Axe and these interactions provide partial accessibility evidence.
+Specialist follow-up must check full keyboard traversal and visible focus, screen-reader names and announcements,
+and magnification using the enabled release and provisioned creator; expect reachable controls, correctly announced
+state and no lost content. No further Axe exemptions are introduced.

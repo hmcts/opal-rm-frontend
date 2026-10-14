@@ -111,15 +111,17 @@ export class CreditorActions {
    * @param confirmed Whether to accept the unsaved-changes warning.
    */
   public cancel(confirmed: boolean): void {
+    const confirmation: { message?: string } = {};
     cy.then(() => {
       // Register during command execution, after earlier navigation has completed.
-      const confirmation = cy.stub().returns(confirmed);
-      cy.on('window:confirm', confirmation);
-      cy.get(S.creditor.cancel).click();
-      cy.wrap(confirmation, { log: false })
-        .should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING)
-        .and('have.returned', confirmed);
+      cy.once('window:confirm', (message) => {
+        confirmation.message = message;
+        expect(message, 'unsaved-changes warning message').to.eq(UNSAVED_CHANGES_WARNING);
+        return confirmed;
+      });
     });
+    cy.get(S.creditor.cancel).should('be.visible').click();
+    cy.wrap(confirmation, { log: false }).its('message').should('eq', UNSAVED_CHANGES_WARNING);
   }
 
   /** Checks a declined Cancel retains the local Applicant edit. */

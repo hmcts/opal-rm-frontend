@@ -61,13 +61,25 @@ code, not a production change; it also prevents other application unload listene
 Keep this behaviour out of component support so guard tests can exercise the real listeners.
 
 Do not use `window:confirm` to handle this native browser dialog. For application route-guard confirmations,
-register a `cy.on('window:confirm', handler)` inside a queued `cy.then(...)` before clicking Cancel. The Creditor
-action leaves the application's `window.confirm` intact and checks that its handler runs exactly once with the
-expected warning and returns the requested boolean. Keep the route and retained-edit assertions so a missing
-warning or incorrect outcome fails. Its handler is scoped to the test and removed by Cypress at test end.
+register a `cy.once('window:confirm', handler)` inside a queued `cy.then(...)` before clicking Cancel. This matches
+the `opal-frontend` cancellation actions. The Creditor action leaves the application's `window.confirm` intact,
+checks the received warning, and returns the requested boolean. An assertion after the click also requires the
+warning to have been received, so an uncalled handler cannot silently pass. Keep the route and retained-edit
+assertions so an incorrect outcome fails. Its handler is consumed by the next confirmation or removed by Cypress
+at test end.
 Cypress automatically handles these confirmations, so this does not prove native browser modal rendering or
 Studio replay. Clean Cancel paths must still assert that no confirmation occurs.
 Setting `window.onbeforeunload = null` alone does not remove Angular listeners registered with `addEventListener`.
+
+Cypress 15.21.1 still relies on `unload` to clear its window listeners between page loads. Chromium's
+[unload deprecation](https://developer.chrome.com/docs/web-platform/deprecating-unload) can prevent that cleanup:
+later pages open the native confirmation while the test's `window:confirm` handler is never called. This was
+reproduced in Chrome 155 interactive mode. `setupBrowserLaunch` merges `DeprecateUnload` into Chromium's existing
+`--disable-features` argument so Cypress can install its handlers after navigation. It applies to both open and
+run modes and preserves the other launch flags. This is a compatibility setting for Cypress-launched browsers;
+the application guard and confirmation implementation are unchanged. Fully close and relaunch the Cypress
+browser after changing this setting; rerunning the spec in an existing browser does not apply launch flags.
+Reassess this setting when upgrading to a Cypress version that no longer depends on `unload`.
 
 E2E refresh scenarios prove the resulting navigation and state reset with the native prompt suppressed.
 They do not prove browser Leave/Cancel behaviour. Retain unit/component coverage of the actual guard

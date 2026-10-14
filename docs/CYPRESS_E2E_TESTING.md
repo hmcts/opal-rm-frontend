@@ -289,3 +289,76 @@ corepack yarn test:functional:serial --browser=chrome \
 ```
 
 Repeat those specs with both tag variables set to `@R1CRmCreateCaseFiles and not @skip` for affected regressions.
+
+## Integrated Order Terms and creditor QA
+
+Select PO-10278, PO-10279 and PO-10280 together using both tag variables. This selection expands to exactly 27
+examples; the original five permission routes retain their original story tags and are outside this selection.
+The complete shared permission outline has thirteen unique routes.
+
+| QA story | Functional | Accessibility | Permission | Total |
+| --- | ---: | ---: | ---: | ---: |
+| PO-10278 | 4 | 1 | 4 | 9 |
+| PO-10279 | 4 | 2 | 1 | 7 |
+| PO-10280 | 6 | 2 | 3 | 11 |
+| Total | 14 | 5 | 8 | 27 |
+
+Use the configured frontend target in `TEST_URL`; localhost below is the local execution example. The enabled release,
+provisioned creator/denied accounts, Countries, active Create Casefile application, representative MAT metadata and
+active BU 44 non-CA Major described above are prerequisites. Do not change users, permissions, reference data or flags
+as a test side effect. Each scenario owns an independent draft and stops before submission. Missing prerequisites
+fail explicitly. The superseded Central Authority scenario belongs to the separate implemented authority task;
+it is neither claimed as passing creditor coverage nor skipped as a product defect.
+
+First run discovery to verify selection and bindings, then remove `--env dryRun=true` for actual browser evidence:
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and (@JIRA-STORY:PO-10278 or @JIRA-STORY:PO-10279 or @JIRA-STORY:PO-10280) and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and (@JIRA-STORY:PO-10278 or @JIRA-STORY:PO-10279 or @JIRA-STORY:PO-10280) and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/OrderTerms.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsSummary.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/MinorCreditor.feature,cypress/e2e/functional/opal/features/createDraftCasefile/MinorCreditorAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/Creditor.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CreditorAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature' --env dryRun=true
+```
+
+A dry run does not execute browser steps. Require 27 actual passing examples with zero failed, pending or skipped
+examples, including eight denied-account routes. Record the command, exit code, expanded counts, browser version,
+safe environment alias and tested commit. Real-service QA observes HTTP traffic without replies/static responses;
+existing mocked regressions keep their scenario-local setup and original implementation-story tags.
+
+Preserve every report before the runner resets output. Use separate directory creation and copy commands:
+
+```bash
+mkdir -p docs/superpowers/plans/2026-10-14-order-terms-creditors-evidence/qa-reports
+cp -R functional-output/. docs/superpowers/plans/2026-10-14-order-terms-creditors-evidence/qa-reports/
+```
+
+Keep raw outputs local and ignored. Inspect and redact account identifiers, credentials, tokens, payloads and personal
+information before retaining or sharing evidence. Remove unreviewed HTML/image attachments from a shareable copy;
+never commit raw reports or screenshots. If old XML survives a runner reset, preserve the run first and clear only
+its generated Chrome reports before the next run. No Jira or Zephyr publication is part of this workflow.
+
+Run the full changed-capability/prerequisite regression selection, then preserve its reports before smoke:
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/OrderTerms.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsInput.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsInputAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsSummary.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsSummaryAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/Creditor.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CreditorAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/MinorCreditor.feature,cypress/e2e/functional/opal/features/createDraftCasefile/MinorCreditorAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+TEST_URL=http://localhost:5000 corepack yarn test:smoke:serial --browser=chrome
+```
+
+Smoke writes its reports to `smoke-output/`. The component runner resets both `functional-output/` and
+`smoke-output/`, so preserve smoke reports before starting the component pre-flight:
+
+```bash
+mkdir -p docs/superpowers/plans/2026-10-14-order-terms-creditors-evidence/smoke-reports
+cp -R smoke-output/. docs/superpowers/plans/2026-10-14-order-terms-creditors-evidence/smoke-reports/
+```
+
+This regression includes retained Order Term input/summary validation, failure, cancellation and reload cases,
+Minor Creditor bank/review/removal cases, creditor choices, Order Details, mandatory parties and all thirteen permission
+routes. Complete the local pre-flight in [SONAR.md](SONAR.md), E2E TypeScript, the full configured Jira metadata policy
+and duplicate-scenario scan. A passing createDraftCasefile-only metadata check supplements the full policy result;
+missing authoritative Jira identifiers in other configured features remain an unmet required check. Do not invent
+identifiers or add exclusions to produce a pass.
+
+Creditor changes/removals cover locally saved review state; acceptance into a stable Order Term and same-order reuse
+are separate positive outcomes. Shared-creditor deletion semantics and a post-acceptance creditor card action are
+outside this pack. Axe scans and browser keyboard/focus assertions provide partial accessibility evidence. Specialist
+follow-up must cover keyboard-only navigation and visible focus across these pages, screen-reader announcements and
+accessible names on summary actions/notices, and magnification. Local passwordless execution does not establish
+deployed SSO behavior. Keep CI, external security/Sonar checks, reviewer approval, specialist QA and deployment pending
+until direct evidence confirms them.

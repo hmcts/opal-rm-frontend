@@ -42,10 +42,10 @@ export class OrderTermsManagementActions {
     this.continueSelectedInput();
   }
 
-  /** Uses keyboard submission to open MAT and capture its observed metadata. */
+  /** Activates the focused Continue button once to open MAT and capture its observed metadata. */
   public continueSelectedInput(): void {
     cy.get(S.orderTerms.select).select('MAT');
-    cy.get(S.orderTerms.continueButton).focus().should('be.focused').type('{enter}');
+    cy.get(S.orderTerms.continueButton).focus().should('be.focused').click();
     cy.wait('@matResult').then(({ response }) => {
       if (response?.statusCode !== 200) throw new Error('MAT detail must return 200');
       this.captureParameters(response.body as IOpalMaintenanceResultDetail);

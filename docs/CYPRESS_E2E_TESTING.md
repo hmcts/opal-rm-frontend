@@ -60,10 +60,14 @@ reloads and scenario/spec transitions, including cleanup after a failing scenari
 code, not a production change; it also prevents other application unload listeners from running.
 Keep this behaviour out of component support so guard tests can exercise the real listeners.
 
-Do not use `window:confirm` to handle this native browser dialog. Use `cy.once('window:confirm', ...)`
-for application route-guard confirmations, asserting the expected message and chosen response.
-Those confirmations remain enabled. Setting `window.onbeforeunload = null` alone does not remove
-Angular listeners registered with `addEventListener`.
+Do not use `window:confirm` to handle this native browser dialog. For application route-guard confirmations,
+register a `cy.on('window:confirm', handler)` inside a queued `cy.then(...)` before clicking Cancel. The Creditor
+action leaves the application's `window.confirm` intact and checks that its handler runs exactly once with the
+expected warning and returns the requested boolean. Keep the route and retained-edit assertions so a missing
+warning or incorrect outcome fails. Its handler is scoped to the test and removed by Cypress at test end.
+Cypress automatically handles these confirmations, so this does not prove native browser modal rendering or
+Studio replay. Clean Cancel paths must still assert that no confirmation occurs.
+Setting `window.onbeforeunload = null` alone does not remove Angular listeners registered with `addEventListener`.
 
 E2E refresh scenarios prove the resulting navigation and state reset with the native prompt suppressed.
 They do not prove browser Leave/Cancel behaviour. Retain unit/component coverage of the actual guard
@@ -135,10 +139,10 @@ role-account environment variables are required. The live User Service must prov
 and the BU 44 permission state above. The explicit permission preflight reads the actual `/api/user-state` response
 (`domains.maintenance`) after shared authentication; failures in authentication or domain provisioning fail setup.
 
-| Environment variable      | Purpose                                                       |
-| ------------------------- | ------------------------------------------------------------- |
-| `TEST_URL`                | Frontend browser target                                       |
-| `OPAL_TEST_USER_EMAIL`    | Existing global test email mapping used by other suite callers |
+| Environment variable      | Purpose                                                         |
+| ------------------------- | --------------------------------------------------------------- |
+| `TEST_URL`                | Frontend browser target                                         |
+| `OPAL_TEST_USER_EMAIL`    | Existing global test email mapping used by other suite callers  |
 | `OPAL_TEST_USER_PASSWORD` | Existing shared SSO password, mapped to `CYPRESS_TEST_PASSWORD` |
 
 Microsoft SSO retains the existing shared password environment configuration. Full browser SSO remains unverified
@@ -299,11 +303,11 @@ examples; the original five permission routes retain their original story tags a
 The complete shared permission outline has thirteen unique routes.
 
 | QA story | Functional | Accessibility | Permission | Total |
-| --- | ---: | ---: | ---: | ---: |
-| PO-10278 | 4 | 1 | 4 | 9 |
-| PO-10279 | 4 | 2 | 1 | 7 |
-| PO-10280 | 6 | 2 | 3 | 11 |
-| Total | 14 | 5 | 8 | 27 |
+| -------- | ---------: | ------------: | ---------: | ----: |
+| PO-10278 |          4 |             1 |          4 |     9 |
+| PO-10279 |          4 |             2 |          1 |     7 |
+| PO-10280 |          6 |             2 |          3 |    11 |
+| Total    |         14 |             5 |          8 |    27 |
 
 Use the configured frontend target in `TEST_URL`; localhost below is the local execution example. The enabled release,
 provisioned creator/denied accounts, Countries, active Create Casefile application, representative MAT metadata and

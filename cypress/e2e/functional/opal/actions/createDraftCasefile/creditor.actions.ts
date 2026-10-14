@@ -33,7 +33,7 @@ export class CreditorActions {
 
   /** Selects the Applicant radio. */
   public chooseApplicant(): void {
-    cy.get(S.creditor.applicant).check();
+    cy.get(S.creditor.applicant).should('not.be.checked').check();
   }
 
   /** Selects the second synthetic Major by its stable ID. */
@@ -111,11 +111,15 @@ export class CreditorActions {
    * @param confirmed Whether to accept the unsaved-changes warning.
    */
   public cancel(confirmed: boolean): void {
-    cy.once('window:confirm', (message) => {
-      expect(message).to.eq(UNSAVED_CHANGES_WARNING);
-      return confirmed;
+    cy.then(() => {
+      // Register during command execution, after earlier navigation has completed.
+      const confirmation = cy.stub().returns(confirmed);
+      cy.on('window:confirm', confirmation);
+      cy.get(S.creditor.cancel).click();
+      cy.wrap(confirmation, { log: false })
+        .should('have.been.calledOnceWithExactly', UNSAVED_CHANGES_WARNING)
+        .and('have.returned', confirmed);
     });
-    cy.get(S.creditor.cancel).click();
   }
 
   /** Checks a declined Cancel retains the local Applicant edit. */

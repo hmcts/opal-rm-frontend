@@ -157,6 +157,8 @@ export class MinorCreditorManagementActions {
     cy.get(S.minorCreditor.addressLine1).should('have.value', '');
     cy.get(S.minorCreditor.countryAutocomplete).should('have.value', '');
     cy.get(S.minorCreditor.bankNone).should('not.be.checked');
+    cy.get(S.minorCreditor.bankUk).should('not.be.checked');
+    cy.get(S.minorCreditor.bankNonUk).should('not.be.checked');
     if (kind === 'Individual') {
       cy.get(S.minorCreditor.individual).check();
       cy.get(S.minorCreditor.firstNames).should('have.value', '');

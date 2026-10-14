@@ -47,3 +47,8 @@ Feature: Draft Casefile task permissions
       | order-terms/creditor/minor-creditor-details  |
       | order-terms/creditor/minor-creditor-summary  |
       | order-terms/creditor/minor-creditor-remove   |
+
+    @JIRA-STORY:PO-10279
+    Examples: Order Term creditor
+      | path                 |
+      | order-terms/creditor  |

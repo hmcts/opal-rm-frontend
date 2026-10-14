@@ -29,6 +29,7 @@ export class CasefilePermissionsActions {
       PATHS.children.minorCreditorDetails,
       PATHS.children.minorCreditorSummary,
       PATHS.children.minorCreditorRemove,
+      PATHS.children.orderTermCreditor,
     ];
     if (!tasks.includes(path)) throw new Error('Unsupported permission-test task route');
     cy.visit('/' + PATHS.root + '/' + path);
@@ -50,5 +51,6 @@ export class CasefilePermissionsActions {
     cy.get(S.minorCreditor.type).should('not.exist');
     cy.get(S.minorCreditorSummary.continue).should('not.exist');
     cy.get(S.minorCreditorRemoval.confirm).should('not.exist');
+    cy.get(S.creditor.choiceFieldset).should('not.exist');
   }
 }

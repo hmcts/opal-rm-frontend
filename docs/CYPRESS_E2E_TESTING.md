@@ -156,7 +156,7 @@ required-versus-optional wording differs from current product validation, which 
 
 ## Shared casefile permission coverage
 
-`CasefilePermissions.feature` runs exactly twelve unique protected routes with the release enabled. Each example first
+`CasefilePermissions.feature` runs exactly thirteen unique protected routes with the release enabled. Each example first
 checks the authorised user's live ACTIVE Maintenance state and BU 44 permission 21, then opens the released case-type
 page. It explicitly authenticates the provisioned denied username and checks live ACTIVE status, Maintenance domain and
 absence of permission 21 for BU 44 before attempting direct task navigation. Another BU permission is not required;
@@ -171,6 +171,7 @@ Shared respondent and Central Authority Examples carry both `@JIRA-STORY:PO-1027
 selection by either party ticket includes both shared routes. Individual and organisation applicant Examples carry
 the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`, and the four Order Term routes carry
 `@JIRA-STORY:PO-10278`. Minor Creditor details, summary and removal carry `@JIRA-STORY:PO-10280`.
+The Order Term creditor route carries `@JIRA-STORY:PO-10279`.
 The outline carries epic PO-6506.
 
 ```bash
@@ -260,3 +261,31 @@ controls, with native Enter for anchors. Axe and these interactions provide part
 Specialist follow-up must check full keyboard traversal and visible focus, screen-reader names and announcements,
 and magnification using the enabled release and provisioned creator; expect reachable controls, correctly announced
 state and no lost content. No further Axe exemptions are introduced.
+
+## Order Term creditor QA (PO-10279)
+
+PO-10279 follows the implemented Order Term creditor choices: Applicant,
+active BU 44 non-Central-Authority Major Creditor, and an existing Minor Creditor
+on the same order. The approved draft's Central-Authority-as-creditor scenario
+was superseded by the user's 14 October 2026 scope clarification. Central
+Authorities remain covered by their separate existing task; this pack does not
+claim that stale scenario passed, skip it as a defect, or change product behavior.
+
+The live Major lookup must return at least one active BU 44 non-Central-Authority record.
+Selection and replay use its observed ID and name. Same-order Minor reuse captures the actual
+radio value and checks both term cards plus exactly one retained option. Each scenario owns a new
+draft and stops before submission. Existing mocked validation, cancellation, reload and removal
+regressions retain isolated setup. Accessibility scans cover initial Applicant, revealed Major,
+checked reused Minor and retained summary states, with keyboard Continue activation; these are
+partial accessibility evidence and require the separate specialist assurance described above.
+
+Select seven expanded examples: four functional outcomes, two accessibility journeys and one permission route:
+
+```bash
+TEST_URL=http://localhost:5000 \
+TAGS='@JIRA-STORY:PO-10279 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10279 and not @skip' \
+corepack yarn test:functional:serial --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/Creditor.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CreditorAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```
+
+Repeat those specs with both tag variables set to `@R1CRmCreateCaseFiles and not @skip` for affected regressions.

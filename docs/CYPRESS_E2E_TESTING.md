@@ -103,9 +103,11 @@ LaunchDarkly separately. Do not run enabled and disabled functional selections a
 CNP supports the existing `run_tag:@R1CRmCreateCaseFiles` and `run_tag:@R1CRmCreateCaseFilesOff` labels. Nightly supports
 the equivalent `TAGS` parameter. No new release selector or automatic flag mutation is introduced.
 
-Release-specific functional and accessibility scenarios live under `features/releaseFlags`. Their Jira story, epic and
-test identifiers are intentionally unassigned pending confirmed ticket metadata. A Cucumber dry run proves scenario
-selection and step binding only; it is not evidence of a completed browser journey or deployed authentication.
+Release-specific functional and accessibility scenarios live under `features/releaseFlags`. Their confirmed Jira
+metadata is `@JIRA-STORY:PO-10606` and `@JIRA-EPIC:PO-10817`, restored from the existing same-scenario assignment in
+commit `417cdd022a555cb0713ab26aa128f65e2222826c`. Separately assigned Jira Test identifiers remain unclaimed.
+A Cucumber dry run proves scenario selection and step binding only; it is not evidence of a completed browser
+journey or deployed authentication.
 
 ## Live create-casefile QA prerequisites
 

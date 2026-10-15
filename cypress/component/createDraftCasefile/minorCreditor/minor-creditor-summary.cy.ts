@@ -25,7 +25,7 @@ describe('Minor creditor summary journey', () => {
       cy.get(S.minorCreditorSummary.remove).click();
       cy.get(S.heading)
         .invoke('text')
-        .then((text) => expect(text.trim()).to.eq('Are you sure you want to remove this minor creditor?'));
+        .should((text) => expect(text.trim()).to.eq('Are you sure you want to remove this minor creditor?'));
       cy.get(S.minorCreditorRemoval.cancel).click();
       cy.get(S.heading).should('have.text', 'Minor creditor summary');
       cy.get<CreditorStore>('@casesCreateCasefileStore').then((store) => {

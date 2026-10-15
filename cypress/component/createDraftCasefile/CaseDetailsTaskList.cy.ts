@@ -529,7 +529,10 @@ describe('Create Casefile Case Details Task List', () => {
     cy.get(Page.caseDetails.orderTermsLink).click();
     cy.get(Page.orderTerms.return).click();
     cy.get(Page.caseDetails.checkCaseButton).click();
+    assertRouterPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.checkCaseDetails);
+    cy.get(Page.review.heading).should('have.text', 'Check case details');
     cy.get(Page.caseDetails.backLink).click();
+    assertRouterPath(taskListPath);
     cy.get(Page.caseDetails.cancelLink).click();
     assertRouterPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.cancel);
     cy.get('@postRequest').should('not.have.been.called');

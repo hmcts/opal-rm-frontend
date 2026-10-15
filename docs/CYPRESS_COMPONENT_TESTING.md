@@ -164,6 +164,7 @@ Use Yarn 4 through Corepack and the versions declared by the repository.
 
 Component Webpack uses named module IDs to keep references stable as Cypress recompiles changing spec graphs.
 Caching remains enabled; preserve the configured isolation and retry policy when comparing runs.
+The component path resolver uses the repository root for inherited TypeScript aliases, including fresh-cache runs.
 
 Run a single component spec directly with the Cypress executable:
 

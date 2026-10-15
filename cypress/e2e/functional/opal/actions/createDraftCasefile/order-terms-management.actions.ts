@@ -5,9 +5,9 @@ import type { IResultParameter } from '../../types/createDraftCasefile/result-pa
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 
-/** Drives Order Term management with observed real reference data and scenario-owned identities. */
+/** Drives Order Term management with observed reference data and scenario-owned identities. */
 export class OrderTermsManagementActions {
-  /** Observes real Result and Major Creditor lookups without replacing responses. */
+  /** Observes Result and Major Creditor lookups without replacing responses. */
   public observe(): void {
     cy.intercept('GET', '**/opal-maintenance-service/results?*').as('orderTermResults');
     cy.intercept('GET', '**/opal-maintenance-service/results/MAT').as('matResult');
@@ -239,8 +239,8 @@ export class OrderTermsManagementActions {
         expect(request.query).to.deep.equal({ business_unit_id: '44', active: 'true', central_authority: 'false' });
         if (response?.statusCode !== 200) throw new Error('Major Creditor lookup must return 200');
         const body = response.body as IOpalMaintenanceMajorCreditorReferenceDataResponse;
-        if (!Array.isArray(body.refData) || !body.refData.length) {
-          throw new Error('Provision an active BU 44 non-Central-Authority Major Creditor');
+        if (!Array.isArray(body.refData)) {
+          throw new Error('Major Creditor lookup must return a refData array');
         }
         expect(
           body.refData.every((item) => item.active && item.business_unit_id === 44 && !item.central_authority),

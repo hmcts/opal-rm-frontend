@@ -50,6 +50,7 @@ Feature: Creditor accessibility
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10279
   Scenario: applicant and Major Creditor selection states are accessible
     Given I have the live RM casefile permission
+    And a sample Major Creditor is available for selection
     And I am choosing a creditor for an Order Term
     Then no existing Minor Creditor choice is displayed
     And I check the page for accessibility

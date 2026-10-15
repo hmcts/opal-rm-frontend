@@ -148,8 +148,9 @@ Feature: Capture a creditor for an order term
     Then I reach Order Terms Summary without creating a draft casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10279
-  Scenario: Retain an observed Major Creditor by its identity
+  Scenario: Retain a sample Major Creditor by its identity
     Given I have the live RM casefile permission
+    And a sample Major Creditor is available for selection
     And I am choosing a creditor for an Order Term
     When I accept an available Major Creditor
     Then the selected Major Creditor is retained

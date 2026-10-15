@@ -2,6 +2,7 @@ import { OrderTermsManagementFlow } from './order-terms-management.flow';
 import { MinorCreditorManagementFlow } from './minor-creditor-management.flow';
 import { OrderTermsManagementActions } from '../../actions/createDraftCasefile/order-terms-management.actions';
 import { CreditorSelectionActions } from '../../actions/createDraftCasefile/creditor-selection.actions';
+import { CreditorActions } from '../../actions/createDraftCasefile/creditor.actions';
 
 /** Composes independent creditor selection journeys using live Order Term and Minor helpers. */
 export class CreditorSelectionFlow {
@@ -9,6 +10,12 @@ export class CreditorSelectionFlow {
   private readonly minors = new MinorCreditorManagementFlow();
   private readonly termActions = new OrderTermsManagementActions();
   private readonly actions = new CreditorSelectionActions();
+  private readonly creditor = new CreditorActions();
+
+  /** Supplies scenario-owned Major reference data for frontend selection and replay coverage. */
+  public prepareMajorCreditors(): void {
+    this.creditor.prepareMajorCreditors();
+  }
 
   /** Starts an independent live draft and completes the observed MAT input for creditor selection. */
   public startChoice(): void {

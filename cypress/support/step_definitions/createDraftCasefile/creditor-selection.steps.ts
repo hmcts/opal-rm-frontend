@@ -2,6 +2,7 @@ import { Given, When, Then } from '@badeball/cypress-cucumber-preprocessor';
 import { CreditorSelectionFlow } from '../../../e2e/functional/opal/flows/createDraftCasefile/creditor-selection.flow';
 const flow = new CreditorSelectionFlow();
 
+Given('a sample Major Creditor is available for selection', () => flow.prepareMajorCreditors());
 Given('I am choosing a creditor for an Order Term', () => flow.startChoice());
 Given('I am choosing a creditor for a second term with an existing Minor Creditor', () => flow.prepareReuse());
 When('I accept the applicant as the creditor', () => flow.acceptApplicant());

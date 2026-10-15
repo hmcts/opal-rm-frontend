@@ -234,8 +234,9 @@ the tests complete these fields with synthetic labels, the observed Court option
 metadata bounds. Replay verifies their retained values before an amount-only amendment. Unknown fields fail the
 bounded fixture guard. This is a test-data contract, not a restriction on product Results.
 The tests compare prompts and rendered controls with the observed metadata without using the production mapper.
-Provision at least one active BU 44 non-Central-Authority Major Creditor for creditor entry. These scenarios use real
-reference data and independent drafts; they observe that no draft-casefile POST occurs and stop before submission.
+The Major Creditor lookup must return HTTP 200 with a `refData` array scoped to active BU 44 non-Central-Authority
+records. An empty array is valid for these Applicant creditor journeys. These scenarios use real reference data and
+independent drafts; they observe that no draft-casefile POST occurs and stop before submission.
 
 Select nine expanded scenarios: four Order Term outcomes, one accessibility journey and four permission routes
 (summary, selection, MAT input and removal). Existing mocked regressions retain scenario-local setup.
@@ -289,8 +290,17 @@ was superseded by the user's 14 October 2026 scope clarification. Central
 Authorities remain covered by their separate existing task; this pack does not
 claim that stale scenario passed, skip it as a defect, or change product behavior.
 
-The live Major lookup must return at least one active BU 44 non-Central-Authority record.
-Selection and replay use its observed ID and name. Same-order Minor reuse captures the actual
+Applicant and Minor Creditor journeys observe the real Major lookup and accept an empty `refData` array while
+retaining the HTTP status, query and returned-record scope assertions. Only `Retain a sample Major Creditor by its
+identity` and `applicant and Major Creditor selection states are accessible` supply a scenario-local controlled Major
+response through `a sample Major Creditor is available for selection`. They reuse the existing synthetic BU 44,
+active, non-Central-Authority fixture; authentication, permissions and other reference-data requests remain live.
+These two scenarios prove frontend selection, identity retention, replay and accessibility with supplied reference
+data. A passing run does not prove the live Major Creditor endpoint supplies selectable records. Live Major Creditor
+integration remains pending suitable reference data in each target environment; the DEV-only seed does not provision
+staging. Remove the controlled setup when restoring that live integration coverage.
+
+Major selection and replay use the supplied response's observed ID and name. Same-order Minor reuse captures the actual
 radio value and checks both term cards plus exactly one retained option. Each scenario owns a new
 draft and stops before submission. Existing mocked validation, cancellation, reload and removal
 regressions retain isolated setup. Accessibility scans cover initial Applicant, revealed Major,
@@ -322,10 +332,11 @@ The complete shared permission outline has thirteen unique routes.
 | Total    |         14 |             5 |          8 |    27 |
 
 Use the configured frontend target in `TEST_URL`; localhost below is the local execution example. The enabled release,
-provisioned creator/denied accounts, Countries, active Create Casefile application, representative MAT metadata and
-active BU 44 non-CA Major described above are prerequisites. Do not change users, permissions, reference data or flags
-as a test side effect. Each scenario owns an independent draft and stops before submission. Missing prerequisites
-fail explicitly. The superseded Central Authority scenario belongs to the separate implemented authority task;
+provisioned creator/denied accounts, Countries, active Create Casefile application and representative MAT metadata
+are prerequisites. Applicant and Minor journeys permit an empty live Major lookup; only the two Major-selection
+scenarios use the controlled response described above. Do not change users, permissions, reference data or flags as a
+test side effect. Each scenario owns an independent draft and stops before submission. Missing prerequisites fail
+explicitly. The superseded Central Authority scenario belongs to the separate implemented authority task;
 it is neither claimed as passing creditor coverage nor skipped as a product defect.
 
 First run discovery to verify selection and bindings, then remove `--env dryRun=true` for actual browser evidence:

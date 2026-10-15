@@ -1,3 +1,4 @@
+import type { IOpalMaintenanceApplicationReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-application-reference-data-response.interface';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
@@ -51,10 +52,7 @@ export class OrderDetailsActions {
   }
   /** Checks task availability and absence of draft creation. */
   public assertProvided(): void {
-    cy.get(S.caseDetails.orderDetailsStatus).should('contain.text', 'Provided');
-    cy.get(S.caseDetails.orderTermsLink).should('have.attr', 'href');
-    cy.get(S.caseDetails.respondentStatus).should('contain.text', 'Provided');
-    cy.get(S.caseDetails.applicantStatus).should('contain.text', 'Provided');
+    this.assertTaskStatuses();
     cy.get('@draftCreation').should('not.have.been.called');
   }
   /** Re-enters the form and verifies a fresh lookup. */
@@ -143,6 +141,75 @@ export class OrderDetailsActions {
     cy.get(S.caseDetails.respondentStatus).should('contain.text', 'Provided');
     cy.get(S.caseDetails.applicantStatus).should('contain.text', 'Provided');
     cy.get('@applicationsEmpty.all').should('have.length', 1);
+  }
+
+  /** Observes and selects only active Create Casefile applications from the live service. */
+  public openLive(): void {
+    cy.intercept('GET', '**/opal-maintenance-service/maintenance-applications*').as('liveApplications');
+    cy.get(S.caseDetails.orderDetailsLink).click();
+    cy.wait('@liveApplications').then(({ request, response }) => {
+      expect(request.query).to.deep.equal({ application_group: 'Create Casefile', active: 'true' });
+      if (!response || response.statusCode !== 200) throw new Error('Live application lookup must return 200');
+      const body = response.body as IOpalMaintenanceApplicationReferenceDataResponse;
+      if (!Array.isArray(body.refData) || body.refData.length === 0) {
+        throw new Error('An active Create Casefile Maintenance Application must be provisioned');
+      }
+      expect(
+        body.refData.every((item) => item.active && item.application_group === 'Create Casefile'),
+        'Returned applications must be active Create Casefile records',
+      ).to.equal(true);
+      const selected = body.refData[0];
+      if (!selected) throw new Error('No selectable active application');
+      cy.wrap(`${selected.application_code} - ${selected.application_title}`, { log: false }).as(
+        'liveApplicationLabel',
+      );
+    });
+    this.assertAvailable();
+  }
+
+  /** Saves the live application and associated information using keyboard submission. */
+  public saveLiveDetails(): void {
+    cy.get('@liveApplicationLabel').then((label) => {
+      cy.get(S.orderDetails.application).type(String(label)).type('{downArrow}{enter}');
+      cy.get(S.orderDetails.application).should('have.value', String(label));
+    });
+    cy.get(S.orderDetails.court).type('Synthetic Court');
+    cy.get(S.orderDetails.frequencyOptions).check('Monthly');
+    cy.get(S.orderDetails.dateOrderMade).type('01/01/2026');
+    cy.get(S.orderDetails.dateArrearsLastUpdated).type('01/01/2026');
+    cy.get(S.orderDetails.returnButton).focus().should('be.focused').type('{enter}');
+  }
+
+  /** Checks the completed task and retained parties without submitting the draft. */
+  public assertLiveProvided(): void {
+    this.assertTaskStatuses();
+    cy.get('@liveDraftCreation').should('not.have.been.called');
+  }
+
+  /** Reopens saved Order Details without depending on another lookup request. */
+  public reopenLive(): void {
+    cy.get(S.caseDetails.orderDetailsLink).click();
+    cy.get(S.orderDetails.application).should('be.visible');
+  }
+
+  /** Proves the live application and associated entered values are restored. */
+  public assertLiveEditable(): void {
+    cy.get('@liveApplicationLabel').then((label) => {
+      cy.get(S.orderDetails.application).should('have.value', String(label));
+    });
+    cy.get(S.orderDetails.court).should('have.value', 'Synthetic Court');
+    cy.get(S.orderDetails.frequencyOptions).filter(':checked').should('have.value', 'Monthly');
+    cy.get(S.orderDetails.dateOrderMade).should('have.value', '01/01/2026');
+    cy.get(S.orderDetails.dateArrearsLastUpdated).should('have.value', '01/01/2026');
+    cy.get('@liveDraftCreation').should('not.have.been.called');
+  }
+
+  /** Checks Order Details completion and the preserved party task statuses. */
+  private assertTaskStatuses(): void {
+    cy.get(S.caseDetails.orderDetailsStatus).should('contain.text', 'Provided');
+    cy.get(S.caseDetails.orderTermsLink).should('have.attr', 'href');
+    cy.get(S.caseDetails.respondentStatus).should('contain.text', 'Provided');
+    cy.get(S.caseDetails.applicantStatus).should('contain.text', 'Provided');
   }
 
   /** Reloads the in-memory journey and checks its existing direct-link guard. */

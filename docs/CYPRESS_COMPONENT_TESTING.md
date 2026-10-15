@@ -139,9 +139,29 @@ Choose applicable scenarios from the approved behaviour rather than applying thi
 
 A 320 CSS-pixel viewport used as evidence for 400% zoom/reflow must not be reported as general mobile support. Axe and viewport checks are partial evidence; they do not prove complete WCAG 2.2 AA or responsive compliance.
 
+### Grouping validation efficiently
+
+Group fields when they share the same initial state, active branch and submission outcome.
+Submit once and assert every expected summary and inline error, its field association,
+focus behaviour and relevant saved-state/network effects. Keep different invalid input
+classes and mutually exclusive conditional branches separate. A loop creating multiple
+tests still performs multiple mounts.
+
+Seed incidental form setup through existing typed feature helpers and cloned synthetic
+fixtures. Keep real input and keyboard interactions when they are the behaviour under test.
+Every removed test must have an assertion-level mapping to retained coverage; fewer tests
+alone is not evidence of improvement. Measure representative before/after spec runs with
+the same browser, source conditions, retries and workers, and retain complete raw results.
+
+See the [Managing Payments validation pilot](../cypress/component/createDraftCasefile/payments/ManagingPayments.cy.ts)
+and [Order Details validation pilot](../cypress/component/createDraftCasefile/orderDetails/order-details.cy.ts).
+
 ## Running and verifying tests
 
 Use Yarn 4 through Corepack and the versions declared by the repository.
+
+Component Webpack uses named module IDs to keep references stable as Cypress recompiles changing spec graphs.
+Caching remains enabled; preserve the configured isolation and retry policy when comparing runs.
 
 Run a single component spec directly with the Cypress executable:
 

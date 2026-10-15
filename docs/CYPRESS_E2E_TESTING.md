@@ -80,6 +80,18 @@ across all `cypress` callers. The duplicate-scenario scan supplements discovery 
 unambiguity. If shared authentication, accessibility or common bindings change, inventory and execute every affected
 functional, accessibility and smoke caller group. Preserve raw evidence before a runner resets its outputs.
 
+### Keeping regression growth proportionate
+
+Use component tests for exhaustive form-state rendering and validation, and retain E2E
+coverage for complete journeys and meaningful integration boundaries. Before removing an
+apparently duplicated scenario, map its assertions, data source, tags and external identity
+to retained coverage. Mocked responses and live-service evidence are different contracts.
+
+Reuse existing Steps, Flows and Actions, while giving each scenario independent mutable
+state. Use focused spec/Story selections for development feedback without reducing required
+full regressions. Report expanded examples, failures, retries, missing cases and wall time;
+a successful runner exit alone does not prove a complete passing suite.
+
 ## Running a Feature
 
 Run a single feature file with:

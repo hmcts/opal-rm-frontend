@@ -34,7 +34,7 @@ Feature: Minor creditor accessibility
     When I open minor creditor removal
     Then I reach the minor creditor removal confirmation
     And I check the page for accessibility
-    When I return from minor creditor removal
+    When I cancel minor creditor removal
     Then I reach Minor Creditor Summary without creating a draft casefile
     And I check the page for accessibility
 

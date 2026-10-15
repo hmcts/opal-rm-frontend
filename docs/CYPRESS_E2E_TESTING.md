@@ -33,6 +33,53 @@ and execution sections together with [AGENTS.md](../AGENTS.md), [REPO_GUIDELINES
 - Flows in `cypress/e2e/functional/opal/flows/**` compose actions into business journeys and are the verbs exposed to steps and component specs.
 - Selectors are centralized. Add hooks in Angular templates and document them in `cypress/shared/selectors/**`. Avoid positional CSS.
 
+## Reusing feature-file steps
+
+Apply this sequence when adding or modifying steps; existing unrelated features do not need a rewrite.
+Component specs retain their direct script/helper style.
+
+1. Search the step catalogue/source, Flows and Actions for the process and its synonyms. Start with the shared
+   [authentication](../cypress/support/step_definitions/auth.steps.ts),
+   [accessibility](../cypress/support/step_definitions/accessibility/accessibility.steps.ts) and
+   [common assertions](../cypress/support/step_definitions/common.steps.ts).
+2. Reuse an existing phrase when its preconditions, interaction and observable outcome match. Common heading, text
+   and URL phrases already accept business values; do not add a feature-specific equivalent. Preserve business
+   assertions that also check retained data, permissions, store state or API requests.
+3. Parameterise varying business values with constrained expressions or validated DataTables. Reject unknown choices
+   and columns rather than silently ignoring them. Keep scenario-specific input visible when it matters to the AC.
+4. Share an existing Action/Flow when similar steps have different business intent. Add a phrase only for a different
+   responsibility or outcome. Keep reuse local to the capability until multiple maintained capabilities need it.
+5. Keep one delegate per binding. Flows own business orchestration and table interpretation; Actions own UI, network
+   and confirmation details. Keep selectors out of Gherkin and do not infer page context from an available element.
+   When changing a shared common assertion, move its existing body unchanged into a CommonActions method, retaining
+   its logging, match strictness, selector and timeout; leave untouched assertions alone.
+6. Before removing a binding, migrate every caller and check for undefined or ambiguous matches across the loaded
+   registry. Cucumber matches text across Given/When/Then, so changing a keyword does not prevent ambiguity. Preserve
+   scenario names, tags, Examples rows, Zephyr identity and independent setup.
+7. Run browser journeys for every affected caller group and compare expanded scenario names, counts and tags before
+   and after. Keep live and controlled data sources and keyboard interactions intact. Fewer bindings do not mean
+   fewer tests or faster execution. Discovery/dry runs prove selection and binding only.
+
+The [Minor Creditor bindings](../cypress/support/step_definitions/createDraftCasefile/minor-creditor.steps.ts) use
+`/^I cancel minor creditor details and (accept|decline) the warning$/` for both existing feature phrases. The single
+binding delegates to `MinorCreditorFlow.cancelDetailsWithDecision(decision)`, which rejects unsupported choices and
+calls `cancelDetails(decision === 'accept')`. Retain the warning-text and downstream route/data-retention assertions.
+Clean Cancel without edits and native `beforeunload` suppression have different contracts and remain separate.
+
+`I cancel minor creditor removal` is the canonical wording for the former equivalent return/cancel bindings. Every
+functional and accessibility caller uses that phrase; an alias is needed only for an identified external consumer.
+The live reviewed-creditor removal journey remains distinct because it uses keyboard activation, checks heading
+focus and observes live data. Do not replace it with the controlled mouse-click journey.
+
+For changes to these bindings, run the Minor Creditor functional/accessibility pair before and after, then run
+create-casefile/release-on, release-off and smoke discovery to check the shared registry. Run actual affected journeys
+against their existing configured prerequisites; do not replace unavailable live data with mocks. Also run
+`corepack yarn lint:cypress`, `corepack yarn exec tsc --project e2e.tsconfig.json --noEmit`,
+`corepack yarn check:cypress:test-metadata` and `corepack yarn find:duplicate:scenarios`. Search for removed phrases
+across all `cypress` callers. The duplicate-scenario scan supplements discovery and does not prove expression
+unambiguity. If shared authentication, accessibility or common bindings change, inventory and execute every affected
+functional, accessibility and smoke caller group. Preserve raw evidence before a runner resets its outputs.
+
 ## Running a Feature
 
 Run a single feature file with:

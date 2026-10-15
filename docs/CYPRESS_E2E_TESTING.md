@@ -4,8 +4,10 @@ Use this guide when writing or updating Cypress E2E tests and Cucumber feature f
 
 ## Required References
 
-- For any E2E scenario creation or update, read `references/E2E_New_Feature_Codex_Optimized_Instructions.md` and follow it as the governing ruleset.
-- Keep `references/E2E_Refactor_Codex_Optimized_Instructions.md` as legacy reference material; consult it only when explicitly requested or when refactoring older features that need its legacy guidance.
+Read this guide's Feature Layout and Tags, Accessibility Coverage, Step Definitions, Actions, Flows, and Selectors,
+and execution sections together with [AGENTS.md](../AGENTS.md), [REPO_GUIDELINES.md](REPO_GUIDELINES.md),
+[SONAR.md](SONAR.md), and [CONTRIBUTING.md](CONTRIBUTING.md). Apply the installed
+`opal-frontend-e2e-tests` skill and its references when available; repository-contained rules remain authoritative.
 
 ## Feature Layout and Tags
 
@@ -104,3 +106,98 @@ the equivalent `TAGS` parameter. No new release selector or automatic flag mutat
 Release-specific functional and accessibility scenarios live under `features/releaseFlags`. Their Jira story, epic and
 test identifiers are intentionally unassigned pending confirmed ticket metadata. A Cucumber dry run proves scenario
 selection and step binding only; it is not evidence of a completed browser journey or deployed authentication.
+
+## Live create-casefile QA prerequisites
+
+Live QA scenarios observe HTTP requests without replacing responses. Each scenario starts an independent casefile,
+uses synthetic entered data, reopens pages to prove local retention, and stops before submission. Missing accounts,
+reference data or release configuration must fail clearly; do not skip or substitute mocks for a failed prerequisite.
+
+| Prerequisite        | Required configuration                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| Release             | `release-1c-rm-create-case-files=true`                                                   |
+| Authorised account  | ACTIVE; Maintenance domain; permission 21 for BU 44                                      |
+| Denied account      | ACTIVE; Maintenance domain; no permission 21 for BU 44; distinct from authorised account |
+| Countries           | Active dataset containing United Kingdom and at least two other distinct Country names   |
+| Applications        | At least one active record with `application_group=Create Casefile`                      |
+| Central Authorities | At least two active BU 44 records with `central_authority=true`                          |
+
+The selected features authenticate through the shared `I am authenticated with email {string}` binding, using the
+existing provisioned synthetic usernames `opal-test@dev.platform.hmcts.net` (creator) and
+`opal-test-4@dev.platform.hmcts.net` (denied user), as the Fines suites do. Sessions are cached by the supplied username.
+Each scenario still owns a new draft. Provision these users through the existing User Service data; do not create
+users or change permissions as a test side effect.
+
+Local/PR sign-in uses the passwordless stub and requires only the username supplied by the feature. No separate
+role-account environment variables are required. The live User Service must provide ACTIVE Maintenance membership
+and the BU 44 permission state above. The explicit permission preflight reads the actual `/api/user-state` response
+(`domains.maintenance`) after shared authentication; failures in authentication or domain provisioning fail setup.
+
+| Environment variable      | Purpose                                                       |
+| ------------------------- | ------------------------------------------------------------- |
+| `TEST_URL`                | Frontend browser target                                       |
+| `OPAL_TEST_USER_EMAIL`    | Existing global test email mapping used by other suite callers |
+| `OPAL_TEST_USER_PASSWORD` | Existing shared SSO password, mapped to `CYPRESS_TEST_PASSWORD` |
+
+Microsoft SSO retains the existing shared password environment configuration. Full browser SSO remains unverified
+by the local passwordless runs. Other suites may still require the existing global email/password mappings.
+Country and Central Authority lookups may be cached within a journey, so replay must not await another request.
+
+Run the individual capture and retention outcome with:
+
+```bash
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature'
+```
+
+The scenario requires live Country ordering, both party statuses Provided, reopened field values, and zero draft
+creation POSTs. Keyboard interactions and Axe scans provide partial accessibility evidence; specialist WCAG 2.2 AA
+assurance remains separate. Positive order-details scenarios must supply a valid Date order made: the QA ticket's
+required-versus-optional wording differs from current product validation, which this test work does not change.
+
+## Shared casefile permission coverage
+
+`CasefilePermissions.feature` runs exactly five unique protected routes with the release enabled. Each example first
+checks the authorised user's live ACTIVE Maintenance state and BU 44 permission 21, then opens the released case-type
+page. It explicitly authenticates the provisioned denied username and checks live ACTIVE status, Maintenance domain and
+absence of permission 21 for BU 44 before attempting direct task navigation. Another BU permission is not required;
+an existing user with another BU membership is acceptable when BU 44 permission 21 is absent. The tests use actual
+route guards without role changes, injected store state or mocked denial responses.
+
+Require `release-1c-rm-create-case-files=true` for all anonymous LaunchDarkly test contexts, rather than a percentage
+rollout. The positive entry check prevents a release-off failure from masquerading as permission rejection. The
+existing release-off features remain separate because they exercise a different denial cause.
+
+Shared respondent and Central Authority Examples carry both `@JIRA-STORY:PO-10275` and `@JIRA-STORY:PO-10276`, so
+selection by either party ticket includes both shared routes. Individual and organisation applicant Examples carry
+the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`. The outline carries epic PO-6506.
+
+```bash
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```
+
+## Integrated live QA selection and evidence
+
+For PO-10275, PO-10276 and PO-10277, select both tag variables explicitly so a pipeline filter cannot remove the
+permission examples. The enabled release must apply to every test context. This focused selection expands to 15
+scenarios: two mandatory-party outcomes, two authority outcomes, one order outcome, five permission routes and five
+accessibility outcomes. The retained REMO Out authority examples carry PO-9804 and are outside this QA selection.
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and (@JIRA-STORY:PO-10275 or @JIRA-STORY:PO-10276 or @JIRA-STORY:PO-10277) and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and (@JIRA-STORY:PO-10275 or @JIRA-STORY:PO-10276 or @JIRA-STORY:PO-10277) and not @skip' \
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature'
+```
+
+Run affected existing Order Details and Central Authority functional/accessibility features with both `TAGS` and
+`CYPRESS_TAGS` set to `@R1CRmCreateCaseFiles and not @skip`, then run
+`corepack yarn test:smoke:serial --browser=chrome` to check existing login callers. Preserve each run's generated
+reports before the next runner invocation resets its output. Inspect and redact account identifiers, credentials,
+tokens and personal information before retaining or sharing reports or screenshots. Record the actual expanded
+scenario count, command exit code, browser version and safe environment alias; zero tests or skipped denial examples
+are failed verification. Local passwordless authentication and live local APIs do not prove deployed SSO behavior.
+
+Axe and the scenario keyboard interactions provide partial accessibility evidence. Specialist follow-up should verify
+keyboard-only navigation and visible focus across every page, screen-reader announcements and accessible names on
+expanded controls, and magnification behavior, using the same enabled release and provisioned authorised account.
+Required metadata checks still apply to the full configured scope; missing confirmed Jira identifiers must be resolved
+from authoritative ticket context rather than guessed or excluded.

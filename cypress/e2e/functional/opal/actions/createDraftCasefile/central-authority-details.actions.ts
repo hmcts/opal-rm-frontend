@@ -19,45 +19,44 @@ export type CentralAuthorityChoice = keyof typeof CENTRAL_AUTHORITY_ALIASES;
 export class CentralAuthorityDetailsActions {
   /** Opens Central Authority details from a newly selected REMO Out casefile. */
   public openInNewRemoOutCasefile(): void {
-    cy.intercept('GET', '**/opal-maintenance-service/major-creditors*').as('getMajorCreditors');
     cy.visit(caseTypePath);
     cy.get(CreateCasefileSelectors.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT)).check();
     cy.get(CreateCasefileSelectors.continueButton).click();
+    this.openFromTaskList();
+  }
+
+  /** Observes real draft creation requests without replacing their responses. */
+  public observeDraftCreation(): void {
+    const submitted = cy.spy().as('authorityDraftCreation');
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', () => {
+      submitted();
+    });
+  }
+
+  /** Confirms local authority capture has not created a persisted draft. */
+  public assertNoSubmission(): void {
+    cy.get('@authorityDraftCreation').should('not.have.been.called');
+  }
+
+  /** Opens authority capture and requires two active live BU 44 authorities for edit/reselection coverage. */
+  public openFromTaskList(): void {
+    cy.intercept('GET', '**/opal-maintenance-service/major-creditors*').as('getMajorCreditors');
     cy.get(CreateCasefileSelectors.caseDetails.centralAuthorityLink).click();
     cy.wait('@getMajorCreditors').then(({ request, response }) => {
-      expect(request.query).to.deep.equal({
-        business_unit_id: '44',
-        central_authority: 'true',
-        active: 'true',
-      });
-
-      if (!response) {
-        throw new Error('The live major-creditors request completed without a response');
+      expect(request.query).to.deep.equal({ business_unit_id: '44', central_authority: 'true', active: 'true' });
+      if (!response || response.statusCode !== 200) throw new Error('Live Central Authority lookup must return 200');
+      const body = response.body as IOpalMaintenanceMajorCreditorReferenceDataResponse;
+      if (!Array.isArray(body.refData) || body.refData.length < 2) {
+        throw new Error('Live Central Authority editing needs two available active records');
       }
-
-      expect(response.statusCode, 'major-creditors response status').to.equal(200);
-      const body = response.body as Partial<IOpalMaintenanceMajorCreditorReferenceDataResponse>;
-      if (!Array.isArray(body.refData)) {
-        throw new Error('The live major-creditors response must contain a refData array');
-      }
-      if (body.refData.length < 2) {
-        throw new Error('The live major-creditors response must contain at least two Central Authorities');
-      }
-
-      expect(body.refData, 'available Central Authorities').to.have.length.at.least(2);
-      body.refData.forEach((majorCreditor) => {
-        expect(majorCreditor.business_unit_id, 'Central Authority Business Unit').to.equal(44);
-        expect(majorCreditor.central_authority, 'Central Authority flag').to.equal(true);
-        expect(majorCreditor.active, 'Central Authority active flag').to.equal(true);
-      });
-
+      expect(
+        body.refData.every((item) => item.business_unit_id === 44 && item.active && item.central_authority),
+        'Returned authorities must be active Central Authorities for RM BU 44',
+      ).to.equal(true);
       const [first, second] = body.refData;
-      if (!first || !second) {
-        throw new Error('The live major-creditors response did not expose two selectable Central Authorities');
-      }
-
-      cy.wrap(this.toAuthorityLabel(first)).as(CENTRAL_AUTHORITY_ALIASES.first);
-      cy.wrap(this.toAuthorityLabel(second)).as(CENTRAL_AUTHORITY_ALIASES.second);
+      if (!first || !second) throw new Error('Two selectable Central Authorities are required');
+      cy.wrap(this.toAuthorityLabel(first), { log: false }).as(CENTRAL_AUTHORITY_ALIASES.first);
+      cy.wrap(this.toAuthorityLabel(second), { log: false }).as(CENTRAL_AUTHORITY_ALIASES.second);
     });
     cy.get(Page.heading).should('have.text', 'Central authority details');
   }

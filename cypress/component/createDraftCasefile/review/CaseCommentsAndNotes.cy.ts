@@ -4,7 +4,11 @@ import { CASES_CREATE_CASEFILE_TASK_STATUSES } from 'src/app/flows/cases/cases-c
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
 import { UNSAVED_CHANGES_WARNING } from '../../../shared/constants/create-casefile-test-copy.constant';
-import { REPLACEMENT_COMMENTS_AND_NOTES, SAVED_COMMENTS_AND_NOTES } from './mocks/comments-and-notes.mock';
+import {
+  COMMENTS_AND_NOTES_LENGTH_MOCK,
+  REPLACEMENT_COMMENTS_AND_NOTES,
+  SAVED_COMMENTS_AND_NOTES,
+} from './mocks/comments-and-notes.mock';
 import { setupCommentsAndNotes, type CasesCreateCasefileStoreInstance } from './setup/comments-and-notes.setup';
 
 const STORY_TAG = '@JIRA-STORY:PO-9816';
@@ -89,11 +93,15 @@ describe('Create Casefile Comments and notes', () => {
   });
 
   it('AC1, AC3. should stop user input and counters at the approved limits', { tags: buildTags() }, () => {
-    setupCommentsAndNotes();
+    setupCommentsAndNotes({ savedCommentsAndNotes: COMMENTS_AND_NOTES_LENGTH_MOCK.nearLimit });
 
-    cy.get(Page.commentsAndNotes.comment).type('a'.repeat(251)).should('have.value', 'a'.repeat(250));
+    assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 1 character remaining');
+    assertNormalizedText(Page.commentsAndNotes.noteCounter, 'You have 1 character remaining');
+    cy.get(Page.commentsAndNotes.comment)
+      .type('aa')
+      .should('have.value', COMMENTS_AND_NOTES_LENGTH_MOCK.atLimit.comment);
     assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 0 characters remaining');
-    cy.get(Page.commentsAndNotes.note).type('b'.repeat(1001)).should('have.value', 'b'.repeat(1000));
+    cy.get(Page.commentsAndNotes.note).type('bb').should('have.value', COMMENTS_AND_NOTES_LENGTH_MOCK.atLimit.note);
     assertNormalizedText(Page.commentsAndNotes.noteCounter, 'You have 0 characters remaining');
   });
 
@@ -102,7 +110,7 @@ describe('Create Casefile Comments and notes', () => {
     cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
     setupCommentsAndNotes({ savedCommentsAndNotes: SAVED_COMMENTS_AND_NOTES });
     cy.get(Page.commentsAndNotes.comment).clear();
-    cy.get(Page.commentsAndNotes.note).invoke('val', '   ').trigger('input');
+    cy.get(Page.commentsAndNotes.note).clear().type('   ');
 
     cy.get(Page.commentsAndNotes.returnToCaseDetails).click();
 
@@ -221,11 +229,13 @@ describe('Create Casefile Comments and notes', () => {
   for (const width of [1280, 320]) {
     it(`AC5. should reflow without horizontal page overflow at ${width}px`, { tags: buildTags() }, () => {
       cy.viewport(width, 900);
-      setupCommentsAndNotes();
+      setupCommentsAndNotes({
+        savedCommentsAndNotes: width === 320 ? COMMENTS_AND_NOTES_LENGTH_MOCK.atLimit : null,
+      });
       if (width === 320) {
-        cy.get(Page.commentsAndNotes.comment).type('a'.repeat(250));
+        cy.get(Page.commentsAndNotes.comment).should('have.value', COMMENTS_AND_NOTES_LENGTH_MOCK.atLimit.comment);
         assertNormalizedText(Page.commentsAndNotes.commentCounter, 'You have 0 characters remaining');
-        cy.get(Page.commentsAndNotes.note).type('b'.repeat(1000));
+        cy.get(Page.commentsAndNotes.note).should('have.value', COMMENTS_AND_NOTES_LENGTH_MOCK.atLimit.note);
         assertNormalizedText(Page.commentsAndNotes.noteCounter, 'You have 0 characters remaining');
       }
 

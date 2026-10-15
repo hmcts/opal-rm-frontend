@@ -1,6 +1,9 @@
 import { LoginLocators as L } from '../../shared/selectors/login.locators';
 import { createScopedLogger } from '../../support/utils/log.helper';
 import { isLocalOrPrEnvironment } from './auth-environment.actions';
+import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
+import { PERMISSIONS } from 'src/app/constants/permissions.constant';
+import { OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID } from 'src/app/flows/cases/services/opal-maintenance-service/constants/opal-maintenance-business-unit-ids.constant';
 
 const log = createScopedLogger('LoginActions');
 const DASHBOARD_PATH_PATTERN = /^\/dashboard(\/[a-z-]+)?$/;
@@ -65,6 +68,20 @@ export function performAuthentication(email: string): void {
 export function performLogin(email: string): void {
   performAuthentication(email);
   waitForDashboardLanding();
+}
+
+/** Verifies the provisioned user's active state and missing RM permission before the guarded journey. */
+export function assertActiveUserWithoutDraftCasefilePermission(): void {
+  cy.request<IOpalUserStateResponse>('/api/user-state')
+    .its('body')
+    .should((userState) => {
+      expect(userState.status).to.eq('ACTIVE');
+      const rmPermissionIds =
+        userState.domains.maintenance?.business_unit_users
+          .filter(({ business_unit_id }) => business_unit_id === OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID)
+          .flatMap(({ permissions }) => permissions.map(({ permission_id }) => permission_id)) ?? [];
+      expect(rmPermissionIds).not.to.include(PERMISSIONS['create-and-manage-draft-casefiles']);
+    });
 }
 
 export function assertSignOutLinkVisible(): void {

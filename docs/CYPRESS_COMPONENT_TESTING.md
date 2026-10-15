@@ -76,6 +76,8 @@ it('AC1. should render the approved choices', { tags: buildTags('@JIRA-TEST-KEY:
 - Import route segments from the production routing constants under `src/app/**`; do not duplicate route fragments in Cypress-only constants.
 - Compose an expected full path locally when the component contract is the complete URL. A small reusable path helper is appropriate when several scenarios use the same composition.
 - Keep router creation or stubbing in the setup helper and navigation assertions in the spec.
+- Before using a control shared by the outgoing and destination pages, wait for the destination route and a destination-specific heading.
+- When text should change after navigation, use a retrying `.should` assertion. A `.then` snapshot is appropriate only after the required page state is established.
 - When a test says that data is saved, assert the real store state rather than inferring success only from navigation.
 - Assert relevant lifecycle effects when they are part of the behaviour, such as dirty-state clearing, saved-state flags, stale conditional values being removed, or valid state being rehydrated.
 - Before expecting an unsaved-changes confirmation, establish dirty state explicitly and assert it through the real store or component state.

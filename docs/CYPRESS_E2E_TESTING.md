@@ -174,7 +174,7 @@ required-versus-optional wording differs from current product validation, which 
 
 ## Shared casefile permission coverage
 
-`CasefilePermissions.feature` runs exactly thirteen unique protected routes with the release enabled. Each example first
+`CasefilePermissions.feature` runs exactly fifteen unique protected routes with the release enabled. Each example first
 checks the authorised user's live ACTIVE Maintenance state and BU 44 permission 21, then opens the released case-type
 page. It explicitly authenticates the provisioned denied username and checks live ACTIVE status, Maintenance domain and
 absence of permission 21 for BU 44 before attempting direct task navigation. Another BU permission is not required;
@@ -190,6 +190,7 @@ selection by either party ticket includes both shared routes. Individual and org
 the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`, and the four Order Term routes carry
 `@JIRA-STORY:PO-10278`. Minor Creditor details, summary and removal carry `@JIRA-STORY:PO-10280`.
 The Order Term creditor route carries `@JIRA-STORY:PO-10279`.
+Interest and Indexation and Managing Payments carry `@JIRA-STORY:PO-10281`.
 The outline carries epic PO-6506.
 
 ```bash
@@ -322,7 +323,7 @@ Repeat those specs with both tag variables set to `@R1CRmCreateCaseFiles and not
 
 Select PO-10278, PO-10279 and PO-10280 together using both tag variables. This selection expands to exactly 27
 examples; the original five permission routes retain their original story tags and are outside this selection.
-The complete shared permission outline has thirteen unique routes.
+The complete shared permission outline has fifteen unique routes, including the two payment routes for PO-10281.
 
 | QA story | Functional | Accessibility | Permission | Total |
 | -------- | ---------: | ------------: | ---------: | ----: |
@@ -378,7 +379,7 @@ cp -R smoke-output/. docs/superpowers/plans/2026-10-14-order-terms-creditors-evi
 ```
 
 This regression includes retained Order Term input/summary validation, failure, cancellation and reload cases,
-Minor Creditor bank/review/removal cases, creditor choices, Order Details, mandatory parties and all thirteen permission
+Minor Creditor bank/review/removal cases, creditor choices, Order Details, mandatory parties and all fifteen permission
 routes. Complete the local pre-flight in [SONAR.md](SONAR.md), E2E TypeScript, the full configured Jira metadata policy
 and duplicate-scenario scan. A passing createDraftCasefile-only metadata check supplements the full policy result;
 missing authoritative Jira identifiers in other configured features remain an unmet required check. Do not invent
@@ -391,3 +392,37 @@ follow-up must cover keyboard-only navigation and visible focus across these pag
 accessible names on summary actions/notices, and magnification. Local passwordless execution does not establish
 deployed SSO behavior. Keep CI, external security/Sonar checks, reviewer approval, specialist QA and deployment pending
 until direct evidence confirms them.
+
+## Capture payment arrangements QA (PO-10281)
+
+`Payments.feature` covers four independent interest/indexation combinations (Yes/RPI, No/CPI, Yes/Other and No/None)
+and both court/direct payment arrangements. Each example starts a fresh browser-led draft with live mandatory-party
+and Order Details setup, then saves and reopens the payment tasks to verify their actual selected controls and Provided
+statuses. Payment-management examples replay both tasks to prove neither local save overwrites the other task.
+No Draft Casefile creation POST is permitted. The examples stop before submission and do not test payment collection.
+
+Other indexation is a selection only, with no additional details input. This follows the functional write-up and
+existing implementation, as agreed for PO-10281; the TDIA's conditional Other-details wording remains a documentation
+follow-up. Field-level validation remains owned by the existing payment component specs.
+
+`PaymentsAccessibility.feature` scans both payment pages before selection, after keyboard selection and after local
+save/reopen. Keyboard assertions cover radio activation, native Tab movement and primary-action activation.
+These are partial accessibility results; specialist screen-reader, visible-focus and magnification checks remain
+necessary for full WCAG 2.2 AA assurance.
+
+The shared permission outline adds `interest-and-indexation` and `managing-payments`, tagged PO-10281. It retains the
+live authorised-entry and denied-user preflights. Enable `release-1c-rm-create-case-files` for all test contexts and
+provision the live user, Country and Maintenance Application prerequisites above. These payment scenarios do not
+require Results, Major Creditors or Central Authorities. They do not replace live responses or mutate permissions.
+
+Run ten expanded examples: six functional outcomes, two accessibility journeys and two permission routes:
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10281 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10281 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/Payments.feature,cypress/e2e/functional/opal/features/createDraftCasefile/PaymentsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```
+
+Use the configured frontend target in `TEST_URL`; localhost is the local example. Run those specs with both tag
+variables set to `@R1CRmCreateCaseFiles and not @skip` to include all fifteen shared permission routes. Also run
+`OrderDetails.feature`, `OrderDetailsAccessibility.feature`, `CheckCaseDetails.feature` and
+`CheckCaseDetailsAccessibility.feature` for the reused prerequisite and payment-to-review integration regressions,
+then the smoke suite and required local pre-flight. Preserve reports before the runner resets its output directory.

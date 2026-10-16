@@ -4,6 +4,13 @@ Feature: Check case details and submit for review
   Background:
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
 
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10273
+  Scenario: Complete and submit one Draft Casefile through live services
+    Given I am reviewing a live completed Draft Casefile
+    When I submit the live Draft Casefile
+    Then the backend and confirmation show the same generated Draft Casefile identifier
+    And the submitted Create Draft Casefile journey is cleared
+
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9817
   Scenario: Correct accepted details before simulating submission
     Given I am reviewing a complete casefile for submission

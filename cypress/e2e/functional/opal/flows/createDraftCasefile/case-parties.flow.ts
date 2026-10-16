@@ -2,6 +2,7 @@ import { CasefilePermissionsActions } from '../../actions/createDraftCasefile/ca
 import { CasePartiesActions } from '../../actions/createDraftCasefile/case-parties.actions';
 import { CasefilePermissionPreflightActions } from '../../actions/createDraftCasefile/casefile-permission-preflight.actions';
 import type { CasePartyPath } from '../../types/createDraftCasefile/case-party-path.type';
+import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
 
 /** Composes live party capture and local replay for casefile journeys. */
 export class CasePartiesFlow {
@@ -42,6 +43,33 @@ export class CasePartiesFlow {
   public start(path: CasePartyPath): void {
     this.parties.start(path);
   }
+
+  /**
+   * Starts an independent outbound draft after validating the requested case type.
+   * @param value REMO Out or REMO Out (CMS) from the scenario.
+   */
+  public startOutbound(value: string): void {
+    this.parties.startOutbound(this.outboundCaseType(value));
+  }
+
+  /**
+   * Verifies the outbound case type and absence of an applicant type without submission.
+   * @param value Expected outbound case type from the scenario.
+   */
+  public assertOutboundTaskList(value: string): void {
+    this.parties.assertOutboundTaskList(this.outboundCaseType(value));
+  }
+
+  /** Checks the initial Order-task gate for the journey that owns progression coverage. */
+  public assertInitialOrderTasksBlocked(): void {
+    this.parties.assertInitialOrderTasksBlocked();
+  }
+
+  /** Checks that completing parties unlocks Order Details before the later Order tasks. */
+  public assertOrderDetailsAvailableAfterParties(): void {
+    this.parties.assertOrderDetailsAvailableAfterParties();
+  }
+
   /** Completes both mandatory party tasks through local page saves. */
   public captureIndividual(): void {
     this.parties.fillRespondent();
@@ -127,5 +155,20 @@ export class CasePartiesFlow {
   /** Scans organisation bank branches and restores the mandatory baseline. */
   public scanOrganisationBankControls(): void {
     this.parties.scanBankBranches('Organisation');
+  }
+
+  /**
+   * Narrows scenario input to an outbound case type before selector use.
+   * @param value Case type supplied by the scenario.
+   * @returns The supported outbound case type.
+   */
+  private outboundCaseType(value: string) {
+    if (
+      value !== CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT &&
+      value !== CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT_CMS
+    ) {
+      throw new Error('Unsupported outbound RM casefile type');
+    }
+    return value;
   }
 }

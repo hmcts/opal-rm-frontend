@@ -2,7 +2,15 @@ import { Given, Then, When } from '@badeball/cypress-cucumber-preprocessor';
 import { CheckCaseDetailsFlow } from '../../../e2e/functional/opal/flows/createDraftCasefile/check-case-details.flow';
 
 const flow = new CheckCaseDetailsFlow();
+Given('I am reviewing a live completed Draft Casefile', () => flow.openLive());
+When('I submit the live Draft Casefile', () => flow.submit());
+Then('the backend and confirmation show the same generated Draft Casefile identifier', () =>
+  flow.assertLiveConfirmation(),
+);
+Then('the submitted Create Draft Casefile journey is cleared', () => flow.clearSubmittedJourney());
 Given('I am reviewing a complete casefile for submission', () => flow.open());
+Given('I have completed a casefile ready for review', () => flow.prepareReadyForReview());
+When('I open the completed casefile review', () => flow.openReview());
 When('I correct the respondent from casefile review', () => flow.correctRespondent());
 Then('review shows the corrected respondent and unchanged orders', () => flow.assertCorrection());
 When('I submit the casefile for submission', () => flow.submit());

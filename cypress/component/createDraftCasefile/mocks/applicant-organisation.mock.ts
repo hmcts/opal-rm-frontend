@@ -28,7 +28,7 @@ export const SAVED_APPLICANT_ORGANISATION: ICasesCreateCasefileApplicantOrganisa
   },
 };
 
-export const VALID_UK_APPLICANT_ORGANISATION: ICasesCreateCasefileApplicantOrganisation = {
+export const VALID_UK_APPLICANT_ORGANISATION = {
   organisationName: 'Test Organisation',
   foreignAuthorityReference: 'FA-9803',
   contactDetails: {
@@ -53,9 +53,9 @@ export const VALID_UK_APPLICANT_ORGANISATION: ICasesCreateCasefileApplicantOrgan
     accountNumber: '12345678',
     paymentReference: 'PAY-9803',
   },
-};
+} satisfies ICasesCreateCasefileApplicantOrganisation;
 
-export const VALID_NON_UK_BIC_APPLICANT_ORGANISATION: ICasesCreateCasefileApplicantOrganisation = {
+export const VALID_NON_UK_BIC_APPLICANT_ORGANISATION = {
   ...VALID_UK_APPLICANT_ORGANISATION,
   bankDetails: {
     type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
@@ -67,9 +67,9 @@ export const VALID_NON_UK_BIC_APPLICANT_ORGANISATION: ICasesCreateCasefileApplic
     bankName: 'Test Bank',
     branchSortCode: '123456',
   },
-};
+} satisfies ICasesCreateCasefileApplicantOrganisation;
 
-export const VALID_NON_UK_IBAN_APPLICANT_ORGANISATION: ICasesCreateCasefileApplicantOrganisation = {
+export const VALID_NON_UK_IBAN_APPLICANT_ORGANISATION = {
   ...VALID_UK_APPLICANT_ORGANISATION,
   bankDetails: {
     type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
@@ -81,9 +81,33 @@ export const VALID_NON_UK_IBAN_APPLICANT_ORGANISATION: ICasesCreateCasefileAppli
     bankName: null,
     branchSortCode: null,
   },
-};
+} satisfies ICasesCreateCasefileApplicantOrganisation;
 
 export const VALID_NONE_APPLICANT_ORGANISATION: ICasesCreateCasefileApplicantOrganisation = {
   ...VALID_UK_APPLICANT_ORGANISATION,
   bankDetails: { type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NONE },
+};
+
+export const UK_APPLICANT_ORGANISATION_BEFORE_SAVE: ICasesCreateCasefileApplicantOrganisation = {
+  ...VALID_UK_APPLICANT_ORGANISATION,
+  bankDetails: {
+    ...VALID_UK_APPLICANT_ORGANISATION.bankDetails,
+    sortCode: '445566',
+  },
+};
+
+export const NON_UK_BIC_APPLICANT_ORGANISATION_BEFORE_SAVE: ICasesCreateCasefileApplicantOrganisation = {
+  ...VALID_NON_UK_BIC_APPLICANT_ORGANISATION,
+  bankDetails: {
+    ...VALID_NON_UK_BIC_APPLICANT_ORGANISATION.bankDetails,
+    paymentReference: 'PREVIOUS-BIC',
+  },
+};
+
+export const NON_UK_IBAN_APPLICANT_ORGANISATION_BEFORE_SAVE: ICasesCreateCasefileApplicantOrganisation = {
+  ...VALID_NON_UK_IBAN_APPLICANT_ORGANISATION,
+  bankDetails: {
+    ...VALID_NON_UK_IBAN_APPLICANT_ORGANISATION.bankDetails,
+    paymentReference: 'PREVIOUS-IBAN',
+  },
 };

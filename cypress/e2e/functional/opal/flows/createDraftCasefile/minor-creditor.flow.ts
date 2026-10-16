@@ -68,6 +68,17 @@ export class MinorCreditorFlow {
   }
 
   /**
+   * Validates the feature's finite warning choice before cancelling with that outcome.
+   * @param decision Whether the warning is accepted or declined.
+   */
+  public cancelDetailsWithDecision(decision: string): void {
+    if (decision !== 'accept' && decision !== 'decline') {
+      throw new Error(`Unsupported minor creditor warning decision: ${decision}`);
+    }
+    this.cancelDetails(decision === 'accept');
+  }
+
+  /**
    * Cancels with the requested confirmation outcome.
    * @param accept Whether to accept the warning.
    */

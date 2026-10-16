@@ -31,7 +31,7 @@ Feature: Capture minor creditor details
     When I provide valid organisation creditor details with a non-UK bank and no international identifiers
     And I save the minor creditor details
     And I open minor creditor removal
-    And I return from minor creditor removal
+    And I cancel minor creditor removal
     Then I reach Minor Creditor Summary without creating a draft casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9810

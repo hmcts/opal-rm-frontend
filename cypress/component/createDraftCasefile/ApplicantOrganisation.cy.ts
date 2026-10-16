@@ -22,8 +22,10 @@ import {
 import {
   SAVED_APPLICANT_ORGANISATION,
   VALID_NONE_APPLICANT_ORGANISATION,
-  VALID_NON_UK_BIC_APPLICANT_ORGANISATION,
+  NON_UK_BIC_APPLICANT_ORGANISATION_BEFORE_SAVE,
+  NON_UK_IBAN_APPLICANT_ORGANISATION_BEFORE_SAVE,
   VALID_NON_UK_IBAN_APPLICANT_ORGANISATION,
+  UK_APPLICANT_ORGANISATION_BEFORE_SAVE,
   VALID_UK_APPLICANT_ORGANISATION,
 } from './mocks/applicant-organisation.mock';
 import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
@@ -244,7 +246,7 @@ describe('Create Casefile Applicant Organisation', () => {
   );
 
   it('AC2. should reveal bank branches in exact order and remove stale inactive data', { tags: buildTags() }, () => {
-    setupApplicantOrganisation();
+    setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT_ORGANISATION });
 
     cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).check();
     cy.get(Page.applicantOrganisation.ukBankConditional).should('be.visible');
@@ -255,10 +257,6 @@ describe('Create Casefile Applicant Organisation', () => {
       Page.applicantOrganisation.ukBankAccountNumber,
       Page.applicantOrganisation.ukBankPaymentReference,
     ]);
-    cy.get(Page.applicantOrganisation.ukBankNameOnAccount).type('Stale UK name');
-    cy.get(Page.applicantOrganisation.ukBankSortCode).type('112233');
-    cy.get(Page.applicantOrganisation.ukBankAccountNumber).type('12345678');
-    cy.get(Page.applicantOrganisation.ukBankPaymentReference).type('STALE-UK');
 
     cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK)).check();
     cy.get(Page.applicantOrganisation.ukBankConditional).should('not.be.visible');
@@ -308,7 +306,9 @@ describe('Create Casefile Applicant Organisation', () => {
     'AC2, AC4. should save a valid UK applicant with digit-only sort code and Applicant Provided',
     { tags: buildTags() },
     () => {
-      setupApplicantOrganisation({ savedApplicant: VALID_UK_APPLICANT_ORGANISATION });
+      setupApplicantOrganisation({ savedApplicant: UK_APPLICANT_ORGANISATION_BEFORE_SAVE });
+
+      cy.get(Page.applicantOrganisation.ukBankSortCode).should('have.value', '445566').clear().type('112233');
 
       cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
       assertRouterPath(taskListPath);
@@ -350,7 +350,12 @@ describe('Create Casefile Applicant Organisation', () => {
   );
 
   it('AC2. should save a valid non-UK applicant by BIC with optional fields', { tags: buildTags() }, () => {
-    setupApplicantOrganisation({ savedApplicant: VALID_NON_UK_BIC_APPLICANT_ORGANISATION });
+    setupApplicantOrganisation({ savedApplicant: NON_UK_BIC_APPLICANT_ORGANISATION_BEFORE_SAVE });
+
+    cy.get(Page.applicantOrganisation.nonUkBankPaymentReference)
+      .should('have.value', 'PREVIOUS-BIC')
+      .clear()
+      .type('PAY-NONUK');
 
     cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
     assertRouterPath(taskListPath);
@@ -372,7 +377,12 @@ describe('Create Casefile Applicant Organisation', () => {
     'AC2. should save a valid non-UK applicant by IBAN and exclude inactive BIC and UK values',
     { tags: buildTags() },
     () => {
-      setupApplicantOrganisation({ savedApplicant: VALID_NON_UK_IBAN_APPLICANT_ORGANISATION });
+      setupApplicantOrganisation({ savedApplicant: NON_UK_IBAN_APPLICANT_ORGANISATION_BEFORE_SAVE });
+
+      cy.get(Page.applicantOrganisation.nonUkBankPaymentReference)
+        .should('have.value', 'PREVIOUS-IBAN')
+        .clear()
+        .type('PAY-NONUK');
 
       cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
       assertRouterPath(taskListPath);

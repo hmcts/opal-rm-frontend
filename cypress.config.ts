@@ -267,6 +267,10 @@ export default defineConfig({
         projectConfig: componentProjectConfig,
       },
       webpackConfig: {
+        optimization: {
+          // Keep module references stable as incremental component compilation changes the spec graph.
+          moduleIds: 'named',
+        },
         devServer: {
           port: Number(`809${process.env.CYPRESS_THREAD || '0'}`),
         },
@@ -286,6 +290,7 @@ export default defineConfig({
           plugins: [
             new TsconfigPathsPlugin({
               configFile: componentTsconfigPath,
+              baseUrl: __dirname,
             }),
           ],
         },

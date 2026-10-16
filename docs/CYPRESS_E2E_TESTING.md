@@ -103,10 +103,13 @@ a dashboard assertion and verify Access Denied. Tagged CNP and nightly runs skip
 Run the matching suite against an environment already configured for that flag state:
 
 ```bash
-corepack yarn test:functional:rm-create-case-files
+corepack yarn test:functional:rm-create-case-files --config retries=0
 corepack yarn test:functional:rm-create-case-files-off
 corepack yarn test:smoke
 ```
+
+Any enabled suite that includes the live submission below must disable automatic retries with `--config retries=0`
+or an equivalent run configuration: each execution creates one persistent synthetic submitted record.
 
 Cypress maps the existing uppercase `TAGS` contract to the lowercase `tags` setting required by Cucumber v26 before
 registering the preprocessor. An explicit lowercase `tags` value takes precedence.

@@ -1,16 +1,43 @@
 import { CheckCaseDetailsActions } from '../../actions/createDraftCasefile/check-case-details.actions';
 import { OrderTermsFlow } from './order-terms.flow';
+import { OrderDetailsFlow } from './order-details.flow';
+import { OrderTermsManagementFlow } from './order-terms-management.flow';
 
 /** Completes prerequisites using maintained actions, then exercises casefile review. */
 export class CheckCaseDetailsFlow {
   private readonly terms = new OrderTermsFlow();
   private readonly review = new CheckCaseDetailsActions();
+  private readonly details = new OrderDetailsFlow();
+  private readonly liveTerms = new OrderTermsManagementFlow();
 
   /** Builds a complete case using the maintained real journey steps. */
   public open(): void {
     this.terms.givenTwoAcceptedMaintenanceOrders();
     this.review.prepareSubmission();
     this.review.completeRemainingTasks();
+  }
+
+  /** Completes one synthetic draft through live services before entering review. */
+  public openLive(): void {
+    this.prepareLiveSubmission();
+    this.details.startLive();
+    this.details.openLive();
+    this.details.saveLiveDetails();
+    this.details.assertLiveProvided();
+    this.liveTerms.addApplicantTermToCurrentDraft('10', 'liveApplicantTerm');
+    this.review.completePaymentTasks();
+    this.assertReadyForReview();
+    this.review.openReview();
+  }
+
+  /** Observes the backend submission without substituting a response. */
+  public prepareLiveSubmission(): void {
+    this.review.prepareLiveSubmission();
+  }
+
+  /** Requires the real response and existing confirmation panel to show the same generated identifier. */
+  public assertLiveConfirmation(): void {
+    this.review.assertLiveConfirmation();
   }
 
   /** Checks the final task-list gate before the live journey enters review. */
@@ -37,6 +64,12 @@ export class CheckCaseDetailsFlow {
   /** Starts an empty case through Create a new case. */
   public startNextCase(): void {
     this.review.startNextCase();
+  }
+
+  /** Starts a fresh case and proves that the submitted journey cannot be resubmitted. */
+  public clearSubmittedJourney(): void {
+    this.startNextCase();
+    this.assertClearedJourneyAfterSubmission();
   }
   /** Opens confirmation after login without an accepted submission. */
   public openFreshConfirmation(): void {

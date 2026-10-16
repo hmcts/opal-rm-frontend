@@ -128,7 +128,8 @@ journey or deployed authentication.
 ## Live create-casefile QA prerequisites
 
 Live QA scenarios observe HTTP requests without replacing responses. Each scenario starts an independent casefile,
-uses synthetic entered data, reopens pages to prove local retention, and stops before submission. Missing accounts,
+uses synthetic entered data, reopens pages to prove local retention, and stops before submission, except for the
+single live submission scenario described below. Missing accounts,
 reference data or release configuration must fail clearly; do not skip or substitute mocks for a failed prerequisite.
 
 | Prerequisite        | Required configuration                                                                   |
@@ -160,6 +161,20 @@ and the BU 44 permission state above. The explicit permission preflight reads th
 Microsoft SSO retains the existing shared password environment configuration. Full browser SSO remains unverified
 by the local passwordless runs. Other suites may still require the existing global email/password mappings.
 Country and Central Authority lookups may be cached within a journey, so replay must not await another request.
+
+### Live submission (PO-10273)
+
+`CheckCaseDetails.feature` contains exactly one live full submission scenario. It completes one synthetic draft using
+the existing live party, Order Details and MAT/Applicant creditor flows, then supplies the mandatory payment tasks.
+It observes the real create POST, requires HTTP 201 with a positive safe-integer ID and status `SUBMITTED`, and matches
+the generated identifier as text in the existing confirmation panel. Create a new case then proves journey clearing.
+Other scenarios in that feature retain controlled submission responses. The live scenario creates one persistent
+synthetic submitted record per execution; no cleanup endpoint exists. Run it only where this persistence is accepted.
+Disable automatic retries for this focused run so a later assertion failure cannot repeat a persisted submission.
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature' --config retries=0
+```
 
 Run the individual capture and retention outcome with:
 

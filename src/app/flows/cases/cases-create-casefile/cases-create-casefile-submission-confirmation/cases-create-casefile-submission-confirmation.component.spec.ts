@@ -3,6 +3,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { getState } from '@ngrx/signals';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
+import { CasesCreateCasefileSubmissionService } from '../services/cases-create-casefile-submission.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +17,10 @@ describe('Submission confirmation', () => {
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     });
     TestBed.inject(CasesCreateCasefileStore).completeSubmission();
+    TestBed.inject(CasesCreateCasefileSubmissionService).accept({
+      draft_casefile_id: 123,
+      casefile_status: 'SUBMITTED',
+    });
   });
 
   it('renders the confirmation panel and next steps without form or back navigation', async () => {
@@ -27,6 +32,7 @@ describe('Submission confirmation', () => {
     expect(element.querySelector('h1')?.textContent?.trim()).toBe('You’ve submitted this case for review');
     expect(element.querySelector('h1')?.getAttribute('tabindex')).toBe('-1');
     expect(element.querySelector('.govuk-panel--confirmation')).not.toBeNull();
+    expect(element.querySelector('div.govuk-panel__body')?.textContent?.trim()).toBe('Draft Casefile ID: 123');
     expect(element.querySelector('h2')?.textContent?.trim()).toBe('Next steps');
     const createNew = element.querySelector('#create_casefile_confirmation_create_new');
     expect(createNew?.textContent?.trim()).toBe('Create a new case');
@@ -50,6 +56,7 @@ describe('Submission confirmation', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(submit).not.toHaveBeenCalled();
+    expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()?.draft_casefile_id).toBe(123);
   });
   it('retains successful submission on departure to prevent another POST', () => {
     const store = TestBed.inject(CasesCreateCasefileStore);
@@ -58,6 +65,7 @@ describe('Submission confirmation', () => {
     const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
     fixture.destroy();
     expect(getState(store)).toEqual(before);
+    expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()?.draft_casefile_id).toBe(123);
   });
 
   it.each(['success', 'false', 'rejected'])(
@@ -83,6 +91,9 @@ describe('Submission confirmation', () => {
       });
       expect(getState(store)).toEqual(before);
       expect(review.context()).toBeNull();
+      expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()).toEqual(
+        outcome === 'success' ? null : { draft_casefile_id: 123, casefile_status: 'SUBMITTED' },
+      );
       if (outcome !== 'success') {
         const error = fixture.nativeElement.querySelector('.govuk-error-summary');
         expect(error?.textContent).toContain('The page could not be opened');
@@ -105,7 +116,17 @@ describe('Submission confirmation', () => {
     link.click();
     link.click();
     expect(navigate).toHaveBeenCalledOnce();
+    expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()?.draft_casefile_id).toBe(123);
     finish(true);
     await fixture.whenStable();
+    expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()).toBeNull();
+  });
+
+  it('does not render a receipt body when no receipt is present', async () => {
+    TestBed.inject(CasesCreateCasefileSubmissionService).clear();
+    const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('div.govuk-panel__body')).toBeNull();
   });
 });

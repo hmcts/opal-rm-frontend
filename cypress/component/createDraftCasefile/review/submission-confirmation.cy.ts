@@ -3,6 +3,7 @@ import { createSubmittedReviewState } from './mocks/review.mock';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { setupReview, type ReviewStore } from './setup/review.setup';
+import type { CasesCreateCasefileSubmissionService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-submission.service';
 
 const S = CreateCasefileSelectors.review;
 const buildTags = (story = 'PO-9819'): string[] => [
@@ -11,8 +12,7 @@ const buildTags = (story = 'PO-9819'): string[] => [
   '@JIRA-LABEL:create-draft-casefile',
 ];
 
-// Generated identifier and In Review navigation remain implementation gaps in PO-9819.
-// These scenarios verify the available action without treating those gaps as accepted behaviour.
+// In Review navigation remains unavailable until its owning journey is implemented.
 describe('Submission confirmation', () => {
   beforeEach(() => {
     const mutation = cy.spy().as('confirmationPersistence');
@@ -36,6 +36,7 @@ describe('Submission confirmation', () => {
           .should('be.focused')
           .and(($heading) => expect($heading.text().trim()).to.equal('You’ve submitted this case for review'));
         cy.get('h1').should('have.length', 1);
+        cy.get(S.confirmationHeading).closest('.govuk-panel').should('contain.text', '123');
         cy.get(S.confirmationNextSteps).should('have.text', 'Next steps');
         cy.get(S.createNew)
           .should('contain.text', 'Create a new case')
@@ -54,6 +55,9 @@ describe('Submission confirmation', () => {
           expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
         cy.get('@confirmationPersistence').should('not.have.been.called');
+        cy.get<CasesCreateCasefileSubmissionService>('@submission').should(
+          (submission) => expect(submission.receipt()).to.be.null,
+        );
         cy.get('@routerNavigate').should('have.been.calledOnceWith', '/' + PATHS.root + '/' + PATHS.children.caseType, {
           state: { startNewCase: true, focusCaseTypeHeading: true },
         });
@@ -77,6 +81,10 @@ describe('Submission confirmation', () => {
         cy.get(S.confirmationError)
           .should('be.focused')
           .and('contain.text', 'The page could not be opened. Try again.');
+        cy.get(S.confirmationHeading).closest('.govuk-panel').should('contain.text', '123');
+        cy.get<CasesCreateCasefileSubmissionService>('@submission').should((submission) =>
+          expect(submission.receipt()?.draft_casefile_id).to.equal(123),
+        );
         cy.get<ReviewStore>('@reviewStore').should((store) =>
           expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
@@ -88,6 +96,9 @@ describe('Submission confirmation', () => {
         cy.get(S.createNew).focus();
         cy.press(Cypress.Keyboard.Keys.ENTER);
         cy.get(S.confirmationError).should('not.exist');
+        cy.get<CasesCreateCasefileSubmissionService>('@submission').should(
+          (submission) => expect(submission.receipt()).to.be.null,
+        );
         cy.get('@routerNavigate').should('have.been.calledTwice');
         cy.get('@confirmationPersistence').should('not.have.been.called');
         cy.get<ReviewStore>('@reviewStore').should((store) =>
@@ -110,6 +121,7 @@ describe('Submission confirmation', () => {
       cy.get(S.createNew).click();
       cy.get(S.createNew).should('have.attr', 'aria-disabled', 'true').click();
       cy.get('@routerNavigate').should('have.been.calledOnce');
+      cy.get(S.confirmationHeading).closest('.govuk-panel').should('contain.text', '123');
       cy.get<ReviewStore>('@reviewStore').should((store) =>
         expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
       );

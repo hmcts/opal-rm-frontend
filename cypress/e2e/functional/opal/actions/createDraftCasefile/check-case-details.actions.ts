@@ -1,11 +1,12 @@
 import { CHECK_CASE_DETAILS_SUBMISSION as SUBMISSION } from '../../mocks/createDraftCasefile/check-case-details.mock';
 import type { IOpalMaintenanceDraftCasefileRequest } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-request.interface';
+import type { IOpalMaintenanceDraftCasefileResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-response.interface';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-payment-arrangements.constant';
 
-/** Exercises intercepted HTTP submission through the real rendered journey. */
+/** Exercises review and controlled or live HTTP submission through the rendered journey. */
 export class CheckCaseDetailsActions {
   private expectedSubmissionCount = 0;
   /** Stubs the create boundary so this journey never sends a live submission. */
@@ -17,8 +18,20 @@ export class CheckCaseDetailsActions {
     }).as('draftSubmission');
   }
 
+  /** Observes the single live submission without replacing the backend response. */
+  public prepareLiveSubmission(): void {
+    this.expectedSubmissionCount = 0;
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles').as('draftSubmission');
+  }
+
   /** Completes the remaining mandatory tasks before opening review. */
   public completeRemainingTasks(): void {
+    this.completePaymentTasks();
+    this.openReview();
+  }
+
+  /** Returns from Order Terms and completes the current draft's mandatory payment tasks. */
+  public completePaymentTasks(): void {
     cy.get(S.orderTerms.return).click();
     cy.get(S.caseDetails.interestAndIndexationLink).click();
     cy.get(S.interestAndIndexation.interestRadio(false)).check();
@@ -27,6 +40,10 @@ export class CheckCaseDetailsActions {
     cy.get(S.caseDetails.managingPaymentsLink).click();
     cy.get(S.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT)).check();
     cy.get(S.managingPayments.returnToCaseDetails).click();
+  }
+
+  /** Opens the completed draft's review page from its task list. */
+  public openReview(): void {
     cy.get(S.caseDetails.checkCaseButton).click();
     cy.get(S.review.heading).should('have.text', 'Check case details');
   }
@@ -91,11 +108,32 @@ export class CheckCaseDetailsActions {
       );
       expect(payload).not.to.have.property('taskStatuses');
     });
+    this.assertConfirmationPanel(SUBMISSION.receipt.draft_casefile_id);
+  }
+
+  /** Validates the actual accepted receipt and matches its identifier within the existing panel. */
+  public assertLiveConfirmation(): void {
+    cy.wait('@draftSubmission').then(({ response }) => {
+      expect(response?.statusCode).to.equal(201);
+      const receipt = response?.body as IOpalMaintenanceDraftCasefileResponse;
+      expect(receipt).to.have.property('casefile_status', 'SUBMITTED');
+      expect(Number.isSafeInteger(receipt.draft_casefile_id)).to.equal(true);
+      expect(receipt.draft_casefile_id).to.be.greaterThan(0);
+      cy.wrap(receipt.draft_casefile_id, { log: false }).as('liveDraftCasefileId');
+    });
+    cy.get<number>('@liveDraftCasefileId', { log: false }).then((id) => this.assertConfirmationPanel(id));
+  }
+
+  /** Checks shared confirmation behaviour for either a controlled or server-generated receipt.
+   * @param id Identifier returned by the accepted submission.
+   */
+  private assertConfirmationPanel(id: number): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
     cy.get(S.review.confirmationHeading)
       .should('be.focused')
       .and(($heading) => expect($heading.text().trim()).to.equal('You’ve submitted this case for review'));
     cy.get(S.review.confirmationNextSteps).should('have.text', 'Next steps');
+    cy.get(S.review.confirmationHeading).closest('.govuk-panel').should('contain.text', String(id));
     cy.get('@draftSubmission.all').should('have.length', 1);
     cy.get(S.primaryNavigation).should('not.exist');
   }

@@ -186,6 +186,19 @@ export class OrderDetailsActions {
     cy.get('@liveDraftCreation').should('not.have.been.called');
   }
 
+  /** Requires saved Order Details to unlock the three remaining mandatory Order tasks. */
+  public assertRemainingOrderTasksAvailable(): void {
+    cy.get(S.caseDetails.orderDetailsStatus).should('contain.text', 'Provided');
+    for (const selector of [
+      S.caseDetails.orderTermsItem,
+      S.caseDetails.interestAndIndexationItem,
+      S.caseDetails.managingPaymentsItem,
+    ]) {
+      cy.get(selector).should('contain.text', 'Required').find('a').should('have.attr', 'href');
+    }
+    cy.get(S.caseDetails.checkCaseButton).should('not.exist');
+  }
+
   /** Reopens saved Order Details without depending on another lookup request. */
   public reopenLive(): void {
     cy.get(S.caseDetails.orderDetailsLink).click();

@@ -31,6 +31,22 @@ export class CheckCaseDetailsActions {
     cy.get(S.review.heading).should('have.text', 'Check case details');
   }
 
+  /** Requires all six mandatory tasks before Check Case becomes available. */
+  public assertReadyForReview(): void {
+    for (const selector of [
+      S.caseDetails.respondentStatus,
+      S.caseDetails.applicantStatus,
+      S.caseDetails.orderDetailsStatus,
+      S.caseDetails.orderTermsStatus,
+      S.caseDetails.interestAndIndexationStatus,
+      S.caseDetails.managingPaymentsStatus,
+    ]) {
+      cy.get(selector).should('contain.text', 'Provided');
+    }
+    cy.get(S.caseDetails.checkCaseButton).should('be.visible');
+    cy.get(S.caseDetails.blockingGuidance).should('not.exist');
+  }
+
   /** Saves a respondent correction from its contextual review action. */
   public correctRespondent(): void {
     cy.get(S.review.change('respondent')).click();

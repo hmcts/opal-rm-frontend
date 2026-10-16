@@ -60,6 +60,16 @@ export class CasePartiesFlow {
     this.parties.assertOutboundTaskList(this.outboundCaseType(value));
   }
 
+  /** Checks the initial Order-task gate for the journey that owns progression coverage. */
+  public assertInitialOrderTasksBlocked(): void {
+    this.parties.assertInitialOrderTasksBlocked();
+  }
+
+  /** Checks that completing parties unlocks Order Details before the later Order tasks. */
+  public assertOrderDetailsAvailableAfterParties(): void {
+    this.parties.assertOrderDetailsAvailableAfterParties();
+  }
+
   /** Completes both mandatory party tasks through local page saves. */
   public captureIndividual(): void {
     this.parties.fillRespondent();

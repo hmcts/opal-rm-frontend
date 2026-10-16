@@ -55,6 +55,33 @@ export class CasePartiesActions {
     this.assertNoSubmission();
   }
 
+  /** Requires every Order task to remain blocked before mandatory party capture. */
+  public assertInitialOrderTasksBlocked(): void {
+    for (const selector of [
+      S.caseDetails.orderDetailsItem,
+      S.caseDetails.orderTermsItem,
+      S.caseDetails.interestAndIndexationItem,
+      S.caseDetails.managingPaymentsItem,
+    ]) {
+      cy.get(selector).should('contain.text', 'Cannot start yet').find('a').should('not.exist');
+    }
+    cy.get(S.caseDetails.checkCaseButton).should('not.exist');
+    cy.get(S.caseDetails.blockingGuidance).should('be.visible');
+  }
+
+  /** Requires only Order Details to unlock once both mandatory parties are provided. */
+  public assertOrderDetailsAvailableAfterParties(): void {
+    cy.get(S.caseDetails.orderDetailsLink).should('have.attr', 'href');
+    for (const selector of [
+      S.caseDetails.orderTermsItem,
+      S.caseDetails.interestAndIndexationItem,
+      S.caseDetails.managingPaymentsItem,
+    ]) {
+      cy.get(selector).find('a').should('not.exist');
+    }
+    cy.get(S.caseDetails.checkCaseButton).should('not.exist');
+  }
+
   /** Opens the respondent page and captures the live Country list before interaction. */
   public openRespondent(): void {
     cy.get(S.caseDetails.respondentLink).click();

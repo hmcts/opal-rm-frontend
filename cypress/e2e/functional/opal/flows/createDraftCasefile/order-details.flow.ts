@@ -9,7 +9,9 @@ export class OrderDetailsFlow {
   /** Prepares an independent live draft with both mandatory parties completed. */
   public startLive(): void {
     this.parties.start('Individual');
+    this.parties.assertInitialOrderTasksBlocked();
     this.parties.captureIndividual();
+    this.parties.assertOrderDetailsAvailableAfterParties();
   }
 
   /** Completes the required party pages through the real UI. */
@@ -82,6 +84,12 @@ export class OrderDetailsFlow {
   /** Checks completed order and party tasks without draft submission. */
   public assertLiveProvided(): void {
     this.actions.assertLiveProvided();
+    this.assertRemainingOrderTasksAvailable();
+  }
+
+  /** Checks that saving Order Details unlocks the remaining mandatory Order tasks. */
+  public assertRemainingOrderTasksAvailable(): void {
+    this.actions.assertRemainingOrderTasksAvailable();
   }
 
   /** Reopens saved Order Details through the task list. */

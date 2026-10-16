@@ -13,6 +13,11 @@ export class CheckCaseDetailsFlow {
     this.review.completeRemainingTasks();
   }
 
+  /** Checks the final task-list gate before the live journey enters review. */
+  public assertReadyForReview(): void {
+    this.review.assertReadyForReview();
+  }
+
   /** Saves a respondent correction from its contextual review action. */
   public correctRespondent(): void {
     this.review.correctRespondent();

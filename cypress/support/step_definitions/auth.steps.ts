@@ -5,7 +5,6 @@ import {
   assertSignOutLinkVisible,
   performLogin,
   performAuthentication,
-  assertActiveUserWithoutDraftCasefilePermission,
   signOut,
 } from '../../e2e/actions/login.actions';
 import { log } from '../utils/log.helper';
@@ -17,10 +16,6 @@ Given('I am authenticated with email {string}', (email: string) => {
 Given('I am logged in with email {string}', (email: string) => {
   log('step', 'Logging in via Cypress auth flow', { email });
   performLogin(email);
-});
-
-Given('my active account lacks Create and Manage Draft Casefiles permission for RM', () => {
-  assertActiveUserWithoutDraftCasefilePermission();
 });
 
 Then('The sign out link should be visible', () => {

@@ -32,3 +32,23 @@ Feature: Draft Casefile task permissions
     Examples: Order Details
       | path          |
       | order-details |
+
+    @JIRA-STORY:PO-10278
+    Examples: Order Term tasks
+      | path                    |
+      | order-terms/summary      |
+      | order-terms/select       |
+      | order-terms/add/MAT      |
+      | order-terms/remove/0     |
+
+    @JIRA-STORY:PO-10280
+    Examples: Minor Creditor tasks
+      | path                                       |
+      | order-terms/creditor/minor-creditor-details  |
+      | order-terms/creditor/minor-creditor-summary  |
+      | order-terms/creditor/minor-creditor-remove   |
+
+    @JIRA-STORY:PO-10279
+    Examples: Order Term creditor
+      | path                 |
+      | order-terms/creditor  |

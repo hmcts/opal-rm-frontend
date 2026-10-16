@@ -200,11 +200,10 @@ export class CheckCaseDetailsActions {
     cy.get('@cancelPersistence').should('not.have.been.called');
   }
 
-  /** A missing Maintenance domain reaches account-created; a missing BU permission reaches access-denied. */
+  /** Requires RM permission rejection before cancellation or case creation is available. */
   public assertCancellationUnavailable(): void {
-    cy.location('pathname').should((pathname) => {
-      expect(['/access-denied', '/account-created']).to.include(pathname);
-    });
+    cy.location('pathname').should('eq', '/access-denied');
+    cy.get(S.heading).should('be.visible').and('contain.text', 'Access Denied');
     cy.get(S.cancellation.heading).should('not.exist');
     cy.get(S.cancellation.confirm).should('not.exist');
     cy.get(ReleaseFlagsSelectors.createCaseLink).should('not.exist');

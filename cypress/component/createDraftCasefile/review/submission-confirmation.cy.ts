@@ -55,12 +55,14 @@ describe('Submission confirmation', () => {
           expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
         );
         cy.get('@confirmationPersistence').should('not.have.been.called');
+        cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate')
+          .should('have.been.calledOnceWith', '/' + PATHS.root + '/' + PATHS.children.caseType, {
+            state: { startNewCase: true, focusCaseTypeHeading: true },
+          })
+          .then((navigate) => cy.wrap(navigate.firstCall.returnValue, { log: false }).should('equal', true));
         cy.get<CasesCreateCasefileSubmissionService>('@submission').should(
           (submission) => expect(submission.receipt()).to.be.null,
         );
-        cy.get('@routerNavigate').should('have.been.calledOnceWith', '/' + PATHS.root + '/' + PATHS.children.caseType, {
-          state: { startNewCase: true, focusCaseTypeHeading: true },
-        });
       },
     );
   });

@@ -1,15 +1,7 @@
-import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
-import type { CasesDraftTab } from '../types/cases-draft-tab.type';
+import type { CasesDraftInputterTab } from '../types/cases-draft-tab.type';
+import type { CasesDraftTabMetadata } from '../interfaces/cases-draft-tab-metadata.interface';
 
-type CasesDraftTabMetadata = {
-  label: string;
-  statuses: string;
-  defaultSort: CasesDraftSortColumn;
-  columns: readonly CasesDraftSortColumn[];
-  empty: string;
-};
-
-export const CASES_DRAFT_TABS: Record<CasesDraftTab, CasesDraftTabMetadata> = {
+export const CASES_DRAFT_TABS: Record<CasesDraftInputterTab, CasesDraftTabMetadata> = {
   'in-review': {
     label: 'In review',
     statuses: 'SUBMITTED,RESUBMITTED',

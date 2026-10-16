@@ -4,6 +4,7 @@ export interface ICasesDraftRow {
   id: number;
   respondent: string | null;
   applicant: string | null;
+  submittedByName: string | null;
   caseType: CasesCreateCasefileCaseType;
   created: string;
   statusDate: string;

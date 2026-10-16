@@ -29,6 +29,27 @@ describe('buildCasesDraftListParams', () => {
     expect(Object.keys(params)).not.toContain('created_date');
   });
 
+  it.each([
+    ['to-review', 'SUBMITTED,RESUBMITTED'],
+    ['rejected', 'REJECTED'],
+    ['deleted', 'DELETED'],
+    ['failed', 'PUBLISHING_FAILED'],
+  ] as const)('consults checker %s using exclusion only', (tab, statuses) => {
+    expect(
+      buildCasesDraftListParams(
+        { userId: 100, businessUnitId: 44, submittedBy: 'BUU-CHECKER' },
+        tab,
+        { from: '2026-09-30', to: '2026-10-06' },
+        'checker',
+      ),
+    ).toEqual({
+      business_unit_id: 44,
+      not_submitted_by: 'BUU-CHECKER',
+      casefile_status: statuses,
+      ...(tab === 'deleted' ? { casefile_status_from_date: '2026-09-30', casefile_status_to_date: '2026-10-06' } : {}),
+    });
+  });
+
   it('defines the approved tab as published cases only', () => {
     expect(CASES_DRAFT_TABS.approved.statuses).toBe('PUBLISHED');
   });
@@ -46,6 +67,14 @@ describe('buildCasesDraftListParams', () => {
     expect(range).toEqual({ from, to });
     expect(
       buildCasesDraftListParams({ userId: 7, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' }, 'approved', range),
+    ).toMatchObject({ casefile_status_from_date: from, casefile_status_to_date: to });
+    expect(
+      buildCasesDraftListParams(
+        { userId: 7, businessUnitId: 44, submittedBy: 'BUU-CHECKER' },
+        'deleted',
+        range,
+        'checker',
+      ),
     ).toMatchObject({ casefile_status_from_date: from, casefile_status_to_date: to });
   });
 });

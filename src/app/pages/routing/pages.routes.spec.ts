@@ -1,14 +1,40 @@
+import {
+  BUSINESS_UNIT_ID_RESOLVER,
+  businessUnitRoutePermissionsGuard,
+} from '@hmcts/opal-frontend-common/guards/business-unit-route-permissions';
+import { CASES_DRAFT_DASHBOARD_MODE } from '@app/flows/cases/cases-draft/constants/cases-draft-dashboard-mode.token';
+import { CasesDraftDashboardService } from '@app/flows/cases/cases-draft/services/cases-draft-dashboard.service';
+import { CasesDraftNavigationService } from '@app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import { casesDraftAccessGuard } from '@app/flows/cases/cases-draft/routing/guards/cases-draft-access.guard';
-import { dashboardSectionPermissionsGuard } from '../dashboard/guards/dashboard-section-permissions/dashboard-section-permissions.guard';
 import { accountGuard } from '@hmcts/opal-frontend-common/guards/account';
 import { authGuard } from '@hmcts/opal-frontend-common/guards/auth';
 import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
 import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from '@app/constants/route-data.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '@app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { describe, expect, it } from 'vitest';
-import { routing, release1cRmCreateCaseFilesFeatureFlagGuard } from './pages.routes';
+import { routing } from './pages.routes';
+import { release1cRmCreateCaseFilesFeatureFlagGuard } from '@app/flows/cases/utils/resolve-create-case-files-release.utils';
 
 describe('page routes', () => {
+  it('registers checker-only route-scoped providers and permission guards', () => {
+    const route = routing.find((candidate) => candidate.path === 'cases/draft/check-and-validate');
+    expect(route?.providers).toEqual([
+      { provide: CASES_DRAFT_DASHBOARD_MODE, useValue: 'checker' },
+      CasesDraftDashboardService,
+      CasesDraftNavigationService,
+      { provide: BUSINESS_UNIT_ID_RESOLVER, useFactory: expect.any(Function) },
+    ]);
+    expect(route?.canActivate).toEqual([
+      authGuard,
+      accountGuard,
+      release1cRmCreateCaseFilesFeatureFlagGuard,
+      businessUnitRoutePermissionsGuard,
+    ]);
+    expect(route?.canActivateChild).toEqual([
+      release1cRmCreateCaseFilesFeatureFlagGuard,
+      businessUnitRoutePermissionsGuard,
+    ]);
+  });
   it('registers the Create Casefile shell', () => {
     const route = routing.find(
       (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.root && candidate.loadComponent,
@@ -18,12 +44,9 @@ describe('page routes', () => {
       authGuard,
       accountGuard,
       release1cRmCreateCaseFilesFeatureFlagGuard,
-      dashboardSectionPermissionsGuard,
+      casesDraftAccessGuard,
     ]);
-    expect(route?.canActivateChild).toEqual([
-      release1cRmCreateCaseFilesFeatureFlagGuard,
-      dashboardSectionPermissionsGuard,
-    ]);
+    expect(route?.canActivateChild).toEqual([release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard]);
     expect(route?.canDeactivate).toEqual([canDeactivateGuard]);
     expect(route?.data).toEqual({ ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, sectionKey: 'cases' });
     expect(route?.loadComponent).toEqual(expect.any(Function));

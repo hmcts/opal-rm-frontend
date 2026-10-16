@@ -16,6 +16,7 @@ describe('sortCasesDraftRows', () => {
   });
   it.each([
     ['respondent', 'respondent', 'Zed', 'Amy'],
+    ['submittedByName', 'submittedByName', 'Synthetic 10', 'Synthetic 2'],
     ['applicant', 'applicant', 'Zed', 'Amy'],
     ['caseType', 'caseType', 'REMO Out', 'REMO In'],
     ['created', 'created', '2026-10-02T00:00:00Z', '2026-10-01T00:00:00Z'],
@@ -52,6 +53,18 @@ describe('sortCasesDraftRows', () => {
     const accounts = [row(3), row(2, { minorCreditorAccounts: ['A1'] }), row(1)];
     expect(sortCasesDraftRows(accounts, 'minorCreditorAccounts', 'descending').map(({ id }) => id)).toEqual([2, 1, 3]);
   });
+
+  it.each(['ascending', 'descending'] as const)(
+    'sorts submitter name ties by numeric id with missing last in %s',
+    (direction) => {
+      const rows = [
+        row(11, { submittedByName: null }),
+        row(10, { submittedByName: 'Synthetic 2' }),
+        row(2, { submittedByName: 'Synthetic 2' }),
+      ];
+      expect(sortCasesDraftRows(rows, 'submittedByName', direction).map(({ id }) => id)).toEqual([2, 10, 11]);
+    },
+  );
 
   it('compares account sequences lexicographically without reordering account lists', () => {
     const rows = [row(2, { minorCreditorAccounts: ['A2', 'M10'] }), row(1, { minorCreditorAccounts: ['A2', 'M2'] })];

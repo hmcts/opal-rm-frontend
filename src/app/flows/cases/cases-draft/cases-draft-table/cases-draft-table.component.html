@@ -1,0 +1,195 @@
+<section id="cases-draft-table-scroll" class="moj-scrollable-pane" [attr.aria-label]="tableCaption()">
+  <opal-lib-moj-sortable-table
+    ><ng-container caption
+      ><span class="govuk-visually-hidden">{{ tableCaption() }}</span></ng-container
+    ><ng-container head>
+      @if (selection().tab === 'approved') {
+        <th
+          opal-lib-moj-sortable-table-header
+          columnKey="respondentAccount"
+          [dataIndex]="0"
+          [sortDirection]="sortStateSignal()['respondentAccount']"
+          (sortChange)="onSortChange($event)"
+        >
+          Respondent Account
+        </th>
+        <th
+          opal-lib-moj-sortable-table-header
+          columnKey="applicantAccount"
+          [dataIndex]="1"
+          [sortDirection]="sortStateSignal()['applicantAccount']"
+          (sortChange)="onSortChange($event)"
+        >
+          Applicant Account
+        </th>
+        <th
+          opal-lib-moj-sortable-table-header
+          columnKey="minorCreditorAccounts"
+          [dataIndex]="2"
+          [sortDirection]="sortStateSignal()['minorCreditorAccounts']"
+          (sortChange)="onSortChange($event)"
+        >
+          Minor Creditor Account
+        </th>
+        <th
+          opal-lib-moj-sortable-table-header
+          columnKey="caseType"
+          [dataIndex]="3"
+          [sortDirection]="sortStateSignal()['caseType']"
+          (sortChange)="onSortChange($event)"
+        >
+          Case type
+        </th>
+        <th
+          opal-lib-moj-sortable-table-header
+          columnKey="approved"
+          [dataIndex]="4"
+          [sortDirection]="sortStateSignal()['approved']"
+          (sortChange)="onSortChange($event)"
+        >
+          Approved
+        </th>
+      } @else {
+        <th
+          opal-lib-moj-sortable-table-header
+          columnKey="respondent"
+          [dataIndex]="0"
+          [sortDirection]="sortStateSignal()['respondent']"
+          (sortChange)="onSortChange($event)"
+        >
+          Respondent
+        </th>
+        <th
+          opal-lib-moj-sortable-table-header
+          columnKey="applicant"
+          [dataIndex]="1"
+          [sortDirection]="sortStateSignal()['applicant']"
+          (sortChange)="onSortChange($event)"
+        >
+          Applicant
+        </th>
+        <th
+          opal-lib-moj-sortable-table-header
+          columnKey="caseType"
+          [dataIndex]="2"
+          [sortDirection]="sortStateSignal()['caseType']"
+          (sortChange)="onSortChange($event)"
+        >
+          Case type
+        </th>
+        <th
+          opal-lib-moj-sortable-table-header
+          columnKey="created"
+          [dataIndex]="3"
+          [sortDirection]="sortStateSignal()['created']"
+          (sortChange)="onSortChange($event)"
+        >
+          Created
+        </th>
+        @if (selection().tab === 'rejected' || selection().tab === 'deleted') {
+          <th
+            opal-lib-moj-sortable-table-header
+            columnKey="statusDate"
+            [dataIndex]="4"
+            [sortDirection]="sortStateSignal()['statusDate']"
+            (sortChange)="onSortChange($event)"
+          >
+            {{ selection().tab === 'rejected' ? 'Rejected' : 'Deleted' }}
+          </th>
+        }
+      }</ng-container
+    ><ng-container row>
+      @for (row of displayRows(); track row.id) {
+        <tr opal-lib-moj-sortable-table-row [attr.data-draft-id]="row.id">
+          @if (selection().tab === 'approved') {
+            <td
+              opal-lib-moj-sortable-table-row-data
+              [id]="'draft-' + row.id + '-respondentAccount'"
+              data-column="respondentAccount"
+              #paginationFocusTarget
+              tabindex="-1"
+            >
+              {{ row.respondentAccount ?? '—' }}
+            </td>
+            <td
+              opal-lib-moj-sortable-table-row-data
+              [id]="'draft-' + row.id + '-applicantAccount'"
+              data-column="applicantAccount"
+            >
+              {{ row.applicantAccount ?? '—' }}
+            </td>
+            <td
+              opal-lib-moj-sortable-table-row-data
+              [id]="'draft-' + row.id + '-minorCreditorAccounts'"
+              data-column="minorCreditorAccounts"
+            >
+              @if (row.minorCreditorAccounts.length) {
+                <ul class="govuk-list">
+                  @for (number of row.minorCreditorAccounts; track $index) {
+                    <li>{{ number }}</li>
+                  }
+                </ul>
+              } @else {
+                —
+              }
+            </td>
+            <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-caseType'" data-column="caseType">
+              {{ row.caseType }}
+            </td>
+            <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-approved'" data-column="approved">
+              @if (row.approved) {
+                {{ dates.getDaysAgo(row.approved) | daysAgo }}
+              } @else {
+                —
+              }
+            </td>
+          } @else {
+            <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-respondent'" data-column="respondent">
+              <a
+                #paginationFocusTarget
+                class="govuk-link"
+                [href]="row.detailHref"
+                [attr.aria-label]="'View case details for ' + (row.respondent ?? 'this respondent')"
+                (click)="openRespondent($event, row.id)"
+                >{{ row.respondent ?? '—' }}</a
+              >
+            </td>
+            <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-applicant'" data-column="applicant">
+              {{ row.applicant ?? '—' }}
+            </td>
+            <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-caseType'" data-column="caseType">
+              {{ row.caseType }}
+            </td>
+            <td opal-lib-moj-sortable-table-row-data [id]="'draft-' + row.id + '-created'" data-column="created">
+              {{ dates.getDaysAgo(row.created) | daysAgo }}
+            </td>
+            @if (selection().tab === 'rejected' || selection().tab === 'deleted') {
+              <td
+                opal-lib-moj-sortable-table-row-data
+                [id]="'draft-' + row.id + '-statusDate'"
+                data-column="statusDate"
+              >
+                {{ dates.getDaysAgo(row.statusDate) | daysAgo }}
+              </td>
+            }
+          }
+        </tr>
+      }</ng-container
+    ><ng-container status
+      ><output aria-atomic="true" class="govuk-visually-hidden">{{
+        pageChangeAnnouncement() || pageAnnouncement()
+      }}</output
+      ><opal-lib-moj-sortable-table-status
+        [columnTitle]="sortedColumnTitleSignal() ? sortTitle() : ''"
+        [sortDirection]="sortedColumnDirectionSignal()" /></ng-container
+  ></opal-lib-moj-sortable-table>
+</section>
+@if (rows().length > 25) {
+  <opal-lib-moj-pagination
+    id="cases-draft-pagination"
+    [currentPage]="currentPageSignal()"
+    [limit]="itemsPerPageSignal()"
+    [total]="rows().length"
+    (changePage)="onPageChange($event)"
+  />
+}

@@ -9,6 +9,7 @@ import { CASES_CREATE_CASEFILE_ORDER_TERM_CREDITOR_FIELD_NAMES } from 'src/app/f
 
 export const CreateCasefileSelectors = {
   caseTypeHeading: '#create_casefile_case_type_heading',
+  caseTypeCancelError: '#create_casefile_case_type_cancel_error',
   cancellation: {
     heading: '#create_casefile_cancel_heading',
     warning: '#create_casefile_cancel_warning',

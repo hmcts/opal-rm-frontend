@@ -681,7 +681,7 @@ for (const { page, tag, id } of [
   { page: 'submission-confirmation', tag: 'div', id: 'submission-confirmation-error' },
   { page: 'submission-confirmation', tag: 'h2', id: 'submission-confirmation-error-title' },
   { page: 'submission-confirmation', tag: 'a', id: 'create_casefile_confirmation_create_new' },
-  { page: 'submission-confirmation', tag: 'span', id: 'create_casefile_confirmation_in_review' },
+  { page: 'submission-confirmation', tag: 'a', id: 'create_casefile_confirmation_in_review' },
 ]) {
   test(`accepts ${id} only at its declared structural location`, async () => {
     const repositoryRoot = await createFixtureRepository();
@@ -703,3 +703,168 @@ for (const { page, tag, id } of [
     assertRejected(runScanner(repositoryRoot), new RegExp(`noncanonical id="${id}"`));
   });
 }
+
+const reviewTemplatePath = `${createCasefilePath}/cases-create-casefile-check-details/cases-create-casefile-check-details.component.html`;
+for (const [templatePath, tag, id] of [
+  [reviewTemplatePath, 'opal-lib-govuk-cancel-link', 'create_casefile_review_cancel'],
+  [orderTermsSummaryTemplatePath, 'button', 'create_casefile_order_terms_return'],
+  [orderTermsSummaryTemplatePath, 'button', 'create_casefile_order_terms_add'],
+]) {
+  test(`accepts ${id} only on its actual structural element`, async () => {
+    const root = await createFixtureRepository();
+    await writeFixtureFile(root, templatePath, `<${tag} id="${id}"></${tag}>`);
+    assert.equal(runScanner(root).status, 0);
+    await writeFixtureFile(
+      root,
+      templatePath,
+      `<input id="${id}" name="${id}" /><opal-lib-govuk-text-input inputId="${id}" inputName="${id}" />`,
+    );
+    const rejected = runScanner(root);
+    assertRejected(rejected, /noncanonical id=/);
+    assert.match(rejected.stderr, /noncanonical name=/);
+    assert.match(rejected.stderr, /noncanonical inputId=/);
+    assert.match(rejected.stderr, /noncanonical inputName=/);
+    await writeFixtureFile(root, templatePath, '');
+    await writeFixtureFile(root, caseTypeTemplatePath, `<${tag} id="${id}"></${tag}>`);
+    assertRejected(runScanner(root), /noncanonical id=/);
+  });
+}
+
+const firstRadioId = "$first ? fieldNames.caseType : fieldNames.caseType + '-' + $index";
+test('accepts canonical first radio targets with indexed subsequent options', async () => {
+  const root = await createFixtureRepository();
+  await writeFixtureFile(
+    root,
+    caseTypeTemplatePath,
+    `<div opal-lib-govuk-radios-item [inputId]="${firstRadioId}" [inputName]="fieldNames.caseType"></div>`,
+  );
+  assert.equal(runScanner(root).status, 0);
+});
+
+for (const [tag, attribute, expression] of [
+  [
+    'div opal-lib-govuk-radios-item',
+    'inputId',
+    "$first ? fieldNames.caseType : fieldNames.applicantType + '-' + $index",
+  ],
+  ['div opal-lib-govuk-radios-item', 'inputId', "$first ? fieldNames.missing : fieldNames.missing + '-' + $index"],
+  [
+    'div opal-lib-govuk-radios-item',
+    'inputId',
+    "$first ? fieldNames.caseType : fieldNames.caseType + '-' + option.value",
+  ],
+  ['div opal-lib-govuk-radios-item', 'inputName', firstRadioId],
+  ['opal-lib-govuk-text-input', 'inputId', firstRadioId],
+  ['div opal-lib-govuk-radios-item', 'attr.inputId', firstRadioId],
+]) {
+  test(`rejects unsupported first radio target ${tag} ${attribute} ${expression}`, async () => {
+    const root = await createFixtureRepository();
+    await writeFixtureFile(root, caseTypeTemplatePath, `<${tag} [${attribute}]="${expression}" />`);
+    assertRejected(runScanner(root), /noncanonical/);
+  });
+}
+
+test('resolves the first radio target for duplicate literal and bound declarations', async () => {
+  const root = await createFixtureRepository();
+  for (const duplicate of ['id="create_casefile_case_type_case_type"', '[id]="fieldNames.caseType"']) {
+    await writeFixtureFile(
+      root,
+      caseTypeTemplatePath,
+      `<div opal-lib-govuk-radios-item [inputId]="${firstRadioId}"></div><input ${duplicate} />`,
+    );
+    assertRejected(runScanner(root), /duplicate ID declaration/);
+  }
+});
+
+test('rejects a first radio target with a field from another page', async () => {
+  const root = await createFixtureRepository();
+  await writeFixtureFile(
+    root,
+    centralAuthorityTemplatePath,
+    `<div opal-lib-govuk-radios-item [inputId]="${firstRadioId}"></div>`,
+  );
+  assertRejected(runScanner(root), /noncanonical inputId=/);
+});
+
+const firstCheckboxId = "$first ? field.id : field.id + '-option-' + $index";
+test('accepts metadata hint paragraphs and first checkbox targets', async () => {
+  const root = await createFixtureRepository();
+  await writeFixtureFile(
+    root,
+    orderTermsInputTemplatePath,
+    `<p [id]="field.id + '-hint'"></p><div opal-lib-govuk-checkboxes-item [inputId]="${firstCheckboxId}" [inputName]="field.id"></div>`,
+  );
+  assert.equal(runScanner(root).status, 0);
+});
+
+for (const [templatePath, template] of [
+  [
+    caseTypeTemplatePath,
+    `<p [id]="field.id + '-hint'"></p><div opal-lib-govuk-checkboxes-item [inputId]="${firstCheckboxId}"></div>`,
+  ],
+  [
+    orderTermsInputTemplatePath,
+    `<input [id]="field.id + '-hint'" /><opal-lib-govuk-text-input [inputId]="field.id + '-hint'" />`,
+  ],
+  [orderTermsInputTemplatePath, `<div opal-lib-govuk-checkboxes-item [inputName]="${firstCheckboxId}"></div>`],
+  [orderTermsInputTemplatePath, `<opal-lib-govuk-text-input [inputId]="${firstCheckboxId}" />`],
+  [orderTermsInputTemplatePath, `<div opal-lib-govuk-checkboxes-item [attr.inputId]="${firstCheckboxId}"></div>`],
+  [
+    orderTermsInputTemplatePath,
+    `<div opal-lib-govuk-checkboxes-item [inputId]="$first ? field.id : field.name + '-option-' + $index"></div>`,
+  ],
+  [
+    orderTermsInputTemplatePath,
+    `<div opal-lib-govuk-checkboxes-item [inputId]="$first ? field.id : field.id + '-option-' + option.value"></div>`,
+  ],
+]) {
+  test(`rejects ungoverned metadata hint or first checkbox target ${template}`, async () => {
+    const root = await createFixtureRepository();
+    await writeFixtureFile(root, templatePath, template);
+    const result = runScanner(root);
+    assertRejected(result, /noncanonical/);
+    for (const [, attribute, expression] of template.matchAll(/\[([^\]]+)\]="([^"]+)"/g)) {
+      assert.ok(result.stderr.includes(`noncanonical ${attribute}="${expression}"`), result.stderr);
+    }
+  });
+}
+
+test('resolves the first metadata checkbox target for co-rendered duplicate controls', async () => {
+  const root = await createFixtureRepository();
+  await writeFixtureFile(
+    root,
+    orderTermsInputTemplatePath,
+    `<div opal-lib-govuk-checkboxes-item [inputId]="${firstCheckboxId}"></div><opal-lib-govuk-text-input [inputId]="field.id" />`,
+  );
+  assertRejected(runScanner(root), /duplicate ID declaration/);
+});
+
+test('rejects a first radio target whose mapped field has the wrong page prefix', async () => {
+  const root = await createFixtureRepository();
+  await writeFixtureFile(
+    root,
+    `${createCasefilePath}/${caseTypeDirectory}/constants/cases-create-casefile-case-type-field-names.constant.ts`,
+    `export const CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES = { caseType: 'create_casefile_order_details_payment_frequency' } as const;`,
+  );
+  await writeFixtureFile(
+    root,
+    caseTypeTemplatePath,
+    `<div opal-lib-govuk-radios-item [inputId]="${firstRadioId}"></div>`,
+  );
+  const result = runScanner(root);
+  assertRejected(result, /caseType does not use create_casefile_case_type_/);
+  assert.match(result.stderr, /noncanonical inputId=/);
+});
+
+test('rejects obsolete review and receipt structural tags', async () => {
+  const root = await createFixtureRepository();
+  await writeFixtureFile(root, reviewTemplatePath, '<button id="create_casefile_review_cancel"></button>');
+  await writeFixtureFile(
+    root,
+    `${createCasefilePath}/cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component.html`,
+    '<span id="create_casefile_confirmation_in_review"></span>',
+  );
+  const result = runScanner(root);
+  assertRejected(result, /noncanonical id="create_casefile_review_cancel"/);
+  assert.match(result.stderr, /noncanonical id="create_casefile_confirmation_in_review"/);
+});

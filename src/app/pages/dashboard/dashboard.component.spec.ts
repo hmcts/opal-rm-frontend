@@ -94,19 +94,21 @@ describe('DashboardComponent', () => {
   it.each([true, false, undefined])('renders the create entry only for true (%s)', (enabled) => {
     featureFlags.set(enabled === undefined ? {} : { 'release-1c-rm-create-case-files': enabled });
     fixture.detectChanges();
-    const link = fixture.nativeElement.querySelector('a[href="/cases/create-casefile"]');
+    const link = fixture.nativeElement.querySelector('a[href="/cases/draft/create-and-manage/tabs#in-review"]');
     expect(Boolean(link)).toBe(enabled === true);
     expect(fixture.nativeElement.textContent.includes('Create cases')).toBe(enabled === true);
   });
 
   it('reacts to flags arriving and later becoming disabled', () => {
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('a[href="/cases/create-casefile"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('a[href="/cases/draft/create-and-manage/tabs#in-review"]')).toBeNull();
     featureFlags.set({ 'release-1c-rm-create-case-files': true });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('a[href="/cases/create-casefile"]')).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('a[href="/cases/draft/create-and-manage/tabs#in-review"]'),
+    ).not.toBeNull();
     featureFlags.set({ 'release-1c-rm-create-case-files': false });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('a[href="/cases/create-casefile"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('a[href="/cases/draft/create-and-manage/tabs#in-review"]')).toBeNull();
   });
 });

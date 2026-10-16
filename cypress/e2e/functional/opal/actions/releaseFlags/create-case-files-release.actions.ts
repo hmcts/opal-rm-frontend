@@ -1,3 +1,5 @@
+import { CasesDraftSelectors as Dashboard } from '../../../../../shared/selectors/cases-draft.selectors';
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { ReleaseFlagsSelectors as S } from '../../../../../shared/selectors/release-flags.selectors';
 import { CreateCasefileSelectors } from '../../../../../shared/selectors/create-casefile.selectors';
 
@@ -21,11 +23,16 @@ export class CreateCaseFilesReleaseActions {
   /** Enters case creation from the dashboard. */
   public followCreateCase(): void {
     cy.get(S.createCaseLink).click();
+    cy.get(Dashboard.heading).should('be.visible').and('have.text', 'Create cases');
+    cy.get(Dashboard.create).click();
   }
 
   /** Confirms the actual journey entry page has loaded. */
   public assertCaseType(): void {
-    cy.location('pathname').should('eq', '/cases/create-casefile/case-type');
+    cy.location('pathname').should(
+      'eq',
+      '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType,
+    );
     cy.get(CreateCasefileSelectors.caseTypeHeading).should('be.visible').and('contain.text', 'Create a case');
     cy.get(S.primaryNavigation).should('not.exist');
   }

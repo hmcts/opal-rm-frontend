@@ -2,16 +2,22 @@ import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPE_FIELD_NAMES } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-case-type/constants/cases-create-casefile-case-type-field-names.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
-import { DASHBOARD_ROUTING_PATHS } from 'src/app/pages/dashboard/constants/dashboard-routing-paths.constant';
+import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { CreateCasefileSelectors as Page } from 'cypress/shared/selectors/create-casefile.selectors';
+import { pressDashboardEnter } from '../../support/utils/press-dashboard-enter';
 import { setupCreateCasefileCaseType } from './setup/create-case-type.setup';
 import type { CasesCreateCasefileStoreInstance } from './setup/create-case-type.setup';
 
 const CREATE_CASEFILE_STORY_TAG = '@JIRA-STORY:PO-9799';
 const CREATE_CASEFILE_EPIC_TAG = '@JIRA-EPIC:PO-6506';
-const buildTags = (...tags: string[]): string[] => [...tags, CREATE_CASEFILE_STORY_TAG, CREATE_CASEFILE_EPIC_TAG];
+const buildTags = (...tags: string[]): string[] => [
+  ...tags,
+  CREATE_CASEFILE_STORY_TAG,
+  CREATE_CASEFILE_EPIC_TAG,
+  '@JIRA-STORY:PO-10605',
+];
 const taskListPath = `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}/${CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList}`;
-const casesDashboardPath = `/${DASHBOARD_ROUTING_PATHS.root}/${DASHBOARD_ROUTING_PATHS.children.cases}`;
+const casesDashboardPath = `/${CASES_DRAFT_ROUTING_PATHS.root}/${CASES_DRAFT_ROUTING_PATHS.children.tabs}#in-review`;
 
 const assertStoredSelection = (
   expectedSelection: ReturnType<CasesCreateCasefileStoreInstance['caseTypeSelection']>,
@@ -199,12 +205,46 @@ describe('Create Casefile Case Type', () => {
     cy.get(Page.cancelLink).should('have.focus');
   });
 
+  it('PO-10605. focuses the empty heading after completed creation navigation', { tags: buildTags() }, () => {
+    setupCreateCasefileCaseType(null, undefined, true);
+    cy.get(Page.caseTypeHeading).should('be.focused');
+    cy.get(Page.caseTypeRadios).filter(':checked').should('not.exist');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).should('be.focused');
+  });
+
   it('AC3. should request Cases dashboard navigation on Cancel', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType();
 
     cy.get(Page.cancelLink).click();
-    cy.get('@routerNavigate').should('have.been.calledWith', [casesDashboardPath], {});
+    cy.get('@cancelRouterNavigate').should('have.been.calledWith', casesDashboardPath);
   });
+
+  for (const failure of ['false', 'throw'] as const) {
+    it(
+      `PO-10605. retains form state after ${failure} cancellation and allows another attempt`,
+      { tags: buildTags() },
+      () => {
+        setupCreateCasefileCaseType(null, failure);
+        cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).check();
+        cy.get(Page.applicantType).select(CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL);
+        cy.get(Page.cancelLink).click();
+        cy.get(Page.caseTypeCancelError).should('not.exist');
+        if (failure === 'throw') cy.get('@caseTypeGlobalBannerError').should('have.been.calledOnce');
+        else cy.get('@caseTypeGlobalBannerError').should('not.have.been.called');
+        cy.get(Page.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN)).should('be.checked');
+        cy.get(Page.applicantTypeSelectedOption).should('have.text', CASES_CREATE_CASEFILE_APPLICANT_TYPES.INDIVIDUAL);
+        cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+        cy.checkA11y(undefined, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] } });
+        cy.screenshot(`po-10605-case-type-cancel-${failure}-global-error`);
+        cy.get<Cypress.Agent<sinon.SinonStub>>('@cancelRouterNavigate').then((navigate) => navigate.resolves(true));
+        cy.get(Page.cancelLink).focus();
+        pressDashboardEnter();
+        cy.get('@cancelRouterNavigate').should('have.been.calledTwice');
+        cy.get(Page.caseTypeCancelError).should('not.exist');
+      },
+    );
+  }
 
   it('AC4. should have no detected Axe violations with a valid conditional selection', { tags: buildTags() }, () => {
     setupCreateCasefileCaseType();

@@ -9,7 +9,8 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import { Router, UrlTree } from '@angular/router';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
@@ -22,6 +23,7 @@ import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store'
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileCancelComponent {
+  private readonly dashboardNavigation = inject(CasesDraftNavigationService);
   private readonly router = inject(Router);
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
@@ -29,7 +31,6 @@ export class CasesCreateCasefileCancelComponent {
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   private readonly error = viewChild<ElementRef<HTMLElement>>('navigationError');
   private readonly root = '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/';
-  private readonly caseTypePath = this.root + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType;
   private readonly reviewPath = this.root + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.checkCaseDetails;
   public readonly busy = signal(false);
   public readonly deleted = signal(false);
@@ -40,14 +41,11 @@ export class CasesCreateCasefileCancelComponent {
     afterNextRender(() => this.heading()?.nativeElement.focus());
   }
 
-  private async navigate(path: string): Promise<void> {
+  private async navigate(path: string | UrlTree): Promise<void> {
     this.busy.set(true);
     this.navigationFailed.set(false);
     try {
-      const success =
-        path === this.caseTypePath
-          ? await this.router.navigateByUrl(path, { state: { focusCaseTypeHeading: true } })
-          : await this.router.navigateByUrl(path);
+      const success = await this.router.navigateByUrl(path);
       this.navigationFailed.set(!success);
     } catch {
       this.navigationFailed.set(true);
@@ -68,7 +66,7 @@ export class CasesCreateCasefileCancelComponent {
       this.deleted.set(true);
     }
 
-    await this.navigate(this.caseTypePath);
+    await this.navigate(this.dashboardNavigation.prepareCreationReturn());
   }
 
   public async handleBack(): Promise<void> {

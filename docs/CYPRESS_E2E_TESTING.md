@@ -132,25 +132,26 @@ uses synthetic entered data, reopens pages to prove local retention, and stops b
 single live submission scenario described below. Missing accounts,
 reference data or release configuration must fail clearly; do not skip or substitute mocks for a failed prerequisite.
 
-| Prerequisite        | Required configuration                                                                   |
-| ------------------- | ---------------------------------------------------------------------------------------- |
-| Release             | `release-1c-rm-create-case-files=true`                                                   |
-| Authorised account  | ACTIVE; Maintenance domain; permission 21 for BU 44                                      |
-| Denied account      | ACTIVE; Maintenance domain; no permission 21 for BU 44; distinct from authorised account |
-| Countries           | Active dataset containing United Kingdom and at least two other distinct Country names   |
-| Applications        | At least one active record with `application_group=Create Casefile`                      |
-| Central Authorities | At least two active BU 44 records with `central_authority=true`                          |
+| Prerequisite        | Required configuration                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| Release             | `release-1c-rm-create-case-files=true`                                                       |
+| Authorised account  | ACTIVE; Maintenance domain; `CREATE_MANAGE_DRAFT_CASEFILES` / API permission ID 21 for BU 44 |
+| Denied account      | ACTIVE; Maintenance domain; no permission 21 for BU 44; distinct from authorised account     |
+| Countries           | Active dataset containing United Kingdom and at least two other distinct Country names       |
+| Applications        | At least one active record with `application_group=Create Casefile`                          |
+| Central Authorities | At least two active BU 44 records with `central_authority=true`                              |
 
 The selected features authenticate through the shared `I am authenticated with email {string}` binding, using the
 existing provisioned synthetic usernames `opal-test@dev.platform.hmcts.net` (creator) and
 `opal-test-4@dev.platform.hmcts.net` (denied user), as the Fines suites do. Sessions are cached by the supplied username.
-Each scenario still owns a new draft. Provision these users through the existing User Service data; do not create
-users or change permissions as a test side effect.
+Both users are already provisioned by User Service. Each scenario still owns a new draft; do not create users or
+change permissions as a test side effect.
 
 Local/PR sign-in uses the passwordless stub and requires only the username supplied by the feature. No separate
 role-account environment variables are required. The live User Service must provide ACTIVE Maintenance membership
 and the BU 44 permission state above. The explicit permission preflight reads the actual `/api/user-state` response
-(`domains.maintenance`) after shared authentication; failures in authentication or domain provisioning fail setup.
+(`domains.maintenance`) after shared authentication. This preflight verifies existing access and never provisions or
+changes it; authentication or existing-access failures fail setup.
 
 | Environment variable      | Purpose                                                         |
 | ------------------------- | --------------------------------------------------------------- |
@@ -162,7 +163,12 @@ Microsoft SSO retains the existing shared password environment configuration. Fu
 by the local passwordless runs. Other suites may still require the existing global email/password mappings.
 Country and Central Authority lookups may be cached within a journey, so replay must not await another request.
 
-### Live submission (PO-10273)
+### Start, navigate and live submission (PO-10273)
+
+PO-10273 reuses the maintained Individual and Organisation party, Central Authority, Order Details, Check Case Details,
+shared permission and accessibility owners. Existing scenarios prove supported starts, locally retained progress,
+ordered task unlocking and task-list accessibility. Only the REMO Out (CMS) start-only scenario and the live full
+submission scenario are new; the permission outline adds the journey-entry and task-list examples.
 
 `CheckCaseDetails.feature` contains exactly one live full submission scenario. It completes one synthetic draft using
 the existing live party, Order Details and MAT/Applicant creditor flows, then supplies the mandatory payment tasks.
@@ -170,10 +176,19 @@ It observes the real create POST, requires HTTP 201 with a positive safe-integer
 the generated identifier as text in the existing confirmation panel. Create a new case then proves journey clearing.
 Other scenarios in that feature retain controlled submission responses. The live scenario creates one persistent
 synthetic submitted record per execution; no cleanup endpoint exists. Run it only where this persistence is accepted.
-Disable automatic retries for this focused run so a later assertion failure cannot repeat a persisted submission.
+Use `retries=0` for every live full-submission execution so a later assertion failure cannot repeat a persisted
+submission.
+
+The ticket-focused selection across the nine maintained feature files expands to exactly 11 examples: eight
+functional/permission examples and three accessibility examples. The integrated browser run passed all 11 with zero
+failed, pending or skipped examples; counts come from that run's clean NDJSON, not accumulated XML.
 
 ```bash
-TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature' --config retries=0
+TEST_URL=http://localhost:5000 \
+TAGS='@JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10273 and not @skip' \
+corepack yarn test:functional:serial --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature' \
+  --config retries=0
 ```
 
 Run the individual capture and retention outcome with:
@@ -189,12 +204,12 @@ required-versus-optional wording differs from current product validation, which 
 
 ## Shared casefile permission coverage
 
-`CasefilePermissions.feature` runs exactly thirteen unique protected routes with the release enabled. Each example first
-checks the authorised user's live ACTIVE Maintenance state and BU 44 permission 21, then opens the released case-type
-page. It explicitly authenticates the provisioned denied username and checks live ACTIVE status, Maintenance domain and
-absence of permission 21 for BU 44 before attempting direct task navigation. Another BU permission is not required;
-an existing user with another BU membership is acceptable when BU 44 permission 21 is absent. The tests use actual
-route guards without role changes, injected store state or mocked denial responses.
+`CasefilePermissions.feature` runs exactly fifteen unique protected routes with the release enabled. Each example first
+checks the authorised user's live ACTIVE Maintenance state and BU 44 `CREATE_MANAGE_DRAFT_CASEFILES` / API permission
+ID 21, then opens the released case-type page. It explicitly authenticates the provisioned denied username and checks
+live ACTIVE status, Maintenance domain and absence of permission 21 for BU 44 before attempting direct task navigation.
+Another BU permission is not required; an existing user with another BU membership is acceptable when BU 44 permission
+21 is absent. The tests use actual route guards without role changes, injected store state or mocked denial responses.
 
 Require `release-1c-rm-create-case-files=true` for all anonymous LaunchDarkly test contexts, rather than a percentage
 rollout. The positive entry check prevents a release-off failure from masquerading as permission rejection. The
@@ -205,7 +220,7 @@ selection by either party ticket includes both shared routes. Individual and org
 the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`, and the four Order Term routes carry
 `@JIRA-STORY:PO-10278`. Minor Creditor details, summary and removal carry `@JIRA-STORY:PO-10280`.
 The Order Term creditor route carries `@JIRA-STORY:PO-10279`.
-The outline carries epic PO-6506.
+Journey entry and task list carry `@JIRA-STORY:PO-10273`. The outline carries epic PO-6506.
 
 ```bash
 corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
@@ -337,7 +352,7 @@ Repeat those specs with both tag variables set to `@R1CRmCreateCaseFiles and not
 
 Select PO-10278, PO-10279 and PO-10280 together using both tag variables. This selection expands to exactly 27
 examples; the original five permission routes retain their original story tags and are outside this selection.
-The complete shared permission outline has thirteen unique routes.
+The complete shared permission outline has fifteen unique routes.
 
 | QA story | Functional | Accessibility | Permission | Total |
 | -------- | ---------: | ------------: | ---------: | ----: |
@@ -393,7 +408,7 @@ cp -R smoke-output/. docs/superpowers/plans/2026-10-14-order-terms-creditors-evi
 ```
 
 This regression includes retained Order Term input/summary validation, failure, cancellation and reload cases,
-Minor Creditor bank/review/removal cases, creditor choices, Order Details, mandatory parties and all thirteen permission
+Minor Creditor bank/review/removal cases, creditor choices, Order Details, mandatory parties and all fifteen permission
 routes. Complete the local pre-flight in [SONAR.md](SONAR.md), E2E TypeScript, the full configured Jira metadata policy
 and duplicate-scenario scan. A passing createDraftCasefile-only metadata check supplements the full policy result;
 missing authoritative Jira identifiers in other configured features remain an unmet required check. Do not invent

@@ -12,6 +12,12 @@ Feature: Draft Casefile task permissions
     When I attempt to open the protected casefile task "<path>"
     Then I cannot access the Draft Casefile task
 
+    @JIRA-STORY:PO-10273
+    Examples: Journey entry and task list
+      | path      |
+      | case-type |
+      | task-list |
+
     @JIRA-STORY:PO-10275 @JIRA-STORY:PO-10276
     Examples: Shared party tasks
       | path                      |

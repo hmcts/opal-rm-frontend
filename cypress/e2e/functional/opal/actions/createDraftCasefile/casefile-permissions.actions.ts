@@ -17,6 +17,8 @@ export class CasefilePermissionsActions {
    */
   public openTask(path: string): void {
     const tasks = [
+      PATHS.children.caseType,
+      PATHS.children.taskList,
       PATHS.children.respondentDetails,
       PATHS.children.applicantIndividual,
       PATHS.children.applicantOrganisation,
@@ -39,6 +41,8 @@ export class CasefilePermissionsActions {
   public assertDenied(): void {
     cy.location('pathname').should('eq', '/access-denied');
     cy.get(S.heading).should('be.visible').and('contain.text', 'Access Denied');
+    cy.get(S.caseTypeRadios).should('not.exist');
+    cy.get(S.caseDetails.taskNames).should('not.exist');
     cy.get(S.respondentDetails.firstNames).should('not.exist');
     cy.get(S.applicantIndividual.firstNames).should('not.exist');
     cy.get(S.applicantOrganisation.organisationName).should('not.exist');

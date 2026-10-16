@@ -3,6 +3,7 @@ import { CasesCreateCasefileComponent } from 'src/app/flows/cases/cases-create-c
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
+import { ORDER_DETAILS_INVALID_DATE_CASES } from './constants/order-details-validation.constant';
 import { setupOrderDetails } from './setup/order-details.setup';
 import { ORDER_DETAILS_MOCK as M } from './mocks/order-details.mock';
 const buildTags = () => ['@JIRA-STORY:PO-9805', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
@@ -237,19 +238,25 @@ describe('Order Details independent browser contracts', () => {
     assertSaved();
   });
 
-  for (const field of ['dateOrderMade', 'dateArrearsLastUpdated'] as const) {
-    for (const value of ['01/02', '31/02/2026', '01/01/2999']) {
-      it(`AC3. should reject ${value} in ${field}`, { tags: buildTags() }, () => {
-        openSaved();
-        cy.get(S.orderDetails[field]).clear().type(value);
-        cy.get(S.orderDetails.returnButton).click();
-        cy.get(S.errorSummary).should(
-          'contain.text',
-          value.endsWith('2999') ? 'Date cannot be in the future' : 'Enter a real date in the format DD/MM/YYYY',
-        );
-        assertSaved();
-      });
-    }
+  for (const { name, value, message } of ORDER_DETAILS_INVALID_DATE_CASES) {
+    it(`AC3. should reject ${name} in both order date fields`, { tags: buildTags() }, () => {
+      openSaved();
+      const fields = [S.orderDetails.dateOrderMade, S.orderDetails.dateArrearsLastUpdated];
+      for (const selector of fields) {
+        cy.get(selector).clear().type(value);
+      }
+      cy.get(S.orderDetails.returnButton).click();
+      cy.get(S.errorSummaryLinks)
+        .should('have.length', fields.length)
+        .then(($links) => {
+          expect($links.map((_index, link) => link.textContent?.trim()).get()).to.deep.equal(fields.map(() => message));
+          cy.wrap($links.eq(0)).click();
+        });
+      cy.get(fields[0]).should('be.focused');
+      cy.get(S.errorSummaryLinks).eq(1).click();
+      cy.get(fields[1]).should('be.focused');
+      assertSaved();
+    });
   }
 
   it('AC3. should accept today for both dates as local calendar dates', { tags: buildTags() }, () => {

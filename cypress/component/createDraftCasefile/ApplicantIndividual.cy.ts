@@ -20,8 +20,10 @@ import {
 } from '../../shared/constants/create-casefile-test-copy.constant';
 import {
   SAVED_APPLICANT_INDIVIDUAL,
-  VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL,
+  NON_UK_BIC_APPLICANT_INDIVIDUAL_BEFORE_SAVE,
+  NON_UK_IBAN_APPLICANT_INDIVIDUAL_BEFORE_SAVE,
   VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL,
+  UK_APPLICANT_INDIVIDUAL_BEFORE_SAVE,
   VALID_UK_APPLICANT_INDIVIDUAL,
 } from './mocks/applicant-individual.mock';
 import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
@@ -339,7 +341,9 @@ describe('Create Casefile Applicant Individual', () => {
     const putRequestSpy = cy.spy().as('draftCasefilePut');
     cy.intercept({ method: 'POST', url: '**/draft-casefiles**' }, postRequestSpy);
     cy.intercept({ method: 'PUT', url: '**/draft-casefiles**' }, putRequestSpy);
-    setupApplicantIndividual({ savedApplicant: VALID_UK_APPLICANT_INDIVIDUAL });
+    setupApplicantIndividual({ savedApplicant: UK_APPLICANT_INDIVIDUAL_BEFORE_SAVE });
+
+    cy.get(Page.applicantIndividual.ukBankSortCode).should('have.value', '445566').clear().type('112233');
 
     cy.get(Page.applicantIndividual.returnToCaseDetails).click();
     assertRouterPath(taskListPath);
@@ -387,7 +391,12 @@ describe('Create Casefile Applicant Individual', () => {
   });
 
   it('AC2. should save only active non-UK bank data by BIC', { tags: buildTags() }, () => {
-    setupApplicantIndividual({ savedApplicant: VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL });
+    setupApplicantIndividual({ savedApplicant: NON_UK_BIC_APPLICANT_INDIVIDUAL_BEFORE_SAVE });
+
+    cy.get(Page.applicantIndividual.nonUkBankPaymentReference)
+      .should('have.value', 'PREVIOUS-BIC')
+      .clear()
+      .type('PAY-NONUK');
 
     cy.get(Page.applicantIndividual.returnToCaseDetails).click();
     assertRouterPath(taskListPath);
@@ -406,7 +415,12 @@ describe('Create Casefile Applicant Individual', () => {
   });
 
   it('AC2. should save non-UK bank data by IBAN without inactive BIC data', { tags: buildTags() }, () => {
-    setupApplicantIndividual({ savedApplicant: VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL });
+    setupApplicantIndividual({ savedApplicant: NON_UK_IBAN_APPLICANT_INDIVIDUAL_BEFORE_SAVE });
+
+    cy.get(Page.applicantIndividual.nonUkBankPaymentReference)
+      .should('have.value', 'PREVIOUS-IBAN')
+      .clear()
+      .type('PAY-NONUK');
 
     cy.get(Page.applicantIndividual.returnToCaseDetails).click();
     assertRouterPath(taskListPath);

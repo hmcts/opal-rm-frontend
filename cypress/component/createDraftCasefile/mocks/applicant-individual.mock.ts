@@ -52,7 +52,7 @@ export const SAVED_APPLICANT_INDIVIDUAL: ICasesCreateCasefileApplicantIndividual
   },
 };
 
-export const VALID_UK_APPLICANT_INDIVIDUAL: ICasesCreateCasefileApplicantIndividual = {
+export const VALID_UK_APPLICANT_INDIVIDUAL = {
   title: null,
   firstNames: 'Test',
   lastName: 'Applicant',
@@ -82,9 +82,9 @@ export const VALID_UK_APPLICANT_INDIVIDUAL: ICasesCreateCasefileApplicantIndivid
     paymentReference: 'PAY-123',
   },
   restrictedInformation: { restricted: false, reason: null },
-};
+} satisfies ICasesCreateCasefileApplicantIndividual;
 
-export const VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL: ICasesCreateCasefileApplicantIndividual = {
+export const VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL = {
   ...VALID_UK_APPLICANT_INDIVIDUAL,
   bankDetails: {
     type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
@@ -96,9 +96,9 @@ export const VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL: ICasesCreateCasefileApplican
     bankName: 'Test Bank',
     branchSortCode: '123456',
   },
-};
+} satisfies ICasesCreateCasefileApplicantIndividual;
 
-export const VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL: ICasesCreateCasefileApplicantIndividual = {
+export const VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL = {
   ...VALID_UK_APPLICANT_INDIVIDUAL,
   bankDetails: {
     type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
@@ -109,5 +109,29 @@ export const VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL: ICasesCreateCasefileApplica
     iban: 'GB82WEST12345698765432',
     bankName: null,
     branchSortCode: null,
+  },
+} satisfies ICasesCreateCasefileApplicantIndividual;
+
+export const UK_APPLICANT_INDIVIDUAL_BEFORE_SAVE: ICasesCreateCasefileApplicantIndividual = {
+  ...VALID_UK_APPLICANT_INDIVIDUAL,
+  bankDetails: {
+    ...VALID_UK_APPLICANT_INDIVIDUAL.bankDetails,
+    sortCode: '445566',
+  },
+};
+
+export const NON_UK_BIC_APPLICANT_INDIVIDUAL_BEFORE_SAVE: ICasesCreateCasefileApplicantIndividual = {
+  ...VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL,
+  bankDetails: {
+    ...VALID_NON_UK_BIC_APPLICANT_INDIVIDUAL.bankDetails,
+    paymentReference: 'PREVIOUS-BIC',
+  },
+};
+
+export const NON_UK_IBAN_APPLICANT_INDIVIDUAL_BEFORE_SAVE: ICasesCreateCasefileApplicantIndividual = {
+  ...VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL,
+  bankDetails: {
+    ...VALID_NON_UK_IBAN_APPLICANT_INDIVIDUAL.bankDetails,
+    paymentReference: 'PREVIOUS-IBAN',
   },
 };

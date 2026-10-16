@@ -66,6 +66,7 @@ const assertTabMovesTo = (selector: string): void => {
 };
 
 type DestinationScenario = {
+  displayLabel?: string;
   childPath: string;
   taskLinkSelector: string;
   returnSelector: string;
@@ -83,6 +84,7 @@ const destinationScenarios: DestinationScenario[] = [
     prerequisiteTasks: [],
   },
   {
+    displayLabel: 'Applicant details (Individual)',
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantIndividual,
     taskLinkSelector: Page.caseDetails.applicantLink,
     returnSelector: Page.applicantIndividual.cancelLink,
@@ -90,6 +92,7 @@ const destinationScenarios: DestinationScenario[] = [
     prerequisiteTasks: [],
   },
   {
+    displayLabel: 'Applicant details (Organisation)',
     childPath: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.applicantOrganisation,
     taskLinkSelector: Page.caseDetails.applicantLink,
     returnSelector: Page.applicantOrganisation.cancelLink,
@@ -312,7 +315,7 @@ describe('Create Casefile Case Details Task List', () => {
 
   for (const scenario of destinationScenarios) {
     it(
-      `AC2, AC4. should route to ${scenario.heading}, preserve store state and return to Case details`,
+      `AC2, AC4. should route to ${scenario.displayLabel ?? scenario.heading}, preserve store state and return to Case details`,
       { tags: buildTags() },
       () => {
         const selection = scenario.selection ?? {
@@ -526,7 +529,10 @@ describe('Create Casefile Case Details Task List', () => {
     cy.get(Page.caseDetails.orderTermsLink).click();
     cy.get(Page.orderTerms.return).click();
     cy.get(Page.caseDetails.checkCaseButton).click();
+    assertRouterPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.checkCaseDetails);
+    cy.get(Page.review.heading).should('have.text', 'Check case details');
     cy.get(Page.caseDetails.backLink).click();
+    assertRouterPath(taskListPath);
     cy.get(Page.caseDetails.cancelLink).click();
     assertRouterPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.cancel);
     cy.get('@postRequest').should('not.have.been.called');

@@ -11,13 +11,13 @@ When('I save the minor creditor details', () => flow.saveDetails());
 Then('the minor creditor validation summary shows all required errors', () => flow.assertRequiredValidation());
 Then('I reach Minor Creditor Summary without creating a draft casefile', () => flow.assertSummaryWithoutDraftWrite());
 When('I enter an unsaved minor creditor name', () => flow.enterUnsavedName());
-When('I cancel minor creditor details and decline the warning', () => flow.cancelDetails(false));
-When('I cancel minor creditor details and accept the warning', () => flow.cancelDetails(true));
+When(/^I cancel minor creditor details and (accept|decline) the warning$/, (decision: string) =>
+  flow.cancelDetailsWithDecision(decision),
+);
 Then('my minor creditor name remains on the details page', () => flow.assertUnsavedNameRetained());
 Then('I return to Creditor without a new minor creditor', () => flow.assertCreditorWithoutNewMinor());
 
 When('I open minor creditor removal', () => flow.reviewAction('Remove'));
-When('I return from minor creditor removal', () => flow.cancelRemoval());
 When('I cancel minor creditor review', () => flow.reviewAction('Cancel'));
 When('I accept the reviewed minor creditor', () => flow.reviewAction('Continue'));
 Then('the reviewed minor creditor is accepted without creating a draft casefile', () => flow.assertAcceptedReview());

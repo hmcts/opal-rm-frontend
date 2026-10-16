@@ -8,6 +8,10 @@ Given('I do not have the live RM casefile permission', () => flow.assertPermissi
 Given('the released RM casefile entry is available', () => flow.assertReleasedEntry());
 When('I attempt to open the protected casefile task {string}', (path: string) => flow.openDeniedTask(path));
 Then('I cannot access the Draft Casefile task', () => flow.assertDenied());
+When('I start a live {string} Draft Casefile', (value: string) => flow.startOutbound(value));
+Then('the outbound task list shows {string} without an applicant type', (value: string) =>
+  flow.assertOutboundTaskList(value),
+);
 
 Given('I have started a live REMO In casefile with an {string} applicant', (path: string) => {
   if (path !== 'Individual' && path !== 'Organisation') throw new Error('Unsupported RM applicant path');

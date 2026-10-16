@@ -4,6 +4,7 @@ import {
 } from '../../actions/createDraftCasefile/central-authority-details.actions';
 
 import { CasePartiesFlow } from './case-parties.flow';
+import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
 
 /** Exposes Central Authority business journey verbs to Cucumber steps. */
 export class CentralAuthorityDetailsFlow {
@@ -16,8 +17,8 @@ export class CentralAuthorityDetailsFlow {
    */
   public prepareLivePath(path: string): void {
     this.actions.observeDraftCreation();
-    if (path === 'REMO Out') {
-      this.actions.openInNewRemoOutCasefile();
+    if (path === CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT) {
+      this.openInNewRemoOutCasefile();
       return;
     }
     if (path !== 'Individual' && path !== 'Organisation') throw new Error('Unsupported authority casefile path');
@@ -33,7 +34,8 @@ export class CentralAuthorityDetailsFlow {
 
   /** Opens Central Authority details in a new REMO Out casefile. */
   public openInNewRemoOutCasefile(): void {
-    this.actions.openInNewRemoOutCasefile();
+    this.parties.startOutbound(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT);
+    this.actions.openFromTaskList();
   }
 
   /**

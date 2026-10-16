@@ -391,3 +391,29 @@ follow-up must cover keyboard-only navigation and visible focus across these pag
 accessible names on summary actions/notices, and magnification. Local passwordless execution does not establish
 deployed SSO behavior. Keep CI, external security/Sonar checks, reviewer approval, specialist QA and deployment pending
 until direct evidence confirms them.
+
+## Draft Casefile cancellation QA (PO-10284)
+
+`CancelCaseCreation.feature` covers returning to review with the accepted draft retained, confirming cancellation
+without a draft submission, starting a fresh journey and preventing browser history from recovering the discarded
+case. Each positive scenario owns a complete local draft. `CancelCaseCreationAccessibility.feature` scans the
+cancellation page and fresh destination; Axe provides partial accessibility evidence.
+
+The permission scenario reuses the shared live permission preflight: first verify ACTIVE Maintenance membership,
+BU 44 permission 21 and released entry with the authorised account, then authenticate the provisioned denied account
+and verify ACTIVE Maintenance membership without BU 44 permission 21. Direct cancellation navigation must reach
+`/access-denied` with no cancellation controls or case creation entry. `/account-created` is a provisioning failure,
+and a disabled release must fail the authorised entry check rather than count as permission rejection.
+
+Run with the enabled release and provisioned accounts described above:
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10284 and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10284 and not @skip' \
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CancelCaseCreation.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CancelCaseCreationAccessibility.feature'
+```
+
+Require four passing browser scenarios with none skipped or pending. A dry run checks selection and step bindings
+only. Preserve and sanitise generated reports before another runner invocation resets output. Specialist follow-up
+must verify native browser Leave/Cancel behaviour, full keyboard traversal, screen-reader announcements and
+magnification with the same enabled release and provisioned accounts.

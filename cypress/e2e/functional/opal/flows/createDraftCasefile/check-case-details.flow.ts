@@ -12,9 +12,20 @@ export class CheckCaseDetailsFlow {
 
   /** Builds a complete case using the maintained real journey steps. */
   public open(): void {
+    this.prepareReadyForReview();
+    this.openReview();
+  }
+
+  /** Completes the controlled-submission draft and leaves its task list ready for review. */
+  public prepareReadyForReview(): void {
     this.terms.givenTwoAcceptedMaintenanceOrders();
     this.review.prepareSubmission();
-    this.review.completeRemainingTasks();
+    this.review.completePaymentTasks();
+  }
+
+  /** Opens the completed draft from its task list. */
+  public openReview(): void {
+    this.review.openReview();
   }
 
   /** Completes one synthetic draft through live services before entering review. */

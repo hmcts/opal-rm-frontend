@@ -4,7 +4,7 @@ Feature: Order Details accessibility
   Background:
     Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
 
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805 @JIRA-STORY:PO-10277
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805 @JIRA-STORY:PO-10277 @JIRA-STORY:PO-10273
   Scenario: Live Order Details initial, invalid and replayed states have no detected Axe violations
     Given I have the live RM casefile permission
     And I have started live Order Details with completed mandatory parties
@@ -15,6 +15,7 @@ Feature: Order Details accessibility
     And I check the page for accessibility
     When I save the selected live application and associated order information
     Then Order Details is complete with the parties retained and no draft submitted
+    And I check the page for accessibility
     When I reopen the saved live Order Details
     Then the selected live application and associated order information are retained
     And I check the page for accessibility

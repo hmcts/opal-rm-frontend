@@ -1,4 +1,4 @@
-import { recordCreatedId } from '../../../../../support/draftCasefiles';
+import { createDraftCasefileTestRunReference, recordCreatedId } from '../../../../../support/draftCasefiles';
 import { CHECK_CASE_DETAILS_SUBMISSION as SUBMISSION } from '../../mocks/createDraftCasefile/check-case-details.mock';
 import type { IOpalMaintenanceDraftCasefileRequest } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-request.interface';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
@@ -10,6 +10,7 @@ import { ReleaseFlagsSelectors } from '../../../../../shared/selectors/release-f
 /** Exercises review and controlled or live HTTP submission through the rendered journey. */
 export class CheckCaseDetailsActions {
   private expectedSubmissionCount = 0;
+  private testRunReference = '';
   /** Stubs the create boundary so this journey never sends a live submission. */
   public prepareSubmission(): void {
     this.expectedSubmissionCount = 0;
@@ -22,27 +23,27 @@ export class CheckCaseDetailsActions {
   /** Observes the single live submission without replacing the backend response. */
   public prepareLiveSubmission(): void {
     this.expectedSubmissionCount = 0;
+    this.testRunReference = createDraftCasefileTestRunReference();
+    const testRunReference = this.testRunReference;
     cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', (request) => {
       request.on('response', (response) => {
         const body: unknown = response.body;
-        const payload: unknown = request.body;
         const id = body && typeof body === 'object' && 'draft_casefile_id' in body ? body.draft_casefile_id : undefined;
-        const businessUnitId =
-          payload && typeof payload === 'object' && 'business_unit_id' in payload
-            ? payload.business_unit_id
-            : undefined;
-        if (
-          typeof id === 'number' &&
-          Number.isSafeInteger(id) &&
-          id > 0 &&
-          typeof businessUnitId === 'number' &&
-          Number.isSafeInteger(businessUnitId) &&
-          businessUnitId > 0
-        ) {
-          recordCreatedId(id, businessUnitId);
+        if (typeof id === 'number' && Number.isSafeInteger(id) && id > 0) {
+          recordCreatedId(id, testRunReference);
         }
       });
     }).as('draftSubmission');
+  }
+
+  /** Saves the cleanup marker through the real REMO Reference form before submission. */
+  public saveLiveTestRunReference(): void {
+    cy.get(S.caseDetails.centralAuthorityLink).click();
+    cy.get(S.centralAuthority.remoReference).clear().type(this.testRunReference);
+    cy.get(S.centralAuthority.returnToCaseDetails).click();
+    cy.get(S.caseDetails.centralAuthorityLink).click();
+    cy.get(S.centralAuthority.remoReference).should('have.value', this.testRunReference);
+    cy.get(S.centralAuthority.returnToCaseDetails).click();
   }
 
   /** Completes the remaining mandatory tasks before opening review. */
@@ -136,8 +137,10 @@ export class CheckCaseDetailsActions {
   public submitLive(): void {
     this.expectedSubmissionCount = 1;
     cy.get(S.review.submit).click();
-    cy.wait('@draftSubmission').then(({ response }) => {
+    cy.wait('@draftSubmission').then(({ request, response }) => {
       expect(response?.statusCode).to.equal(201);
+      const payload = request.body as IOpalMaintenanceDraftCasefileRequest;
+      expect(payload.casefile.respondent_account.remo_reference).to.equal(this.testRunReference);
       const receipt: unknown = response?.body;
       expect(receipt).to.have.property('casefile_status', 'SUBMITTED');
       const id =

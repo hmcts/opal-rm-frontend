@@ -37,6 +37,7 @@ export class CheckCaseDetailsFlow {
     this.details.assertLiveProvided();
     this.liveTerms.addApplicantTermToCurrentDraft('10', 'liveApplicantTerm');
     this.review.completePaymentTasks();
+    this.review.saveLiveTestRunReference();
     this.assertReadyForReview();
     this.review.openReview();
   }
@@ -68,7 +69,7 @@ export class CheckCaseDetailsFlow {
   public submit(): void {
     this.review.submit();
   }
-  /** Submits the live case and durably captures its receipt before assertions. */
+  /** Submits the live case and records its receipt for cleanup before assertions. */
   public submitLive(): void {
     this.review.submitLive();
   }

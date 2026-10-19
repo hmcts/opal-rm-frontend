@@ -51,3 +51,23 @@ Feature: Check case details and submit for review
   Scenario: Fresh confirmation entry starts an empty case
     When I open casefile confirmation without submitting a case
     Then an empty new case journey is shown without submitting data
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10283
+  Scenario: Review optional comments and notes with a complete casefile
+    Given I have completed a casefile ready for review
+    When I open casefile comments and notes
+    And I save optional casefile comments and notes
+    And I open the completed casefile review
+    Then review includes the saved casefile comments and notes
+    When I reopen comments and notes from casefile review
+    Then the saved casefile comments and notes are retained
+    When I return to review from comments and notes
+    Then review includes the saved casefile comments and notes
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10283
+  Scenario: Submit a complete casefile without optional comments and notes
+    Given I am reviewing a complete casefile for submission
+    Then review has no optional casefile comments or notes
+    When I submit the casefile for submission
+    Then submission confirmation is shown after one create request
+    And the submission omits optional casefile comments and notes

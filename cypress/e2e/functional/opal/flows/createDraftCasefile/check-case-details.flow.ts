@@ -1,4 +1,5 @@
 import { CheckCaseDetailsActions } from '../../actions/createDraftCasefile/check-case-details.actions';
+import { CommentsNotesActions } from '../../actions/createDraftCasefile/comments-notes.actions';
 import { OrderTermsFlow } from './order-terms.flow';
 import { OrderDetailsFlow } from './order-details.flow';
 import { OrderTermsManagementFlow } from './order-terms-management.flow';
@@ -7,6 +8,7 @@ import { OrderTermsManagementFlow } from './order-terms-management.flow';
 export class CheckCaseDetailsFlow {
   private readonly terms = new OrderTermsFlow();
   private readonly review = new CheckCaseDetailsActions();
+  private readonly comments = new CommentsNotesActions();
   private readonly details = new OrderDetailsFlow();
   private readonly liveTerms = new OrderTermsManagementFlow();
 
@@ -26,6 +28,47 @@ export class CheckCaseDetailsFlow {
   /** Opens the completed draft from its task list. */
   public openReview(): void {
     this.review.openReview();
+  }
+
+  /** Opens optional comments and notes from the task list. */
+  public openComments(): void {
+    this.comments.openFromTaskList();
+  }
+
+  /** Fills and saves both optional comments and notes. */
+  public saveComments(): void {
+    this.comments.fill();
+    this.comments.save();
+  }
+
+  /** Reopens saved comments and notes from review. */
+  public reopenComments(): void {
+    this.comments.openFromReview();
+  }
+
+  /** Verifies saved optional values survive review navigation. */
+  public assertRetainedComments(): void {
+    this.comments.assertSaved();
+  }
+
+  /** Returns to review through the comments form's save action. */
+  public returnFromComments(): void {
+    this.comments.save();
+  }
+
+  /** Checks saved optional values and required sections before submission. */
+  public assertReviewWithComments(): void {
+    this.comments.assertReview();
+  }
+
+  /** Checks an untouched optional task is absent from review. */
+  public assertReviewWithoutComments(): void {
+    this.comments.assertAbsent();
+  }
+
+  /** Checks the submitted request contains no optional comments or notes. */
+  public assertNoOptionalSubmission(): void {
+    this.comments.assertOmittedFromSubmission();
   }
 
   /** Completes one synthetic draft through live services before entering review. */

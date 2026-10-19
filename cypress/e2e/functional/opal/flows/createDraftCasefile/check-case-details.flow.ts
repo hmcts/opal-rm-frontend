@@ -103,6 +103,9 @@ export class CheckCaseDetailsFlow {
     this.details.assertLiveProvided();
     this.liveTerms.addApplicantTermToCurrentDraft('10', 'liveApplicantTerm');
     this.review.completePaymentTasks();
+    this.comments.openFromTaskList();
+    this.comments.fill();
+    this.comments.save();
     this.assertReadyForReview();
     this.review.openReview();
   }
@@ -141,6 +144,10 @@ export class CheckCaseDetailsFlow {
   /** Checks the confirmation page, resolved payload and single successful submission. */
   public assertConfirmation(): void {
     this.review.assertConfirmation();
+  }
+  /** Checks the confirmation offers a focusable cases in review link. */
+  public assertCasesInReviewAvailable(): void {
+    this.review.assertCasesInReviewAvailable();
   }
   /** Starts an empty case through Create a new case. */
   public startNextCase(): void {

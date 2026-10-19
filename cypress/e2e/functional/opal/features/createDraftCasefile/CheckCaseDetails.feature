@@ -4,15 +4,17 @@ Feature: Check case details and submit for review
   Background:
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
 
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10273 @retries(0)
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10273 @JIRA-STORY:PO-10283 @retries(0)
   # Cleanup calls the future Draft Casefile test-support DELETE endpoint.
   # This scenario will not pass until that API is implemented and enabled.
   # The visible generated-ID assertion also requires the separate confirmation-page product fix.
   Scenario: Complete and submit one Draft Casefile through live services
     Given I am reviewing a live completed Draft Casefile
+    Then review includes the saved casefile comments and notes
     When I submit the live Draft Casefile
     Then the backend and confirmation show the same generated Draft Casefile identifier
     And the submitted Create Draft Casefile journey is cleared
+    And the submitted party forms and review cannot be reopened
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9817
   Scenario: Correct accepted details before simulating submission
@@ -91,3 +93,10 @@ Feature: Check case details and submit for review
     Then the corrected casefile is submitted after the rejection
     When I create a new case from casefile confirmation
     Then the submitted case journey is empty without another create request
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10283
+  Scenario: Offer the cases in review journey after submission
+    Given I am reviewing a complete casefile for submission
+    When I submit the casefile for submission
+    Then submission confirmation is shown after one create request
+    And confirmation offers an actionable cases in review link

@@ -286,7 +286,7 @@ required-versus-optional wording differs from current product validation, which 
 
 ## Shared casefile permission coverage
 
-`CasefilePermissions.feature` runs exactly seventeen unique protected routes with the release enabled. Each example first
+`CasefilePermissions.feature` runs exactly nineteen unique protected routes with the release enabled. Each example first
 checks the authorised user's live ACTIVE Maintenance state and BU 44 `CREATE_MANAGE_DRAFT_CASEFILES` / API permission
 ID 21, then opens the released case-type page. It explicitly authenticates the provisioned denied username and checks
 live ACTIVE status, Maintenance domain and absence of permission 21 for BU 44 before attempting direct task navigation.
@@ -308,6 +308,56 @@ The outline carries epic PO-6506.
 
 ```bash
 corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```
+
+## Review and submission QA (PO-10283)
+
+The PO-10283 selection extends the existing live scenario and adds controlled comments, optional omission,
+rejection/retry and actionable onward-choice coverage. Each scenario owns an independent browser-created local draft.
+The rejection is an intercepted HTTP 400, followed by an explicitly requested controlled success; it does not prove a
+live service failure or persistence rollback.
+
+The existing live scenario observes the real HTTP 201 receipt, requires a positive generated ID and `SUBMITTED` status,
+compares that ID with the confirmation, and proves state clearing and blocked re-entry to submitted forms. It retains
+PO-10273 ownership and disables automatic scenario retries. Cleanup records only observed live IDs and uses the
+assumed test-support contract described above. Do not run this scenario until the backend agrees the DELETE route,
+BU scope, permissions, dependent-row deletion and idempotent 204, and the endpoint is enabled in the target environment.
+A client 204 alone does not establish the backend's transactional semantics.
+
+Full acceptance requires that cleanup API, the generated-ID display fix and a working approved cases-in-review
+destination. The actionable-link assertion is an unmet acceptance assertion against the current confirmation `span`;
+it only requires an anchor with a nonempty, non-placeholder `href` and focus, so it does not independently prove the
+destination is correct. Once the product owner supplies the canonical route and source, add native Tab/Enter activation
+and an independently specified expected route or page outcome, then execute it. Do not derive the expected destination
+from the element's own `href`. Keep passing controlled evidence distinct from blocked live acceptance. Automated Axe
+and keyboard checks are partial accessibility evidence.
+
+Use the configured `TEST_URL`; port 5001 below is the verified local runtime for this task. Discover the five selected
+scenarios (the retained live scenario plus four controlled scenarios) without browser execution:
+
+```bash
+TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature' --env dryRun=true
+```
+
+Run only the four controlled scenarios by excluding the live scenario's PO-10273 tag. The actionable-link scenario is
+expected to fail against the current `span`; record actual results rather than claiming browser acceptance:
+
+```bash
+TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature'
+```
+
+Run the sole live submission scenario only after the cleanup prerequisite above is evidenced. Expect one live create
+POST, visible agreement with the real server ID, blocked re-entry and one successful cleanup attempt for its ID and BU:
+
+```bash
+TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and @JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and @JIRA-STORY:PO-10273 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature'
+```
+
+The final focused selection combines functional review, accessibility and permission coverage. It includes the live
+scenario, so keep this as discovery until the cleanup prerequisite is met:
+
+```bash
+TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature' --env dryRun=true
 ```
 
 ## Integrated live QA selection and evidence
@@ -435,8 +485,8 @@ Repeat those specs with both tag variables set to `@R1CRmCreateCaseFiles and not
 ## Integrated Order Terms and creditor QA
 
 Select PO-10278, PO-10279 and PO-10280 together using both tag variables. This selection expands to exactly 27
-examples; the nine permission routes tagged to other QA stories are outside this selection. The complete shared
-permission outline has seventeen unique routes, including the two journey routes for PO-10273 and the two payment
+examples; the eleven permission routes tagged to other QA stories are outside this selection. The complete shared
+permission outline has nineteen unique routes, including the two journey routes for PO-10273 and the two payment
 routes for PO-10281.
 
 | QA story | Functional | Accessibility | Permission | Total |

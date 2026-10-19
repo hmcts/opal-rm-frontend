@@ -27,6 +27,7 @@ When('I correct the respondent from casefile review', () => flow.correctResponde
 Then('review shows the corrected respondent and unchanged orders', () => flow.assertCorrection());
 When('I submit the casefile for submission', () => flow.submit());
 Then('submission confirmation is shown after one create request', () => flow.assertConfirmation());
+Then('confirmation offers an actionable cases in review link', () => flow.assertCasesInReviewAvailable());
 When('I refresh the submission confirmation', () => flow.refreshConfirmation());
 When('I open cancellation and return to the reviewed draft', () => flow.cancel());
 When('I open case creation cancellation', () => flow.openCancellation());

@@ -8,17 +8,14 @@ import { provideRouter, Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { CasesCreateCasefileSubmissionConfirmationComponent } from './cases-create-casefile-submission-confirmation.component';
-import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 
 describe('Submission confirmation', () => {
-  const receipt = { draft_casefile_id: 123, casefile_status: 'SUBMITTED' as const };
-
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [CasesCreateCasefileSubmissionConfirmationComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     });
-    TestBed.inject(CasesCreateCasefileStore).completeSubmission(receipt);
+    TestBed.inject(CasesCreateCasefileStore).completeSubmission();
   });
 
   it('renders the confirmation panel and next steps without form or back navigation', async () => {
@@ -30,7 +27,6 @@ describe('Submission confirmation', () => {
     expect(element.querySelector('h1')?.textContent?.trim()).toBe('You’ve submitted this case for review');
     expect(element.querySelector('h1')?.getAttribute('tabindex')).toBe('-1');
     expect(element.querySelector('.govuk-panel--confirmation')).not.toBeNull();
-    expect(element.querySelector('div.govuk-panel__body')?.textContent?.trim()).toBe('Draft Casefile ID: 123');
     expect(element.querySelector('h2')?.textContent?.trim()).toBe('Next steps');
     const createNew = element.querySelector('#create_casefile_confirmation_create_new');
     expect(createNew?.textContent?.trim()).toBe('Create a new case');
@@ -44,7 +40,7 @@ describe('Submission confirmation', () => {
 
   it('retains the confirmation marker and empty draft on activation without submitting again', async () => {
     const store = TestBed.inject(CasesCreateCasefileStore);
-    store.completeSubmission(receipt);
+    store.completeSubmission();
     const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
     const submit = vi.spyOn(TestBed.inject(OpalMaintenanceService), 'createDraftCasefile');
     const before = structuredClone(getState(store));
@@ -54,23 +50,21 @@ describe('Submission confirmation', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(submit).not.toHaveBeenCalled();
-    expect(store.submissionReceipt()?.draft_casefile_id).toBe(123);
   });
   it('retains successful submission on departure to prevent another POST', () => {
     const store = TestBed.inject(CasesCreateCasefileStore);
-    store.completeSubmission(receipt);
+    store.completeSubmission();
     const before = structuredClone(getState(store));
     const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
     fixture.destroy();
     expect(getState(store)).toEqual(before);
-    expect(store.submissionReceipt()?.draft_casefile_id).toBe(123);
   });
 
   it.each(['success', 'false', 'rejected'])(
-    'handles the submission receipt during %s new-case navigation',
+    'preserves the confirmation marker and empty draft during %s new-case navigation',
     async (outcome) => {
       const store = TestBed.inject(CasesCreateCasefileStore);
-      store.completeSubmission(receipt);
+      store.completeSubmission();
       const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
       const before = structuredClone(getState(store));
       const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
@@ -87,9 +81,8 @@ describe('Submission confirmation', () => {
       expect(navigate).toHaveBeenCalledWith('/cases/create-casefile/case-type', {
         state: { startNewCase: true, focusCaseTypeHeading: true },
       });
-      expect(getState(store)).toEqual(outcome === 'success' ? CASES_CREATE_CASEFILE_STATE : before);
+      expect(getState(store)).toEqual(before);
       expect(review.context()).toBeNull();
-      expect(store.submissionReceipt()).toEqual(outcome === 'success' ? null : receipt);
       if (outcome !== 'success') {
         const error = fixture.nativeElement.querySelector('.govuk-error-summary');
         expect(error?.textContent).toContain('The page could not be opened');
@@ -112,18 +105,7 @@ describe('Submission confirmation', () => {
     link.click();
     link.click();
     expect(navigate).toHaveBeenCalledOnce();
-    const store = TestBed.inject(CasesCreateCasefileStore);
-    expect(store.submissionReceipt()?.draft_casefile_id).toBe(123);
     finish(true);
     await fixture.whenStable();
-    expect(store.submissionReceipt()).toBeNull();
-  });
-
-  it('does not render a receipt body when no receipt is present', async () => {
-    TestBed.inject(CasesCreateCasefileStore).resetStore();
-    const fixture = TestBed.createComponent(CasesCreateCasefileSubmissionConfirmationComponent);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('div.govuk-panel__body')).toBeNull();
   });
 });

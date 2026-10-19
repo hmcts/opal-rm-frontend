@@ -206,7 +206,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
         throw new Error('Invalid submission receipt');
       }
       if (this.destroyRef.destroyed) return;
-      this.store.completeSubmission(receipt);
+      this.store.completeSubmission();
       this.reviewNavigation.clearContext();
       this.submitting.set(false);
       await this.navigate(this.root + this.paths.submissionConfirmation);

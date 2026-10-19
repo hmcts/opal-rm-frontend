@@ -129,7 +129,7 @@ describe('CasesCreateCasefileComponent', () => {
 
   it('clears draft and review context on shell destruction', () => {
     const reviewNavigation = TestBed.inject(CasesCreateCasefileReviewNavigationService);
-    store.completeSubmission({ draft_casefile_id: 123, casefile_status: 'SUBMITTED' });
+    store.setCaseTypeSelection({ caseType: CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT });
     reviewNavigation.setContext({ origin: 'review', section: 'respondent' });
 
     component.ngOnDestroy();
@@ -138,6 +138,5 @@ describe('CasesCreateCasefileComponent', () => {
     expect(store.stateChanges()).toBe(false);
     expect(store.submissionSucceeded()).toBe(false);
     expect(reviewNavigation.context()).toBeNull();
-    expect(store.submissionReceipt()).toBeNull();
   });
 });

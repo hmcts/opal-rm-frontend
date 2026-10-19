@@ -12,7 +12,6 @@ import {
 import { Router } from '@angular/router';
 import { GovukPanelComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-panel';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
-import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 
 @Component({
   selector: 'app-cases-create-casefile-submission-confirmation',
@@ -26,8 +25,6 @@ export class CasesCreateCasefileSubmissionConfirmationComponent {
   private readonly errorRegion = viewChild<ElementRef<HTMLElement>>('errorRegion');
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
 
-  private readonly store = inject(CasesCreateCasefileStore);
-  public readonly submissionReceipt = this.store.submissionReceipt;
   public readonly navigationError = signal(false);
   public readonly navigating = signal(false);
   public readonly caseTypeUrl =
@@ -47,7 +44,6 @@ export class CasesCreateCasefileSubmissionConfirmationComponent {
         state: { startNewCase: true, focusCaseTypeHeading: true },
       });
       this.navigationError.set(!navigated);
-      if (navigated) this.store.resetStore();
     } catch {
       this.navigationError.set(true);
     } finally {

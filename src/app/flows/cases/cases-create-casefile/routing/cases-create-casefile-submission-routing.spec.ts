@@ -83,11 +83,6 @@ describe('Submission route lifecycle', () => {
       await harness.fixture.whenStable();
       harness.detectChanges();
       expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
-      expect(store.submissionReceipt()).toEqual({
-        draft_casefile_id: 9817,
-        casefile_status: 'SUBMITTED',
-      });
-      expect(harness.routeNativeElement!.querySelector('.govuk-panel__body')?.textContent).toContain('9817');
       const link = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('#' + linkId);
       expect(link).not.toBeNull();
       link!.focus();
@@ -102,7 +97,6 @@ describe('Submission route lifecycle', () => {
       expect(document.activeElement).toBe(heading);
       expect(harness.routeNativeElement!.querySelectorAll('input:checked')).toHaveLength(0);
       expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
-      expect(store.submissionReceipt()).toBeNull();
     },
   );
 
@@ -119,10 +113,7 @@ describe('Submission route lifecycle', () => {
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
       createCasesCreateCasefileReviewState(),
     );
-    store.completeSubmission({
-      draft_casefile_id: 9817,
-      casefile_status: 'SUBMITTED',
-    });
+    store.setSubmissionSucceeded(true);
     const setTitle = vi.spyOn(TestBed.inject(Title), 'setTitle');
     await RouterTestingHarness.create('/cases/create-casefile/submission-confirmation');
     expect(setTitle).toHaveBeenCalledWith('OPAL - Submission confirmation');
@@ -196,16 +187,7 @@ describe('Submission route lifecycle', () => {
     harness.detectChanges();
     expect(router.url).toBe('/cases/create-casefile/submission-confirmation');
     expect(harness.routeNativeElement?.textContent).toContain('You’ve submitted this case for review');
-    expect(store.submissionReceipt()).toEqual({
-      draft_casefile_id: 9817,
-      casefile_status: 'SUBMITTED',
-    });
-    expect(harness.routeNativeElement?.querySelector('.govuk-panel__body')?.textContent).toContain('9817');
-    expect(getState(store)).toEqual({
-      ...CASES_CREATE_CASEFILE_STATE,
-      submissionSucceeded: true,
-      submissionReceipt: { draft_casefile_id: 9817, casefile_status: 'SUBMITTED' },
-    });
+    expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
     // The harness navigates explicitly; enable the listener used by browser Back.
     router.setUpLocationChangeListener();
     TestBed.inject(Location).historyGo(-2);
@@ -231,7 +213,6 @@ describe('Submission route lifecycle', () => {
     await harness.fixture.whenStable();
     expect(router.url).toBe('/dashboard/cases');
     expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
-    expect(store.submissionReceipt()).toBeNull();
   });
 
   it.each([400, 409, 500])('uses the generic banner and retains the draft after retriable HTTP %i', async (status) => {

@@ -26,27 +26,8 @@ describe('Casefile submission route guards', () => {
   });
 
   it('allows confirmation only after a successful submission', () => {
-    TestBed.inject(CasesCreateCasefileStore).completeSubmission({
-      draft_casefile_id: 123,
-      casefile_status: 'SUBMITTED',
-    });
+    TestBed.inject(CasesCreateCasefileStore).setSubmissionSucceeded(true);
     expect(TestBed.runInInjectionContext(() => casesCreateCasefileSubmissionGuard(route, state))).toBe(true);
-  });
-
-  it.each(['marker', 'receipt'])('denies confirmation with only the %s', (evidence) => {
-    if (evidence === 'marker') TestBed.inject(CasesCreateCasefileStore).setSubmissionSucceeded(true);
-    else {
-      const store = TestBed.inject(CasesCreateCasefileStore);
-      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
-        submissionReceipt: {
-          draft_casefile_id: 123,
-          casefile_status: 'SUBMITTED',
-        },
-      });
-    }
-    expect(TestBed.runInInjectionContext(() => casesCreateCasefileSubmissionGuard(route, state))).toEqual(
-      TestBed.inject(Router).parseUrl('/cases/create-casefile/check-case-details'),
-    );
   });
 
   it('retains draft completion requirements for review before submission', () => {

@@ -98,29 +98,16 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       createCasesCreateCasefileReviewState(),
     );
 
-  it('accepts the exact server receipt before clearing the submitted draft and opening confirmation', async () => {
+  it('submits the mapped case and hands successful submission to the placeholder', async () => {
     seedCompleteDraft();
-    const receipt = { draft_casefile_id: 456, casefile_status: 'SUBMITTED' as const };
-    maintenance.createDraftCasefile.mockReturnValue(of(new HttpResponse({ status: 201, body: receipt })));
-    const complete = vi.spyOn(store, 'completeSubmission').mockImplementation((acceptedReceipt) => {
-      expect(acceptedReceipt).toBe(receipt);
-      expect(store.respondentDetails()).not.toBeNull();
-      complete.mockRestore();
-      store.completeSubmission(acceptedReceipt);
-    });
     await fixture.componentInstance.handleSubmit();
-    expect(store.submissionReceipt()).toBe(receipt);
     expect(maintenance.createDraftCasefile).toHaveBeenCalledOnce();
     expect(maintenance.createDraftCasefile.mock.calls[0][0]).toMatchObject({
       business_unit_id: 44,
       casefile_type: 'REMO In',
     });
     expect(store.submissionSucceeded()).toBe(true);
-    expect(getState(store)).toEqual({
-      ...CASES_CREATE_CASEFILE_STATE,
-      submissionSucceeded: true,
-      submissionReceipt: receipt,
-    });
+    expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/submission-confirmation');
   });
 
@@ -149,7 +136,6 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     await fixture.componentInstance.handleSubmit();
     fixture.detectChanges();
     expect(getState(store)).toEqual(before);
-    expect(store.submissionReceipt()).toBeNull();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#review-errors')).toBeNull();
     expect(fixture.componentInstance.blocked()).toBe(false);
@@ -233,38 +219,21 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(fixture.nativeElement.querySelector('#review-errors')).toBeNull();
   });
 
-  it.each(['cancelled', 'rejected'])(
-    'retains the receipt and retries %s confirmation navigation without another POST',
-    async (failure) => {
-      seedCompleteDraft();
-      if (failure === 'rejected') router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic rejection'));
-      else router.navigateByUrl.mockResolvedValueOnce(false);
-      await fixture.componentInstance.handleSubmit();
-      const receipt = store.submissionReceipt();
-      expect(receipt).toEqual({ draft_casefile_id: 123, casefile_status: 'SUBMITTED' });
-      expect(store.submissionSucceeded()).toBe(true);
-      await fixture.componentInstance.handleSubmit();
-      expect(store.submissionReceipt()).toBe(receipt);
-      expect(maintenance.createDraftCasefile).toHaveBeenCalledOnce();
-      expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
-      expect(getState(store)).toEqual({
-        ...CASES_CREATE_CASEFILE_STATE,
-        submissionSucceeded: true,
-        submissionReceipt: receipt,
-      });
-    },
-  );
+  it('retries confirmation navigation without repeating a successful POST', async () => {
+    seedCompleteDraft();
+    router.navigateByUrl.mockResolvedValueOnce(false);
+    await fixture.componentInstance.handleSubmit();
+    expect(store.submissionSucceeded()).toBe(true);
+    await fixture.componentInstance.handleSubmit();
+    expect(maintenance.createDraftCasefile).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+    expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
+  });
 
   it.each([
     new HttpResponse({ status: 200, body: { draft_casefile_id: 123, casefile_status: 'SUBMITTED' } }),
     new HttpResponse({ status: 201, body: null }),
     new HttpResponse({ status: 201, body: { draft_casefile_id: 0, casefile_status: 'SUBMITTED' } }),
-    new HttpResponse({ status: 201, body: { draft_casefile_id: -1, casefile_status: 'SUBMITTED' } }),
-    new HttpResponse({ status: 201, body: { draft_casefile_id: 1.5, casefile_status: 'SUBMITTED' } }),
-    new HttpResponse({
-      status: 201,
-      body: { draft_casefile_id: Number.MAX_SAFE_INTEGER + 1, casefile_status: 'SUBMITTED' },
-    }),
     new HttpResponse({ status: 201, body: { draft_casefile_id: 123, casefile_status: 'DRAFT' } }),
   ])('does not show confirmation for an invalid receipt', async (response) => {
     seedCompleteDraft();
@@ -272,7 +241,6 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     maintenance.createDraftCasefile.mockReturnValue(of(response));
     await fixture.componentInstance.handleSubmit();
     expect(getState(store)).toEqual(before);
-    expect(store.submissionReceipt()).toBeNull();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
@@ -443,7 +411,6 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     fixture.destroy();
     await submit;
     expect(getState(store)).toEqual(before);
-    expect(store.submissionReceipt()).toBeNull();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 

@@ -16,9 +16,11 @@ import type { ICasesCreateCasefileOrderTermRemoval } from './cases-create-casefi
 import type { CasesCreateCasefileOrderTermRemovalOutcome } from '../types/cases-create-casefile-order-term-removal-outcome.type';
 import type { ICasesCreateCasefileMinorCreditorRemoval } from './cases-create-casefile-minor-creditor-removal.interface';
 import type { ICasesCreateCasefileMinorCreditorRemovalOutcome } from './cases-create-casefile-minor-creditor-removal-outcome.interface';
+import type { IOpalMaintenanceDraftCasefileResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-response.interface';
 
 export interface ICasesCreateCasefileState {
   submissionSucceeded: boolean;
+  submissionReceipt: IOpalMaintenanceDraftCasefileResponse | null;
   caseTypeSelection: CasesCreateCasefileCaseTypeSelection | null;
   applicantDetails: CasesCreateCasefileApplicantDetails | null;
   respondentDetails: ICasesCreateCasefileRespondentDetails | null;

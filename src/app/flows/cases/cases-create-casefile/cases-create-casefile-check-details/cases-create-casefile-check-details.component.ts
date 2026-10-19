@@ -35,7 +35,6 @@ import { CasesCreateCasefileOrderTermCardComponent } from '../components/cases-c
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
 import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
-import { CasesCreateCasefileSubmissionService } from '../services/cases-create-casefile-submission.service';
 import type { CasesCreateCasefileReviewReturnContext } from '../types/cases-create-casefile-review-return-context.type';
 import { reviewRespondent, reviewApplicant, reviewMinorCreditor } from '../utils/cases-create-casefile-party-review';
 import { reviewCaseSections } from '../utils/cases-create-casefile-case-review';
@@ -64,7 +63,6 @@ export class CasesCreateCasefileCheckDetailsComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly store = inject(CasesCreateCasefileStore);
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
-  private readonly submission = inject(CasesCreateCasefileSubmissionService);
   private readonly paths = CASES_CREATE_CASEFILE_ROUTING_PATHS.children;
   private readonly root = '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/';
   private readonly countries: readonly IOpalMaintenanceCountryReferenceDataItem[] =
@@ -208,8 +206,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
         throw new Error('Invalid submission receipt');
       }
       if (this.destroyRef.destroyed) return;
-      this.submission.accept(receipt);
-      this.store.completeSubmission();
+      this.store.completeSubmission(receipt);
       this.reviewNavigation.clearContext();
       this.submitting.set(false);
       await this.navigate(this.root + this.paths.submissionConfirmation);

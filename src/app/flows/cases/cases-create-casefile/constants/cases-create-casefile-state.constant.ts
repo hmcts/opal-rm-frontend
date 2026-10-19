@@ -15,6 +15,7 @@ export const CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES: ICasesCreateCasefileTa
 
 export const CASES_CREATE_CASEFILE_STATE: ICasesCreateCasefileState = {
   submissionSucceeded: false,
+  submissionReceipt: null,
   caseTypeSelection: null,
   applicantDetails: null,
   respondentDetails: null,

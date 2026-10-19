@@ -3,7 +3,6 @@ import { provideLocationMocks } from '@angular/common/testing';
 import { CasesCreateCasefileCheckDetailsComponent } from '../cases-create-casefile-check-details/cases-create-casefile-check-details.component';
 import { By, Title } from '@angular/platform-browser';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
-import { CasesCreateCasefileSubmissionService } from '../services/cases-create-casefile-submission.service';
 import { CasesCreateCasefileOrderTermsRemoveComponent } from '../cases-create-casefile-order-terms-remove/cases-create-casefile-order-terms-remove.component';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -84,7 +83,7 @@ describe('Submission route lifecycle', () => {
       await harness.fixture.whenStable();
       harness.detectChanges();
       expect(TestBed.inject(Router).url).toBe('/cases/create-casefile/submission-confirmation');
-      expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()).toEqual({
+      expect(store.submissionReceipt()).toEqual({
         draft_casefile_id: 9817,
         casefile_status: 'SUBMITTED',
       });
@@ -103,7 +102,7 @@ describe('Submission route lifecycle', () => {
       expect(document.activeElement).toBe(heading);
       expect(harness.routeNativeElement!.querySelectorAll('input:checked')).toHaveLength(0);
       expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
-      expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()).toBeNull();
+      expect(store.submissionReceipt()).toBeNull();
     },
   );
 
@@ -120,8 +119,7 @@ describe('Submission route lifecycle', () => {
       store as unknown as WritableStateSource<ICasesCreateCasefileState>,
       createCasesCreateCasefileReviewState(),
     );
-    store.setSubmissionSucceeded(true);
-    TestBed.inject(CasesCreateCasefileSubmissionService).accept({
+    store.completeSubmission({
       draft_casefile_id: 9817,
       casefile_status: 'SUBMITTED',
     });
@@ -198,12 +196,16 @@ describe('Submission route lifecycle', () => {
     harness.detectChanges();
     expect(router.url).toBe('/cases/create-casefile/submission-confirmation');
     expect(harness.routeNativeElement?.textContent).toContain('You’ve submitted this case for review');
-    expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()).toEqual({
+    expect(store.submissionReceipt()).toEqual({
       draft_casefile_id: 9817,
       casefile_status: 'SUBMITTED',
     });
     expect(harness.routeNativeElement?.querySelector('.govuk-panel__body')?.textContent).toContain('9817');
-    expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
+    expect(getState(store)).toEqual({
+      ...CASES_CREATE_CASEFILE_STATE,
+      submissionSucceeded: true,
+      submissionReceipt: { draft_casefile_id: 9817, casefile_status: 'SUBMITTED' },
+    });
     // The harness navigates explicitly; enable the listener used by browser Back.
     router.setUpLocationChangeListener();
     TestBed.inject(Location).historyGo(-2);
@@ -229,7 +231,7 @@ describe('Submission route lifecycle', () => {
     await harness.fixture.whenStable();
     expect(router.url).toBe('/dashboard/cases');
     expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
-    expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()).toBeNull();
+    expect(store.submissionReceipt()).toBeNull();
   });
 
   it.each([400, 409, 500])('uses the generic banner and retains the draft after retriable HTTP %i', async (status) => {

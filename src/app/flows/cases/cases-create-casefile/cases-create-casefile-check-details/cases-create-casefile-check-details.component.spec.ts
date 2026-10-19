@@ -7,7 +7,6 @@ import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { of, Subject, throwError } from 'rxjs';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
-import { CasesCreateCasefileSubmissionService } from '../services/cases-create-casefile-submission.service';
 import { ActivatedRoute } from '@angular/router';
 import { getState, patchState, type WritableStateSource } from '@ngrx/signals';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
@@ -103,22 +102,25 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     seedCompleteDraft();
     const receipt = { draft_casefile_id: 456, casefile_status: 'SUBMITTED' as const };
     maintenance.createDraftCasefile.mockReturnValue(of(new HttpResponse({ status: 201, body: receipt })));
-    const submission = TestBed.inject(CasesCreateCasefileSubmissionService);
-    const complete = vi.spyOn(store, 'completeSubmission').mockImplementation(() => {
-      expect(submission.receipt()).toBe(receipt);
+    const complete = vi.spyOn(store, 'completeSubmission').mockImplementation((acceptedReceipt) => {
+      expect(acceptedReceipt).toBe(receipt);
       expect(store.respondentDetails()).not.toBeNull();
       complete.mockRestore();
-      store.completeSubmission();
+      store.completeSubmission(acceptedReceipt);
     });
     await fixture.componentInstance.handleSubmit();
-    expect(submission.receipt()).toBe(receipt);
+    expect(store.submissionReceipt()).toBe(receipt);
     expect(maintenance.createDraftCasefile).toHaveBeenCalledOnce();
     expect(maintenance.createDraftCasefile.mock.calls[0][0]).toMatchObject({
       business_unit_id: 44,
       casefile_type: 'REMO In',
     });
     expect(store.submissionSucceeded()).toBe(true);
-    expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
+    expect(getState(store)).toEqual({
+      ...CASES_CREATE_CASEFILE_STATE,
+      submissionSucceeded: true,
+      submissionReceipt: receipt,
+    });
     expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/submission-confirmation');
   });
 
@@ -147,7 +149,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     await fixture.componentInstance.handleSubmit();
     fixture.detectChanges();
     expect(getState(store)).toEqual(before);
-    expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()).toBeNull();
+    expect(store.submissionReceipt()).toBeNull();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#review-errors')).toBeNull();
     expect(fixture.componentInstance.blocked()).toBe(false);
@@ -238,15 +240,18 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       if (failure === 'rejected') router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic rejection'));
       else router.navigateByUrl.mockResolvedValueOnce(false);
       await fixture.componentInstance.handleSubmit();
-      const submission = TestBed.inject(CasesCreateCasefileSubmissionService);
-      const receipt = submission.receipt();
+      const receipt = store.submissionReceipt();
       expect(receipt).toEqual({ draft_casefile_id: 123, casefile_status: 'SUBMITTED' });
       expect(store.submissionSucceeded()).toBe(true);
       await fixture.componentInstance.handleSubmit();
-      expect(submission.receipt()).toBe(receipt);
+      expect(store.submissionReceipt()).toBe(receipt);
       expect(maintenance.createDraftCasefile).toHaveBeenCalledOnce();
       expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
-      expect(getState(store)).toEqual({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
+      expect(getState(store)).toEqual({
+        ...CASES_CREATE_CASEFILE_STATE,
+        submissionSucceeded: true,
+        submissionReceipt: receipt,
+      });
     },
   );
 
@@ -267,7 +272,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     maintenance.createDraftCasefile.mockReturnValue(of(response));
     await fixture.componentInstance.handleSubmit();
     expect(getState(store)).toEqual(before);
-    expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()).toBeNull();
+    expect(store.submissionReceipt()).toBeNull();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
@@ -438,7 +443,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     fixture.destroy();
     await submit;
     expect(getState(store)).toEqual(before);
-    expect(TestBed.inject(CasesCreateCasefileSubmissionService).receipt()).toBeNull();
+    expect(store.submissionReceipt()).toBeNull();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 

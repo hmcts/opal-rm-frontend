@@ -91,5 +91,9 @@ export const REVIEW_SUBMISSION_RECEIPT = {
 export const REVIEW_SUBMISSION_ERROR = { detail: 'Synthetic validation failure', retriable: true };
 
 export function createSubmittedReviewState() {
-  return { ...structuredClone(CASES_CREATE_CASEFILE_STATE), submissionSucceeded: true };
+  return {
+    ...structuredClone(CASES_CREATE_CASEFILE_STATE),
+    submissionSucceeded: true,
+    submissionReceipt: { ...structuredClone(REVIEW_SUBMISSION_RECEIPT), casefile_status: 'SUBMITTED' as const },
+  };
 }

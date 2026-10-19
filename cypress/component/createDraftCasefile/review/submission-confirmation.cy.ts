@@ -3,7 +3,7 @@ import { createSubmittedReviewState } from './mocks/review.mock';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { setupReview, type ReviewStore } from './setup/review.setup';
-import type { CasesCreateCasefileSubmissionService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-submission.service';
+import { CASES_CREATE_CASEFILE_STATE } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-state.constant';
 
 const S = CreateCasefileSelectors.review;
 const buildTags = (story = 'PO-9819'): string[] => [
@@ -52,7 +52,7 @@ describe('Submission confirmation', () => {
         cy.get(S.createNew).focus();
         cy.press(Cypress.Keyboard.Keys.ENTER);
         cy.get<ReviewStore>('@reviewStore').should((store) =>
-          expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
+          expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),
         );
         cy.get('@confirmationPersistence').should('not.have.been.called');
         cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate')
@@ -60,9 +60,6 @@ describe('Submission confirmation', () => {
             state: { startNewCase: true, focusCaseTypeHeading: true },
           })
           .then((navigate) => cy.wrap(navigate.firstCall.returnValue, { log: false }).should('equal', true));
-        cy.get<CasesCreateCasefileSubmissionService>('@submission').should(
-          (submission) => expect(submission.receipt()).to.be.null,
-        );
       },
     );
   });
@@ -84,8 +81,8 @@ describe('Submission confirmation', () => {
           .should('be.focused')
           .and('contain.text', 'The page could not be opened. Try again.');
         cy.get(S.confirmationHeading).closest('.govuk-panel').should('contain.text', '123');
-        cy.get<CasesCreateCasefileSubmissionService>('@submission').should((submission) =>
-          expect(submission.receipt()?.draft_casefile_id).to.equal(123),
+        cy.get<ReviewStore>('@reviewStore').should((store) =>
+          expect(store.submissionReceipt()?.draft_casefile_id).to.equal(123),
         );
         cy.get<ReviewStore>('@reviewStore').should((store) =>
           expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
@@ -98,13 +95,10 @@ describe('Submission confirmation', () => {
         cy.get(S.createNew).focus();
         cy.press(Cypress.Keyboard.Keys.ENTER);
         cy.get(S.confirmationError).should('not.exist');
-        cy.get<CasesCreateCasefileSubmissionService>('@submission').should(
-          (submission) => expect(submission.receipt()).to.be.null,
-        );
         cy.get('@routerNavigate').should('have.been.calledTwice');
         cy.get('@confirmationPersistence').should('not.have.been.called');
         cy.get<ReviewStore>('@reviewStore').should((store) =>
-          expect(getState(store)).to.deep.equal(createSubmittedReviewState()),
+          expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),
         );
       },
     );

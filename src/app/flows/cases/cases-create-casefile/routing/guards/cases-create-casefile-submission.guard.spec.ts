@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { ICasesCreateCasefileState } from '../../interfaces/cases-create-casefile-state.interface';
 import { createCasesCreateCasefileReviewState } from '../../mocks/cases-create-casefile-review-state.mock';
 import { CasesCreateCasefileStore } from '../../stores/cases-create-casefile.store';
-import { CasesCreateCasefileSubmissionService } from '../../services/cases-create-casefile-submission.service';
 import { casesCreateCasefileSubmissionGuard } from './cases-create-casefile-submission.guard';
 import { casesCreateCasefileCheckDetailsGuard } from './cases-create-casefile-check-details.guard';
 
@@ -27,8 +26,7 @@ describe('Casefile submission route guards', () => {
   });
 
   it('allows confirmation only after a successful submission', () => {
-    TestBed.inject(CasesCreateCasefileStore).setSubmissionSucceeded(true);
-    TestBed.inject(CasesCreateCasefileSubmissionService).accept({
+    TestBed.inject(CasesCreateCasefileStore).completeSubmission({
       draft_casefile_id: 123,
       casefile_status: 'SUBMITTED',
     });
@@ -37,11 +35,15 @@ describe('Casefile submission route guards', () => {
 
   it.each(['marker', 'receipt'])('denies confirmation with only the %s', (evidence) => {
     if (evidence === 'marker') TestBed.inject(CasesCreateCasefileStore).setSubmissionSucceeded(true);
-    else
-      TestBed.inject(CasesCreateCasefileSubmissionService).accept({
-        draft_casefile_id: 123,
-        casefile_status: 'SUBMITTED',
+    else {
+      const store = TestBed.inject(CasesCreateCasefileStore);
+      patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
+        submissionReceipt: {
+          draft_casefile_id: 123,
+          casefile_status: 'SUBMITTED',
+        },
       });
+    }
     expect(TestBed.runInInjectionContext(() => casesCreateCasefileSubmissionGuard(route, state))).toEqual(
       TestBed.inject(Router).parseUrl('/cases/create-casefile/check-case-details'),
     );

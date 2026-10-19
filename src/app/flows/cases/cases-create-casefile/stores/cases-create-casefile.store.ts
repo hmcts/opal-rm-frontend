@@ -29,6 +29,7 @@ import type { CasesCreateCasefileTaskStatus } from '../types/cases-create-casefi
 import type { CasesCreateCasefileTask } from '../types/cases-create-casefile-task.type';
 import type { CasesCreateCasefileCreditorAssignment } from '../types/cases-create-casefile-creditor-assignment.type';
 import type { CasesCreateCasefileMinorCreditorIdentity } from '../types/cases-create-casefile-minor-creditor-identity.type';
+import type { IOpalMaintenanceDraftCasefileResponse } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-response.interface';
 import { isCasesCreateCasefileCaseTypeSelectionValid } from '../utils/cases-create-casefile-case-type-selection';
 import { associatedMinorCreditors } from '../utils/cases-create-casefile-associated-minor-creditors';
 import type { ICasesCreateCasefileOrderTermPage } from '../cases-create-casefile-order-terms-input/interfaces/cases-create-casefile-order-term-page.interface';
@@ -134,6 +135,7 @@ export const CasesCreateCasefileStore = signalStore(
 
       patchState(store, {
         submissionSucceeded: false,
+        submissionReceipt: null,
         caseTypeSelection,
         applicantDetails: null,
         respondentDetails: null,
@@ -590,12 +592,13 @@ export const CasesCreateCasefileStore = signalStore(
         stateChanges: false,
       });
     },
-    /** Clears the accepted draft while retaining access to its confirmation. */
-    completeSubmission: (): void => {
+    /** Clears the accepted draft while retaining the backend submission receipt for confirmation. */
+    completeSubmission: (submissionReceipt: IOpalMaintenanceDraftCasefileResponse): void => {
       patchState(store, {
         ...CASES_CREATE_CASEFILE_STATE,
         taskStatuses: { ...CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES },
         submissionSucceeded: true,
+        submissionReceipt,
       });
     },
     setSubmissionSucceeded: (submissionSucceeded: boolean): void => {

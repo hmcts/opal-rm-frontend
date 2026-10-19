@@ -10,14 +10,12 @@ import { CasesCreateCasefileCheckDetailsComponent } from 'src/app/flows/cases/ca
 import { CasesCreateCasefileSubmissionConfirmationComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component';
 import { CasesCreateCasefileStore } from 'src/app/flows/cases/cases-create-casefile/stores/cases-create-casefile.store';
 import { CasesCreateCasefileReviewNavigationService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-review-navigation.service';
-import { CasesCreateCasefileSubmissionService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-submission.service';
 import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-state.interface';
 import {
   createCompleteReviewState,
   createSubmittedReviewState,
   REVIEW_APPLICATIONS,
   REVIEW_COUNTRIES,
-  REVIEW_SUBMISSION_RECEIPT,
 } from '../mocks/review.mock';
 
 export type ReviewStore = InstanceType<typeof CasesCreateCasefileStore>;
@@ -29,10 +27,6 @@ interface ReviewSetupOptions {
 
 export function setupReview(options: ReviewSetupOptions = {}) {
   const store = new CasesCreateCasefileStore();
-  const submission = new CasesCreateCasefileSubmissionService();
-  if (options.confirmation) {
-    submission.accept({ ...structuredClone(REVIEW_SUBMISSION_RECEIPT), casefile_status: 'SUBMITTED' });
-  }
   patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {
     ...(options.confirmation ? createSubmittedReviewState() : createCompleteReviewState()),
     ...structuredClone(options.state ?? {}),
@@ -52,7 +46,6 @@ export function setupReview(options: ReviewSetupOptions = {}) {
           { provide: GlobalStore, useValue: new GlobalStore() },
           { provide: AppInsightsService, useValue: { logException: () => undefined } },
           { provide: CasesCreateCasefileStore, useValue: store },
-          { provide: CasesCreateCasefileSubmissionService, useValue: submission },
           {
             provide: ActivatedRoute,
             useValue: {
@@ -69,7 +62,6 @@ export function setupReview(options: ReviewSetupOptions = {}) {
     ).then(({ fixture }) => {
       cy.stub(TestBed.inject(Router), 'navigateByUrl').as('routerNavigate').resolves(!options.failNavigation);
       cy.wrap(store, { log: false }).as('reviewStore');
-      cy.wrap(submission, { log: false }).as('submission');
       cy.wrap(TestBed.inject(GlobalStore), { log: false }).as('globalStore');
       cy.wrap(TestBed.inject(CasesCreateCasefileReviewNavigationService), { log: false }).as('reviewNavigation');
       fixture.detectChanges();

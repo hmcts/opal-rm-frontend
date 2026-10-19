@@ -43,6 +43,11 @@ export class CheckCaseDetailsFlow {
     this.comments.save();
   }
 
+  /** Saves optional comments and notes using keyboard navigation. */
+  public saveCommentsUsingKeyboard(): void {
+    this.comments.saveUsingKeyboard();
+  }
+
   /** Reopens saved comments and notes from review. */
   public reopenComments(): void {
     this.comments.openFromReview();

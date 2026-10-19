@@ -13,6 +13,7 @@ Given('I have completed a casefile ready for review', () => flow.prepareReadyFor
 When('I open the completed casefile review', () => flow.openReview());
 When('I open casefile comments and notes', () => flow.openComments());
 When('I save optional casefile comments and notes', () => flow.saveComments());
+When('I save optional casefile comments and notes using the keyboard', () => flow.saveCommentsUsingKeyboard());
 Then('review includes the saved casefile comments and notes', () => flow.assertReviewWithComments());
 When('I reopen comments and notes from casefile review', () => flow.reopenComments());
 Then('the saved casefile comments and notes are retained', () => flow.assertRetainedComments());

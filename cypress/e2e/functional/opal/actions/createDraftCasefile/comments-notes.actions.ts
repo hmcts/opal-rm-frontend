@@ -23,6 +23,18 @@ export class CommentsNotesActions {
     cy.get(S.commentsAndNotes.note).clear().type(DATA.commentsAndNotes.note);
   }
 
+  /** Saves optional comments and notes using native Tab navigation and Enter activation. */
+  public saveUsingKeyboard(): void {
+    cy.get(S.commentsAndNotes.comment).focus().should('be.focused').type(DATA.commentsAndNotes.comment);
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.commentsAndNotes.note).should('be.focused').type(DATA.commentsAndNotes.note);
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.commentsAndNotes.returnToCaseDetails).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get(S.caseTypeHeading).should('not.exist');
+    cy.get(S.caseDetails.commentsAndNotesLink).should('be.visible');
+  }
+
   /** Saves the current form and follows its contextual return navigation. */
   public save(): void {
     cy.get(S.commentsAndNotes.returnToCaseDetails).click();

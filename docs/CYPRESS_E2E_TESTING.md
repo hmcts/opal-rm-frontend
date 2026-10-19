@@ -360,6 +360,25 @@ scenario, so keep this as discovery until the cleanup prerequisite is met:
 TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature' --env dryRun=true
 ```
 
+### Local execution status, 19 October 2026
+
+On the verified Redis-enabled local release-on runtime, focused discovery selected all nine PO-10283 examples with no
+pending or skipped cases. The four controlled review examples ran in Chrome: comments, optional omission and rejected
+submission/retry passed; the onward-choice example failed because the current confirmation renders a `span`, not a
+focusable link. All nineteen permission examples passed their final attempts, including both new review routes; one
+example needed a setup retry. An initial accessibility run passed one of two examples: the new keyboard example stopped
+when Cypress native Enter did not activate the focused submit button. An isolated native-form probe reproduced that
+runner behavior. Changing only that test activation to native Space preserved Tab focus and task-list assertions; the
+focused rerun passed both examples and all ten Axe scans with no retries or skipped cases. An earlier affected
+50-example regression passed 48 and failed the onward link and the then-current Enter action; its keyboard result is
+superseded by the focused rerun, while the link failure remains. The other regression groups, including prerequisites,
+payments, cancellation and permissions, passed. Actual smoke passed. Browser reports and exact commands are retained
+in the local PO-10283 evidence file; copied output trees can contain stale older files, so count the current run log
+and Cucumber report for each selection.
+
+The sole live submission remains unexecuted until the backend cleanup contract and deployment are confirmed. The
+generated-ID display and independently approved cases-in-review destination also remain acceptance dependencies.
+
 ## Integrated live QA selection and evidence
 
 For PO-10275, PO-10276 and PO-10277, select both tag variables explicitly so a pipeline filter cannot remove the

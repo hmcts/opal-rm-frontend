@@ -162,7 +162,7 @@ a dashboard assertion and verify Access Denied. Tagged CNP and nightly runs skip
 Run the matching suite against an environment already configured for that flag state:
 
 ```bash
-corepack yarn test:functional:rm-create-case-files --config retries=0
+corepack yarn test:functional:rm-create-case-files
 corepack yarn test:functional:rm-create-case-files-off
 corepack yarn test:smoke
 ```
@@ -241,8 +241,8 @@ provide an expected Draft Casefile ID. Other scenarios in that feature retain co
 live scenario records the observed ID before later assertions and attempts cleanup after both passing and failing
 scenarios. No cleanup runs until creation has actually been observed. This QA change has no `src` delta; the existing
 confirmation page does not display the generated ID, so that retained acceptance assertion requires a separate product fix.
-The scenario-level `@retries(0)` configuration prevents a later assertion failure from repeating a persisted
-submission. The ticket-focused command also sets `retries=0` as a run-level safeguard.
+The scenario-level `@retries(0)` prevents a later assertion or cleanup failure from repeating a persisted
+submission. Keep it while the deletion API is unavailable; the remaining scenarios use the shared retry configuration.
 
 Earlier browser all-pass counts predate this cleanup implementation and are not evidence for the current code.
 Current deterministic and discovery evidence is recorded with the implementation handoff; discovery proves binding
@@ -252,8 +252,7 @@ and selection only. Live acceptance remains dependent on the visible-ID product 
 TEST_URL=http://localhost:5000 \
 TAGS='@JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10273 and not @skip' \
 corepack yarn test:functional:serial --browser=chrome \
-  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature' \
-  --config retries=0
+  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature'
 ```
 
 Cleanup follows the Fines support-helper pattern: `cypress/support/draftCasefiles.ts` records each live response's
@@ -541,6 +540,7 @@ variables set to `@R1CRmCreateCaseFiles and not @skip` to include all fifteen sh
 `OrderDetails.feature`, `OrderDetailsAccessibility.feature`, `CheckCaseDetails.feature` and
 `CheckCaseDetailsAccessibility.feature` for the reused prerequisite and payment-to-review integration regressions,
 then the smoke suite and required local pre-flight. Preserve reports before the runner resets its output directory.
+
 ## Draft Casefile cancellation QA (PO-10284)
 
 `CancelCaseCreation.feature` covers returning to review with the accepted draft retained, confirming cancellation

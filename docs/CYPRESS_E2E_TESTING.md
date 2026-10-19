@@ -168,7 +168,7 @@ corepack yarn test:smoke
 ```
 
 The live submission scenario below carries `@retries(0)`, which overrides the run configuration for that scenario:
-each execution creates one persistent synthetic submitted record and must never be retried automatically.
+each execution creates one synthetic submitted record, records its ID in memory for cleanup and must never be retried automatically.
 
 Cypress maps the existing uppercase `TAGS` contract to the lowercase `tags` setting required by Cucumber v26 before
 registering the preprocessor. An explicit lowercase `tags` value takes precedence.
@@ -238,14 +238,15 @@ It observes the real create POST, requires HTTP 201 with a positive safe-integer
 the generated identifier as text in the existing confirmation panel. Create a new case then proves journey clearing.
 The identifier assertion uses only the response returned by the live maintenance service; controlled scenarios do not
 provide an expected Draft Casefile ID. Other scenarios in that feature retain controlled submission responses. The
-live scenario creates one persistent synthetic submitted record per execution; no cleanup endpoint exists. Run it only
-where this persistence is accepted.
+live scenario records the observed ID before later assertions and attempts cleanup after both passing and failing
+scenarios. No cleanup runs until creation has actually been observed. This QA change has no `src` delta; the existing
+confirmation page does not display the generated ID, so that retained acceptance assertion requires a separate product fix.
 The scenario-level `@retries(0)` configuration prevents a later assertion failure from repeating a persisted
 submission. The ticket-focused command also sets `retries=0` as a run-level safeguard.
 
-The ticket-focused selection across the nine maintained feature files expands to exactly 11 examples: eight
-functional/permission examples and three accessibility examples. The integrated browser run passed all 11 with zero
-failed, pending or skipped examples; counts come from that run's clean NDJSON, not accumulated XML.
+Earlier browser all-pass counts predate this cleanup implementation and are not evidence for the current code.
+Current deterministic and discovery evidence is recorded with the implementation handoff; discovery proves binding
+and selection only. Live acceptance remains dependent on the visible-ID product fix and the deletion API below.
 
 ```bash
 TEST_URL=http://localhost:5000 \
@@ -254,6 +255,24 @@ corepack yarn test:functional:serial --browser=chrome \
   --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature' \
   --config retries=0
 ```
+
+Cleanup follows the Fines support-helper pattern: `cypress/support/draftCasefiles.ts` records each live response's
+positive safe-integer casefile ID and business unit in a deduplicated in-memory collection. One `afterEach` snapshots
+and clears that collection before sequential deletion, including after assertion failures. Controlled receipt IDs
+are never registered. Failed targets cannot leak into another independent scenario.
+
+Cleanup uses the existing authenticated maintenance proxy and the assumed future contract
+`DELETE /opal-maintenance-service/testing-support/draft-casefiles/{id}?business_unit_id={bu}`. This caller assumption
+is not a deployed or backend-agreed API. Only HTTP 204 succeeds, including an already-absent record; 404 is a missing
+route/failure. Requests have a 15-second timeout, no redirects or automatic retries, and no request logging. Non-204
+HTTP failures are collected across all targets and reported with their IDs and business units after the loop.
+A request-level transport failure can interrupt remaining attempts. IDs exist only in memory and failure output;
+there is no persistence or automatic recovery after teardown or process termination. Termination before observing
+a creation response can also leave an unrecorded casefile.
+
+The backend must delete dependent data transactionally and check BU scope/permissions. Those guarantees require
+backend verification beyond a client-side 204. Keep the live response and visible-ID checks unchanged when the API
+is delivered, then verify dependent-row removal and already-absent deletion returning 204.
 
 Run the individual capture and retention outcome with:
 

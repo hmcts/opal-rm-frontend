@@ -1,4 +1,4 @@
-import { installDraftCasefileCleanup } from './test-data/draft-casefile-cleanup';
+import { installDraftCasefileCleanup } from './draftCasefiles';
 import './commands';
 import 'cypress-axe';
 

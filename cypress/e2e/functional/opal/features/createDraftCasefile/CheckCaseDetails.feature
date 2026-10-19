@@ -4,7 +4,7 @@ Feature: Check case details and submit for review
   Background:
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
 
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10273
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10273 @retries(0)
   Scenario: Complete and submit one Draft Casefile through live services
     Given I am reviewing a live completed Draft Casefile
     When I submit the live Draft Casefile

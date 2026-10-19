@@ -167,8 +167,8 @@ corepack yarn test:functional:rm-create-case-files-off
 corepack yarn test:smoke
 ```
 
-Any enabled suite that includes the live submission below must disable automatic retries with `--config retries=0`
-or an equivalent run configuration: each execution creates one persistent synthetic submitted record.
+The live submission scenario below carries `@retries(0)`, which overrides the run configuration for that scenario:
+each execution creates one persistent synthetic submitted record and must never be retried automatically.
 
 Cypress maps the existing uppercase `TAGS` contract to the lowercase `tags` setting required by Cucumber v26 before
 registering the preprocessor. An explicit lowercase `tags` value takes precedence.
@@ -238,8 +238,8 @@ It observes the real create POST, requires HTTP 201 with a positive safe-integer
 the generated identifier as text in the existing confirmation panel. Create a new case then proves journey clearing.
 Other scenarios in that feature retain controlled submission responses. The live scenario creates one persistent
 synthetic submitted record per execution; no cleanup endpoint exists. Run it only where this persistence is accepted.
-Use `retries=0` for every live full-submission execution so a later assertion failure cannot repeat a persisted
-submission.
+The scenario-level `@retries(0)` configuration prevents a later assertion failure from repeating a persisted
+submission. The ticket-focused command also sets `retries=0` as a run-level safeguard.
 
 The ticket-focused selection across the nine maintained feature files expands to exactly 11 examples: eight
 functional/permission examples and three accessibility examples. The integrated browser run passed all 11 with zero

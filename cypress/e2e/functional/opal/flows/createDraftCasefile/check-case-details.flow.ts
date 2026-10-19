@@ -1,5 +1,6 @@
 import { CheckCaseDetailsActions } from '../../actions/createDraftCasefile/check-case-details.actions';
 import { CommentsNotesActions } from '../../actions/createDraftCasefile/comments-notes.actions';
+import { ReviewSubmissionFailureActions } from '../../actions/createDraftCasefile/review-submission-failure.actions';
 import { OrderTermsFlow } from './order-terms.flow';
 import { OrderDetailsFlow } from './order-details.flow';
 import { OrderTermsManagementFlow } from './order-terms-management.flow';
@@ -9,6 +10,7 @@ export class CheckCaseDetailsFlow {
   private readonly terms = new OrderTermsFlow();
   private readonly review = new CheckCaseDetailsActions();
   private readonly comments = new CommentsNotesActions();
+  private readonly rejection = new ReviewSubmissionFailureActions();
   private readonly details = new OrderDetailsFlow();
   private readonly liveTerms = new OrderTermsManagementFlow();
 
@@ -69,6 +71,27 @@ export class CheckCaseDetailsFlow {
   /** Checks the submitted request contains no optional comments or notes. */
   public assertNoOptionalSubmission(): void {
     this.comments.assertOmittedFromSubmission();
+  }
+
+  /** Rejects the next create request after capturing the complete review. */
+  public prepareRejectedSubmission(): void {
+    this.rejection.prepare();
+  }
+
+  /** Checks the rejected request and the visible review error. */
+  public assertRejectedSubmission(): void {
+    this.rejection.assertRejected();
+  }
+
+  /** Checks the reviewed draft remains complete after rejection. */
+  public assertRetainedReviewAfterFailure(): void {
+    this.rejection.assertRetainedReview();
+  }
+
+  /** Checks the successful retry and its only deliberate payload change. */
+  public assertCorrectedRetry(): void {
+    this.review.assertConfirmation();
+    this.rejection.assertCorrectedRetry();
   }
 
   /** Completes one synthetic draft through live services before entering review. */

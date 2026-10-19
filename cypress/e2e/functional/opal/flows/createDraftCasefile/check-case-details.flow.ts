@@ -68,6 +68,10 @@ export class CheckCaseDetailsFlow {
   public submit(): void {
     this.review.submit();
   }
+  /** Submits the live case and durably captures its receipt before assertions. */
+  public submitLive(): void {
+    this.review.submitLive();
+  }
   /** Checks the confirmation page, resolved payload and single successful submission. */
   public assertConfirmation(): void {
     this.review.assertConfirmation();

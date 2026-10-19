@@ -1,6 +1,6 @@
+import { observeCreatedDraft, flushCreatedDrafts } from '../../../../../support/test-data/draft-casefile-cleanup';
 import { CHECK_CASE_DETAILS_SUBMISSION as SUBMISSION } from '../../mocks/createDraftCasefile/check-case-details.mock';
 import type { IOpalMaintenanceDraftCasefileRequest } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-request.interface';
-import type { IOpalMaintenanceDraftCasefileResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-response.interface';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-indexation-types.constant';
@@ -22,7 +22,38 @@ export class CheckCaseDetailsActions {
   /** Observes the single live submission without replacing the backend response. */
   public prepareLiveSubmission(): void {
     this.expectedSubmissionCount = 0;
-    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles').as('draftSubmission');
+    const identity = {
+      environment: new URL(Cypress.config('baseUrl')!).origin,
+      runId: String(Cypress.env('draftCasefileRunId')),
+      workerId: String(Cypress.env('draftCasefileWorkerId')),
+      scenarioKey: [Cypress.spec.relative, ...Cypress.currentTest.titlePath].join('/'),
+    };
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', (request) => {
+      request.on('response', (response) => {
+        const body: unknown = response.body;
+        const payload: unknown = request.body;
+        const id = body && typeof body === 'object' && 'draft_casefile_id' in body ? body.draft_casefile_id : undefined;
+        const businessUnitId =
+          payload && typeof payload === 'object' && 'business_unit_id' in payload
+            ? payload.business_unit_id
+            : undefined;
+        if (
+          typeof id === 'number' &&
+          Number.isSafeInteger(id) &&
+          id > 0 &&
+          typeof businessUnitId === 'number' &&
+          Number.isSafeInteger(businessUnitId) &&
+          businessUnitId > 0
+        ) {
+          observeCreatedDraft({
+            ...identity,
+            draftCasefileId: id,
+            businessUnitId,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      });
+    }).as('draftSubmission');
   }
 
   /** Completes the remaining mandatory tasks before opening review. */
@@ -112,16 +143,28 @@ export class CheckCaseDetailsActions {
     this.assertConfirmationPanel();
   }
 
-  /** Validates the actual accepted receipt and matches its identifier within the existing panel. */
-  public assertLiveConfirmation(): void {
+  /** Persist the observed creation before checking the receipt or rendered confirmation. */
+  public submitLive(): void {
+    this.expectedSubmissionCount = 1;
+    cy.get(S.review.submit).click();
     cy.wait('@draftSubmission').then(({ response }) => {
-      expect(response?.statusCode).to.equal(201);
-      const receipt = response?.body as IOpalMaintenanceDraftCasefileResponse;
-      expect(receipt).to.have.property('casefile_status', 'SUBMITTED');
-      expect(Number.isSafeInteger(receipt.draft_casefile_id)).to.equal(true);
-      expect(receipt.draft_casefile_id).to.be.greaterThan(0);
-      cy.wrap(receipt.draft_casefile_id, { log: false }).as('liveDraftCasefileId');
+      return flushCreatedDrafts().then(() => {
+        expect(response?.statusCode).to.equal(201);
+        const receipt: unknown = response?.body;
+        expect(receipt).to.have.property('casefile_status', 'SUBMITTED');
+        const id =
+          receipt && typeof receipt === 'object' && 'draft_casefile_id' in receipt
+            ? receipt.draft_casefile_id
+            : undefined;
+        expect(Number.isSafeInteger(id)).to.equal(true);
+        expect(id).to.be.greaterThan(0);
+        cy.wrap(id, { log: false }).as('liveDraftCasefileId');
+      });
     });
+  }
+
+  /** Matches the already consumed live receipt against the user-visible confirmation panel. */
+  public assertLiveConfirmation(): void {
     cy.get<number>('@liveDraftCasefileId', { log: false }).then((id) => this.assertConfirmationPanel(id));
   }
 

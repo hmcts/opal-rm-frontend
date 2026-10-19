@@ -1,5 +1,8 @@
+import { installDraftCasefileCleanup } from './test-data/draft-casefile-cleanup';
 import './commands';
 import 'cypress-axe';
+
+installDraftCasefileCleanup();
 
 // Native leave-site dialogs block reloads and test isolation. Keep route confirm() dialogs enabled.
 Cypress.on('window:before:load', (window) => {

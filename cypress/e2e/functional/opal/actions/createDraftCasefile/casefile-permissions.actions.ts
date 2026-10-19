@@ -34,8 +34,11 @@ export class CasefilePermissionsActions {
       PATHS.children.orderTermCreditor,
       PATHS.children.interestAndIndexation,
       PATHS.children.managingPayments,
+      PATHS.children.commentsAndNotes,
+      PATHS.children.checkCaseDetails,
     ];
     if (!tasks.includes(path)) throw new Error('Unsupported permission-test task route');
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', cy.spy().as('permissionCreateRequest'));
     cy.visit('/' + PATHS.root + '/' + path);
   }
 
@@ -61,5 +64,9 @@ export class CasefilePermissionsActions {
     cy.get(S.interestAndIndexation.interestGroup).should('not.exist');
     cy.get(S.interestAndIndexation.indexationGroup).should('not.exist');
     cy.get(S.managingPayments.paymentArrangementGroup).should('not.exist');
+    cy.get(S.commentsAndNotes.comment).should('not.exist');
+    cy.get(S.commentsAndNotes.note).should('not.exist');
+    cy.get(S.review.submit).should('not.exist');
+    cy.get('@permissionCreateRequest').should('not.have.been.called');
   }
 }

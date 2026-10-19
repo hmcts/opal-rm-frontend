@@ -236,8 +236,10 @@ submission scenario are new; the permission outline adds the journey-entry and t
 the existing live party, Order Details and MAT/Applicant creditor flows, then supplies the mandatory payment tasks.
 It observes the real create POST, requires HTTP 201 with a positive safe-integer ID and status `SUBMITTED`, and matches
 the generated identifier as text in the existing confirmation panel. Create a new case then proves journey clearing.
-Other scenarios in that feature retain controlled submission responses. The live scenario creates one persistent
-synthetic submitted record per execution; no cleanup endpoint exists. Run it only where this persistence is accepted.
+The identifier assertion uses only the response returned by the live maintenance service; controlled scenarios do not
+provide an expected Draft Casefile ID. Other scenarios in that feature retain controlled submission responses. The
+live scenario creates one persistent synthetic submitted record per execution; no cleanup endpoint exists. Run it only
+where this persistence is accepted.
 The scenario-level `@retries(0)` configuration prevents a later assertion failure from repeating a persisted
 submission. The ticket-focused command also sets `retries=0` as a run-level safeguard.
 

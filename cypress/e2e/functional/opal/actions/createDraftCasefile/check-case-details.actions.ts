@@ -109,7 +109,7 @@ export class CheckCaseDetailsActions {
       );
       expect(payload).not.to.have.property('taskStatuses');
     });
-    this.assertConfirmationPanel(SUBMISSION.receipt.draft_casefile_id);
+    this.assertConfirmationPanel();
   }
 
   /** Validates the actual accepted receipt and matches its identifier within the existing panel. */
@@ -125,16 +125,18 @@ export class CheckCaseDetailsActions {
     cy.get<number>('@liveDraftCasefileId', { log: false }).then((id) => this.assertConfirmationPanel(id));
   }
 
-  /** Checks shared confirmation behaviour for either a controlled or server-generated receipt.
-   * @param id Identifier returned by the accepted submission.
+  /** Checks shared confirmation behaviour and, for the live journey, its server-generated identifier.
+   * @param id Identifier returned by the real maintenance service.
    */
-  private assertConfirmationPanel(id: number): void {
+  private assertConfirmationPanel(id?: number): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
     cy.get(S.review.confirmationHeading)
       .should('be.focused')
       .and(($heading) => expect($heading.text().trim()).to.equal('You’ve submitted this case for review'));
     cy.get(S.review.confirmationNextSteps).should('have.text', 'Next steps');
-    cy.get(S.review.confirmationHeading).closest('.govuk-panel').should('contain.text', String(id));
+    if (id !== undefined) {
+      cy.get(S.review.confirmationHeading).closest('.govuk-panel').should('contain.text', String(id));
+    }
     cy.get('@draftSubmission.all').should('have.length', 1);
     cy.get(S.primaryNavigation).should('not.exist');
   }

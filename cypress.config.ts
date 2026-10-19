@@ -1,4 +1,5 @@
 import { defineConfig } from 'cypress';
+import { installDraftCasefileJournalTasks } from './cypress/support/test-data/draft-casefile-cleanup-journal';
 import { mergeZephyrReports, cleanZephyrReports } from '@hmcts/zephyr-automation-nodejs';
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 import { createHash } from 'node:crypto';
@@ -111,6 +112,7 @@ async function setupE2eNodeEvents(
 ): Promise<Cypress.PluginConfigOptions> {
   // Cucumber v26 reads lowercase tags; retain the runner and Jenkins TAGS contract.
   config.env.tags = config.env.tags ?? config.env.TAGS;
+  installDraftCasefileJournalTasks(on, config);
 
   await addCucumberPreprocessorPlugin(on, config, {
     omitAfterScreenshotHandler: true,

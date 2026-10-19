@@ -33,6 +33,65 @@ and execution sections together with [AGENTS.md](../AGENTS.md), [REPO_GUIDELINES
 - Flows in `cypress/e2e/functional/opal/flows/**` compose actions into business journeys and are the verbs exposed to steps and component specs.
 - Selectors are centralized. Add hooks in Angular templates and document them in `cypress/shared/selectors/**`. Avoid positional CSS.
 
+## Reusing feature-file steps
+
+Apply this sequence when adding or modifying steps; existing unrelated features do not need a rewrite.
+Component specs retain their direct script/helper style.
+
+1. Search the step catalogue/source, Flows and Actions for the process and its synonyms. Start with the shared
+   [authentication](../cypress/support/step_definitions/auth.steps.ts),
+   [accessibility](../cypress/support/step_definitions/accessibility/accessibility.steps.ts) and
+   [common assertions](../cypress/support/step_definitions/common.steps.ts).
+2. Reuse an existing phrase when its preconditions, interaction and observable outcome match. Common heading, text
+   and URL phrases already accept business values; do not add a feature-specific equivalent. Preserve business
+   assertions that also check retained data, permissions, store state or API requests.
+3. Parameterise varying business values with constrained expressions or validated DataTables. Reject unknown choices
+   and columns rather than silently ignoring them. Keep scenario-specific input visible when it matters to the AC.
+4. Share an existing Action/Flow when similar steps have different business intent. Add a phrase only for a different
+   responsibility or outcome. Keep reuse local to the capability until multiple maintained capabilities need it.
+5. Keep one delegate per binding. Flows own business orchestration and table interpretation; Actions own UI, network
+   and confirmation details. Keep selectors out of Gherkin and do not infer page context from an available element.
+   When changing a shared common assertion, move its existing body unchanged into a CommonActions method, retaining
+   its logging, match strictness, selector and timeout; leave untouched assertions alone.
+6. Before removing a binding, migrate every caller and check for undefined or ambiguous matches across the loaded
+   registry. Cucumber matches text across Given/When/Then, so changing a keyword does not prevent ambiguity. Preserve
+   scenario names, tags, Examples rows, Zephyr identity and independent setup.
+7. Run browser journeys for every affected caller group and compare expanded scenario names, counts and tags before
+   and after. Keep live and controlled data sources and keyboard interactions intact. Fewer bindings do not mean
+   fewer tests or faster execution. Discovery/dry runs prove selection and binding only.
+
+The [Minor Creditor bindings](../cypress/support/step_definitions/createDraftCasefile/minor-creditor.steps.ts) use
+`/^I cancel minor creditor details and (accept|decline) the warning$/` for both existing feature phrases. The single
+binding delegates to `MinorCreditorFlow.cancelDetailsWithDecision(decision)`, which rejects unsupported choices and
+calls `cancelDetails(decision === 'accept')`. Retain the warning-text and downstream route/data-retention assertions.
+Clean Cancel without edits and native `beforeunload` suppression have different contracts and remain separate.
+
+`I cancel minor creditor removal` is the canonical wording for the former equivalent return/cancel bindings. Every
+functional and accessibility caller uses that phrase; an alias is needed only for an identified external consumer.
+The live reviewed-creditor removal journey remains distinct because it uses keyboard activation, checks heading
+focus and observes live data. Do not replace it with the controlled mouse-click journey.
+
+For changes to these bindings, run the Minor Creditor functional/accessibility pair before and after, then run
+create-casefile/release-on, release-off and smoke discovery to check the shared registry. Run actual affected journeys
+against their existing configured prerequisites; do not replace unavailable live data with mocks. Also run
+`corepack yarn lint:cypress`, `corepack yarn exec tsc --project e2e.tsconfig.json --noEmit`,
+`corepack yarn check:cypress:test-metadata` and `corepack yarn find:duplicate:scenarios`. Search for removed phrases
+across all `cypress` callers. The duplicate-scenario scan supplements discovery and does not prove expression
+unambiguity. If shared authentication, accessibility or common bindings change, inventory and execute every affected
+functional, accessibility and smoke caller group. Preserve raw evidence before a runner resets its outputs.
+
+### Keeping regression growth proportionate
+
+Use component tests for exhaustive form-state rendering and validation, and retain E2E
+coverage for complete journeys and meaningful integration boundaries. Before removing an
+apparently duplicated scenario, map its assertions, data source, tags and external identity
+to retained coverage. Mocked responses and live-service evidence are different contracts.
+
+Reuse existing Steps, Flows and Actions, while giving each scenario independent mutable
+state. Use focused spec/Story selections for development feedback without reducing required
+full regressions. Report expanded examples, failures, retries, missing cases and wall time;
+a successful runner exit alone does not prove a complete passing suite.
+
 ## Running a Feature
 
 Run a single feature file with:
@@ -207,7 +266,7 @@ required-versus-optional wording differs from current product validation, which 
 
 ## Shared casefile permission coverage
 
-`CasefilePermissions.feature` runs exactly fifteen unique protected routes with the release enabled. Each example first
+`CasefilePermissions.feature` runs exactly seventeen unique protected routes with the release enabled. Each example first
 checks the authorised user's live ACTIVE Maintenance state and BU 44 `CREATE_MANAGE_DRAFT_CASEFILES` / API permission
 ID 21, then opens the released case-type page. It explicitly authenticates the provisioned denied username and checks
 live ACTIVE status, Maintenance domain and absence of permission 21 for BU 44 before attempting direct task navigation.
@@ -223,7 +282,9 @@ selection by either party ticket includes both shared routes. Individual and org
 the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`, and the four Order Term routes carry
 `@JIRA-STORY:PO-10278`. Minor Creditor details, summary and removal carry `@JIRA-STORY:PO-10280`.
 The Order Term creditor route carries `@JIRA-STORY:PO-10279`.
-Journey entry and task list carry `@JIRA-STORY:PO-10273`. The outline carries epic PO-6506.
+Journey entry and task list carry `@JIRA-STORY:PO-10273`.
+Interest and Indexation and Managing Payments carry `@JIRA-STORY:PO-10281`.
+The outline carries epic PO-6506.
 
 ```bash
 corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
@@ -354,8 +415,9 @@ Repeat those specs with both tag variables set to `@R1CRmCreateCaseFiles and not
 ## Integrated Order Terms and creditor QA
 
 Select PO-10278, PO-10279 and PO-10280 together using both tag variables. This selection expands to exactly 27
-examples; the original five permission routes retain their original story tags and are outside this selection.
-The complete shared permission outline has fifteen unique routes.
+examples; the nine permission routes tagged to other QA stories are outside this selection. The complete shared
+permission outline has seventeen unique routes, including the two journey routes for PO-10273 and the two payment
+routes for PO-10281.
 
 | QA story | Functional | Accessibility | Permission | Total |
 | -------- | ---------: | ------------: | ---------: | ----: |
@@ -424,3 +486,62 @@ follow-up must cover keyboard-only navigation and visible focus across these pag
 accessible names on summary actions/notices, and magnification. Local passwordless execution does not establish
 deployed SSO behavior. Keep CI, external security/Sonar checks, reviewer approval, specialist QA and deployment pending
 until direct evidence confirms them.
+
+## Capture payment arrangements QA (PO-10281)
+
+`Payments.feature` covers four independent interest/indexation combinations (Yes/RPI, No/CPI, Yes/Other and No/None)
+and both court/direct payment arrangements. Each example starts a fresh browser-led draft with live mandatory-party
+and Order Details setup, then saves and reopens the payment tasks to verify their actual selected controls and Provided
+statuses. Payment-management examples replay both tasks to prove neither local save overwrites the other task.
+No Draft Casefile creation POST is permitted. The examples stop before submission and do not test payment collection.
+
+Other indexation is a selection only, with no additional details input. This follows the functional write-up and
+existing implementation, as agreed for PO-10281; the TDIA's conditional Other-details wording remains a documentation
+follow-up. Field-level validation remains owned by the existing payment component specs.
+
+`PaymentsAccessibility.feature` scans both payment pages before selection, after keyboard selection and after local
+save/reopen. Keyboard assertions cover radio activation, native Tab movement and primary-action activation.
+These are partial accessibility results; specialist screen-reader, visible-focus and magnification checks remain
+necessary for full WCAG 2.2 AA assurance.
+
+The shared permission outline adds `interest-and-indexation` and `managing-payments`, tagged PO-10281. It retains the
+live authorised-entry and denied-user preflights. Enable `release-1c-rm-create-case-files` for all test contexts and
+provision the live user, Country and Maintenance Application prerequisites above. These payment scenarios do not
+require Results, Major Creditors or Central Authorities. They do not replace live responses or mutate permissions.
+
+Run ten expanded examples: six functional outcomes, two accessibility journeys and two permission routes:
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10281 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10281 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/Payments.feature,cypress/e2e/functional/opal/features/createDraftCasefile/PaymentsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```
+
+Use the configured frontend target in `TEST_URL`; localhost is the local example. Run those specs with both tag
+variables set to `@R1CRmCreateCaseFiles and not @skip` to include all fifteen shared permission routes. Also run
+`OrderDetails.feature`, `OrderDetailsAccessibility.feature`, `CheckCaseDetails.feature` and
+`CheckCaseDetailsAccessibility.feature` for the reused prerequisite and payment-to-review integration regressions,
+then the smoke suite and required local pre-flight. Preserve reports before the runner resets its output directory.
+## Draft Casefile cancellation QA (PO-10284)
+
+`CancelCaseCreation.feature` covers returning to review with the accepted draft retained, confirming cancellation
+without a draft submission, starting a fresh journey and preventing browser history from recovering the discarded
+case. Each positive scenario owns a complete local draft. `CancelCaseCreationAccessibility.feature` scans the
+cancellation page and fresh destination; Axe provides partial accessibility evidence.
+
+The permission scenario reuses the shared live permission preflight: first verify ACTIVE Maintenance membership,
+BU 44 permission 21 and released entry with the authorised account, then authenticate the provisioned denied account
+and verify ACTIVE Maintenance membership without BU 44 permission 21. Direct cancellation navigation must reach
+`/access-denied` with no cancellation controls or case creation entry. `/account-created` is a provisioning failure,
+and a disabled release must fail the authorised entry check rather than count as permission rejection.
+
+Run with the enabled release and provisioned accounts described above:
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10284 and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10284 and not @skip' \
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CancelCaseCreation.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CancelCaseCreationAccessibility.feature'
+```
+
+Require four passing browser scenarios with none skipped or pending. A dry run checks selection and step bindings
+only. Preserve and sanitise generated reports before another runner invocation resets output. Specialist follow-up
+must verify native browser Leave/Cancel behaviour, full keyboard traversal, screen-reader announcements and
+magnification with the same enabled release and provisioned accounts.

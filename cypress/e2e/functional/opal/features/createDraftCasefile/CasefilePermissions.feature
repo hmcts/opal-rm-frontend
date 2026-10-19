@@ -58,3 +58,9 @@ Feature: Draft Casefile task permissions
     Examples: Order Term creditor
       | path                 |
       | order-terms/creditor  |
+
+    @JIRA-STORY:PO-10281
+    Examples: Payment tasks
+      | path                    |
+      | interest-and-indexation |
+      | managing-payments       |

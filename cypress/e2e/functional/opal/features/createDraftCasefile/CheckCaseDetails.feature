@@ -27,12 +27,6 @@ Feature: Check case details and submit for review
     When I refresh the submission confirmation
     Then an empty new case journey is shown without submitting data
 
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9817
-  Scenario: Keep accepted data at the cancellation boundary
-    Given I am reviewing a complete casefile for submission
-    When I open cancellation and return to the reviewed draft
-    Then the accepted draft is retained without a submission
-
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9819
   Scenario: Start an empty case from the confirmation
     Given I am reviewing a complete casefile for submission

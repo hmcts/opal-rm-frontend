@@ -23,6 +23,7 @@ Then('an empty new case journey is shown without submitting data', () => flow.as
 Then('the accepted draft is retained without a submission', () => flow.assertRetainedDraft());
 Then('case creation starts with no selected case or applicant type', () => flow.assertFreshCase());
 Then('browser history cannot recover the discarded case', () => flow.assertHistoryStaysEmpty());
+Then('I cannot reach Draft Casefile cancellation or create a case', () => flow.assertCancellationUnavailable());
 
 When('I create a new case from casefile confirmation', () => flow.startNextCase());
 When('I go back from casefile confirmation', () => flow.backFromConfirmation());

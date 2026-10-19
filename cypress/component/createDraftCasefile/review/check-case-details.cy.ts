@@ -1,4 +1,3 @@
-import { CASES_CREATE_CASEFILE_STATE } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-state.constant';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { REVIEW_SUBMISSION_RECEIPT } from './mocks/review.mock';
 import { interceptReviewSubmission, REVIEW_SUBMISSION_URL } from './setup/review-submission.intercept';
@@ -8,6 +7,7 @@ import type { CasesCreateCasefileReviewNavigationService } from 'src/app/flows/c
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import {
   createCompleteReviewState,
+  createSubmittedReviewState,
   createRemoOutReviewState,
   createOrganisationReviewState,
   createMixedCreditorReviewState,
@@ -227,7 +227,7 @@ describe('Check case details submission', () => {
       });
       cy.get('@routerNavigate').should('have.been.calledOnceWith', route(PATHS.children.submissionConfirmation));
       cy.get<ReviewStore>('@reviewStore').should((store) => {
-        expect(getState(store)).to.deep.equal({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
+        expect(getState(store)).to.deep.equal(createSubmittedReviewState());
       });
       cy.get('@draftCasefilePost.all').should('have.length', 1);
     },
@@ -290,7 +290,7 @@ describe('Check case details submission', () => {
       );
       cy.get(S.errors).should('not.exist');
       cy.get<ReviewStore>('@reviewStore').should((store) => {
-        expect(getState(store)).to.deep.equal({ ...CASES_CREATE_CASEFILE_STATE, submissionSucceeded: true });
+        expect(getState(store)).to.deep.equal(createSubmittedReviewState());
       });
       cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
         navigate.onSecondCall().resolves(true),

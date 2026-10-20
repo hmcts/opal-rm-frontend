@@ -1,4 +1,6 @@
 import type { IOpalMaintenanceDraftCasefileReplaceRequest } from './interfaces/opal-maintenance-draft-casefile-replace-request.interface';
+import type { IOpalMaintenanceDraftCasefileDeleteRequest } from './interfaces/opal-maintenance-draft-casefile-delete-request.interface';
+import { isUsableDraftCasefileEtag } from './utils/opal-maintenance-draft-casefile-etag';
 import { decodeDraftCasefileDetail } from './utils/opal-maintenance-draft-casefile-detail';
 import type { IOpalMaintenanceDraftCasefileDetail } from './interfaces/opal-maintenance-draft-casefile-detail.interface';
 import type { ICasesDraftIdentity } from '../../cases-draft/interfaces/cases-draft-identity.interface';
@@ -84,6 +86,25 @@ export class OpalMaintenanceService {
     return this.http.put<IOpalMaintenanceDraftCasefileDetail>(
       '/opal-maintenance-service/draft-casefiles/' + id,
       request,
+      { observe: 'response', headers: { 'If-Match': etag }, context: withoutHttpRetry() },
+    );
+  }
+
+  /** Deletes a persisted casefile once using its opaque saved version; callers own explicit recovery. */
+  public deleteDraftCasefile(
+    id: number,
+    request: IOpalMaintenanceDraftCasefileDeleteRequest,
+    etag: string,
+  ): Observable<HttpResponse<IOpalMaintenanceDraftCasefileDetail>> {
+    if (!Number.isSafeInteger(id) || id < 1) throw new Error('Invalid draft casefile identifier');
+    if (!isUsableDraftCasefileEtag(etag)) throw new Error('Unusable saved casefile version');
+    return this.http.patch<IOpalMaintenanceDraftCasefileDetail>(
+      '/opal-maintenance-service/draft-casefiles/' + id,
+      {
+        business_unit_id: request.business_unit_id,
+        casefile_status: 'DELETED',
+        status_message: request.status_message,
+      },
       { observe: 'response', headers: { 'If-Match': etag }, context: withoutHttpRetry() },
     );
   }

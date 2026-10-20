@@ -1,6 +1,8 @@
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import type { HttpResponse } from '@angular/common/http';
-import type { ICasesDraftResubmissionSuccess } from '../../cases-draft/interfaces/cases-draft-resubmission-success.interface';
+import type { ICasesCreateCasefileAmendmentCompletion } from '../interfaces/cases-create-casefile-amendment-completion.interface';
+import type { ICasesCreateCasefileRespondentDetails } from '../interfaces/cases-create-casefile-respondent-details.interface';
+import type { CasesDraftCasefileAmendmentContext } from '../../cases-draft/types/cases-draft-casefile-amendment-context.type';
 import type { ICasesCreateCasefilePayloadReferences } from '../services/cases-create-casefile-payload/interfaces/cases-create-casefile-payload-references.interface';
 import type { IOpalMaintenanceResultReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-result-reference-data-item.interface';
 import { isCasesCreateCasefileSubmissionEligible } from '../utils/cases-create-casefile-submission-eligible';
@@ -132,9 +134,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
 
   private readonly submitting = signal(false);
 
-  private readonly completedAmendment = signal<{ target: UrlTree; notice: ICasesDraftResubmissionSuccess } | null>(
-    null,
-  );
+  private readonly completedAmendment = signal<ICasesCreateCasefileAmendmentCompletion | null>(null);
 
   public readonly persistedResult = signal<ICasesDraftCasefileResolved | null>(null);
 
@@ -281,7 +281,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
     this.utils.scrollToTop();
   }
 
-  private currentAmendmentContext(): Pick<ICasesDraftCasefileResolved, 'draft' | 'etag' | 'identity'> | null {
+  private currentAmendmentContext(): CasesDraftCasefileAmendmentContext | null {
     const draft = this.persistedStore.draft();
     const identity = this.persistedStore.identity();
     const etag = this.persistedStore.etag();
@@ -303,7 +303,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
     return { draft, identity, etag };
   }
 
-  private isCurrentAmendment(expected: Pick<ICasesDraftCasefileResolved, 'draft' | 'etag' | 'identity'>): boolean {
+  private isCurrentAmendment(expected: CasesDraftCasefileAmendmentContext): boolean {
     const current = this.currentAmendmentContext();
     return (
       !!current &&
@@ -315,7 +315,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   private async readReplacementReferences(
-    expected: Pick<ICasesDraftCasefileResolved, 'draft' | 'etag' | 'identity'>,
+    expected: CasesDraftCasefileAmendmentContext,
   ): Promise<ICasesCreateCasefilePayloadReferences & { results: IOpalMaintenanceResultReferenceDataItem[] }> {
     const response = await firstValueFrom(
       forkJoin({
@@ -347,7 +347,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
   private buildReplacementRequest(
     state: ICasesCreateCasefileState,
     references: ICasesCreateCasefilePayloadReferences & { results: IOpalMaintenanceResultReferenceDataItem[] },
-    expected: Pick<ICasesDraftCasefileResolved, 'draft' | 'etag' | 'identity'>,
+    expected: CasesDraftCasefileAmendmentContext,
   ) {
     if (
       state.orderTerms.some(
@@ -356,44 +356,43 @@ export class CasesCreateCasefileCheckDetailsComponent {
     ) {
       throw new Error('An order term is unavailable for submission');
     }
-    const draft = this.persistedStore.draft();
-    if (!draft) throw new Error('Missing amendment context');
     return this.payloadService.buildReplaceCasefilePayload(
       state,
       references,
       expected.draft.business_unit_id,
-      draft.casefile_type,
+      expected.draft.casefile_type,
     );
   }
 
   private acceptReplacementResponse(
     response: HttpResponse<unknown> | null,
-    expected: Pick<ICasesDraftCasefileResolved, 'draft' | 'etag' | 'identity'>,
-    submittedState: ICasesCreateCasefileState,
-  ): boolean {
+    expected: CasesDraftCasefileAmendmentContext,
+    submittedRespondent: ICasesCreateCasefileRespondentDetails,
+  ): ICasesCreateCasefileAmendmentCompletion | null {
     if (response === null) {
       this.persistedStore.setRequiresReload(true);
       this.utils.scrollToTop();
-      return false;
+      return null;
     }
     readCasesCreateCasefileReplacementReceipt(response, expected);
     const draftCasefileId = expected.draft.draft_casefile_id;
-    this.completedAmendment.set({
-      target: this.draftNavigation.amendmentReturnUrl(draftCasefileId),
+    const completed: ICasesCreateCasefileAmendmentCompletion = {
+      target: this.draftNavigation.amendmentReturnUrl(draftCasefileId).toString(),
       notice: {
         origin: this.draftNavigation.contextForPlaceholder('amendment', String(draftCasefileId))
           ? 'all-rejected'
           : 'dashboard',
         identity: { ...expected.identity },
         draftCasefileId,
-        respondentForename: submittedState.respondentDetails?.firstNames ?? '',
-        respondentSurname: submittedState.respondentDetails?.lastName ?? '',
+        respondentForename: submittedRespondent.firstNames,
+        respondentSurname: submittedRespondent.lastName,
       },
-    });
+    };
+    this.completedAmendment.set(completed);
     this.persistedStore.resetStore();
     this.store.resetStore();
     this.reviewNavigation.clearContext();
-    return true;
+    return completed;
   }
 
   private reportAmendmentFailure(error: unknown, dispatched: boolean): void {
@@ -405,9 +404,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
     else this.utils.scrollToTop();
   }
 
-  private async continueCompletedAmendment(): Promise<void> {
-    const completed = this.completedAmendment();
-    if (!completed || this.busy()) return;
+  private async continueCompletedAmendment(completed: ICasesCreateCasefileAmendmentCompletion): Promise<void> {
     const released =
       (this.globalStore.featureFlags() as Record<string, unknown>)[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] ===
       true;
@@ -427,32 +424,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
     if (!(await this.navigate(completed.target))) this.draftNavigation.clearAllRejectedSuccess();
   }
 
-  public focusTarget(id: string): void {
-    const target =
-      this.host.nativeElement.querySelector<HTMLElement>(`[id="${id}"]`) ??
-      this.host.nativeElement.querySelector<HTMLElement>('#review-heading');
-    target?.focus();
-  }
-
-  /** Returns validated local completion to the checker queue without recording a decision. */
-  public async handleDecision(): Promise<void> {
-    if (!this.reviewable() || this.busy()) return;
-    const current = this.draftNavigation.selection();
-    const selection = current.tab === 'to-review' ? current : defaultCasesDraftNavigation('to-review', 'checker');
-    await this.navigate(this.draftNavigation.dashboardUrl(selection));
-  }
-
-  public async handleSubmit(): Promise<void> {
-    if (this.busy()) return;
-    if (this.completedAmendment()) {
-      await this.continueCompletedAmendment();
-      return;
-    }
-    if (this.store.submissionIntent() === 'amendment') {
-      await this.handleAmendmentSubmit();
-      return;
-    }
-    if (!this.editable()) return;
+  private async handleCreationSubmit(): Promise<void> {
     this.globalStore.resetBannerError();
     if (this.store.submissionSucceeded()) {
       await this.navigate(this.root + this.paths.submissionConfirmation);
@@ -511,6 +483,62 @@ export class CasesCreateCasefileCheckDetailsComponent {
     } finally {
       this.submitting.set(false);
     }
+  }
+
+  private handlePersistedBack(): void {
+    const result = this.persistedResult();
+    if (!result || !this.readable()) return;
+    const idText = this.route?.snapshot.paramMap?.get('draftCasefileId') ?? String(result.draft.draft_casefile_id);
+    const user = this.globalStore.userState();
+    const released =
+      (this.globalStore.featureFlags() as Record<string, unknown>)[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] ===
+      true;
+    const inputterIdentity = resolveCasesDraftIdentity(user, released, 'inputter');
+    if (inputterIdentity && this.draftNavigation.contextForPlaceholder('details', idText)) {
+      this.navigating.set(true);
+      void this.draftNavigation
+        .returnFromPlaceholder('details', idText)
+        .then((accepted) => {
+          if (!accepted) this.showError();
+        })
+        .catch(() => this.showError())
+        .finally(() => this.navigating.set(false));
+    } else {
+      const preferredIdentity = resolveCasesDraftIdentity(user, released, result.dashboardMode);
+      const fallbackMode = result.dashboardMode === 'checker' ? 'inputter' : 'checker';
+      const dashboardMode = preferredIdentity ? result.dashboardMode : fallbackMode;
+      void this.navigate(this.draftNavigation.persistedDashboardUrl(dashboardMode));
+    }
+  }
+
+  public focusTarget(id: string): void {
+    const target =
+      this.host.nativeElement.querySelector<HTMLElement>(`[id="${id}"]`) ??
+      this.host.nativeElement.querySelector<HTMLElement>('#review-heading');
+    target?.focus();
+  }
+
+  /** Returns validated local completion to the checker queue without recording a decision. */
+  public async handleDecision(): Promise<void> {
+    if (!this.reviewable() || this.busy()) return;
+    const current = this.draftNavigation.selection();
+    const selection = current.tab === 'to-review' ? current : defaultCasesDraftNavigation('to-review', 'checker');
+    await this.navigate(this.draftNavigation.dashboardUrl(selection));
+  }
+
+  public async handleSubmit(): Promise<void> {
+    if (this.busy()) return;
+    const completed = this.completedAmendment();
+    if (completed) {
+      await this.continueCompletedAmendment(completed);
+      return;
+    }
+    if (this.store.submissionIntent() === 'amendment') {
+      await this.handleAmendmentSubmit();
+      return;
+    }
+    if (!this.editable()) return;
+    await this.handleCreationSubmit();
   }
 
   public async handleChange(section: string): Promise<void> {
@@ -579,29 +607,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
       return;
     }
     if (!this.editable()) {
-      const result = this.persistedResult();
-      if (!result || !this.readable()) return;
-      const idText = this.route?.snapshot.paramMap?.get('draftCasefileId') ?? String(result.draft.draft_casefile_id);
-      const user = this.globalStore.userState();
-      const released =
-        (this.globalStore.featureFlags() as Record<string, unknown>)[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] ===
-        true;
-      const inputterIdentity = resolveCasesDraftIdentity(user, released, 'inputter');
-      if (inputterIdentity && this.draftNavigation.contextForPlaceholder('details', idText)) {
-        this.navigating.set(true);
-        void this.draftNavigation
-          .returnFromPlaceholder('details', idText)
-          .then((accepted) => {
-            if (!accepted) this.showError();
-          })
-          .catch(() => this.showError())
-          .finally(() => this.navigating.set(false));
-      } else {
-        const preferredIdentity = resolveCasesDraftIdentity(user, released, result.dashboardMode);
-        const fallbackMode = result.dashboardMode === 'checker' ? 'inputter' : 'checker';
-        const dashboardMode = preferredIdentity ? result.dashboardMode : fallbackMode;
-        void this.navigate(this.draftNavigation.persistedDashboardUrl(dashboardMode));
-      }
+      this.handlePersistedBack();
       return;
     }
     this.reviewNavigation.clearContext();
@@ -647,9 +653,11 @@ export class CasesCreateCasefileCheckDetailsComponent {
       );
       if (this.destroyRef.destroyed) return;
       if (!this.isCurrentAmendment(expected)) return;
-      if (!this.acceptReplacementResponse(response, expected, state)) return;
+      // Eligibility and payload construction require the respondent in this unchanged snapshot.
+      const completed = this.acceptReplacementResponse(response, expected, state.respondentDetails!);
+      if (!completed) return;
       this.submitting.set(false);
-      await this.continueCompletedAmendment();
+      await this.continueCompletedAmendment(completed);
     } catch (error: unknown) {
       if (this.destroyRef.destroyed || !this.isCurrentAmendment(expected)) return;
       this.reportAmendmentFailure(error, dispatched);

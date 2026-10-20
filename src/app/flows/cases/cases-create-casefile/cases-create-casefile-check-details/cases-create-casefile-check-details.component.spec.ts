@@ -1248,6 +1248,21 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
     expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
   });
+  it('does not submit an amendment whose saved context is cleared while references are pending', async () => {
+    const saved = seedAmendment();
+    const before = structuredClone(getState(store));
+    const countries = new Subject<{ refData: [] }>();
+    maintenance.getCountries.mockReturnValue(countries);
+    const work = fixture.componentInstance.handleSubmit();
+    saved.resetStore();
+    countries.next({ refData: [] });
+    countries.complete();
+    await work;
+    expect(getState(store)).toEqual(before);
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+    expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
   it('clears both stores after verified completion and retries only originating-list navigation', async () => {
     const saved = seedAmendment();
     expect(fixture.componentInstance.editable()).toBe(true);
@@ -1429,6 +1444,54 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(getState(store)).toEqual(before);
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
+  it.each(['response', 'error'] as const)(
+    'ignores a queued PUT %s when review is destroyed before its continuation',
+    async (outcome) => {
+      const saved = seedAmendment();
+      const before = structuredClone(getState(store));
+      const envelope = structuredClone(getState(saved));
+      const pending = new Subject<HttpResponse<unknown>>();
+      maintenance.replaceDraftCasefile.mockReturnValue(pending);
+      const work = fixture.componentInstance.handleSubmit();
+      await vi.waitFor(() => expect(pending.observed).toBe(true));
+      if (outcome === 'response') {
+        pending.next(
+          new HttpResponse({
+            status: 200,
+            body: { ...saved.draft(), casefile_status: 'RESUBMITTED' },
+            headers: new HttpHeaders({ ETag: '"1"' }),
+          }),
+        );
+      } else {
+        pending.error(new HttpErrorResponse({ status: 503 }));
+      }
+      fixture.destroy();
+      await work;
+      expect(pending.observed).toBe(false);
+      expect(getState(store)).toEqual(before);
+      expect(getState(saved)).toEqual(envelope);
+      expect(draftNavigation.recordAllRejectedResubmission).not.toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(TestBed.inject(GlobalStore).bannerError().error).not.toBe(true);
+    },
+  );
+  it('ignores a failed PUT after its amendment identity is lost', async () => {
+    const saved = seedAmendment();
+    const before = structuredClone(getState(store));
+    const envelope = structuredClone(getState(saved));
+    const pending = new Subject<HttpResponse<unknown>>();
+    maintenance.replaceDraftCasefile.mockReturnValue(pending);
+    const work = fixture.componentInstance.handleSubmit();
+    await vi.waitFor(() => expect(pending.observed).toBe(true));
+    authenticated.set(false);
+    pending.error(new HttpErrorResponse({ status: 503 }));
+    await work;
+    expect(getState(store)).toEqual(before);
+    expect(getState(saved)).toEqual(envelope);
+    expect(draftNavigation.recordAllRejectedResubmission).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(TestBed.inject(GlobalStore).bannerError().error).not.toBe(true);
+  });
   it.each(['empty', 'conflict', 'network'])(
     'locks %s submission without replay until authoritative re-entry',
     async (failure) => {
@@ -1468,6 +1531,20 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(getState(saved)).toEqual(envelope);
     expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
     expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+  });
+  it('does not reload a locked amendment after its authentication is revoked', async () => {
+    const saved = seedAmendment();
+    saved.setRequiresReload(true);
+    const before = structuredClone(getState(store));
+    const envelope = structuredClone(getState(saved));
+    authenticated.set(false);
+    fixture.componentInstance.handleBack();
+    await fixture.whenStable();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+    expect(getState(store)).toEqual(before);
+    expect(getState(saved)).toEqual(envelope);
   });
   it.each(['dashboard', 'all-rejected'] as const)(
     'captures %s success notice before clearing data and clears stale notice on failed navigation',

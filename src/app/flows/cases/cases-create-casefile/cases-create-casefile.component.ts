@@ -1,7 +1,6 @@
 import { CasesDraftCasefileStore } from '../cases-draft/stores/cases-draft-casefile.store';
-import { resolveCasesDraftIdentity } from '../cases-draft/utils/cases-draft-identity';
+import { resolveCasesDraftIdentity, sameCasesDraftIdentity } from '../cases-draft/utils/cases-draft-identity';
 import { resolveCasesDraftReadIdentity } from '../cases-draft/utils/cases-draft-casefile-permissions';
-import { sameCasesDraftIdentity } from '../cases-draft/utils/cases-draft-identity';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '../constants/release-1c-rm-create-case-files-feature-flag.constant';
 import { CasesCreateCasefileReviewNavigationService } from './services/cases-create-casefile-review-navigation.service';

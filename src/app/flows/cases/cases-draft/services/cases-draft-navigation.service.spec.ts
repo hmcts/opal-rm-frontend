@@ -6,6 +6,7 @@ import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileStore } from '../../cases-create-casefile/stores/cases-create-casefile.store';
+import type { ICasesDraftDeletionNotice } from '../interfaces/cases-draft-deletion-notice.interface';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
@@ -50,6 +51,16 @@ describe('CasesDraftNavigationService', () => {
     });
     service = TestBed.inject(CasesDraftNavigationService);
     router = TestBed.inject(Router);
+  });
+  it('refuses checker deletion notices in inputter mode', () => {
+    expect(
+      service.recordCheckerDeletion({
+        identity: { userId: 1, businessUnitId: 44, submittedBy: 'BUU' },
+        draftCasefileId: 17,
+        respondentName: 'Synthetic',
+        outcome: 'confirmed',
+      }),
+    ).toBe(false);
   });
   it.each([1, 123, Number.MAX_SAFE_INTEGER])(
     'builds an internal Delete URL for %s without dashboard metadata',
@@ -836,6 +847,67 @@ describe('checker CasesDraftNavigationService', () => {
     });
     service = TestBed.inject(CasesDraftNavigationService);
     router = TestBed.inject(Router);
+  });
+  function deletionNotice(): ICasesDraftDeletionNotice {
+    const user = userState()!;
+    return {
+      identity: {
+        userId: user.user_id,
+        businessUnitId: 44,
+        submittedBy: user.business_unit_users[0].business_unit_user_id,
+      },
+      draftCasefileId: 17,
+      respondentName: 'Synthetic Respondent',
+      outcome: 'confirmed',
+    };
+  }
+  it('consumes checker deletion once and isolates the retained identity', () => {
+    const notice = deletionNotice();
+    expect(service.recordCheckerDeletion(notice)).toBe(true);
+    notice.identity.submittedBy = 'CHANGED';
+    expect(service.consumeCheckerDeletion()?.identity.submittedBy).not.toBe('CHANGED');
+    expect(service.consumeCheckerDeletion()).toBeNull();
+  });
+  it.each(['authentication', 'flag', 'identity', 'permission'] as const)('drops notice after %s loss', (loss) => {
+    expect(service.recordCheckerDeletion(deletionNotice())).toBe(true);
+    if (loss === 'authentication') authenticated.set(false);
+    if (loss === 'flag') featureFlags.set({});
+    if (loss === 'identity') userState.set({ ...userState()!, user_id: 99 });
+    if (loss === 'permission') {
+      const changed = structuredClone(userState()!);
+      changed.business_unit_users[0].permissions = [];
+      userState.set(changed);
+    }
+    expect(service.consumeCheckerDeletion()).toBeNull();
+  });
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects unsafe deletion notice identifier %s and clears the previous notice',
+    (draftCasefileId) => {
+      expect(service.recordCheckerDeletion(deletionNotice())).toBe(true);
+      expect(service.recordCheckerDeletion({ ...deletionNotice(), draftCasefileId })).toBe(false);
+      expect(service.consumeCheckerDeletion()).toBeNull();
+    },
+  );
+  it.each(['identity', 'name', 'outcome'] as const)('rejects invalid deletion notice %s', (invalid) => {
+    const notice = deletionNotice();
+    if (invalid === 'identity') notice.identity.submittedBy = 'OTHER';
+    if (invalid === 'name') notice.respondentName = '  ';
+    if (invalid === 'outcome') Object.assign(notice, { outcome: 'unknown' });
+    expect(service.recordCheckerDeletion(notice)).toBe(false);
+    expect(service.consumeCheckerDeletion()).toBeNull();
+  });
+  it('clears a retained checker deletion notice explicitly', () => {
+    expect(service.recordCheckerDeletion(deletionNotice())).toBe(true);
+    service.clearCheckerDeletion();
+    expect(service.consumeCheckerDeletion()).toBeNull();
+  });
+  it('does not preserve a notice after authority disappears and returns in the same identity', () => {
+    service.recordCheckerDeletion(deletionNotice());
+    authenticated.set(false);
+    TestBed.tick();
+    authenticated.set(true);
+    TestBed.tick();
+    expect(service.consumeCheckerDeletion()).toBeNull();
   });
   it('cannot retain inputter list metadata, placeholder context or success', async () => {
     const navigate = vi.spyOn(router, 'navigateByUrl');

@@ -24,6 +24,7 @@ describe('amendment replacement entry departure', () => {
     '/cases/create-casefile/task-list/18;source=history',
     '/cases/create-casefile/task-list/%31%38',
     '/cases/create-casefile/task-list/18/',
+    '/cases/create-casefile/task-list/18///',
   ])('protects an equivalent Angular entry URL %s', (url) => {
     TestBed.inject(CasesCreateCasefileStore).setUnsavedChanges(true);
     vi.spyOn(window, 'confirm').mockReturnValue(false);
@@ -31,6 +32,34 @@ describe('amendment replacement entry departure', () => {
       casesCreateCasefileAmendmentEntryCanDeactivateGuard({}, current, state, { url } as RouterStateSnapshot),
     );
     expect(result).toBe(false);
+  });
+  it('confirms same-ID re-entry but preserves a parameterless local return without prompting', () => {
+    TestBed.inject(CasesCreateCasefileStore).setUnsavedChanges(true);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const currentState = { url: '/cases/create-casefile/task-list/17' } as RouterStateSnapshot;
+    const enter = (url: string) =>
+      TestBed.runInInjectionContext(() =>
+        casesCreateCasefileAmendmentEntryCanDeactivateGuard({}, current, currentState, {
+          url,
+        } as RouterStateSnapshot),
+      );
+
+    expect(enter('/cases/create-casefile/task-list/17')).toBe(false);
+    expect(confirm).toHaveBeenCalledOnce();
+    confirm.mockClear();
+
+    expect(enter('/cases/create-casefile/task-list')).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+  });
+  it.each([
+    '/cases/create-casefile/task-list/0',
+    '/cases/create-casefile/task-list/018',
+    '/cases/create-casefile/task-list/18/edit',
+    `/cases/create-casefile/task-list/18${'%2F'.repeat(1024)}outside`,
+  ])('does not treat an invalid entry path as a fresh amendment: %s', (url) => {
+    expect(
+      casesCreateCasefileAmendmentEntryCanDeactivateGuard({}, current, state, { url } as RouterStateSnapshot),
+    ).toBe(true);
   });
   it('allows fresh entry without prompting when the current journey is clean', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);

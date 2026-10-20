@@ -27,17 +27,17 @@ export const fetchCasesCreateCasefileCountriesResolver: ResolveFn<IOpalMaintenan
     path.endsWith('minor-creditor-details') && assignment?.type === 'minor'
       ? editable?.minorCreditors().find((item) => item.sequenceNumber === assignment.sequenceNumber)
       : null;
-  const selected = [
+  const selected = new Set([
     respondent?.contactDetails.address.countryId,
     respondent?.thirdParty?.address.countryId,
     respondent?.employer?.address.countryId,
     applicant?.contactDetails.address.countryId,
     applicant && 'thirdParty' in applicant ? applicant.thirdParty?.address.countryId : undefined,
     minor?.details.address.countryId,
-  ];
+  ]);
   const saved =
     editable?.submissionIntent() === 'amendment'
-      ? (persisted?.references()?.countries.filter((item) => selected.includes(item.country_id)) ?? [])
+      ? (persisted?.references()?.countries.filter((item) => selected.has(item.country_id)) ?? [])
       : [];
 
   return inject(OpalMaintenanceService)

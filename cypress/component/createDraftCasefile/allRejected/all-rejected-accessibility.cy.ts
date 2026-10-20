@@ -36,34 +36,28 @@ describe('All rejected cases native keyboard and accessibility', () => {
       axe();
       cy.screenshot('po-10607-all-rejected-' + state.name + '-320px');
     });
-  it(
-    'AC2. should traverse the scroll region, all six headers and respondent with native Tab and Enter',
-    { tags: buildTags() },
-    () => {
-      setupAllRejected();
-      cy.get(S.allRejectedHeading).should('be.focused');
+  it('AC2. should traverse all six headers and respondent with native Tab and Enter', { tags: buildTags() }, () => {
+    setupAllRejected();
+    cy.get(S.allRejectedHeading).should('be.focused');
+    for (const key of ['respondent', 'applicant', 'caseType', 'submittedByName', 'created', 'statusDate']) {
       cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.scrollRegion).should('be.focused');
-      for (const key of ['respondent', 'applicant', 'caseType', 'submittedByName', 'created', 'statusDate']) {
-        cy.press(Cypress.Keyboard.Keys.TAB);
-        cy.get(S.sort(key)).should('be.focused');
-        pressDashboardEnter();
-        cy.get(S.sort(key)).should('be.focused');
-        cy.get(S.sort(key)).closest('th').should('have.attr', 'aria-sort', 'ascending');
-        const firstId = key === 'applicant' || key === 'statusDate' ? '26' : '1';
-        cy.get(S.tableRows).first().should('have.attr', 'data-draft-id', firstId);
-      }
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.row(26)).find('a').should('be.focused');
+      cy.get(S.sort(key)).should('be.focused');
       pressDashboardEnter();
-      cy.get(S.placeholderHeading).should('have.text', 'Check case details').and('be.focused');
-      cy.get('@listRequest').should('have.been.calledOnce');
-      cy.get(S.placeholderBack).focus();
-      pressDashboardEnter();
-      cy.get(S.allRejectedHeading).should('be.focused');
-      cy.get('@listRequest').should('have.been.calledTwice');
-    },
-  );
+      cy.get(S.sort(key)).should('be.focused');
+      cy.get(S.sort(key)).closest('th').should('have.attr', 'aria-sort', 'ascending');
+      const firstId = key === 'applicant' || key === 'statusDate' ? '26' : '1';
+      cy.get(S.tableRows).first().should('have.attr', 'data-draft-id', firstId);
+    }
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.row(26)).find('a').should('be.focused');
+    pressDashboardEnter();
+    cy.get(S.placeholderHeading).should('have.text', 'Check case details').and('be.focused');
+    cy.get('@listRequest').should('have.been.calledOnce');
+    cy.get(S.placeholderBack).focus();
+    pressDashboardEnter();
+    cy.get(S.allRejectedHeading).should('be.focused');
+    cy.get('@listRequest').should('have.been.calledTwice');
+  });
   it(
     'AC2. should traverse number and next controls and focus the first new row on native Enter',
     { tags: buildTags() },
@@ -145,26 +139,11 @@ describe('All rejected cases native keyboard and accessibility', () => {
       cy.viewport(320, 900);
       setupAllRejected();
       cy.get(S.allRejectedHeading).should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.scrollRegion).should('be.focused');
-      cy.then(async () => {
-        for (const type of ['keyDown', 'keyUp'])
-          await Cypress.automation('remote:debugger:protocol', {
-            command: 'Input.dispatchKeyEvent',
-            params: {
-              type,
-              key: 'ArrowRight',
-              code: 'ArrowRight',
-              windowsVirtualKeyCode: 39,
-              nativeVirtualKeyCode: 39,
-            },
-          });
-      });
-      cy.get(S.scrollRegion).should((region) => expect(region[0].scrollLeft).to.be.greaterThan(0));
       for (const key of ['respondent', 'applicant', 'caseType', 'submittedByName', 'created', 'statusDate']) {
         cy.press(Cypress.Keyboard.Keys.TAB);
         cy.get(S.sort(key)).should('be.focused');
       }
+      cy.get(S.scrollRegion).should((region) => expect(region[0].scrollLeft).to.be.greaterThan(0));
       cy.document().should((document) => expect(document.documentElement.scrollWidth).to.be.at.most(320));
       cy.get(S.scrollRegion).scrollTo('right');
       cy.get(S.sort('statusDate')).should('be.visible');

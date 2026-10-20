@@ -43,14 +43,15 @@ Feature: Inputter dashboard accessibility
     And I capture the "all-rejected" inputter shell
 
   @JIRA-STORY:PO-10605 @JIRA-EPIC:PO-10817
-  Scenario Outline: Persisted placeholders remain accessible
+  Scenario Outline: Persisted destinations remain accessible
     Given my inputter casefile collection is available
     When I open the persisted "<kind>" destination with identifier "<id>"
-    Then I check the page for accessibility
+    Then the "<kind>" shell shows "<message>" without mutation requests
+    And I check the page for accessibility
     And I capture the "<capture>" inputter shell
     Examples:
-      | kind      | id  | capture             |
-      | details   | 123 | details             |
-      | details   | 0   | malformed-details   |
-      | amendment | 123 | amendment           |
-      | amendment | bad | malformed-amendment |
+      | kind      | id  | capture             | message                      |
+      | details   | 123 | details             | Saved case details           |
+      | details   | 0   | malformed-details   | Saved details fail safely    |
+      | amendment | 123 | amendment           | Saved amendment tasks        |
+      | amendment | bad | malformed-amendment | Amendment entry fails safely |

@@ -190,6 +190,15 @@ describe('CasesCreateCasefileStore', () => {
     },
   });
 
+  it('preserves amendment intent through hydration and edits independently of the persisted envelope', () => {
+    expect(store.submissionIntent()).toBe('create');
+    store.hydratePersistedCasefile({ ...structuredClone(CASES_CREATE_CASEFILE_STATE), submissionIntent: 'amendment' });
+    store.setSubmissionSucceeded(false);
+    expect(store.submissionIntent()).toBe('amendment');
+    store.resetStore();
+    expect(store.submissionIntent()).toBe('create');
+  });
+
   describe('hydratePersistedCasefile', () => {
     it('hydrates mapper-produced drafts A and B without retaining optional data from A', () => {
       const references = { ...PERSISTED_CASEFILE_REFERENCES, resultPages: { TEST01: PERSISTED_CASEFILE_RESULT_PAGE } };

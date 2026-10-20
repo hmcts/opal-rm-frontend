@@ -18,11 +18,19 @@ export abstract class CasesCreateCasefileFormParentBaseComponent
   protected readonly store = inject(CasesCreateCasefileStore);
 
   public readonly countryAutocompleteItems: IAlphagovAccessibleAutocompleteItem[] = this.countries.refData.map(
-    ({ country_id, country_name }) => ({ name: country_name, value: country_id }),
+    ({ country_id, country_name, active }) => ({
+      name: country_name,
+      value: country_id,
+      ...(active === false ? { active: false } : {}),
+    }),
   );
   public readonly countrySelectOptions: IGovUkSelectOptions[] = [
     { name: 'Select', value: '' },
-    ...this.countries.refData.map(({ country_id, country_name }) => ({ name: country_name, value: country_id })),
+    ...this.countries.refData.map(({ country_id, country_name, active }) => ({
+      name: country_name,
+      value: country_id,
+      ...(active === false ? { active: false } : {}),
+    })),
   ];
 
   protected completeFormSubmission(save: () => void): void {

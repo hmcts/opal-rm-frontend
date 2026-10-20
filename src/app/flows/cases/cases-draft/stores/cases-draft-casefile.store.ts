@@ -1,19 +1,24 @@
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
-import type { IOpalMaintenanceDraftCasefileDetail } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-detail.interface';
-import type { ICasesDraftIdentity } from '../interfaces/cases-draft-identity.interface';
 import type { ICasesDraftCasefileResolved } from '../interfaces/cases-draft-casefile-resolved.interface';
+import { CASES_DRAFT_CASEFILE_STATE } from '../constants/cases-draft-casefile-state.constant';
 
-/** Retains the saved lifecycle envelope; editable presentation state belongs to the creation store. */
+/** Retains the saved envelope and submission lock; editable presentation belongs to the creation store. */
 export const CasesDraftCasefileStore = signalStore(
-  withState({
-    draft: null as IOpalMaintenanceDraftCasefileDetail | null,
-    etag: null as string | null,
-    identity: null as ICasesDraftIdentity | null,
-  }),
+  withState(CASES_DRAFT_CASEFILE_STATE),
   withMethods((store) => ({
+    /** Starts a fresh resolved entry; editor returns retain the working context. */
     loadResolved: (result: ICasesDraftCasefileResolved): void => {
-      patchState(store, { draft: structuredClone(result.draft), etag: result.etag, identity: { ...result.identity } });
+      patchState(store, {
+        draft: structuredClone(result.draft),
+        etag: result.etag,
+        identity: structuredClone(result.identity),
+        references: structuredClone(result.references),
+        requiresReload: false,
+      });
     },
-    resetStore: (): void => patchState(store, { draft: null, etag: null, identity: null }),
+    setRequiresReload: (requiresReload: boolean): void => {
+      patchState(store, { requiresReload });
+    },
+    resetStore: (): void => patchState(store, CASES_DRAFT_CASEFILE_STATE),
   })),
 );

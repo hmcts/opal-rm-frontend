@@ -311,10 +311,10 @@ describe('checker rendered table', () => {
       );
     },
   );
-  it('uses the inputter details destination for all-rejected even with checker providers', () => {
+  it('uses the inputter amendment destination for all-rejected even with checker providers', () => {
     const element: HTMLElement = render('rejected', 26, 'all-rejected').nativeElement;
     expect(element.querySelector('caption')?.textContent?.trim()).toBe('All rejected cases');
-    expect(element.querySelector('tbody a')?.getAttribute('href')).toBe('/cases/create-casefile/check-case-details/1');
+    expect(element.querySelector('tbody a')?.getAttribute('href')).toBe('/cases/create-casefile/task-list/1');
     expect(element.querySelectorAll('th')).toHaveLength(6);
     expect(element.querySelector('opal-lib-moj-pagination')).not.toBeNull();
     expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
@@ -547,7 +547,7 @@ describe('all-rejected rendered table', () => {
     return fixture;
   }
 
-  it('renders six columns, inputter detail links and shared MOJ paging', () => {
+  it('renders six columns, inputter amendment links and shared MOJ paging', () => {
     const fixture = render();
     const element: HTMLElement = fixture.nativeElement;
     expect([...element.querySelectorAll('th')].map((cell) => cell.textContent?.trim())).toEqual([
@@ -561,7 +561,7 @@ describe('all-rejected rendered table', () => {
     expect(element.querySelector('caption')?.textContent?.trim()).toBe('All rejected cases');
     expect(element.querySelector('[data-column="submittedByName"]')?.textContent?.trim()).toBe('Synthetic submitter');
     expect(element.querySelectorAll('tbody tr')).toHaveLength(25);
-    expect(element.querySelector('tbody a')?.getAttribute('href')).toBe('/cases/create-casefile/check-case-details/1');
+    expect(element.querySelector('tbody a')?.getAttribute('href')).toBe('/cases/create-casefile/task-list/1');
     expect(element.querySelector('opal-lib-moj-pagination')).not.toBeNull();
     expect(element.querySelector('opal-lib-moj-pagination nav')).not.toBeNull();
     expect(element.querySelector('.moj-pagination__results')?.textContent).toMatch(
@@ -763,7 +763,7 @@ describe('all-rejected rendered table', () => {
       link.dispatchEvent(event);
       expect(event.defaultPrevented).toBe(false);
       expect(opened).not.toHaveBeenCalled();
-      expect(link.getAttribute('href')).toBe('/cases/create-casefile/check-case-details/1');
+      expect(link.getAttribute('href')).toBe('/cases/create-casefile/task-list/1');
     },
   );
 

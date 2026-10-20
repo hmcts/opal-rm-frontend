@@ -31,6 +31,7 @@ export class CasesCreateCasefileOrderDetailsMapperService {
     return records.map((record) => ({
       name: `${record.application_code} - ${record.application_title}`,
       value: record.application_id,
+      ...(record.active === false ? { active: false } : {}),
     }));
   }
 
@@ -60,7 +61,7 @@ export class CasesCreateCasefileOrderDetailsMapperService {
     const court = form.create_casefile_order_details_court?.trim() || null;
     const orderDate = form.create_casefile_order_details_date_order_made;
 
-    if (!record || !frequency || (court !== null && court.length > 40)) {
+    if (!record || record.active === false || !frequency || (court !== null && court.length > 40)) {
       throw new Error('Invalid Order Details selection');
     }
 

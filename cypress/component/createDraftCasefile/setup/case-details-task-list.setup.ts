@@ -1,3 +1,7 @@
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import type { ICasesDraftCasefileResolved } from 'src/app/flows/cases/cases-draft/interfaces/cases-draft-casefile-resolved.interface';
+import { reviewUser } from '../review/setup/review.setup';
+import { CasesDraftCasefileStore } from 'src/app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { patchState, type WritableStateSource } from '@ngrx/signals';
 import type { ICasesCreateCasefileState } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-state.interface';
 import { createCasesCreateCasefileReviewState } from 'src/app/flows/cases/cases-create-casefile/mocks/cases-create-casefile-review-state.mock';
@@ -26,10 +30,11 @@ import { MAJOR_CREDITORS_RESPONSE } from '../centralAuthority/mocks/major-credit
 })
 class CreateCasefileRouterHostComponent {}
 
-const testRoutes: Routes = [
+const testRoutes = (persistedStore: InstanceType<typeof CasesDraftCasefileStore>): Routes => [
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.root,
     component: CasesCreateCasefileComponent,
+    providers: [{ provide: CasesDraftCasefileStore, useValue: persistedStore }],
     children: routing,
   },
 ];
@@ -39,6 +44,7 @@ interface ICaseDetailsTaskListSetup {
   providedTasks?: CasesCreateCasefileTask[];
   initialChildPath?: string;
   completeReview?: boolean;
+  amendment?: ICasesDraftCasefileResolved;
 }
 
 export type CasesCreateCasefileStoreInstance = InstanceType<typeof CasesCreateCasefileStore>;
@@ -50,18 +56,21 @@ export const setupCaseDetailsTaskList = ({
   },
   providedTasks = [],
   completeReview = false,
+  amendment,
   initialChildPath = CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
 }: ICaseDetailsTaskListSetup = {}) => {
   cy.intercept('GET', '**/opal-maintenance-service/maintenance-applications*', {
-    body: structuredClone(ORDER_DETAILS_MOCK.response),
+    body: amendment
+      ? { refData: structuredClone(amendment.references.applications) }
+      : structuredClone(ORDER_DETAILS_MOCK.response),
   });
   cy.intercept('GET', '**/opal-maintenance-service/countries?active=true', {
     statusCode: 200,
-    body: COUNTRIES_RESPONSE,
+    body: amendment ? { refData: structuredClone(amendment.references.countries) } : COUNTRIES_RESPONSE,
   }).as('getCountries');
   cy.intercept('GET', '**/opal-maintenance-service/major-creditors*', {
     statusCode: 200,
-    body: MAJOR_CREDITORS_RESPONSE,
+    body: amendment ? { refData: structuredClone(amendment.references.majorCreditors) } : MAJOR_CREDITORS_RESPONSE,
   }).as('getMajorCreditors');
   const store = new CasesCreateCasefileStore();
   if (completeReview) {
@@ -73,6 +82,15 @@ export const setupCaseDetailsTaskList = ({
   if (selection) {
     store.setCaseTypeSelection(selection);
   }
+  const persistedStore = new CasesDraftCasefileStore();
+  const globalStore = new GlobalStore();
+  if (amendment) {
+    globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(reviewUser('inputter'));
+    persistedStore.loadResolved(structuredClone(amendment));
+    store.hydratePersistedCasefile({ ...structuredClone(amendment.state), submissionIntent: 'amendment' });
+  }
   providedTasks.forEach((task) => store.setTaskStatus(task, CASES_CREATE_CASEFILE_TASK_STATUSES.PROVIDED));
 
   return cy.document().then((document) => {
@@ -82,8 +100,9 @@ export const setupCaseDetailsTaskList = ({
 
     return mount(CreateCasefileRouterHostComponent, {
       providers: [
-        provideRouter(testRoutes),
+        provideRouter(testRoutes(persistedStore)),
         provideHttpClient(),
+        { provide: GlobalStore, useValue: globalStore },
         { provide: CasesCreateCasefileStore, useValue: store },
       ],
     }).then(() => {
@@ -91,6 +110,7 @@ export const setupCaseDetailsTaskList = ({
       const initialUrl = '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + initialChildPath;
 
       cy.wrap(store).as('casesCreateCasefileStore');
+      cy.wrap(persistedStore).as('persistedCasefileStore');
       cy.wrap(router).as('angularRouter');
       return cy.wrap(router.navigateByUrl(initialUrl));
     });

@@ -44,7 +44,7 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
   private readonly navigation = inject(CasesDraftNavigationService);
   private readonly rowsById = computed(() => new Map(this.rows().map((row) => [row.id, row])));
   private readonly rowDestination = computed(() => {
-    if (this.mode === 'inputter') return 'details';
+    if (this.mode === 'inputter') return this.selection().tab === 'rejected' ? 'amendment' : 'details';
     return this.selection().tab === 'to-review' ? 'review' : 'view';
   });
   private readonly columns = computed(() =>
@@ -71,7 +71,7 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
         ...row,
         detailHref: this.router.serializeUrl(
           this.allRejected()
-            ? this.navigation.allRejectedPlaceholderUrl('details', row.id)
+            ? this.navigation.allRejectedPlaceholderUrl('amendment', row.id)
             : this.navigation.placeholderUrl(this.rowDestination(), row.id),
         ),
       };

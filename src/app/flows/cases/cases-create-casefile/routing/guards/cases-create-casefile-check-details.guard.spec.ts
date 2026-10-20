@@ -49,6 +49,16 @@ describe('Check details and confirmation state guard', () => {
     expect(runGuard()).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/task-list'));
   });
 
+  it('redirects a completed case with unfinished corrections', () => {
+    const state = createCasesCreateCasefileReviewState();
+    state.unsavedChanges = true;
+    patchState(
+      TestBed.inject(CasesCreateCasefileStore) as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      state,
+    );
+    expect(runGuard()).toEqual(TestBed.inject(Router).parseUrl('/cases/create-casefile/task-list'));
+  });
+
   it('redirects an incomplete required task', () => {
     const state = createCasesCreateCasefileReviewState();
     state.taskStatuses.respondent = 'Required';

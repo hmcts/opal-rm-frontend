@@ -60,7 +60,8 @@ it.each([
   [],
   'success',
   {},
-  { ...event, origin: 'dashboard' },
+  { ...event, origin: 'checker' },
+  { ...event, origin: ['dashboard'] },
   { ...event, identity: null },
   { ...event, identity: [] },
   { ...event, identity: { ...identity, userId: 101 } },
@@ -86,4 +87,13 @@ it('requires an authorised identity and copies trimmed names into a fresh event'
   const decoded = decodeAllRejectedSuccess(event, identity)!;
   expect(decoded).toEqual({ ...event, respondentForename: 'Synthetic', respondentSurname: 'Respondent' });
   expect(decoded.identity).not.toBe(identity);
+});
+
+it.each(['dashboard', 'all-rejected'] as const)('accepts a resubmission notice for its %s origin', (origin) => {
+  expect(decodeAllRejectedSuccess({ ...event, origin }, identity)).toEqual({
+    ...event,
+    origin,
+    respondentForename: 'Synthetic',
+    respondentSurname: 'Respondent',
+  });
 });

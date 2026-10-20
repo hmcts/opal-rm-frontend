@@ -58,7 +58,11 @@ describe('CasesCreateCasefileComponent', () => {
     });
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileComponent],
-      providers: [provideRouter([]), { provide: GlobalStore, useValue: { userState, authenticated, featureFlags } }],
+      providers: [
+        CasesDraftCasefileStore,
+        provideRouter([]),
+        { provide: GlobalStore, useValue: { userState, authenticated, featureFlags } },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CasesCreateCasefileComponent);
@@ -117,6 +121,48 @@ describe('CasesCreateCasefileComponent', () => {
     fixture.detectChanges();
     expect(persisted.draft()).not.toBeNull();
   });
+  it('drops amendment data when create permission is lost even if review permission remains', () => {
+    const persisted = fixture.debugElement.injector.get(CasesDraftCasefileStore);
+    const result = resolved({ intent: 'inputter-amend', mode: 'amend' });
+    store.hydratePersistedCasefile({ ...result.state, submissionIntent: 'amendment' });
+    persisted.loadResolved(result);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    fixture.detectChanges();
+    userState.set({
+      ...userState(),
+      business_unit_users: [
+        { ...userState().business_unit_users[0], permissions: [{ permission_id: 22, permission_name: 'Review' }] },
+      ],
+    });
+    fixture.detectChanges();
+    expect(persisted.draft()).toBeNull();
+    expect(store.respondentDetails()).toBeNull();
+    expect(navigate).toHaveBeenCalledWith('/error/permission-denied');
+  });
+
+  it('clears the persisted amendment and submission lock when shell data is destroyed', () => {
+    const persisted = fixture.debugElement.injector.get(CasesDraftCasefileStore);
+    const result = resolved({ intent: 'inputter-amend', mode: 'amend' });
+    store.hydratePersistedCasefile({ ...result.state, submissionIntent: 'amendment' });
+    persisted.loadResolved(result);
+    persisted.setRequiresReload(true);
+    fixture.destroy();
+    expect(persisted.draft()).toBeNull();
+    expect(persisted.references()).toBeNull();
+    expect(persisted.identity()).toBeNull();
+    expect(persisted.requiresReload()).toBe(false);
+    expect(store.respondentDetails()).toBeNull();
+  });
+
+  it('unregisters its native unload listener when destroyed', () => {
+    fixture.detectChanges();
+    fixture.destroy();
+    store.setUnsavedChanges(true);
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it('allows unload when there are no changes', () => {
     expect(component.handleBeforeUnload()).toBe(true);
     expect(component.canDeactivate()).toBe(true);

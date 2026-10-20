@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from '../stores/cases-draft-casefile.store';
 import { resolveCasesDraftReadIdentity } from '../utils/cases-draft-casefile-permissions';
 import { casesDraftCasefileResolver } from './resolvers/cases-draft-casefile.resolver';
 import { CasesCreateCasefileOrderTermLookupsService } from '../../cases-create-casefile/cases-create-casefile-order-terms-input/services/cases-create-casefile-order-term-lookups.service';
@@ -64,7 +65,7 @@ const children: Routes = [
     path: '',
     loadComponent: () =>
       import('../../cases-create-casefile/cases-create-casefile.component').then((m) => m.CasesCreateCasefileComponent),
-    providers: [businessUnitProvider(true), CasesCreateCasefileOrderTermLookupsService],
+    providers: [businessUnitProvider(true), CasesCreateCasefileOrderTermLookupsService, CasesDraftCasefileStore],
     canActivate: [businessUnitRoutePermissionsGuard],
     canActivateChild: [businessUnitRoutePermissionsGuard],
     data: { ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, routePermissionId: [21, 22] },

@@ -1,3 +1,4 @@
+import { createRejectedAmendment } from './review/mocks/rejected-amendment.mock';
 import type { Router } from '@angular/router';
 import { CASES_CREATE_CASEFILE_INITIAL_TASK_STATUSES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-state.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-types.constant';
@@ -537,4 +538,38 @@ describe('Create Casefile Case Details Task List', () => {
     assertRouterPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.cancel);
     cy.get('@postRequest').should('not.have.been.called');
   });
+});
+
+describe('Rejected amendment task list', () => {
+  const amendmentTags = (): string[] => [
+    '@JIRA-STORY:PO-10610',
+    '@JIRA-EPIC:PO-10817',
+    '@JIRA-LABEL:create-draft-casefile',
+  ];
+  it(
+    'AC1, AC2. should restore provided tasks and follow the actual respondent editor',
+    { tags: amendmentTags() },
+    () => {
+      setupCaseDetailsTaskList({ amendment: createRejectedAmendment() });
+      cy.get(Page.caseDetails.heading).should('have.text', 'Synthetic Respondent');
+      cy.get(Page.review.history).should('be.visible');
+      cy.get(Page.caseDetails.caseTypeRow).should((row) => {
+        const history = row[0].ownerDocument.querySelector(Page.review.history)!;
+        expect(history.compareDocumentPosition(row[0]) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.greaterThan(0);
+      });
+      cy.get(Page.caseDetails.respondentStatus).should('contain.text', 'Provided');
+      cy.get(Page.caseDetails.orderTermsStatus).should('contain.text', 'Provided');
+      cy.get(Page.caseDetails.respondentLink).click();
+      assertRouterPath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.respondentDetails);
+      cy.get(Page.respondentDetails.firstNames).should('have.value', 'Synthetic');
+      cy.get(Page.respondentDetails.firstNames).clear().type('Corrected');
+      cy.get(Page.respondentDetails.returnToCaseDetails).click();
+      cy.get<CasesCreateCasefileStoreInstance>('@casesCreateCasefileStore').should((store) => {
+        expect(store.respondentDetails()?.firstNames).to.equal('Corrected');
+        expect(store.submissionIntent()).to.equal('amendment');
+      });
+      cy.get(Page.caseDetails.checkCaseButton).click();
+      cy.get(Page.review.rowValue('respondent', 'FirstNames')).should('contain.text', 'Corrected');
+    },
+  );
 });

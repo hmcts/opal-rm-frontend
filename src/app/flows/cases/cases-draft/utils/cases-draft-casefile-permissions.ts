@@ -25,3 +25,13 @@ export function canReviewDraftCasefile(
     draft.submitted_by !== identity.submittedBy
   );
 }
+
+/** Rejected casefiles are amendable by an active released inputter in their owning business unit. */
+export function canAmendDraftCasefile(
+  draft: IOpalMaintenanceDraftCasefileDetail,
+  user: IOpalUserState | null | undefined,
+  released: boolean,
+): boolean {
+  const identity = resolveCasesDraftIdentity(user, released, 'inputter');
+  return !!identity && identity.businessUnitId === draft.business_unit_id && draft.casefile_status === 'REJECTED';
+}

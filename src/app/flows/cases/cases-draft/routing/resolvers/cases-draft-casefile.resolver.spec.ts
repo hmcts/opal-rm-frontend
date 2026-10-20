@@ -1,7 +1,9 @@
+import { CASES_DRAFT_DELETE_CANCEL_NAVIGATION_INFO } from '../../constants/cases-draft-delete-cancel-navigation-info.constant';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import {
   ActivatedRouteSnapshot,
+  Navigation,
   convertToParamMap,
   provideRouter,
   RedirectCommand,
@@ -16,7 +18,7 @@ import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/co
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
-import { EMPTY, Observable, of, Subject, throwError } from 'rxjs';
+import { firstValueFrom, EMPTY, Observable, of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OpalMaintenanceService } from '../../../services/opal-maintenance-service/opal-maintenance.service';
 import {
@@ -482,4 +484,45 @@ describe('casesDraftCasefileResolver', () => {
     expect(resolve()).toEqual([]);
     expect(setBannerError).toHaveBeenCalled();
   });
+  it.each([
+    [401, true, 'checker-review', true, true],
+    [403, true, 'checker-review', true, true],
+    [503, true, 'checker-review', true, false],
+    [401, false, 'checker-review', true, false],
+    [403, false, 'checker-review', true, false],
+    [401, true, 'checker-delete', true, false],
+    [403, true, 'inputter-amend', true, false],
+    [401, true, 'checker-review', false, false],
+    [403, true, 'checker-review', false, false],
+  ] as const)(
+    'scopes Cancel denial: status=%s marked=%s intent=%s current=%s rethrows=%s',
+    async (status, marked, intent, stillCurrent, rethrows) => {
+      const router = TestBed.inject(Router);
+      const url = router.parseUrl('/cases/draft/check-and-validate/review/17#to-review');
+      const navigation: Navigation = {
+        id: 91,
+        initialUrl: url,
+        extractedUrl: url,
+        trigger: 'imperative',
+        extras: marked ? { info: CASES_DRAFT_DELETE_CANCEL_NAVIGATION_INFO } : {},
+        previousNavigation: null,
+        abort: vi.fn(),
+      };
+      const currentNavigation = vi.spyOn(router, 'currentNavigation').mockReturnValue(navigation);
+      const pending = new Subject<{ draft: ReturnType<typeof createPersistedCasefileDetail>; etag: string }>();
+      maintenance.getDraftCasefile.mockReturnValue(pending);
+      const resolution = TestBed.runInInjectionContext(() =>
+        casesDraftCasefileResolver(route('17', intent), {} as RouterStateSnapshot),
+      );
+      if (!(resolution instanceof Observable)) throw new Error('Expected observable');
+      const result = firstValueFrom(resolution, { defaultValue: null });
+      if (!stillCurrent) currentNavigation.mockReturnValue({ ...navigation, id: 92 });
+      const error = new HttpErrorResponse({ status });
+      pending.error(error);
+      if (rethrows) await expect(result).rejects.toBe(error);
+      else await expect(result).resolves.toBeNull();
+      expect(setBannerError).not.toHaveBeenCalled();
+      expectNoHydration();
+    },
+  );
 });

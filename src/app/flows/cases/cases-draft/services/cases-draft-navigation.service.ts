@@ -1,3 +1,4 @@
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { ICasesDraftDeletionNotice } from '../interfaces/cases-draft-deletion-notice.interface';
 import type { CasesDraftDashboardMode } from '../types/cases-draft-dashboard-mode.type';
 import type { CasesDraftAllRejectedPlaceholderKind } from '../types/cases-draft-all-rejected-placeholder-kind.type';
@@ -10,7 +11,7 @@ import {
   decodeAllRejectedSuccess,
 } from '../utils/cases-draft-all-rejected';
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
-import { Router, UrlTree } from '@angular/router';
+import { NavigationStart, Router, UrlTree } from '@angular/router';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '../../constants/release-1c-rm-create-case-files-feature-flag.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../../cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
@@ -52,6 +53,17 @@ export class CasesDraftNavigationService {
   );
 
   constructor() {
+    this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
+      if (!(event instanceof NavigationStart) || !this.checkerDeletion()) return;
+      const destination = this.router.serializeUrl(
+        this.router.createUrlTree(
+          ['/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.root + '/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.children.tabs],
+          { fragment: 'to-review' },
+        ),
+      );
+      if (event.url !== destination) this.clearCheckerDeletion();
+    });
+
     effect(() => {
       const identity = this.authorisedIdentity();
       if (!identity || !this.sameIdentity(identity, this.previousIdentity)) {

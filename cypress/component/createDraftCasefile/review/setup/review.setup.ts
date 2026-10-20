@@ -3,7 +3,7 @@ import { CASES_DRAFT_DASHBOARD_MODE } from 'src/app/flows/cases/cases-draft/cons
 import { BehaviorSubject } from 'rxjs';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import type { ICasesDraftCasefileResolved } from 'src/app/flows/cases/cases-draft/interfaces/cases-draft-casefile-resolved.interface';
-import { CasesDraftDeletePlaceholderComponent } from 'src/app/flows/cases/cases-draft/cases-draft-delete-placeholder/cases-draft-delete-placeholder.component';
+import { CasesDraftDeleteComponent } from 'src/app/flows/cases/cases-draft/cases-draft-delete/cases-draft-delete.component';
 import {
   checkerUser,
   type CheckerRole,
@@ -85,7 +85,7 @@ export function setupReview(options: ReviewSetupOptions = {}) {
   const reviewComponent = options.confirmation
     ? CasesCreateCasefileSubmissionConfirmationComponent
     : CasesCreateCasefileCheckDetailsComponent;
-  const component = options.deleteScreen ? CasesDraftDeletePlaceholderComponent : reviewComponent;
+  const component = options.deleteScreen ? CasesDraftDeleteComponent : reviewComponent;
   return cy.document().then((document) => {
     document.documentElement.lang = 'en';
     document.body.classList.add('govuk-template__body');
@@ -93,7 +93,7 @@ export function setupReview(options: ReviewSetupOptions = {}) {
     return mount<
       | CasesCreateCasefileSubmissionConfirmationComponent
       | CasesCreateCasefileCheckDetailsComponent
-      | CasesDraftDeletePlaceholderComponent
+      | CasesDraftDeleteComponent
     >(component, {
       providers: [
         provideRouter([]),

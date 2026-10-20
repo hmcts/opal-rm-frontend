@@ -26,7 +26,7 @@ export const CreateCasefileSelectors = {
     status: '#create_casefile_review_status',
     delete: '#create_casefile_review_delete',
     deleteReturn: '#create_casefile_delete_return',
-    deleteHeading: 'app-cases-draft-delete-placeholder h1',
+    deleteHeading: '#create_casefile_delete_page h1',
     decisionHost: 'app-cases-draft-casefile-decision',
     decisionGroup: '#create_casefile_review_decision',
     decisionApprove: '#create_casefile_review_decision-approve',

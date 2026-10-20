@@ -1,0 +1,75 @@
+@if (readable()) {
+  <div class="govuk-grid-column-two-thirds">
+    <h1 #heading id="create_casefile_delete_heading" tabindex="-1" class="govuk-heading-l">
+      Are you sure you want to delete this case?
+    </h1>
+    <p id="create_casefile_delete_identity" class="govuk-body">{{ respondentName() }}</p>
+    <opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+    <form (submit)="handleFormSubmit($event)" [formGroup]="form">
+      <opal-lib-govuk-text-area
+        id="create_casefile_delete_reason_field"
+        labelText="Reason"
+        inputId="create_casefile_delete_reason"
+        inputName="create_casefile_delete_reason"
+        [control]="form.controls.create_casefile_delete_reason"
+        [errors]="formControlErrorMessages['create_casefile_delete_reason']"
+        [characterCountEnabled]="true"
+        [maxCharacterLimit]="250"
+      />
+      @if (phase() === 'ready' || phase() === 'pending') {
+        <div class="govuk-button-group">
+          <button
+            id="create_casefile_delete_submit"
+            type="submit"
+            class="govuk-button govuk-button--warning"
+            [disabled]="phase() === 'pending' || navigating() || routeNavigationPending()"
+          >
+            Yes - delete case
+          </button>
+          @if (phase() === 'ready' && !navigating() && !routeNavigationPending()) {
+            <opal-lib-govuk-cancel-link cancelLinkText="No - cancel" (linkClickEvent)="handleCancel()" />
+          }
+        </div>
+      }
+    </form>
+    @if (recoveryText(); as text) {
+      <p id="create_casefile_delete_status" class="govuk-body" role="status">{{ text }}</p>
+    }
+    @if (phase() === 'unresolved') {
+      <div class="govuk-button-group">
+        <button
+          opalLibGovukButton
+          buttonId="create_casefile_delete_check_status"
+          type="button"
+          [disabled]="checking() || navigating() || routeNavigationPending()"
+          (click)="handleCheckLatestStatus()"
+        >
+          Check latest case status
+        </button>
+        <button
+          opalLibGovukButton
+          buttonId="create_casefile_delete_review_cases"
+          type="button"
+          buttonClasses="govuk-button--secondary"
+          [disabled]="checking() || navigating() || routeNavigationPending()"
+          (click)="handleReturnToReviewCases()"
+        >
+          Return to Review cases
+        </button>
+      </div>
+    }
+    @if (phase() === 'complete' && !navigating() && !routeNavigationPending()) {
+      @if (returnFailed()) {
+        <p class="govuk-body" role="status">{{ completionReturnText }}</p>
+      }
+      <button
+        opalLibGovukButton
+        buttonId="create_casefile_delete_review_cases"
+        type="button"
+        (click)="handleReturnToReviewCases()"
+      >
+        Return to Review cases
+      </button>
+    }
+  </div>
+}

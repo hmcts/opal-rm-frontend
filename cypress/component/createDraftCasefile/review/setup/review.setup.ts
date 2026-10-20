@@ -76,6 +76,7 @@ export function setupReview(options: ReviewSetupOptions = {}) {
     globalStore.setUserState(structuredClone(options.user ?? reviewUser()));
   }
   const persistedStore = new CasesDraftCasefileStore();
+  if (options.confirmation) store.setSubmissionSucceeded(true);
   const reviewComponent = options.confirmation
     ? CasesCreateCasefileSubmissionConfirmationComponent
     : CasesCreateCasefileCheckDetailsComponent;

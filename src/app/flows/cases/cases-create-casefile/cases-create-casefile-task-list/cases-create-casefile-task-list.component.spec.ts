@@ -6,7 +6,7 @@ import { getState } from '@ngrx/signals';
 import { createPersistedCasefileResolved } from '../../cases-draft/mocks/cases-draft-casefile-resolved.mock';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { of } from 'rxjs';
+import { EMPTY, of } from 'rxjs';
 import { CasesDraftCasefileStore } from '@app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
@@ -50,7 +50,7 @@ describe('CasesCreateCasefileTaskListComponent', () => {
       providers: [
         CasesDraftCasefileStore,
         { provide: ActivatedRoute, useValue: { data: of({}), snapshot: { paramMap: convertToParamMap({}) } } },
-        { provide: Router, useValue: { navigateByUrl } },
+        { provide: Router, useValue: { navigateByUrl, events: EMPTY } },
       ],
     }).compileComponents();
 

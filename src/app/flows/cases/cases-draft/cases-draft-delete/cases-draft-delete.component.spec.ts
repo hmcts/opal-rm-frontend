@@ -374,6 +374,57 @@ describe('CasesDraftDeleteComponent', () => {
     expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
   });
 
+  it('does not dispatch a deletion without a saved version', async () => {
+    const result = { ...deleteResult(), etag: '' };
+    const component = create({ draftCasefile: result });
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+    fixture.detectChanges();
+    const before = structuredClone(getState(store));
+
+    await component.handleDelete();
+
+    expect(api.patchDraftCasefile).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+    expect(getState(store)).toEqual(before);
+    expect(component.form.controls.create_casefile_delete_reason.value).toBe('Synthetic reason');
+    expect(component.form.controls.create_casefile_delete_reason.enabled).toBe(true);
+    expect(component.submitting()).toBe(false);
+    expect(component.deleted()).toBe(false);
+  });
+
+  it('does not navigate or replay a completed deletion when its notice is rejected', async () => {
+    const response = deletedResponse();
+    response.body!.casefile_snapshot.respondent_account.respondent_name = '';
+    api.patchDraftCasefile.mockReturnValue(of(response));
+    const component = create();
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+    fixture.detectChanges();
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    const selection = {
+      tab: 'rejected' as const,
+      page: 3,
+      sort: 'applicant' as const,
+      direction: 'descending' as const,
+    };
+    navigation.setSelection(selection);
+    const record = vi.spyOn(navigation, 'recordCheckerDeletion');
+    const before = structuredClone(getState(store));
+
+    await component.handleDelete();
+    await component.handleDelete();
+
+    expect(record).toHaveReturnedWith(false);
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.selection()).toEqual(selection);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
+    expect(api.getDraftCasefile).not.toHaveBeenCalled();
+    expect(getState(store)).toEqual(before);
+    expect(component.deleted()).toBe(true);
+    expect(component.submitting()).toBe(false);
+  });
+
   it('records a confirmed deletion and returns to the selected To review queue', async () => {
     api.patchDraftCasefile.mockReturnValue(of(deletedResponse()));
     const navigation = TestBed.inject(CasesDraftNavigationService);

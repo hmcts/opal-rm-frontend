@@ -7,6 +7,7 @@ Feature: Check case details and submit for review
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10273 @JIRA-STORY:PO-10283 @retries(0)
   # Cleanup requires the Maintenance PR image and TESTING_SUPPORT_ENDPOINTS_ENABLED=true.
   # The visible generated-ID assertion also requires the separate confirmation-page product fix.
+  # Cases-in-review navigation will be covered in a future UI functional-test ticket when that journey is available.
   Scenario: Complete and submit one Draft Casefile through live services
     Given I am reviewing a live completed Draft Casefile
     Then review includes the saved casefile comments and notes

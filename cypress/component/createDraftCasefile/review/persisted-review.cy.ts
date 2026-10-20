@@ -498,51 +498,45 @@ describe('Persisted case details', () => {
     },
   );
 
-  it(
-    'AC5. should open the interim Delete destination without changing the persisted case',
-    { tags: buildTags() },
-    () => {
-      setupReview({ resolved: createPersistedCasefileResolved() });
-      spyCompletion();
-      cy.get(S.delete)
-        .should('match', 'a.govuk-link')
-        .and('have.attr', 'href', '/cases/draft/check-and-validate/delete/17')
-        .focus();
-      cy.get(S.delete).should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.ENTER);
-      cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) =>
-        expect(navigate.firstCall.args[0].toString()).to.equal(
-          '/' +
-            CASES_DRAFT_CHECKER_ROUTING_PATHS.root +
-            '/' +
-            CASES_DRAFT_CHECKER_ROUTING_PATHS.children.delete +
-            '/17',
-        ),
-      );
-      assertSavedEnvelope();
-      assertNoMutation();
-    },
-  );
+  it('AC5. should open the Delete destination without changing the persisted case', { tags: buildTags() }, () => {
+    setupReview({ resolved: createPersistedCasefileResolved() });
+    spyCompletion();
+    cy.get(S.delete)
+      .should('match', 'a.govuk-link')
+      .and('have.attr', 'href', '/cases/draft/check-and-validate/delete/17')
+      .focus();
+    cy.get(S.delete).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) =>
+      expect(navigate.firstCall.args[0].toString()).to.equal(
+        '/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.root + '/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.children.delete + '/17',
+      ),
+    );
+    assertSavedEnvelope();
+    assertNoMutation();
+  });
 
-  it(
-    'AC5. should return from the real Delete walkthrough without mutation or creation completion',
-    { tags: buildTags() },
-    () => {
-      setupReview({ resolved: createPersistedCasefileResolved({ intent: 'checker-delete' }), deleteScreen: true });
-      spyCompletion();
-      cy.get('@reviewHost')
-        .find(CreateCasefileSelectors.heading)
-        .should('have.text', 'Delete casefile')
-        .and('be.focused');
-      cy.screenshot('po-10608-persisted-delete-1280');
-      cy.get(S.deleteReturn).click();
-      cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) =>
-        expect(navigate.firstCall.args[0].toString()).to.equal(checkerReturn),
-      );
-      assertSavedEnvelope();
-      assertNoMutation();
-    },
-  );
+  it('AC5. should return from the Delete form without mutation or creation completion', { tags: buildTags() }, () => {
+    setupReview({ resolved: createPersistedCasefileResolved({ intent: 'checker-delete' }), deleteScreen: true });
+    spyCompletion();
+    cy.get('@reviewHost')
+      .find(CreateCasefileSelectors.deletion.heading)
+      .should(($heading) => expect($heading.text().trim()).to.equal('Are you sure you want to delete this case?'))
+      .and('be.focused');
+    cy.get(CreateCasefileSelectors.deletion.reason).should('be.visible').and('have.value', '');
+    cy.get(CreateCasefileSelectors.deletion.cancel).click();
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) =>
+      expect(navigate.firstCall.args[0].toString()).to.equal(
+        '/' +
+          CASES_DRAFT_CHECKER_ROUTING_PATHS.root +
+          '/' +
+          CASES_DRAFT_CHECKER_ROUTING_PATHS.children.review +
+          '/17#to-review',
+      ),
+    );
+    assertSavedEnvelope();
+    assertNoMutation();
+  });
 
   ['successful', 'false', 'rejected'].forEach((redirect) => {
     it(
@@ -559,12 +553,12 @@ describe('Persisted case details', () => {
           cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
             navigate.rejects(new Error('Synthetic denial navigation rejection')),
           );
-        cy.get(S.deleteReturn).should('be.visible');
+        cy.get(CreateCasefileSelectors.deletion.cancel).should('be.visible');
         cy.get<InstanceType<typeof GlobalStore>>('@globalStore').then((store) =>
           store.setUserState(reviewUser('inputter')),
         );
-        cy.get(S.deleteReturn).should('not.exist');
-        cy.get('@reviewHost').find(CreateCasefileSelectors.heading).should('have.text', 'Delete casefile');
+        cy.get(CreateCasefileSelectors.deletion.cancel).should('not.exist');
+        cy.get(CreateCasefileSelectors.deletion.heading).should('not.exist');
         cy.get('@routerNavigate').should('have.been.calledOnceWith', '/error/permission-denied');
         cy.get<ComponentFixture<CasesDraftDeleteComponent>>('@reviewFixture').then(({ componentInstance }) =>
           componentInstance.handleDelete(),

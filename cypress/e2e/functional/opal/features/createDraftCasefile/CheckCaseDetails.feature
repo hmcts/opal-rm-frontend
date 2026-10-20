@@ -5,8 +5,7 @@ Feature: Check case details and submit for review
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10273 @JIRA-STORY:PO-10283 @retries(0)
-  # Cleanup calls the future Draft Casefile test-support DELETE endpoint.
-  # This scenario will not pass until that API is implemented and enabled.
+  # Cleanup requires the Maintenance PR image and TESTING_SUPPORT_ENDPOINTS_ENABLED=true.
   # The visible generated-ID assertion also requires the separate confirmation-page product fix.
   Scenario: Complete and submit one Draft Casefile through live services
     Given I am reviewing a live completed Draft Casefile

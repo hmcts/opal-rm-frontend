@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from 'src/app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -28,7 +29,7 @@ export function setupCancellation(options: CancelSetupOptions = {}) {
     document.querySelector('[data-cy-root]')?.setAttribute('role', 'main');
 
     return mount(CasesCreateCasefileCancelComponent, {
-      providers: [provideRouter([]), { provide: CasesCreateCasefileStore, useValue: store }],
+      providers: [provideRouter([]), CasesDraftCasefileStore, { provide: CasesCreateCasefileStore, useValue: store }],
     }).then(({ fixture }) => {
       const reviewNavigation = TestBed.inject(CasesCreateCasefileReviewNavigationService);
       cy.wrap(TestBed.inject(Router).serializeUrl(TestBed.inject(CasesDraftNavigationService).creationReturnUrl())).as(

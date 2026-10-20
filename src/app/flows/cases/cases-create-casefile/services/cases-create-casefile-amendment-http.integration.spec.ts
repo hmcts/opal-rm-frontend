@@ -109,9 +109,11 @@ describe('rejected amendment through production HTTP interceptors, guards and ap
     if (savedDetails)
       http.expectOne('/opal-maintenance-service/results/TEST01').flush(PERSISTED_CASEFILE_RESULT_DETAIL);
   }
-  async function openAmendmentReview(): Promise<void> {
+  async function openAmendmentReview(allRejected = false): Promise<void> {
     fixture.detectChanges();
-    const arrival = router.navigateByUrl(amendmentUrl);
+    const arrival = allRejected
+      ? TestBed.inject(CasesDraftNavigationService).navigateToPlaceholder('amendment', 17, 'all-rejected')
+      : router.navigateByUrl(amendmentUrl);
     await vi.waitFor(() => {
       const draft = createPersistedCasefileDetail();
       draft.casefile_status = 'REJECTED';
@@ -182,12 +184,6 @@ describe('rejected amendment through production HTTP interceptors, guards and ap
       expect(persisted.requiresReload()).toBe(![400, 422].includes(status));
       const submit: HTMLButtonElement = fixture.nativeElement.querySelector('#create_casefile_review_submit');
       expect(submit.disabled).toBe(false);
-      if (![400, 422].includes(status)) {
-        submit.click();
-        submit.click();
-        await settle();
-        expectNoReplay();
-      }
       expect(TestBed.inject(GlobalStore).bannerError()).toMatchObject({
         error: true,
         title: error.title,
@@ -204,6 +200,15 @@ describe('rejected amendment through production HTTP interceptors, guards and ap
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
       expect(TestBed.inject(AppInsightsService).logException).toHaveBeenCalledTimes(status === 409 ? 0 : 1);
+      if (![400, 422].includes(status)) {
+        submit.click();
+        submit.click();
+        await settle();
+        expectNoReplay();
+        expect(banner.textContent).toContain('Select Back to reload the saved case');
+        expect(banner.textContent).toContain('discards your unsaved corrections');
+        expectMountedCorrections(before);
+      }
     },
   );
   it.each([
@@ -369,6 +374,50 @@ describe('rejected amendment through production HTTP interceptors, guards and ap
       expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
       expect(persisted.identity()).toBeNull();
       expectNoReplay();
+    },
+  );
+  it.each([false, true])(
+    'cancels only local amendments and returns to the originating rejected list (all rejected: %s)',
+    async (allRejected) => {
+      await openAmendmentReview(allRejected);
+      const before = structuredClone(getState(store));
+      const envelope = structuredClone(getState(persisted));
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const cancel = async () => {
+        fixture.nativeElement.querySelector('#create_casefile_review_cancel a').click();
+        await settle();
+        expect(router.url).toBe('/cases/create-casefile/cancel');
+      };
+      await cancel();
+      fixture.nativeElement.querySelector('#create_casefile_cancel_back a').click();
+      await flushReferences();
+      await settle();
+      expectMountedCorrections(before);
+      expect(getState(persisted)).toEqual(envelope);
+      await cancel();
+      fixture.nativeElement.querySelector('#create_casefile_cancel_confirm').click();
+      const destination = allRejected
+        ? '/cases/draft/create-and-manage/rejections'
+        : '/cases/draft/create-and-manage/tabs#rejected';
+      let listing!: TestRequest;
+      await vi.waitFor(() => {
+        listing = http.expectOne(
+          (request) => request.url === '/opal-maintenance-service/draft-casefiles' && !request.params.has('restrict'),
+        );
+      });
+      listing.flush({ count: 0, summaries: [] });
+      for (const request of http.match((request) => request.url === '/opal-maintenance-service/draft-casefiles'))
+        request.flush({ count: 0 });
+      await settle();
+      expect(listing.request.params.get('casefile_status')).toBe('REJECTED');
+      expect(listing.request.params.get('submitted_by')).toBe(allRejected ? null : 'BUU-INPUTTER');
+      expect(router.url).toBe(destination);
+      expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+      expect(persisted.draft()).toBeNull();
+      expect(persisted.etag()).toBeNull();
+      expect(confirm).not.toHaveBeenCalled();
+      expectNoReplay();
+      http.expectNone((request) => ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method));
     },
   );
   it('clears corrections and working envelope when the live identity is lost', async () => {

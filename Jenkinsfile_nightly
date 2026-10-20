@@ -37,7 +37,7 @@ properties([
   ])
 ])
 
-@Library('Infrastructure@2.4.4')
+@Library('Infrastructure@2.13.0')
 
 String type = 'angular'
 @Field String opalName = 'opal'

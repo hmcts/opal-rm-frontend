@@ -10,6 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import { CasesDraftCasefileStore } from '../../cases-draft/stores/cases-draft-casefile.store';
 import { Router, UrlTree } from '@angular/router';
 import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-cancel-link';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
@@ -26,12 +27,14 @@ export class CasesCreateCasefileCancelComponent {
   private readonly dashboardNavigation = inject(CasesDraftNavigationService);
   private readonly router = inject(Router);
   private readonly store = inject(CasesCreateCasefileStore);
+  private readonly persistedStore = inject(CasesDraftCasefileStore);
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly injector = inject(Injector);
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   private readonly error = viewChild<ElementRef<HTMLElement>>('navigationError');
   private readonly root = '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/';
   private readonly reviewPath = this.root + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.checkCaseDetails;
+  private returnUrl: UrlTree | null = null;
   public readonly busy = signal(false);
   public readonly deleted = signal(false);
   public readonly navigationFailed = signal(false);
@@ -60,13 +63,27 @@ export class CasesCreateCasefileCancelComponent {
   /** Discards once; after failure subsequent activations retry only navigation. */
   public async handleConfirm(): Promise<void> {
     if (this.blocked()) return;
+    if (!this.returnUrl) {
+      if (this.store.submissionIntent() === 'amendment') {
+        const draft = this.persistedStore.draft();
+        if (!draft) {
+          this.navigationFailed.set(true);
+          afterNextRender(() => this.error()?.nativeElement.focus(), { injector: this.injector });
+          return;
+        }
+        this.returnUrl = this.dashboardNavigation.amendmentReturnUrl(draft.draft_casefile_id);
+      } else {
+        this.returnUrl = this.dashboardNavigation.prepareCreationReturn();
+      }
+    }
     if (!this.deleted()) {
       this.store.resetStore();
+      this.persistedStore.resetStore();
       this.reviewNavigation.clearContext();
       this.deleted.set(true);
     }
 
-    await this.navigate(this.dashboardNavigation.prepareCreationReturn());
+    await this.navigate(this.returnUrl);
   }
 
   public async handleBack(): Promise<void> {

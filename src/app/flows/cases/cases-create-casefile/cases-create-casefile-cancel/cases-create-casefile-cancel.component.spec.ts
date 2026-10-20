@@ -1,11 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import { CasesDraftCasefileStore } from '../../cases-draft/stores/cases-draft-casefile.store';
+import { CASES_DRAFT_CASEFILE_STATE } from '../../cases-draft/constants/cases-draft-casefile-state.constant';
+import { createPersistedCasefileResolved } from '../../cases-draft/mocks/cases-draft-casefile-resolved.mock';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import { signal } from '@angular/core';
 import { Router, UrlTree, provideRouter } from '@angular/router';
 import { getState, patchState, WritableStateSource } from '@ngrx/signals';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import { createCasesCreateCasefileCancellationState } from '../mocks/cases-create-casefile-cancellation-state.mock';
@@ -29,6 +32,7 @@ describe('CasesCreateCasefileCancelComponent', () => {
       imports: [CasesCreateCasefileCancelComponent],
       providers: [
         CasesCreateCasefileStore,
+        CasesDraftCasefileStore,
         { provide: CasesDraftNavigationService, useValue: dashboardNavigation },
         { provide: Router, useValue: router },
         { provide: CasesCreateCasefileReviewNavigationService, useValue: reviewNavigation },
@@ -214,6 +218,7 @@ describe('Confirmed cancellation dashboard metadata', () => {
         imports: [CasesCreateCasefileCancelComponent],
         providers: [
           provideRouter([]),
+          CasesDraftCasefileStore,
           {
             provide: GlobalStore,
             useValue: {
@@ -249,6 +254,143 @@ describe('Confirmed cancellation dashboard metadata', () => {
       );
       expect(navigation.selection()).toEqual({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
       expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+    },
+  );
+});
+
+describe('Amendment cancellation return destination', () => {
+  let fixture: ComponentFixture<CasesCreateCasefileCancelComponent>;
+  let editable: InstanceType<typeof CasesCreateCasefileStore>;
+  let persisted: InstanceType<typeof CasesDraftCasefileStore>;
+  let navigation: CasesDraftNavigationService;
+  let router: Router;
+  let navigate: MockInstance<Router['navigateByUrl']>;
+
+  beforeEach(async () => {
+    const resolved = createPersistedCasefileResolved({ intent: 'inputter-amend', mode: 'amend' });
+    resolved.draft.casefile_status = 'REJECTED';
+    const user = structuredClone(OPAL_USER_STATE_MOCK);
+    user.user_id = resolved.identity.userId;
+    user.status = 'active';
+    user.business_unit_users = [
+      {
+        business_unit_id: resolved.identity.businessUnitId,
+        business_unit_user_id: resolved.identity.submittedBy,
+        permissions: [{ permission_id: 21, permission_name: 'Create and Manage Draft Casefiles' }],
+      },
+    ];
+    await TestBed.configureTestingModule({
+      imports: [CasesCreateCasefileCancelComponent],
+      providers: [
+        provideRouter([]),
+        CasesDraftCasefileStore,
+        {
+          provide: GlobalStore,
+          useValue: {
+            authenticated: signal(true),
+            userState: signal(user),
+            featureFlags: signal({ 'release-1c-rm-create-case-files': true }),
+          },
+        },
+      ],
+    }).compileComponents();
+    editable = TestBed.inject(CasesCreateCasefileStore);
+    persisted = TestBed.inject(CasesDraftCasefileStore);
+    editable.hydratePersistedCasefile({ ...resolved.state, submissionIntent: 'amendment', stateChanges: true });
+    persisted.loadResolved(resolved);
+    persisted.setRequiresReload(true);
+    navigation = TestBed.inject(CasesDraftNavigationService);
+    navigation.setSelection({ tab: 'rejected', page: 2, sort: 'created', direction: 'descending' });
+    router = TestBed.inject(Router);
+    navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+  });
+
+  async function enter(origin: 'dashboard' | 'all-rejected'): Promise<void> {
+    await navigation.navigateToPlaceholder('amendment', 17, origin);
+    navigate.mockClear();
+    fixture = TestBed.createComponent(CasesCreateCasefileCancelComponent);
+  }
+
+  it.each(['dashboard', 'all-rejected'] as const)(
+    'discards both local stores and returns to the rejected list from %s',
+    async (origin) => {
+      await enter(origin);
+      const creationReturn = vi.spyOn(navigation, 'prepareCreationReturn');
+
+      await fixture.componentInstance.handleConfirm();
+
+      expect(router.serializeUrl(navigate.mock.lastCall![0] as UrlTree)).toBe(
+        origin === 'all-rejected'
+          ? '/cases/draft/create-and-manage/rejections'
+          : '/cases/draft/create-and-manage/tabs#rejected',
+      );
+      expect(creationReturn).not.toHaveBeenCalled();
+      expect(getState(editable)).toEqual(CASES_CREATE_CASEFILE_STATE);
+      expect(getState(persisted)).toEqual(CASES_DRAFT_CASEFILE_STATE);
+    },
+  );
+
+  it.each(['dashboard', 'all-rejected'] as const)('preserves both stores on Go back from %s', async (origin) => {
+    await enter(origin);
+    const beforeEditable = structuredClone(getState(editable));
+    const beforePersisted = structuredClone(getState(persisted));
+
+    await fixture.componentInstance.handleBack();
+
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/cases/create-casefile/check-case-details');
+    expect(getState(editable)).toEqual(beforeEditable);
+    expect(getState(persisted)).toEqual(beforePersisted);
+    expect(navigation.contextForPlaceholder('amendment', '17') !== null).toBe(origin === 'all-rejected');
+  });
+
+  it('preserves corrections when the saved amendment context is missing', async () => {
+    await enter('dashboard');
+    persisted.resetStore();
+    const before = structuredClone(getState(editable));
+    fixture.detectChanges();
+
+    await fixture.componentInstance.handleConfirm();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(getState(editable)).toEqual(before);
+    expect(fixture.componentInstance.deleted()).toBe(false);
+    expect(fixture.componentInstance.navigationFailed()).toBe(true);
+    expect(document.activeElement?.id).toBe('create_casefile_cancel_error');
+  });
+
+  it.each([
+    { origin: 'dashboard', failure: 'false' },
+    { origin: 'dashboard', failure: 'throw' },
+    { origin: 'all-rejected', failure: 'false' },
+    { origin: 'all-rejected', failure: 'throw' },
+  ] as const)(
+    'retries only the captured $origin destination after $failure navigation',
+    async ({ origin, failure }) => {
+      await enter(origin);
+      const editableReset = vi.spyOn(editable, 'resetStore');
+      const persistedReset = vi.spyOn(persisted, 'resetStore');
+      const amendmentReturn = vi.spyOn(navigation, 'amendmentReturnUrl');
+      if (failure === 'false') navigate.mockResolvedValueOnce(false);
+      else navigate.mockRejectedValueOnce(new Error('Synthetic router failure'));
+
+      await fixture.componentInstance.handleConfirm();
+
+      expect(fixture.componentInstance.navigationFailed()).toBe(true);
+      expect(getState(editable)).toEqual(CASES_CREATE_CASEFILE_STATE);
+      expect(getState(persisted)).toEqual(CASES_DRAFT_CASEFILE_STATE);
+      const target = navigate.mock.lastCall![0];
+      navigation.setSelection({ tab: 'approved', page: 1, sort: 'created', direction: 'ascending' });
+      await fixture.componentInstance.handleBack();
+      await fixture.componentInstance.handleConfirm();
+
+      expect(editableReset).toHaveBeenCalledOnce();
+      expect(persistedReset).toHaveBeenCalledOnce();
+      expect(amendmentReturn).toHaveBeenCalledExactlyOnceWith(17);
+      expect(navigate).toHaveBeenCalledTimes(2);
+      expect(navigate.mock.lastCall![0]).toBe(target);
+      expect(fixture.componentInstance.navigationFailed()).toBe(false);
     },
   );
 });

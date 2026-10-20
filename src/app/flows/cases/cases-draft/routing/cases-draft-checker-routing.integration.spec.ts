@@ -113,21 +113,24 @@ describe('checker production route boundaries', () => {
       const harness = await arrival;
       const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
       const store = shell.injector.get(CasesDraftCasefileStore);
-      expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe('Delete casefile');
-      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).not.toBeNull();
+      expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe(
+        'Are you sure you want to delete this case?',
+      );
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_submit')).not.toBeNull();
       expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
       expect(store.draft()?.casefile_status).toBe(status);
       expect(store.etag()).toBe('"0"');
-      expect(harness.routeNativeElement?.querySelector('form, input, textarea, select')).toBeNull();
+      expect(harness.routeNativeElement?.querySelector('textarea')?.getAttribute('maxlength')).toBe('250');
       http.expectNone((request) => request.method !== 'GET');
     },
   );
-  it('keeps review and Delete in the same persisted shell and returns to fresh review cases', async () => {
+  it('keeps review and Delete in the same persisted shell and cancels to fresh selected review', async () => {
     const harness = await openPersisted('/cases/draft/check-and-validate/review/123');
     const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
     const owner = shell.componentInstance;
     const store = shell.injector.get(CasesDraftCasefileStore);
     const before = structuredClone(getState(store));
+    const creationBefore = structuredClone(getState(TestBed.inject(CasesCreateCasefileStore)));
     const deleteLink = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a#create_casefile_review_delete')!;
     expect(deleteLink.getAttribute('href')).toBe(deleteUrl);
     deleteLink.click();
@@ -138,12 +141,12 @@ describe('checker production route boundaries', () => {
       owner,
     );
     expect(getState(store)).toEqual(before);
-    harness.routeNativeElement!.querySelector<HTMLButtonElement>('#create_casefile_delete_return')!.click();
-    await vi.waitFor(() => flushList('SUBMITTED', 1));
+    harness.routeNativeElement!.querySelector<HTMLAnchorElement>('opal-lib-govuk-cancel-link a')!.click();
+    await flushPersisted();
     await settle(harness);
-    expect(TestBed.inject(Router).url).toBe(dashboard + '#to-review');
-    expect(store.draft()).toBeNull();
-    expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
+    expect(TestBed.inject(Router).url).toBe('/cases/draft/check-and-validate/review/123#to-review');
+    expect(store.draft()?.draft_casefile_id).toBe(123);
+    expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(creationBefore);
     http.expectNone((request) => request.method !== 'GET');
   });
   it.each(['own submission', '21-only', 'published', 'loaded other BU'])(
@@ -169,7 +172,7 @@ describe('checker production route boundaries', () => {
       const harness = await arrival;
       await settle(harness);
       expect(TestBed.inject(Router).url).toBe('/error/permission-denied');
-      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_submit')).toBeNull();
       http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
     },
   );
@@ -194,7 +197,7 @@ describe('checker production route boundaries', () => {
     userState.set(user);
     await settle(harness);
     expect(harness.routeNativeElement?.textContent).toContain('Denied');
-    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_submit')).toBeNull();
     expect(TestBed.inject(Router).url).toBe('/error/permission-denied');
     expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));

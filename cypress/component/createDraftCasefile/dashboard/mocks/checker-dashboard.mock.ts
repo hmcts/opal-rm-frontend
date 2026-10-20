@@ -1,3 +1,4 @@
+import type { ICasesDraftDeletionNotice } from 'src/app/flows/cases/cases-draft/interfaces/cases-draft-deletion-notice.interface';
 import { HttpErrorResponse } from '@angular/common/http';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
@@ -55,3 +56,17 @@ export const checkerEmptyMessages = {
   deleted: 'No cases have been deleted in the past 7 days.',
   failed: 'There are no failed cases.',
 };
+
+export function checkerDeletionNotice(outcome: ICasesDraftDeletionNotice['outcome']): ICasesDraftDeletionNotice {
+  const user = checkerUser('checker');
+  return {
+    identity: {
+      userId: user.user_id,
+      businessUnitId: 44,
+      submittedBy: user.business_unit_users[0].business_unit_user_id,
+    },
+    draftCasefileId: 17,
+    respondentName: 'Synthetic Respondent',
+    outcome,
+  };
+}

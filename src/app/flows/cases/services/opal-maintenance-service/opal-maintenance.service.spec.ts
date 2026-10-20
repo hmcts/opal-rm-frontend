@@ -2,7 +2,7 @@ import { createPersistedCasefileDetail } from './mocks/opal-maintenance-draft-ca
 import { CasesCreateCasefilePayloadService } from '../../cases-create-casefile/services/cases-create-casefile-payload/cases-create-casefile-payload.service';
 import { createCasesCreateCasefileReviewState } from '../../cases-create-casefile/mocks/cases-create-casefile-review-state.mock';
 import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, HttpResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -161,6 +161,42 @@ describe('OpalMaintenanceService', () => {
     request.flush(draft, { status: 200, statusText: 'OK', headers: { ETag: '"9007199254740994"' } });
     expect((await pending).headers.get('ETag')).toBe('"9007199254740994"');
     http.expectNone('/opal-maintenance-service/draft-casefiles/17');
+  });
+  it('PATCHes deletion exactly once using the opaque saved version', () => {
+    const success = vi.fn();
+    const etag = '"9007199254740993"';
+    service
+      .deleteDraftCasefile(
+        17,
+        {
+          business_unit_id: 44,
+          casefile_status: 'DELETED',
+          status_message: 'Synthetic reason\nSecond line',
+        },
+        etag,
+      )
+      .subscribe(success);
+    const req = http.expectOne('/opal-maintenance-service/draft-casefiles/17');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.headers.get('If-Match')).toBe(etag);
+    expect(req.request.body).toEqual({
+      business_unit_id: 44,
+      casefile_status: 'DELETED',
+      status_message: 'Synthetic reason\nSecond line',
+    });
+    const noRetry = withoutHttpRetry();
+    for (const token of noRetry.keys()) expect(req.request.context.get(token)).toEqual(noRetry.get(token));
+    const deleted = createPersistedCasefileDetail();
+    deleted.casefile_status = 'DELETED';
+    req.flush(deleted, { headers: { ETag: '"9007199254740994"' } });
+    expect(success.mock.calls[0][0]).toBeInstanceOf(HttpResponse);
+    http.expectNone((request) => request.method === 'PATCH');
+  });
+  it('rejects an unsafe ID or version before dispatch', () => {
+    const request = { business_unit_id: 44, casefile_status: 'DELETED' as const, status_message: 'Synthetic reason' };
+    expect(() => service.deleteDraftCasefile(0, request, '"0"')).toThrow();
+    expect(() => service.deleteDraftCasefile(17, request, '"9223372036854775808"')).toThrow();
+    http.expectNone((candidate) => candidate.method === 'PATCH');
   });
   it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])('rejects invalid replacement ID %s before HTTP', (id) => {
     expect(() =>

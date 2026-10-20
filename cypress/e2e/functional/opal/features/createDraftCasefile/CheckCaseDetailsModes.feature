@@ -109,23 +109,21 @@ Feature: Check persisted case details
     And I choose Delete casefile from saved review
     And I enter saved deletion reason "Synthetic deletion reason"
     And I confirm the saved case deletion
-    Then the checker sees the "confirmed" deleted return
+    Then the checker sees the confirmed deleted return
     Examples:
       | status      |
       | SUBMITTED   |
       | RESUBMITTED |
 
   @R1CRmCreateCaseFiles @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
-  Scenario: Checker observes current deleted state after an uncertain response
+  Scenario: Checker retains the reason after a shared request error
     Given my persisted casefile session has role "checker", status "SUBMITTED" and submitter "other"
-    And saved deletion has the "uncertain" API outcome
+    And saved deletion has the "error" API outcome
     When I open saved details from the checker To review list
     And I choose Delete casefile from saved review
     And I enter saved deletion reason "Synthetic deletion reason"
     And I confirm the saved case deletion
-    Then the saved deletion outcome remains unresolved without replay
-    When I check the latest saved deletion status
-    Then the checker sees the "observed" deleted return
+    Then the saved deletion reason remains editable without replay
 
   @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
   Scenario Outline: Direct Delete is limited to eligible checker work

@@ -80,7 +80,7 @@ describe('checker dashboard presentation', () => {
     fixture.detectChanges();
     return fixture;
   }
-  function seedDeletion(outcome: 'confirmed' | 'observed' = 'confirmed') {
+  function seedDeletion() {
     const user = userState();
     return TestBed.inject(CasesDraftNavigationService).recordCheckerDeletion({
       identity: {
@@ -90,17 +90,13 @@ describe('checker dashboard presentation', () => {
       },
       draftCasefileId: 17,
       respondentName: 'Synthetic Respondent',
-      outcome,
     });
   }
-  it.each(['confirmed', 'observed'] as const)('shows a %s deletion exactly once', async (outcome) => {
+  it('shows a confirmed deletion exactly once', async () => {
     const navigation = TestBed.inject(CasesDraftNavigationService);
-    expect(seedDeletion(outcome)).toBe(true);
+    expect(seedDeletion()).toBe(true);
     const fixture = await render();
-    const text =
-      outcome === 'confirmed'
-        ? 'You have deleted Synthetic Respondent’s case.'
-        : 'Synthetic Respondent’s case has been deleted.';
+    const text = 'You have deleted Synthetic Respondent’s case.';
     const alert: HTMLElement = fixture.nativeElement.querySelector('#cases-draft-success');
     expect(alert.textContent).toContain(text);
     const announcement = fixture.debugElement.query(By.directive(CustomDeferredLiveRegionAnnouncement));
@@ -120,22 +116,17 @@ describe('checker dashboard presentation', () => {
     expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#cases-draft-heading'));
   });
-  it.each([401, 403])('suppresses deletion success after HTTP %s denial', async (status) => {
-    expect(seedDeletion()).toBe(true);
-    api.getDraftCasefiles.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
-    const fixture = await render();
-    expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
-    expect(fixture.componentInstance.successText()).toBeNull();
-  });
-  it.each([401, 403])('keeps HTTP %s list denial under the common routing owner', async (status) => {
+  it.each([400, 401, 403, 500])('leaves HTTP %s list failure handling with the shared interceptor', async (status) => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
     expect(seedDeletion()).toBe(true);
     api.getDraftCasefiles.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
     const fixture = await render();
     expect(navigate).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.successText()).toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')?.textContent).toContain(
+      'You have deleted Synthetic Respondent’s case.',
+    );
   });
-  it.each([401, 403])('hides private checker content and blocks actions after HTTP %s count denial', async (status) => {
+  it.each([401, 403, 500])('preserves loaded content after an HTTP %s badge failure', async (status) => {
     const counts = new Subject<{ count: number }>();
     api.getDraftCasefiles.mockReturnValue(
       of({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] }),
@@ -143,40 +134,17 @@ describe('checker dashboard presentation', () => {
     api.getDraftCasefileCount.mockReturnValueOnce(of({ count: 3 })).mockReturnValueOnce(counts);
     expect(seedDeletion()).toBe(true);
     const fixture = await render();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
-    expect(seedDeletion()).toBe(true);
-    const navigation = TestBed.inject(CasesDraftNavigationService);
-    const selection = navigation.selection();
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
     counts.error(new HttpErrorResponse({ status }));
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
-    expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
-    expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
-    await fixture.componentInstance.openRow(123);
-    await fixture.componentInstance.selectTab('deleted');
-    fixture.componentInstance.changePage(2);
-    fixture.componentInstance.changeSort({ key: 'respondent', direction: 'descending' });
-    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-rejected-count')?.textContent).toContain('3');
+    expect(fixture.nativeElement.querySelector('#cases-draft-failed-count')).toBeNull();
     expect(navigate).not.toHaveBeenCalled();
-    expect(navigation.selection()).toEqual(selection);
-    expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
+    await fixture.componentInstance.openRow(123);
+    expect(navigate).toHaveBeenCalledOnce();
   });
-  it.each([new Error('Synthetic request failure'), new HttpErrorResponse({ status: 500 })])(
-    'preserves deletion success for a non-authority list failure',
-    async (error) => {
-      expect(seedDeletion()).toBe(true);
-      api.getDraftCasefiles.mockReturnValue(throwError(() => error));
-      const fixture = await render();
-      expect(fixture.nativeElement.querySelector('#cases-draft-success')?.textContent).toContain(
-        'You have deleted Synthetic Respondent’s case.',
-      );
-    },
-  );
   it('clears displayed and queued deletion notices when the dashboard is destroyed', async () => {
     expect(seedDeletion()).toBe(true);
     const fixture = await render();

@@ -1,4 +1,3 @@
-import { CASES_DRAFT_DELETE_CANCEL_NAVIGATION_INFO } from '../../constants/cases-draft-delete-cancel-navigation-info.constant';
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { RedirectCommand, Router, type ResolveFn } from '@angular/router';
@@ -8,19 +7,7 @@ import {
 } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
-import {
-  catchError,
-  defaultIfEmpty,
-  defer,
-  EMPTY,
-  forkJoin,
-  map,
-  Observable,
-  of,
-  switchMap,
-  take,
-  throwError,
-} from 'rxjs';
+import { catchError, defaultIfEmpty, defer, EMPTY, forkJoin, map, Observable, of, switchMap, take } from 'rxjs';
 import { OpalMaintenanceService } from '../../../services/opal-maintenance-service/opal-maintenance.service';
 import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '../../../constants/release-1c-rm-create-case-files-feature-flag.constant';
 import { CasesCreateCasefileOrderTermLookupsService } from '../../../cases-create-casefile/cases-create-casefile-order-terms-input/services/cases-create-casefile-order-term-lookups.service';
@@ -106,13 +93,6 @@ export const casesDraftCasefileResolver: ResolveFn<ICasesDraftCasefileResolved> 
   const lookups = inject(CasesCreateCasefileOrderTermLookupsService);
   const globalStore = inject(GlobalStore);
   const router = inject(Router);
-  const navigation = router.currentNavigation();
-  const cancelNavigationId =
-    navigation?.extras.info === CASES_DRAFT_DELETE_CANCEL_NAVIGATION_INFO &&
-    route.data['casefileIntent'] === 'checker-review'
-      ? navigation.id
-      : null;
-
   const isReleased = (): boolean => {
     const flags: Record<string, unknown> = globalStore.featureFlags();
     return flags[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] === true;
@@ -194,14 +174,6 @@ export const casesDraftCasefileResolver: ResolveFn<ICasesDraftCasefileResolved> 
   }).pipe(
     catchError((error: unknown) => {
       if (error instanceof CasefileAccessDenied) return of(denied());
-      if (
-        cancelNavigationId !== null &&
-        router.currentNavigation()?.id === cancelNavigationId &&
-        error instanceof HttpErrorResponse &&
-        [401, 403].includes(error.status)
-      ) {
-        return throwError(() => error);
-      }
       if (!(error instanceof HttpErrorResponse))
         globalStore.setBannerError({
           ...GLOBAL_ERROR_STATE,

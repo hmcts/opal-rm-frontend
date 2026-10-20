@@ -48,18 +48,15 @@ Feature: Checker dashboard accessibility
     Then I check the page for accessibility
     When I enter saved deletion reason "Synthetic deletion reason"
     And I confirm the saved case deletion
-    Then the checker sees the "confirmed" deleted return
+    Then the checker sees the confirmed deleted return
     And I check the page for accessibility
 
   @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
-  Scenario: Mounted uncertain deletion and observed return remain accessible
+  Scenario: Deletion request errors remain accessible
     Given my persisted casefile session has role "checker", status "RESUBMITTED" and submitter "other"
-    And saved deletion has the "uncertain" API outcome
+    And saved deletion has the "error" API outcome
     When I open saved casefile "17" through "delete"
     And I enter saved deletion reason "Synthetic deletion reason"
     And I confirm the saved case deletion
-    Then the saved deletion outcome remains unresolved without replay
-    And I check the page for accessibility
-    When I check the latest saved deletion status
-    Then the checker sees the "observed" deleted return
+    Then the saved deletion reason remains editable without replay
     And I check the page for accessibility

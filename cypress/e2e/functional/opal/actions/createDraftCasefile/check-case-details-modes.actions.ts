@@ -147,9 +147,9 @@ export class CheckCaseDetailsModesActions {
     cy.get(DASHBOARD.row(17)).find('a').click();
   }
   /** Enables the explicit synthetic deletion contract.
-   * @param outcome Success or an uncertain committed response. */
+   * @param outcome Success or a shared request error. */
   public enableDeletion(outcome: string): void {
-    if (!['success', 'uncertain'].includes(outcome)) throw new Error('Unsupported synthetic deletion outcome');
+    if (!['success', 'error'].includes(outcome)) throw new Error('Unsupported synthetic deletion outcome');
     cy.intercept('PATCH', '**/opal-maintenance-service/draft-casefiles/17', (request) => {
       this.writes.push('PATCH');
       expect(request.headers['if-match']).to.equal(this.selectedEtag);
@@ -158,6 +158,13 @@ export class CheckCaseDetailsModesActions {
         casefile_status: 'DELETED',
         status_message: this.deletionReason,
       });
+      if (outcome === 'error') {
+        request.reply({
+          statusCode: 503,
+          body: { retriable: true, title: 'Synthetic request failure', detail: 'Synthetic deletion failed' },
+        });
+        return;
+      }
       this.draft.casefile_status = 'DELETED';
       this.draft.casefile_status_name = 'Deleted';
       this.draft.status_message = this.deletionReason;
@@ -168,18 +175,7 @@ export class CheckCaseDetailsModesActions {
         reason_text: this.deletionReason,
       });
       this.selectedEtag = '"1"';
-      if (outcome === 'uncertain') {
-        request.reply({
-          statusCode: 503,
-          body: {
-            retriable: true,
-            title: 'Synthetic gateway failure',
-            detail: 'Synthetic uncertain deletion',
-          },
-        });
-      } else {
-        request.reply({ statusCode: 200, body: structuredClone(this.draft), headers: { ETag: this.selectedEtag } });
-      }
+      request.reply({ statusCode: 200, body: structuredClone(this.draft), headers: { ETag: this.selectedEtag } });
     }).as('deletionPatch');
   }
   /** Enters the accepted deletion reason.
@@ -203,24 +199,21 @@ export class CheckCaseDetailsModesActions {
   public cancelDeletion(): void {
     cy.get(D.cancel).click();
   }
-  /** Retrieves current state after an uncertain response. */
-  public checkLatestDeletionStatus(): void {
-    cy.get(D.checkStatus).click();
-  }
-  /** Checks mounted recovery without replaying the PATCH. */
-  public expectUncertainDeletion(): void {
+  /** Checks shared feedback leaves the reason editable without another request. */
+  public expectDeletionError(): void {
     cy.location('pathname').should('eq', CHECKER + '/delete/17');
-    cy.get(D.reason).should('be.disabled').and('have.value', this.deletionReason);
-    cy.get(D.status).should('contain.text', 'We could not confirm whether this case was deleted.');
+    cy.get(D.reason).should('not.be.disabled').and('have.value', this.deletionReason);
+    cy.get(D.submit).should('not.be.disabled');
+    cy.get(D.cancel).should('be.visible');
+    cy.get(CREATE.globalErrorBanner).should('contain.text', 'Synthetic deletion failed');
     cy.get('@deletionPatch.all').should('have.length', 1);
-    cy.screenshot('po10609-deletion-uncertain');
+    cy.then(() => expect(this.writes).to.deep.equal(['PATCH']));
+    cy.screenshot('po10609-deletion-request-error');
   }
-  /** Checks attributed or observed deletion and the refreshed queue.
-   * @param outcome Confirmed request or observed current state. */
-  public expectDeletedReturn(outcome: string): void {
-    if (!['confirmed', 'observed'].includes(outcome)) throw new Error('Unsupported notice outcome');
+  /** Checks the confirmed deletion notice and refreshed queue. */
+  public expectDeletedReturn(): void {
     const name = this.draft.casefile_snapshot.respondent_account.respondent_name;
-    const text = outcome === 'confirmed' ? 'You have deleted ' + name + '’s case.' : name + '’s case has been deleted.';
+    const text = 'You have deleted ' + name + '’s case.';
     cy.location('pathname').should('eq', CHECKER + '/tabs');
     cy.location('hash').should('eq', '#to-review');
     cy.location('search').should('eq', '');
@@ -228,7 +221,7 @@ export class CheckCaseDetailsModesActions {
     cy.get(DASHBOARD.row(17)).should('not.exist');
     cy.get('@deletionPatch.all').should('have.length', 1);
     cy.then(() => expect(this.writes).to.deep.equal(['PATCH']));
-    cy.screenshot('po10609-deletion-' + outcome + '-return');
+    cy.screenshot('po10609-deletion-confirmed-return');
   }
 
   /** Introduces one explicit provider, mapping or ownership failure.

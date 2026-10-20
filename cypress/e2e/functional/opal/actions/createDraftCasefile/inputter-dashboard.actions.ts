@@ -187,7 +187,7 @@ export class InputterDashboardActions {
     cy.get(S.row(id)).find('a').should('not.have.attr', 'target');
     cy.get(S.row(id)).find('a').focus().should('be.focused');
     pressDashboardEnter();
-    this.expectSavedSummary();
+    this.expectAmendmentTasks();
     cy.get('@dashboardDetails').should('have.been.calledOnce');
     this.assertNoMutation();
     // Return must load fresh rows while retaining only navigation metadata.
@@ -205,7 +205,7 @@ export class InputterDashboardActions {
 
   /** Returns with native keyboard activation of Back. */
   public returnFromPlaceholder(): void {
-    cy.get(CREATE.review.back).focus();
+    cy.get(CREATE.caseDetails.backLink).focus();
     pressDashboardEnter();
   }
 
@@ -412,7 +412,7 @@ export class InputterDashboardActions {
   public openPersisted(kind: string, id: string): void {
     const child = kind === 'details' ? CREATE_PATHS.children.checkCaseDetails : CREATE_PATHS.children.taskList;
     const path = '/' + CREATE_PATHS.root + '/' + child + '/' + id;
-    if (kind === 'details') stubPersistedCasefileReferences();
+    stubPersistedCasefileReferences();
     if (kind === 'details' && id === '0') {
       cy.visit('/dashboard/cases');
       cy.get(RELEASE.createCaseLink).should('be.visible');
@@ -441,12 +441,22 @@ export class InputterDashboardActions {
       }
       return;
     }
-    cy.get('#cases-draft-placeholder-heading').should('have.text', 'Amend case').and('be.focused');
-    cy.contains('p', message).should('be.visible');
-    cy.get('.govuk-grid-column-two-thirds').should('be.visible');
-    cy.get(CREATE.caseTypeGroup).should('not.exist');
-    cy.get('@inputterCollection.all').should('have.length', 0);
-    this.assertNoPersistence();
+    if (message === 'Saved amendment tasks') {
+      this.expectAmendmentTasks();
+      cy.get('@dashboardDetails').should('have.been.calledOnce');
+      this.assertNoMutation();
+    } else {
+      cy.location('pathname').should('eq', '/error/permission-denied');
+      cy.contains('h1', 'You do not have permission for this').should('be.visible');
+      this.assertNoPersistence();
+    }
+  }
+  /** Checks the saved rejected record is ready to edit through its provided tasks. */
+  private expectAmendmentTasks(): void {
+    cy.get(CREATE.caseDetails.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+    cy.get(CREATE.caseDetails.respondentStatus).should('contain.text', 'Provided');
+    cy.get(CREATE.caseDetails.orderTermsStatus).should('contain.text', 'Provided');
+    cy.get(CREATE.review.history).should('be.visible');
   }
   /** Checks saved parties and order terms after the actual selected GET has resolved. */
   public expectSavedSummary(): void {
@@ -564,7 +574,9 @@ export class InputterDashboardActions {
     cy.viewport(1440, 1000);
     if (kind === 'malformed-details') cy.get(CREATE.globalErrorBanner).should('be.visible');
     else if (kind === 'details') cy.get(CREATE.review.heading).should('be.focused');
-    else cy.get(kind === 'all-rejected' ? S.allRejectedHeading : S.placeholderHeading).should('be.focused');
+    else if (kind === 'malformed-amendment')
+      cy.contains('h1', 'You do not have permission for this').should('be.visible');
+    else cy.get(kind === 'all-rejected' ? S.allRejectedHeading : CREATE.caseDetails.heading).should('be.focused');
     cy.screenshot('po10605-after-' + kind + '-shell');
   }
 }

@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from 'src/app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-response.interface';
 import { COUNTRIES_RESPONSE } from '../../mocks/countries.mock';
@@ -129,6 +130,7 @@ export function setupCreditor({
           {
             path: PATHS.root,
             component: CasesCreateCasefileComponent,
+            providers: [CasesDraftCasefileStore],
             canDeactivate: [canDeactivateGuard],
             data: { [HIDE_PRIMARY_NAV_ROUTE_DATA_KEY]: true },
             children: routing,

@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from 'src/app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { provideHttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -26,6 +27,7 @@ const testRoutes: Routes = [
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.root,
     component: CasesCreateCasefileComponent,
+    providers: [CasesDraftCasefileStore],
     children: routing,
     canDeactivate: [canDeactivateGuard],
   },

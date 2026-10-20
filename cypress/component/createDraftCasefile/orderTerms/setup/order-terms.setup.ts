@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from 'src/app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { AppComponent } from 'src/app/app.component';
 import { HIDE_PRIMARY_NAV_ROUTE_DATA_KEY } from 'src/app/constants/route-data.constant';
@@ -138,6 +139,7 @@ export function setupOrderTerms({
           {
             path: PATHS.root,
             component: CasesCreateCasefileComponent,
+            providers: [CasesDraftCasefileStore],
             data: { [HIDE_PRIMARY_NAV_ROUTE_DATA_KEY]: true },
             canDeactivate: [canDeactivateGuard],
             children: routing,

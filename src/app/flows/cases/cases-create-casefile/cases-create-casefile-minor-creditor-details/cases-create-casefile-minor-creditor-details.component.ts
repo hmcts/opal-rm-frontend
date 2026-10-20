@@ -46,6 +46,7 @@ export class CasesCreateCasefileMinorCreditorDetailsComponent
   public readonly countryAutocompleteItems = this.countries.map((country) => ({
     name: country.country_name,
     value: country.country_id,
+    ...(country.active === false ? { active: false } : {}),
   }));
   public readonly countrySelectOptions = [{ name: 'Select', value: '' }, ...this.countryAutocompleteItems];
 

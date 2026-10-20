@@ -103,4 +103,12 @@ describe('CasesDraftCasefileHistoryComponent', () => {
     );
     expect(fixture.nativeElement.querySelectorAll('.moj-timeline__item')).toHaveLength(0);
   });
+
+  it('uses the journey heading while keeping the default for other views', () => {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('h2')?.textContent?.trim()).toBe('Case history');
+    fixture.componentRef.setInput('historyHeading', 'Review history');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('h2')?.textContent?.trim()).toBe('Review history');
+  });
 });

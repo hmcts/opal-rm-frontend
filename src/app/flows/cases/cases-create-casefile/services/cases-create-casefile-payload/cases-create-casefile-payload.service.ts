@@ -1,3 +1,6 @@
+import type { IOpalMaintenanceDraftCasefileReplaceRequest } from '../../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-replace-request.interface';
+import type { IOpalMaintenanceDraftCasefileDetail } from '../../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-detail.interface';
+import { isCasesCreateCasefileSubmissionEligible } from '../../utils/cases-create-casefile-submission-eligible';
 import type { IOpalMaintenanceDraftCasefileRequest as Request } from '@app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-request.interface';
 import { Injectable } from '@angular/core';
 import type { ICasesCreateCasefileState } from '../../interfaces/cases-create-casefile-state.interface';
@@ -17,6 +20,19 @@ export class CasesCreateCasefilePayloadService {
         this.removeUnprovidedFields(field);
       }
     }
+  }
+
+  /** Rebuilds the complete supported aggregate without creation metadata or mutation of accepted edits. */
+  public buildReplaceCasefilePayload(
+    state: ICasesCreateCasefileState,
+    references: ICasesCreateCasefilePayloadReferences,
+    businessUnitId: number,
+    casefileType: IOpalMaintenanceDraftCasefileDetail['casefile_type'],
+  ): IOpalMaintenanceDraftCasefileReplaceRequest {
+    if (!isCasesCreateCasefileSubmissionEligible(state)) throw new Error('Casefile is incomplete');
+    if (state.caseTypeSelection?.caseType !== casefileType) throw new Error('Casefile type has changed');
+    const { business_unit_id, casefile } = this.buildAddCasefilePayload(state, references, businessUnitId);
+    return { business_unit_id, casefile };
   }
 
   /** Builds the POST payload without mutating state. Throws for incomplete data or unresolved references. */

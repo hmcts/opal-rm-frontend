@@ -148,6 +148,59 @@ describe('OpalMaintenanceService', () => {
     http.expectNone('/opal-maintenance-service/draft-casefiles');
   });
 
+  it('sends an opaque quoted version in one PUT', async () => {
+    const draft = createPersistedCasefileDetail();
+    const body = { business_unit_id: 44, casefile: draft.casefile };
+    const pending = firstValueFrom(service.replaceDraftCasefile(17, body, '"9007199254740993"'));
+    const request = http.expectOne('/opal-maintenance-service/draft-casefiles/17');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.headers.get('If-Match')).toBe('"9007199254740993"');
+    expect(Object.keys(request.request.body).sort()).toEqual(['business_unit_id', 'casefile']);
+    const noRetry = withoutHttpRetry();
+    for (const token of noRetry.keys()) expect(request.request.context.get(token)).toEqual(noRetry.get(token));
+    request.flush(draft, { status: 200, statusText: 'OK', headers: { ETag: '"9007199254740994"' } });
+    expect((await pending).headers.get('ETag')).toBe('"9007199254740994"');
+    http.expectNone('/opal-maintenance-service/draft-casefiles/17');
+  });
+  it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])('rejects invalid replacement ID %s before HTTP', (id) => {
+    expect(() =>
+      service.replaceDraftCasefile(
+        id,
+        { business_unit_id: 44, casefile: createPersistedCasefileDetail().casefile },
+        '"1"',
+      ),
+    ).toThrow('Invalid draft casefile identifier');
+    http.expectNone(() => true);
+  });
+  it.each(['1', '', 'W/"1"', '""', '"a\r\nb"', '"a"b"'])(
+    'rejects unusable replacement version %j before HTTP',
+    (etag) => {
+      expect(() =>
+        service.replaceDraftCasefile(
+          17,
+          { business_unit_id: 44, casefile: createPersistedCasefileDetail().casefile },
+          etag,
+        ),
+      ).toThrow('Unusable saved casefile version');
+      http.expectNone(() => true);
+    },
+  );
+  it('does not replay a failed replacement', async () => {
+    const pending = firstValueFrom(
+      service.replaceDraftCasefile(
+        17,
+        { business_unit_id: 44, casefile: createPersistedCasefileDetail().casefile },
+        '"0"',
+      ),
+    );
+    const failed = expect(pending).rejects.toBeDefined();
+    http
+      .expectOne('/opal-maintenance-service/draft-casefiles/17')
+      .flush({}, { status: 412, statusText: 'Precondition Failed' });
+    await failed;
+    http.expectNone('/opal-maintenance-service/draft-casefiles/17');
+  });
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [

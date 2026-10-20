@@ -41,6 +41,21 @@ describe('CasesCreateCasefileCentralAuthorityMapperService', () => {
     mapper = TestBed.inject(CasesCreateCasefileCentralAuthorityMapperService);
   });
 
+  it('rejects accepting an inactive authority while allowing an explicit removal', () => {
+    const form = {
+      [FIELD_NAMES.remoReference]: null,
+      [FIELD_NAMES.centralAuthorityReference]: null,
+      [FIELD_NAMES.majorCreditorId]: first.major_creditor_id,
+    };
+    expect(() => mapper.toCentralAuthorityDetails(form, [{ ...first, active: false }])).toThrow(
+      'Invalid Central authority selection',
+    );
+    expect(
+      mapper.toCentralAuthorityDetails({ ...form, [FIELD_NAMES.majorCreditorId]: null }, [{ ...first, active: false }])
+        .majorCreditor,
+    ).toBeNull();
+  });
+
   it('maps records to code-name autocomplete items without reordering', () => {
     expect(mapper.toAutocompleteItems([second, first])).toEqual([
       { value: second.major_creditor_id, name: `${second.major_creditor_code} - ${second.name}` },

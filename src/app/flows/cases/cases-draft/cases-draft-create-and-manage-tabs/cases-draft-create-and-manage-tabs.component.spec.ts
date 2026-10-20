@@ -102,6 +102,53 @@ describe('resolver-backed dashboard', () => {
     fixture.detectChanges();
     return fixture;
   }
+  it('shows and dismisses a one-time submission success above the rejected dashboard heading', async () => {
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    navigation.recordAllRejectedResubmission({
+      origin: 'dashboard',
+      identity: { userId: userState().user_id, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+      draftCasefileId: 123,
+      respondentForename: 'Synthetic',
+      respondentSurname: 'Respondent',
+    });
+    const fixture = await render('rejected', response('rejected'));
+    const page = fixture.nativeElement as HTMLElement;
+    const alert = page.querySelector('#cases-draft-success')!;
+    const heading = page.querySelector('h1')!;
+    const selection = structuredClone(navigation.selection());
+
+    expect(alert.classList.contains('moj-alert--success')).toBe(true);
+    expect(alert.textContent).toContain("You have submitted Synthetic Respondent's case for review.");
+    expect(alert.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    alert.querySelector<HTMLButtonElement>('.moj-alert__dismiss')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(page.querySelector('#cases-draft-success')).toBeNull();
+    expect(document.activeElement).toBe(heading);
+    expect(navigation.selection()).toEqual(selection);
+    expect(api.getDraftCasefiles).not.toHaveBeenCalled();
+    fixture.destroy();
+    expect(
+      (await render('rejected', response('rejected'))).nativeElement.querySelector('#cases-draft-success'),
+    ).toBeNull();
+  });
+  it('hides success immediately when the inputter identity changes', async () => {
+    TestBed.inject(CasesDraftNavigationService).recordAllRejectedResubmission({
+      origin: 'dashboard',
+      identity: { userId: userState().user_id, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+      draftCasefileId: 123,
+      respondentForename: 'Synthetic',
+      respondentSurname: 'Respondent',
+    });
+    const fixture = await render('rejected', response('rejected'));
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
+    const changed = permittedUser();
+    changed.user_id += 1;
+    changed.business_unit_users[0].business_unit_user_id = 'BUU-OTHER';
+    userState.set(changed);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
+  });
   it('renders the exact inputter heading without surrounding whitespace', async () => {
     const fixture = await render();
     expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Create cases');
@@ -520,6 +567,25 @@ describe('resolver-backed dashboard', () => {
     );
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
   });
+  it.each(['in-review', 'rejected', 'deleted'] as const)(
+    'opens %s rows at their owning details or amendment entry with the source fragment',
+    async (tab) => {
+      const fixture = await render(tab, response(tab));
+      const router = TestBed.inject(Router);
+      const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+      const destination = tab === 'rejected' ? 'task-list' : 'check-case-details';
+
+      expect(fixture.nativeElement.querySelector('tbody a')?.getAttribute('href')).toBe(
+        `/cases/create-casefile/${destination}/123#${tab}`,
+      );
+      await fixture.componentInstance.openRow(123);
+      expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toBe(
+        `/cases/create-casefile/${destination}/123#${tab}`,
+      );
+      expect(fixture.componentInstance.navigation.selection().tab).toBe(tab);
+      expect(fixture.componentInstance.navigation.contextForPlaceholder('amendment', '123')).toBeNull();
+    },
+  );
   it('clears stale all-rejected row context on ordinary dashboard activation', async () => {
     const fixture = await render();
     const navigation = fixture.componentInstance.navigation;

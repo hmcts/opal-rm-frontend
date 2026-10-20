@@ -8,8 +8,8 @@ import { CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS } from '../cases-cre
 import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { UtilsService } from '@hmcts/opal-frontend-common/services/utils-service';
-import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
+import { HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
+import { BehaviorSubject, EMPTY, of, Subject, throwError } from 'rxjs';
 import { signal } from '@angular/core';
 import type { Data } from '@angular/router';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
@@ -32,7 +32,15 @@ import { CasesCreateCasefileCheckDetailsComponent } from './cases-create-casefil
 describe('CasesCreateCasefileCheckDetailsComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileCheckDetailsComponent>;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
-  const maintenance = { createDraftCasefile: vi.fn(), getMajorCreditors: vi.fn() };
+  const maintenance = {
+    createDraftCasefile: vi.fn(),
+    getMajorCreditors: vi.fn(),
+    replaceDraftCasefile: vi.fn(),
+    getDraftCasefile: vi.fn(),
+    getCountries: vi.fn(),
+    getMaintenanceApplications: vi.fn(),
+    getResults: vi.fn(),
+  };
   const router = { navigateByUrl: vi.fn().mockResolvedValue(true) };
   let routeData: BehaviorSubject<Data>;
   const userState = signal({
@@ -55,6 +63,9 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   const selection = signal<ICasesDraftNavigation>(defaultCasesDraftNavigation('to-review', 'checker'));
   const draftNavigation = {
     selection,
+    amendmentReturnUrl: vi.fn().mockReturnValue('/cases/draft/create-and-manage/tabs#rejected'),
+    recordAllRejectedResubmission: vi.fn().mockReturnValue(true),
+    clearAllRejectedSuccess: vi.fn(),
     deleteCasefileUrl: vi.fn().mockImplementation((id: number) => `/cases/draft/check-and-validate/delete/${id}`),
     dashboardUrl: vi
       .fn()
@@ -90,6 +101,9 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       ],
     });
     selection.set(defaultCasesDraftNavigation('to-review', 'checker'));
+    draftNavigation.amendmentReturnUrl.mockReset().mockReturnValue('/cases/draft/create-and-manage/tabs#rejected');
+    draftNavigation.recordAllRejectedResubmission.mockReset().mockReturnValue(true);
+    draftNavigation.clearAllRejectedSuccess.mockClear();
     draftNavigation.deleteCasefileUrl.mockClear();
     draftNavigation.dashboardUrl.mockClear();
     draftNavigation.persistedDashboardUrl.mockClear();
@@ -101,6 +115,11 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       .mockReturnValue(
         of(new HttpResponse({ status: 201, body: { draft_casefile_id: 123, casefile_status: 'SUBMITTED' } })),
       );
+    maintenance.replaceDraftCasefile.mockReset();
+    maintenance.getDraftCasefile.mockReset();
+    maintenance.getCountries.mockReset();
+    maintenance.getMaintenanceApplications.mockReset();
+    maintenance.getResults.mockReset();
     maintenance.getMajorCreditors.mockReset().mockReturnValue(of({ refData: [] }));
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileCheckDetailsComponent],
@@ -869,7 +888,9 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     fixture.componentInstance.handleBack();
     expect(fixture.componentInstance.blocked()).toBe(true);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('[disabled]')).toHaveLength(0);
+    expect(fixture.nativeElement.querySelector('#create_casefile_review_submit').disabled).toBe(false);
+    fixture.nativeElement.querySelector('#create_casefile_review_submit').click();
+    fixture.nativeElement.querySelector('#create_casefile_review_submit').click();
     expect(maintenance.createDraftCasefile).toHaveBeenCalledOnce();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
     pending.next(new HttpResponse({ status: 201, body: { draft_casefile_id: 123, casefile_status: 'SUBMITTED' } }));
@@ -1193,5 +1214,306 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(getState(store)).toEqual(before);
     finish(true);
     await change;
+  });
+  const seedAmendment = () => {
+    const resolved = persisted({
+      intent: 'inputter-amend',
+      mode: 'amend',
+      context: 'inputter',
+      dashboardMode: 'inputter',
+    });
+    resolved.draft.casefile_status = 'REJECTED';
+    TestBed.inject(CasesDraftCasefileStore).loadResolved(resolved);
+    seedCompleteDraft();
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, { submissionIntent: 'amendment' });
+    maintenance.getCountries.mockReturnValue(
+      of({ refData: TestBed.inject(ActivatedRoute).snapshot.data['countries'].refData }),
+    );
+    maintenance.getMaintenanceApplications.mockReturnValue(
+      of({ refData: TestBed.inject(ActivatedRoute).snapshot.data['applications'].refData }),
+    );
+    maintenance.getResults.mockReturnValue(
+      of({ refData: store.orderTerms().map((term) => ({ result_id: term.resultId, active: true })) }),
+    );
+    const body = { ...resolved.draft, casefile_status: 'RESUBMITTED', submitted_by: 'BUU-CHECKER' };
+    maintenance.replaceDraftCasefile.mockReturnValue(
+      of(new HttpResponse({ status: 200, body, headers: new HttpHeaders({ ETag: '"1"' }) })),
+    );
+    return TestBed.inject(CasesDraftCasefileStore);
+  };
+
+  it('never falls back to POST after losing amendment context', async () => {
+    seedAmendment().resetStore();
+    await fixture.componentInstance.handleSubmit();
+    expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+  });
+  it('clears both stores after verified completion and retries only originating-list navigation', async () => {
+    const saved = seedAmendment();
+    expect(fixture.componentInstance.editable()).toBe(true);
+    router.navigateByUrl.mockResolvedValueOnce(false);
+    await fixture.componentInstance.handleSubmit();
+    expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+    expect(saved.draft()).toBeNull();
+    expect(saved.identity()).toBeNull();
+    expect(store.submissionSucceeded()).toBe(false);
+    expect(store.respondentDetails()).toBeNull();
+    await fixture.componentInstance.handleSubmit();
+    expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).toHaveBeenLastCalledWith('/cases/draft/create-and-manage/tabs#rejected');
+  });
+  it.each([400, 422, 409, 0, 503])('retains all corrections after PUT failure %i', async (status) => {
+    const saved = seedAmendment();
+    const before = structuredClone(getState(store));
+    maintenance.replaceDraftCasefile.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
+    await fixture.componentInstance.handleSubmit();
+    expect(getState(store)).toEqual(before);
+    expect(saved.etag()).toBe('"0"');
+    expect(saved.requiresReload()).toBe(![400, 422].includes(status));
+    await fixture.componentInstance.handleSubmit();
+    expect(maintenance.replaceDraftCasefile).toHaveBeenCalledTimes([400, 422].includes(status) ? 2 : 1);
+  });
+
+  it('allows only one PUT and blocks every mutation while it is pending', async () => {
+    seedAmendment();
+    const pending = new Subject<HttpResponse<unknown>>();
+    maintenance.replaceDraftCasefile.mockReturnValue(pending);
+    const first = fixture.componentInstance.handleSubmit();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.submissionPending()).toBe(true);
+    await fixture.componentInstance.handleSubmit();
+    await fixture.componentInstance.handleChange('respondent');
+    fixture.componentInstance.handleBack();
+    fixture.componentInstance.handleCancel();
+    expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    pending.complete();
+    await first;
+    expect(fixture.componentInstance.submissionPending()).toBe(false);
+  });
+  it.each(['missing', 'duplicate'])('blocks unavailable Result membership: %s', async (condition) => {
+    seedAmendment();
+    const result = { result_id: store.orderTerms()[0].resultId, active: condition !== 'inactive' };
+    maintenance.getResults.mockReturnValue(
+      of({ refData: condition === 'missing' ? [] : condition === 'duplicate' ? [result, result] : [result] }),
+    );
+    await fixture.componentInstance.handleSubmit();
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+    expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+  });
+  it('aborts preflight when identity changes before references arrive', async () => {
+    seedAmendment();
+    const countries = new Subject<{ refData: [] }>();
+    maintenance.getCountries.mockReturnValue(countries);
+    const first = fixture.componentInstance.handleSubmit();
+    authenticated.set(false);
+    countries.next({ refData: [] });
+    countries.complete();
+    await first;
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+  });
+  it('requires clean editable state for a fresh ID entry', () => {
+    store.resetStore();
+    expect(fixture.componentInstance.canDeactivate()).toBe(true);
+    store.setUnsavedChanges(true);
+    expect(fixture.componentInstance.canDeactivate()).toBe(false);
+    store.setUnsavedChanges(false);
+    seedAmendment();
+    expect(fixture.componentInstance.canDeactivate()).toBe(false);
+  });
+  it('rejects unfinished accepted state before starting preflight', async () => {
+    const saved = seedAmendment();
+    store.setUnsavedChanges(true);
+    await fixture.componentInstance.handleSubmit();
+    expect(maintenance.getCountries).not.toHaveBeenCalled();
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+    expect(saved.requiresReload()).toBe(false);
+  });
+  it('aborts if accepted edits change while preflight is pending', async () => {
+    seedAmendment();
+    const countries = new Subject<{ refData: [] }>();
+    maintenance.getCountries.mockReturnValue(countries);
+    const first = fixture.componentInstance.handleSubmit();
+    patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, { paymentArrangement: 'direct' });
+    countries.next({ refData: [] });
+    countries.complete();
+    await first;
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+  });
+  it.each(['getCountries', 'getMaintenanceApplications', 'getMajorCreditors', 'getResults'] as const)(
+    'retains corrections and ready outcome when %s emits nothing during preflight',
+    async (method) => {
+      const saved = seedAmendment();
+      const before = structuredClone(getState(store));
+      maintenance[method].mockReturnValue(EMPTY);
+      await fixture.componentInstance.handleSubmit();
+      expect(getState(store)).toEqual(before);
+      expect(saved.requiresReload()).toBe(false);
+      expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+      expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+    },
+  );
+  it('returns amendment review to its existing task list without discarding corrections', async () => {
+    seedAmendment();
+    const before = structuredClone(getState(store));
+    fixture.componentInstance.handleBack();
+    await fixture.whenStable();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/task-list');
+    expect(getState(store)).toEqual(before);
+  });
+  it.each(['authentication', 'identity', 'release'])(
+    'blocks success continuation after %s changes',
+    async (condition) => {
+      const saved = seedAmendment();
+      router.navigateByUrl.mockResolvedValueOnce(false);
+      await fixture.componentInstance.handleSubmit();
+      expect(saved.draft()).toBeNull();
+      router.navigateByUrl.mockClear();
+      if (condition === 'authentication') authenticated.set(false);
+      else if (condition === 'identity') userState.set({ ...userState(), user_id: 99 });
+      else featureFlags.set({});
+      await fixture.componentInstance.handleSubmit();
+      expect(store.submissionSucceeded()).toBe(false);
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+      expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+    },
+  );
+  it('allows one originating-list navigation at a time after verified completion', async () => {
+    await fixture.componentInstance.handleSubmit();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    seedAmendment();
+    let finish!: (value: boolean) => void;
+    router.navigateByUrl.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const first = fixture.componentInstance.handleSubmit();
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(router.navigateByUrl).toHaveBeenCalledOnce());
+    await fixture.componentInstance.handleSubmit();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    finish(true);
+    await first;
+  });
+  it('does not send PUT if review is destroyed after the last preflight value arrives', async () => {
+    seedAmendment();
+    const pending = new Subject<{ refData: [] }>();
+    maintenance.getCountries.mockReturnValue(pending);
+    const work = fixture.componentInstance.handleSubmit();
+    pending.next({ refData: [] });
+    pending.complete();
+    fixture.destroy();
+    await work;
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+  });
+  it('rejects a late PUT receipt after its amendment identity is lost', async () => {
+    const saved = seedAmendment();
+    const before = structuredClone(getState(store));
+    const pending = new Subject<HttpResponse<unknown>>();
+    maintenance.replaceDraftCasefile.mockReturnValue(pending);
+    const work = fixture.componentInstance.handleSubmit();
+    await vi.waitFor(() => expect(pending.observed).toBe(true));
+    authenticated.set(false);
+    pending.next(
+      new HttpResponse({
+        status: 200,
+        body: { ...saved.draft(), casefile_status: 'RESUBMITTED' },
+        headers: new HttpHeaders({ ETag: '"2"' }),
+      }),
+    );
+    pending.complete();
+    await work;
+    expect(store.submissionSucceeded()).toBe(false);
+    expect(getState(store)).toEqual(before);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+  it.each(['empty', 'conflict', 'network'])(
+    'locks %s submission without replay until authoritative re-entry',
+    async (failure) => {
+      const saved = seedAmendment();
+      const before = structuredClone(getState(store));
+      const envelope = structuredClone(saved.draft());
+      maintenance.replaceDraftCasefile.mockReturnValue(
+        failure === 'empty'
+          ? EMPTY
+          : throwError(() => new HttpErrorResponse({ status: failure === 'conflict' ? 409 : 0 })),
+      );
+      await fixture.componentInstance.handleSubmit();
+      expect(getState(store)).toEqual(before);
+      expect(saved.draft()).toEqual(envelope);
+      expect(saved.etag()).toBe('"0"');
+      await fixture.componentInstance.handleSubmit();
+      expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+      expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#create_casefile_review_submit').disabled).toBe(false);
+      fixture.nativeElement.querySelector('#create_casefile_review_submit').click();
+      fixture.nativeElement.querySelector('#create_casefile_review_submit').click();
+      await fixture.whenStable();
+      expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+    },
+  );
+  it('uses existing Back for authoritative re-entry when a reload is required without changing corrections', async () => {
+    const saved = seedAmendment();
+    saved.setRequiresReload(true);
+    const before = structuredClone(getState(store));
+    const envelope = structuredClone(getState(saved));
+    router.navigateByUrl.mockResolvedValueOnce(false);
+    fixture.componentInstance.handleBack();
+    await fixture.whenStable();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/cases/create-casefile/task-list/17');
+    expect(getState(store)).toEqual(before);
+    expect(getState(saved)).toEqual(envelope);
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+    expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+  });
+  it.each(['dashboard', 'all-rejected'] as const)(
+    'captures %s success notice before clearing data and clears stale notice on failed navigation',
+    async (origin) => {
+      seedAmendment();
+      const respondent = structuredClone(store.respondentDetails()!);
+      if (origin === 'all-rejected') draftNavigation.contextForPlaceholder.mockReturnValue({ origin });
+      router.navigateByUrl.mockResolvedValueOnce(false);
+      await fixture.componentInstance.handleSubmit();
+      expect(draftNavigation.amendmentReturnUrl).toHaveBeenCalledExactlyOnceWith(17);
+      expect(draftNavigation.recordAllRejectedResubmission).toHaveBeenCalledWith({
+        origin,
+        identity: { userId: 10606, businessUnitId: 44, submittedBy: 'BUU-CHECKER' },
+        draftCasefileId: 17,
+        respondentForename: respondent.firstNames,
+        respondentSurname: respondent.lastName,
+      });
+      expect(draftNavigation.clearAllRejectedSuccess).toHaveBeenCalledOnce();
+      await fixture.componentInstance.handleSubmit();
+      expect(draftNavigation.recordAllRejectedResubmission).toHaveBeenCalledTimes(2);
+      expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+      expect(store.submissionSucceeded()).toBe(false);
+    },
+  );
+  it('keeps verified completion after the scoped success notice is refused and retries navigation only', async () => {
+    const saved = seedAmendment();
+    draftNavigation.recordAllRejectedResubmission.mockReturnValueOnce(false);
+    await fixture.componentInstance.handleSubmit();
+    expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+    expect(saved.draft()).toBeNull();
+    expect(saved.etag()).toBeNull();
+    expect(saved.identity()).toBeNull();
+    expect(saved.references()).toBeNull();
+    expect(TestBed.inject(GlobalStore).bannerError()).toMatchObject({
+      error: true,
+      title: 'There was a problem',
+      message: 'You can try again. If the problem persists, contact the service desk.',
+    });
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+    expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+    await fixture.componentInstance.handleSubmit();
+    expect(draftNavigation.recordAllRejectedResubmission).toHaveBeenCalledTimes(2);
+    expect(router.navigateByUrl).toHaveBeenCalledExactlyOnceWith('/cases/draft/create-and-manage/tabs#rejected');
+    expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+    expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+    expect(TestBed.inject(GlobalStore).bannerError().error).not.toBe(true);
   });
 });

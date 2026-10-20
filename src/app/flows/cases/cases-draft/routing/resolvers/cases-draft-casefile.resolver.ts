@@ -15,6 +15,7 @@ import { mapOrderTermParameters } from '../../../cases-create-casefile/cases-cre
 import { mapPersistedCasefile } from '../../../cases-create-casefile/services/cases-create-casefile-payload/utils/map-casefile/cases-create-casefile-payload-map-state';
 import type { ICasesCreateCasefileOrderTermPage } from '../../../cases-create-casefile/cases-create-casefile-order-terms-input/interfaces/cases-create-casefile-order-term-page.interface';
 import type { ICasesDraftCasefileResolved } from '../../interfaces/cases-draft-casefile-resolved.interface';
+import type { CasesDraftCasefileMode } from '../../types/cases-draft-casefile-mode.type';
 import type { CasesDraftCasefileIntent } from '../../types/cases-draft-casefile-intent.type';
 import type { CasesDraftDashboardMode } from '../../types/cases-draft-dashboard-mode.type';
 import { resolveCasesDraftIdentity, sameCasesDraftIdentity } from '../../utils/cases-draft-identity';
@@ -62,14 +63,27 @@ function savedResultPages(
 }
 
 function routeIntent(value: unknown): CasesDraftCasefileIntent {
-  if (value !== 'inputter-view' && value !== 'checker-view' && value !== 'checker-review' && value !== 'checker-delete')
+  if (
+    value !== 'inputter-amend' &&
+    value !== 'inputter-view' &&
+    value !== 'checker-view' &&
+    value !== 'checker-review' &&
+    value !== 'checker-delete'
+  )
     throw new Error('Unusable casefile intent');
   return value;
 }
 
-function routeId(value: string | null): number {
-  if (!value || !/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value)))
+function resolvedMode(intent: CasesDraftCasefileIntent, reviewEligible: boolean): CasesDraftCasefileMode {
+  if (intent === 'inputter-amend') return 'amend';
+  return reviewEligible && (intent === 'checker-review' || intent === 'checker-delete') ? 'review' : 'view';
+}
+
+function routeId(value: string | null, intent: CasesDraftCasefileIntent): number {
+  if (!value || !/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value))) {
+    if (intent === 'inputter-amend') throw new CasefileAccessDenied();
     throw new Error('Unusable casefile ID');
+  }
   return Number(value);
 }
 
@@ -83,22 +97,32 @@ export const casesDraftCasefileResolver: ResolveFn<ICasesDraftCasefileResolved> 
     const flags: Record<string, unknown> = globalStore.featureFlags();
     return flags[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] === true;
   };
-  const readIdentity = () =>
-    globalStore.authenticated() ? resolveCasesDraftReadIdentity(globalStore.userState(), isReleased()) : null;
+  const readIdentity = (intent: CasesDraftCasefileIntent) => {
+    if (!globalStore.authenticated()) return null;
+    return intent === 'inputter-amend'
+      ? resolveCasesDraftIdentity(globalStore.userState(), isReleased(), 'inputter')
+      : resolveCasesDraftReadIdentity(globalStore.userState(), isReleased());
+  };
   const denied = () => new RedirectCommand(router.parseUrl('/error/permission-denied'));
 
   return defer(() => {
-    const identity = readIdentity();
-    if (!identity) throw new CasefileAccessDenied();
-    const id = routeId(route.paramMap.get('draftCasefileId'));
     const intent = routeIntent(route.data['casefileIntent']);
-    const context: CasesDraftDashboardMode = intent === 'inputter-view' ? 'inputter' : 'checker';
+    const identity = readIdentity(intent);
+    if (!identity) throw new CasefileAccessDenied();
+    const id = routeId(route.paramMap.get('draftCasefileId'), intent);
+    const context: CasesDraftDashboardMode =
+      intent === 'inputter-view' || intent === 'inputter-amend' ? 'inputter' : 'checker';
     return maintenance.getDraftCasefile(id).pipe(
       take(1),
       defaultIfEmpty(null),
       switchMap((response) => {
         if (!response) throw new Error('Unusable saved casefile');
         const { draft, etag } = response;
+        if (
+          intent === 'inputter-amend' &&
+          (!sameCasesDraftIdentity(readIdentity(intent), identity) || draft.casefile_status !== 'REJECTED')
+        )
+          throw new CasefileAccessDenied();
         if (draft.business_unit_id !== identity.businessUnitId) throw new CasefileAccessDenied();
         if (draft.draft_casefile_id !== id) throw new Error('Unusable saved casefile ID');
         if (intent === 'checker-delete' && !canReviewDraftCasefile(draft, globalStore.userState(), isReleased()))
@@ -115,7 +139,7 @@ export const casesDraftCasefileResolver: ResolveFn<ICasesDraftCasefileResolved> 
           pages: savedResultPages(resultIds, maintenance, lookups),
         }).pipe(
           map((resolved) => {
-            if (!sameCasesDraftIdentity(readIdentity(), identity)) throw new CasefileAccessDenied();
+            if (!sameCasesDraftIdentity(readIdentity(intent), identity)) throw new CasefileAccessDenied();
             const eligible = canReviewDraftCasefile(draft, globalStore.userState(), isReleased());
             if (intent === 'checker-delete' && !eligible) throw new CasefileAccessDenied();
             if (!resolved.countries || !resolved.applications || !resolved.majorCreditors)
@@ -131,7 +155,7 @@ export const casesDraftCasefileResolver: ResolveFn<ICasesDraftCasefileResolved> 
             const dashboardMode = resolveCasesDraftIdentity(globalStore.userState(), isReleased(), context)
               ? context
               : fallback;
-            const mode = eligible && (intent === 'checker-review' || intent === 'checker-delete') ? 'review' : 'view';
+            const mode = resolvedMode(intent, eligible);
             return {
               draft,
               etag,

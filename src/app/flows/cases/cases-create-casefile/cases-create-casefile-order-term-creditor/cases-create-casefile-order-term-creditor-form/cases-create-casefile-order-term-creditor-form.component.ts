@@ -86,7 +86,7 @@ export class CasesCreateCasefileOrderTermCreditorFormComponent
     const control = this.form.controls[this.fieldNames.majorCreditorId];
     return (
       control.enabled &&
-      this.majorCreditors?.some((record) => String(record.major_creditor_id) === String(control.value))
+      this.majorCreditors?.some((record) => record.active && String(record.major_creditor_id) === String(control.value))
     );
   }
 

@@ -53,12 +53,12 @@ describe('All rejected cases native keyboard and accessibility', () => {
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.row(26)).find('a').should('be.focused');
     pressDashboardEnter();
-    cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+    cy.get(CreateCasefileSelectors.caseDetails.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
     cy.get('@allRejectedDetailRequest').should('have.been.calledOnceWithExactly', 26);
     cy.get(R.decisionHost).should('not.exist');
-    cy.get(R.rowValue('respondent', 'FirstNames')).should('contain.text', 'Synthetic');
+    cy.get(CreateCasefileSelectors.caseDetails.respondentStatus).should('contain.text', 'Provided');
     cy.get('@listRequest').should('have.been.calledOnce');
-    cy.get(R.back).focus();
+    cy.get(CreateCasefileSelectors.caseDetails.backLink).focus();
     pressDashboardEnter();
     cy.get(S.allRejectedHeading).should('be.focused');
     cy.get('@listRequest').should('have.been.calledTwice');
@@ -115,7 +115,13 @@ describe('All rejected cases native keyboard and accessibility', () => {
     () => {
       setupAllRejected({ success: true, page: 2 });
       cy.get(S.allRejectedHeading).should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.then(async () => {
+        for (const type of ['keyDown', 'keyUp'])
+          await Cypress.automation('remote:debugger:protocol', {
+            command: 'Input.dispatchKeyEvent',
+            params: { type, key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9, nativeVirtualKeyCode: 9, modifiers: 8 },
+          });
+      });
       cy.get(S.allRejectedDismiss).should('be.focused');
       pressDashboardEnter();
       cy.get(S.allRejectedSuccess).should('not.exist');
@@ -128,13 +134,13 @@ describe('All rejected cases native keyboard and accessibility', () => {
     setupAllRejected({ page: 2 });
     cy.get(S.row(1)).find('a').focus();
     pressDashboardEnter();
-    cy.get(R.heading).should('be.focused');
+    cy.get(CreateCasefileSelectors.caseDetails.heading).should('be.focused');
     cy.get('@allRejectedDetailRequest').should('have.been.calledOnceWithExactly', 1);
     cy.get(R.decisionHost).should('not.exist');
     cy.get<Cypress.Agent<sinon.SinonStub>>('@listRequest').then((request) =>
       request.returns(of({ count: 0, summaries: [] })),
     );
-    cy.get(R.back).focus();
+    cy.get(CreateCasefileSelectors.caseDetails.backLink).focus();
     pressDashboardEnter();
     cy.get(S.allRejectedEmpty).should('be.visible');
     cy.get(S.allRejectedHeading).should('be.focused');

@@ -92,7 +92,7 @@ export class CheckCaseDetailsModesFlow {
     this.actions.openFromChecker();
   }
   /** Enables the explicit synthetic deletion contract.
-   * @param outcome Success or an uncertain committed response. */
+   * @param outcome Success or a shared request error. */
   public enableDeletion(outcome: string): void {
     this.actions.enableDeletion(outcome);
   }
@@ -113,18 +113,13 @@ export class CheckCaseDetailsModesFlow {
   public cancelDeletion(): void {
     this.actions.cancelDeletion();
   }
-  /** Retrieves current state after an uncertain response. */
-  public checkLatestDeletionStatus(): void {
-    this.actions.checkLatestDeletionStatus();
+  /** Checks shared feedback leaves the reason editable without another request. */
+  public expectDeletionError(): void {
+    this.actions.expectDeletionError();
   }
-  /** Checks mounted recovery without replaying the PATCH. */
-  public expectUncertainDeletion(): void {
-    this.actions.expectUncertainDeletion();
-  }
-  /** Checks attributed or observed deletion and the refreshed queue.
-   * @param outcome Confirmed request or observed current state. */
-  public expectDeletedReturn(outcome: string): void {
-    this.actions.expectDeletedReturn(outcome);
+  /** Checks the confirmed deletion notice and refreshed queue. */
+  public expectDeletedReturn(): void {
+    this.actions.expectDeletedReturn();
   }
   /** Checks cancellation performs fresh selected loading without mutation.
    * @param expectedGets Total selected requests for this journey. */

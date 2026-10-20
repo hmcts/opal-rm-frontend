@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
+import { Router } from '@angular/router';
 import type { BehaviorSubject } from 'rxjs';
 import type { Data } from '@angular/router';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
@@ -109,7 +109,7 @@ describe('Delete casefile shared form', () => {
   });
 });
 
-describe('Delete casefile request and recovery', () => {
+describe('Delete casefile request handling', () => {
   it('AC3. should lock the pending request and send the exact decision', { tags: buildTags() }, () => {
     const scenario = createDeletionScenario();
     let release: () => void = () => {
@@ -142,90 +142,53 @@ describe('Delete casefile request and recovery', () => {
     });
   });
 
-  it('AC4. should retain a retriable-409 EMPTY and use one explicit GET', { tags: buildTags() }, () => {
-    const scenario = createDeletionScenario();
-    cy.intercept('PATCH', scenario.url, {
-      statusCode: 409,
-      body: { retriable: true, title: 'Synthetic conflict', detail: 'Synthetic conflict detail' },
-    }).as('deletePatch');
-    cy.intercept('GET', scenario.url, { body: structuredClone(scenario.resolved.draft), headers: { ETag: '"4"' } }).as(
-      'deleteStatus',
-    );
-    setupReview({ resolved: scenario.resolved, deleteScreen: true, deleteReason: scenario.reason });
-    cy.get(D.submit).click();
-    cy.wait('@deletePatch');
-    cy.get(D.reason).should('be.disabled').and('have.value', scenario.reason);
-    cy.get(D.checkStatus).should('be.visible');
-    cy.get('@deleteStatus.all').should('have.length', 0);
-    cy.get<InstanceType<typeof GlobalStore>>('@globalStore').should((store) => {
-      expect(store.bannerError().message).to.equal('Synthetic conflict detail');
-    });
-    cy.get(D.checkStatus).click();
-    cy.wait('@deleteStatus');
-    cy.get(D.status).should('have.text', DELETE_CASEFILE_EXPECTED_COPY.awaitingReview);
-    cy.get('@deleteStatus.all').should('have.length', 1);
-    cy.get('@deletePatch.all').should('have.length', 1);
-    cy.get('@routerNavigate').should('not.have.been.called');
-  });
-
-  it('AC3. should retry failed success navigation without repeating PATCH', { tags: buildTags() }, () => {
-    const scenario = createDeletionScenario();
-    cy.intercept('PATCH', scenario.url, { statusCode: 200, body: scenario.deleted, headers: { ETag: '"1"' } }).as(
-      'deletePatch',
-    );
-    setupReview({
-      resolved: scenario.resolved,
-      deleteScreen: true,
-      deleteReason: scenario.reason,
-      failNavigation: true,
-    });
-    cy.get(D.submit).click();
-    cy.wait('@deletePatch');
-    cy.get(D.returnToReviewCases).should('be.visible');
-    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) => navigate.resolves(true));
-    cy.get(D.returnToReviewCases).click();
-    cy.get('@routerNavigate').should('have.been.calledTwice');
-    cy.get('@deletePatch.all').should('have.length', 1);
-  });
-
-  it('AC4. should request an observed notice after an authoritative DELETED GET', { tags: buildTags() }, () => {
-    const scenario = createDeletionScenario();
-    cy.intercept('PATCH', scenario.url, {
-      statusCode: 409,
-      body: { retriable: true, title: 'Synthetic conflict', detail: 'Synthetic conflict detail' },
-    }).as('deletePatch');
-    cy.intercept('GET', scenario.url, { body: scenario.deleted, headers: { ETag: '"4"' } }).as('deleteStatus');
-    setupReview({ resolved: scenario.resolved, deleteScreen: true, deleteReason: scenario.reason });
-    cy.then(() => cy.spy(TestBed.inject(CasesDraftNavigationService), 'recordCheckerDeletion').as('recordDeletion'));
-    cy.get(D.submit).click();
-    cy.wait('@deletePatch');
-    cy.get(D.checkStatus).click();
-    cy.wait('@deleteStatus');
-    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
-      expect(navigate.firstCall.args[0].toString()).to.equal('/cases/draft/check-and-validate/tabs#to-review');
-    });
-    cy.get<Cypress.Agent<sinon.SinonSpy>>('@recordDeletion').should((record) => {
-      expect(record).to.have.been.calledOnce;
-      expect(record.firstCall.args[0]).to.include({
-        outcome: 'observed',
-        draftCasefileId: 17,
-        respondentName: 'Synthetic Respondent',
+  for (const status of [409, 401, 500]) {
+    it('AC3. should preserve shared feedback and unlock after HTTP ' + status, { tags: buildTags() }, () => {
+      const scenario = createDeletionScenario();
+      cy.intercept('PATCH', scenario.url, {
+        statusCode: status,
+        body: { retriable: true, title: 'Synthetic failure', detail: 'Synthetic request failed' },
+      }).as('deletePatch');
+      cy.intercept('GET', scenario.url, { body: scenario.resolved.draft, headers: { ETag: '"0"' } }).as('deleteStatus');
+      setupReview({ resolved: scenario.resolved, deleteScreen: true, deleteReason: scenario.reason });
+      cy.get(D.submit).click();
+      cy.wait('@deletePatch');
+      cy.get(D.reason).should('not.be.disabled').and('have.value', scenario.reason);
+      cy.get(D.submit).should('not.be.disabled');
+      cy.get(D.cancel).should('be.visible');
+      cy.get<InstanceType<typeof GlobalStore>>('@globalStore').should((store) => {
+        expect(store.bannerError().message).to.equal('Synthetic request failed');
       });
+      cy.get('@deleteStatus.all').should('have.length', 0);
+      cy.get('@deletePatch.all').should('have.length', 1);
+      cy.get('@routerNavigate').should('not.have.been.called');
     });
-    cy.get('@deleteStatus.all').should('have.length', 1);
+  }
+
+  it('AC3. should use the shared interceptor destination for non-retriable HTTP 403', { tags: buildTags() }, () => {
+    const scenario = createDeletionScenario();
+    cy.intercept('PATCH', scenario.url, {
+      statusCode: 403,
+      body: { retriable: false },
+    }).as('deletePatch');
+    setupReview({ resolved: scenario.resolved, deleteScreen: true, deleteReason: scenario.reason });
+    cy.then(() => cy.spy(TestBed.inject(Router), 'navigate').as('sharedErrorNavigation'));
+    cy.get(D.submit).click();
+    cy.wait('@deletePatch');
+    cy.get('@sharedErrorNavigation').should('have.been.calledOnceWithExactly', ['/error/permission-denied']);
     cy.get('@deletePatch.all').should('have.length', 1);
   });
 });
 
 describe('Delete casefile partial accessibility evidence', () => {
   beforeEach(() => cy.viewport(1280, 900));
-  for (const state of ['normal', 'error', 'recovery'] as const) {
+  for (const state of ['normal', 'error', 'request error'] as const) {
     it(
       'AC2, AC4. should have no detected Axe violations and reflow at 320 CSS pixels in ' + state,
       { tags: buildTags() },
       () => {
         const scenario = createDeletionScenario();
-        if (state === 'recovery') {
+        if (state === 'request error') {
           cy.intercept('PATCH', scenario.url, {
             statusCode: 409,
             body: { retriable: true, title: 'Synthetic conflict', detail: 'Synthetic conflict detail' },
@@ -234,13 +197,13 @@ describe('Delete casefile partial accessibility evidence', () => {
         setupReview({
           resolved: scenario.resolved,
           deleteScreen: true,
-          ...(state === 'recovery' ? { deleteReason: scenario.reason } : {}),
+          ...(state === 'request error' ? { deleteReason: scenario.reason } : {}),
         });
         if (state !== 'normal') cy.get(D.submit).click();
         if (state === 'error') cy.get(D.summary).should('be.focused');
-        if (state === 'recovery') {
+        if (state === 'request error') {
           cy.wait('@deletePatch');
-          cy.get(D.checkStatus).should('be.visible');
+          cy.get(D.reason).should('not.be.disabled').and('have.value', scenario.reason);
         }
         cy.get(D.identity).should('be.visible').and('contain.text', 'Synthetic Respondent');
         cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });

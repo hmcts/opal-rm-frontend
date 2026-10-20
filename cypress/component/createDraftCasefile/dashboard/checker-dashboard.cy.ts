@@ -191,7 +191,7 @@ describe('Checker routed dashboard', () => {
 describe('Checker deletion notice presentation', () => {
   beforeEach(() => cy.viewport(1280, 900));
   it('AC3. should announce deletion and restore heading focus on dismissal', { tags: buildDeletionTags() }, () => {
-    setupCheckerDashboard({ rows: [], deletionNotice: checkerDeletionNotice('confirmed') });
+    setupCheckerDashboard({ rows: [], deletionNotice: checkerDeletionNotice() });
     const message = 'You have deleted Synthetic Respondent’s case.';
     cy.get(S.success).should('contain.text', message);
     cy.get(S.successAnnouncement)
@@ -205,14 +205,5 @@ describe('Checker deletion notice presentation', () => {
     cy.get(S.success).should('not.exist');
     cy.get(S.heading).should('be.focused');
     cy.checkA11y();
-  });
-
-  it('AC4. should announce neutral wording for an observed deletion', { tags: buildDeletionTags() }, () => {
-    setupCheckerDashboard({ rows: [], deletionNotice: checkerDeletionNotice('observed') });
-    const message = 'Synthetic Respondent’s case has been deleted.';
-    cy.get(S.success).should('contain.text', message).and('not.contain.text', 'You have deleted');
-    cy.get(S.successAnnouncement)
-      .should('have.attr', 'aria-atomic', 'true')
-      .and(($output) => expect($output.text().trim()).to.equal('success: ' + message));
   });
 });

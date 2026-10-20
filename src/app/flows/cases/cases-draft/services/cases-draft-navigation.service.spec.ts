@@ -58,7 +58,6 @@ describe('CasesDraftNavigationService', () => {
         identity: { userId: 1, businessUnitId: 44, submittedBy: 'BUU' },
         draftCasefileId: 17,
         respondentName: 'Synthetic',
-        outcome: 'confirmed',
       }),
     ).toBe(false);
     expect(service.consumeCheckerDeletion()).toBeNull();
@@ -859,7 +858,6 @@ describe('checker CasesDraftNavigationService', () => {
       },
       draftCasefileId: 17,
       respondentName: 'Synthetic Respondent',
-      outcome: 'confirmed',
     };
   }
   it('consumes checker deletion once and isolates the retained identity', () => {
@@ -889,11 +887,10 @@ describe('checker CasesDraftNavigationService', () => {
       expect(service.consumeCheckerDeletion()).toBeNull();
     },
   );
-  it.each(['identity', 'name', 'outcome'] as const)('rejects invalid deletion notice %s', (invalid) => {
+  it.each(['identity', 'name'] as const)('rejects invalid deletion notice %s', (invalid) => {
     const notice = deletionNotice();
     if (invalid === 'identity') notice.identity.submittedBy = 'OTHER';
     if (invalid === 'name') notice.respondentName = '  ';
-    if (invalid === 'outcome') Object.assign(notice, { outcome: 'unknown' });
     expect(service.recordCheckerDeletion(notice)).toBe(false);
     expect(service.consumeCheckerDeletion()).toBeNull();
   });

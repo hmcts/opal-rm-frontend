@@ -15,15 +15,19 @@ const response = () =>
     headers: new HttpHeaders({ ETag: '"9007199254740994"' }),
   });
 describe('replacement receipt', () => {
-  it('verifies same-draft completion and an opaque new ETag', () => {
-    expect(() => readCasesCreateCasefileReplacementReceipt(response(), expected)).not.toThrow();
-  });
+  it.each(['4', 'opaque-next-version', '"9007199254740994"'])(
+    'verifies same-draft completion with opaque new ETag %s',
+    (etag) => {
+      const receipt = response().clone({ headers: new HttpHeaders({ ETag: etag }) });
+      expect(() => readCasesCreateCasefileReplacementReceipt(receipt, expected)).not.toThrow();
+    },
+  );
   it.each([
     { status: 201 },
     { body: null },
     { headers: new HttpHeaders() },
     { headers: new HttpHeaders({ ETag: expected.etag }) },
-    { headers: new HttpHeaders({ ETag: '4' }) },
+    { headers: new HttpHeaders({ ETag: '' }) },
     ...[
       { draft_casefile_id: 18 },
       { business_unit_id: 99 },

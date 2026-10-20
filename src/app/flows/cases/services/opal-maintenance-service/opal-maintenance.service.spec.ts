@@ -65,6 +65,22 @@ describe('OpalMaintenanceService', () => {
     request.flush(body, { headers: { ETag: '"0"' } });
     expect(await loaded).toEqual({ draft: body, etag: '"0"' });
   });
+  it.each([
+    ['ETag', 'opaque-version'],
+    ['Etag', 'W/"version-1"'],
+    ['ETag', '"9223372036854775808"'],
+  ])('preserves the opaque %s header %s from GET', async (header, etag) => {
+    const body = createPersistedCasefileDetail();
+    const loaded = firstValueFrom(service.getDraftCasefile(17));
+    http.expectOne('/opal-maintenance-service/draft-casefiles/17').flush(body, { headers: { [header]: etag } });
+    expect(await loaded).toEqual({ draft: body, etag });
+  });
+  it.each<Record<string, string>>([{}, { ETag: '' }])('rejects GET data with an absent version %j', async (headers) => {
+    const loaded = firstValueFrom(service.getDraftCasefile(17));
+    const rejected = expect(loaded).rejects.toThrow('Unusable draft casefile data');
+    http.expectOne('/opal-maintenance-service/draft-casefiles/17').flush(createPersistedCasefileDetail(), { headers });
+    await rejected;
+  });
   it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])('rejects invalid selected ID %s before HTTP', (id) => {
     expect(() => service.getDraftCasefile(id)).toThrow('Invalid draft casefile identifier');
     http.expectNone('/opal-maintenance-service/draft-casefiles/' + id);
@@ -162,41 +178,49 @@ describe('OpalMaintenanceService', () => {
     expect((await pending).headers.get('ETag')).toBe('"9007199254740994"');
     http.expectNone('/opal-maintenance-service/draft-casefiles/17');
   });
-  it('PATCHes deletion exactly once using the opaque saved version', () => {
+  it.each([
+    { business_unit_id: 44, casefile_status: 'DELETED', status_message: 'Synthetic reason\nSecond line' },
+    { business_unit_id: 44, casefile_status: 'REJECTED', status_message: 'Synthetic rejection reason' },
+    { business_unit_id: 44, casefile_status: 'PUBLISHING_PENDING' },
+  ] as const)('PATCHes the supplied $casefile_status decision once', (body) => {
     const success = vi.fn();
-    const etag = '"9007199254740993"';
-    service
-      .deleteDraftCasefile(
-        17,
-        {
-          business_unit_id: 44,
-          casefile_status: 'DELETED',
-          status_message: 'Synthetic reason\nSecond line',
-        },
-        etag,
-      )
-      .subscribe(success);
+    const etag = 'opaque-saved-version';
+    service.patchDraftCasefile(17, body, etag).subscribe(success);
     const req = http.expectOne('/opal-maintenance-service/draft-casefiles/17');
     expect(req.request.method).toBe('PATCH');
     expect(req.request.headers.get('If-Match')).toBe(etag);
-    expect(req.request.body).toEqual({
-      business_unit_id: 44,
-      casefile_status: 'DELETED',
-      status_message: 'Synthetic reason\nSecond line',
-    });
+    expect(req.request.body).toEqual(body);
     const noRetry = withoutHttpRetry();
     for (const token of noRetry.keys()) expect(req.request.context.get(token)).toEqual(noRetry.get(token));
-    const deleted = createPersistedCasefileDetail();
-    deleted.casefile_status = 'DELETED';
-    req.flush(deleted, { headers: { ETag: '"9007199254740994"' } });
-    expect(success.mock.calls[0][0]).toBeInstanceOf(HttpResponse);
+    const draft = createPersistedCasefileDetail();
+    draft.casefile_status = body.casefile_status;
+    req.flush(draft, { headers: { ETag: 'opaque-next-version' } });
+    const response = success.mock.calls[0][0];
+    expect(response).toBeInstanceOf(HttpResponse);
+    expect(response.body).toEqual(draft);
+    expect(response.headers.get('ETag')).toBe('opaque-next-version');
     http.expectNone((request) => request.method === 'PATCH');
   });
-  it('rejects an unsafe ID or version before dispatch', () => {
+  it('rejects an unsafe PATCH ID or absent version before dispatch', () => {
     const request = { business_unit_id: 44, casefile_status: 'DELETED' as const, status_message: 'Synthetic reason' };
-    expect(() => service.deleteDraftCasefile(0, request, '"0"')).toThrow();
-    expect(() => service.deleteDraftCasefile(17, request, '"9223372036854775808"')).toThrow();
+    expect(() => service.patchDraftCasefile(0, request, '"0"')).toThrow('Invalid draft casefile identifier');
+    expect(() => service.patchDraftCasefile(17, request, '')).toThrow('Unusable saved casefile version');
     http.expectNone((candidate) => candidate.method === 'PATCH');
+  });
+  it('does not replay a failed checker decision', async () => {
+    const pending = firstValueFrom(
+      service.patchDraftCasefile(
+        17,
+        { business_unit_id: 44, casefile_status: 'DELETED', status_message: 'Synthetic reason' },
+        '"0"',
+      ),
+    );
+    const failed = expect(pending).rejects.toBeDefined();
+    http
+      .expectOne('/opal-maintenance-service/draft-casefiles/17')
+      .flush({}, { status: 503, statusText: 'Unavailable' });
+    await failed;
+    http.expectNone((request) => request.method === 'PATCH');
   });
   it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])('rejects invalid replacement ID %s before HTTP', (id) => {
     expect(() =>
@@ -208,19 +232,24 @@ describe('OpalMaintenanceService', () => {
     ).toThrow('Invalid draft casefile identifier');
     http.expectNone(() => true);
   });
-  it.each(['1', '', 'W/"1"', '""', '"a\r\nb"', '"a"b"'])(
-    'rejects unusable replacement version %j before HTTP',
-    (etag) => {
-      expect(() =>
-        service.replaceDraftCasefile(
-          17,
-          { business_unit_id: 44, casefile: createPersistedCasefileDetail().casefile },
-          etag,
-        ),
-      ).toThrow('Unusable saved casefile version');
-      http.expectNone(() => true);
-    },
-  );
+  it('rejects an absent replacement version before HTTP', () => {
+    expect(() =>
+      service.replaceDraftCasefile(
+        17,
+        { business_unit_id: 44, casefile: createPersistedCasefileDetail().casefile },
+        '',
+      ),
+    ).toThrow('Unusable saved casefile version');
+    http.expectNone(() => true);
+  });
+  it.each(['opaque-version', 'W/"version-1"'])('preserves the opaque replacement version %s', (etag) => {
+    service
+      .replaceDraftCasefile(17, { business_unit_id: 44, casefile: createPersistedCasefileDetail().casefile }, etag)
+      .subscribe();
+    const request = http.expectOne('/opal-maintenance-service/draft-casefiles/17');
+    expect(request.request.headers.get('If-Match')).toBe(etag);
+    request.flush(createPersistedCasefileDetail());
+  });
   it('does not replay a failed replacement', async () => {
     const pending = firstValueFrom(
       service.replaceDraftCasefile(

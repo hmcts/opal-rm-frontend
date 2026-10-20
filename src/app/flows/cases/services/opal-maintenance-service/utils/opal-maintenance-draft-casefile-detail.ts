@@ -249,7 +249,7 @@ export function decodeDraftCasefileDetail(
   etag: string | null,
   requestedId: number,
 ): { draft: IOpalMaintenanceDraftCasefileDetail; etag: string } {
-  assert(typeof etag === 'string' && /^"\d+"$/.test(etag));
+  assert(typeof etag === 'string' && etag.length > 0);
   assert(isDetail(body, requestedId));
   return { draft: body, etag };
 }

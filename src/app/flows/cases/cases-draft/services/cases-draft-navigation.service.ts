@@ -153,8 +153,7 @@ export class CasesDraftNavigationService {
       !sameCasesDraftIdentity(identity, value.identity) ||
       !Number.isSafeInteger(value.draftCasefileId) ||
       value.draftCasefileId < 1 ||
-      !value.respondentName.trim() ||
-      !['confirmed', 'observed'].includes(value.outcome)
+      !value.respondentName.trim()
     )
       return false;
     this.checkerDeletion.set({ ...value, identity: { ...identity } });

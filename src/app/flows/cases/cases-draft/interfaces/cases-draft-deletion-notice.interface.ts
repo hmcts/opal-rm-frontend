@@ -4,5 +4,4 @@ export interface ICasesDraftDeletionNotice {
   identity: ICasesDraftIdentity;
   draftCasefileId: number;
   respondentName: string;
-  outcome: 'confirmed' | 'observed';
 }

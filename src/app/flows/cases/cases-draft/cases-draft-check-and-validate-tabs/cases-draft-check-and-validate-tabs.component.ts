@@ -20,7 +20,6 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, combineLatest, map, Observable, of, shareReplay, startWith, switchMap } from 'rxjs';
 import { CustomPageHeaderComponent } from '@hmcts/opal-frontend-common/components/custom/custom-page-header';
@@ -28,8 +27,6 @@ import { MojSubNavigationComponent } from '@hmcts/opal-frontend-common/component
 import { MojNotificationBadgeComponent } from '@hmcts/opal-frontend-common/components/moj/moj-notification-badge';
 import { CasesDraftDashboardBaseComponent } from '../components/abstract/cases-draft-dashboard-base/cases-draft-dashboard-base.component';
 import { CasesDraftTableComponent } from '../cases-draft-table/cases-draft-table.component';
-import type { SortDirectionType } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
-import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
 import type { CasesDraftTab } from '../types/cases-draft-tab.type';
 import type { ICasesDraftIdentity } from '../interfaces/cases-draft-identity.interface';
 import type { ICasesDraftResolvedList } from '../interfaces/cases-draft-resolved-list.interface';
@@ -54,7 +51,6 @@ import { sameCasesDraftIdentity } from '../utils/cases-draft-identity';
 })
 export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboardBaseComponent {
   private readonly deletionSuccess = signal<ICasesDraftDeletionNotice | null>(null);
-  private readonly httpDenied = signal(false);
   private readonly successInjector = inject(Injector);
   protected readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   protected readonly mode = 'checker';
@@ -62,9 +58,7 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
   public readonly successText = computed(() => {
     const notice = this.deletionSuccess();
     if (!notice || !this.isCurrentIdentity(notice.identity)) return null;
-    return notice.outcome === 'confirmed'
-      ? 'You have deleted ' + notice.respondentName + '’s case.'
-      : notice.respondentName + '’s case has been deleted.';
+    return 'You have deleted ' + notice.respondentName + '’s case.';
   });
   public readonly tabs: readonly CasesDraftTab[] = ['to-review', 'rejected', 'deleted', 'failed'];
   public readonly tabData$: Observable<ICasesDraftTabData | null>;
@@ -88,7 +82,7 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
       this.deletionSuccess.set(null);
       this.navigation.clearCheckerDeletion();
     });
-    this.tabData$ = this.initialiseDashboard((error) => this.handleRequestError(error)).tabData$;
+    this.tabData$ = this.initialiseDashboard().tabData$;
     const resolvedList = this.activatedRoute.snapshot.data['draftCasefiles'] as ICasesDraftResolvedList | undefined;
     const resolvedIdentity = resolvedList?.identity ?? null;
     let pendingCounts: { rejected: number | null; failed: number | null } | undefined = resolvedList
@@ -110,10 +104,7 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
             if (resolved && sameCasesDraftIdentity(identity, resolvedIdentity)) return of(resolved[outcome]);
             return this.data.getOutcomeCount(identity, outcome).pipe(
               startWith<number | null>(null),
-              catchError((error: unknown) => {
-                this.handleRequestError(error);
-                return of(null);
-              }),
+              catchError(() => of(null)),
             );
           }),
         ).pipe(map(([rejected, failed]) => ({ identity, rejected, failed })));
@@ -123,41 +114,12 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
     );
   }
 
-  private handleRequestError(error: unknown): void {
-    if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) {
-      // Keep live identity intact so the common HTTP interceptor owns denial navigation.
-      this.httpDenied.set(true);
-      this.deletionSuccess.set(null);
-      this.navigation.clearCheckerDeletion();
-    }
-  }
-
   public dismissSuccess(): void {
     this.deletionSuccess.set(null);
     afterNextRender(() => this.heading()?.nativeElement.focus(), { injector: this.successInjector });
   }
 
-  public override isCurrentIdentity(identity: ICasesDraftIdentity): boolean {
-    return !this.httpDenied() && super.isCurrentIdentity(identity);
-  }
-
-  public override async selectTab(tab: CasesDraftTab): Promise<void> {
-    if (this.httpDenied()) return;
-    await super.selectTab(tab);
-  }
-
-  public override changeSort(change: { key: CasesDraftSortColumn; direction: SortDirectionType }): void {
-    if (this.httpDenied()) return;
-    super.changeSort(change);
-  }
-
-  public override changePage(page: number): void {
-    if (this.httpDenied()) return;
-    super.changePage(page);
-  }
-
   public async openRow(id: number): Promise<void> {
-    if (this.httpDenied()) return;
     await this.navigate(
       this.navigation.placeholderUrl(this.navigation.selection().tab === 'to-review' ? 'review' : 'view', id),
     );

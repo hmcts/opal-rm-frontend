@@ -9,11 +9,10 @@ const sharedDepartureGuard = canDeactivateGuard as unknown as CanDeactivateFn<un
 export function isCasesCreateCasefileAmendmentEntry(url: string): boolean {
   const tree = new DefaultUrlSerializer().parse(url);
   const segments = tree.root.children[PRIMARY_OUTLET]?.segments ?? [];
-  const path = segments
-    .map((segment) => segment.path)
-    .join('/')
-    .replace(/\/+$/, '');
-  return /^cases\/create-casefile\/task-list\/[1-9]\d*$/.test(path);
+  const path = segments.map((segment) => segment.path).join('/');
+  let end = path.length;
+  while (path[end - 1] === '/') end -= 1;
+  return /^cases\/create-casefile\/task-list\/[1-9]\d*$/.test(path.slice(0, end));
 }
 
 /** Replacing an accepted amendment needs departure confirmation; ordinary task returns do not. */

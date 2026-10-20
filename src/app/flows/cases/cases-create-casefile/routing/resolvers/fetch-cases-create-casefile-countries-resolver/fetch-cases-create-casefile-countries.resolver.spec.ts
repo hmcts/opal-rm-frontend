@@ -179,6 +179,17 @@ describe('amendment Countries selected historical options', () => {
       { ...activeCountry, country_id: 11, country_name: 'Current replacement label' },
     ]);
   });
+  it('includes a historical Country once when several saved addresses select it', async () => {
+    const respondent = structuredClone(editable.respondentDetails()!);
+    respondent.thirdParty!.address.countryId = respondent.contactDetails.address.countryId;
+    respondent.employer!.address.countryId = respondent.contactDetails.address.countryId;
+    editable.setRespondentDetails(respondent);
+
+    const response = await resolve('respondent-details');
+
+    expect(response.refData.map((item) => item.country_id)).toEqual([1, 11]);
+    expect(response.count).toBe(2);
+  });
   it('returns only active options when amendment context was lost', async () => {
     persisted.resetStore();
     expect((await resolve('respondent-details')).refData).toEqual([activeCountry]);

@@ -7,6 +7,8 @@ export const CasesDraftSelectors = {
   allRejectedSuccess: '#cases-draft-all-rejected-success',
   allRejectedDismiss: '#cases-draft-all-rejected-success .moj-alert__dismiss',
   success: '#cases-draft-success',
+  successDismiss: '#cases-draft-success .moj-alert__dismiss',
+  successAnnouncement: '#cases-draft-success opal-lib-custom-deferred-live-region-announcement output[role="status"]',
   allRejectedPage: (page: number) => '#cases-draft-pagination a[aria-label="Page ' + page + '"]',
   allRejectedNext: '#cases-draft-pagination a[rel="next"]',
   allRejectedPrevious: '#cases-draft-pagination a[rel="prev"]',

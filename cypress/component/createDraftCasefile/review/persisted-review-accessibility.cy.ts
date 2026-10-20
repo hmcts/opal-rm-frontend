@@ -183,15 +183,19 @@ describe('Persisted case review accessibility', () => {
   });
 
   it(
-    'AC5. should focus the Delete heading and return by keyboard without detected Axe violations',
+    'AC5. should focus the Delete heading and cancel by keyboard without detected Axe violations',
     { tags: buildTags() },
     () => {
       setupReview({ resolved: createPersistedCasefileResolved({ intent: 'checker-delete' }), deleteScreen: true });
-      cy.get('@reviewHost').find(CreateCasefileSelectors.heading).should('be.focused');
+      cy.get(CreateCasefileSelectors.deletion.heading).should('be.focused');
       scan();
       cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.deleteReturn).should('be.focused');
-      cy.get(S.deleteReturn).type('{enter}');
+      cy.get(CreateCasefileSelectors.deletion.reason).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(CreateCasefileSelectors.deletion.submit).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(CreateCasefileSelectors.deletion.cancel).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.ENTER);
       cy.get('@routerNavigate').should('have.been.calledOnce');
     },
   );

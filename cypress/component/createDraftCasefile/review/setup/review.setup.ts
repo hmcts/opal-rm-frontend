@@ -38,6 +38,7 @@ interface ReviewSetupOptions {
   amendment?: ICasesDraftCasefileResolved;
   user?: IOpalUserState;
   deleteScreen?: boolean;
+  deleteReason?: string;
 }
 
 /** Mirrors the user-service response mapping while retaining the shared synthetic role fixture. */
@@ -129,6 +130,9 @@ export function setupReview(options: ReviewSetupOptions = {}) {
       cy.wrap(fixture.nativeElement, { log: false }).as('reviewHost');
       cy.wrap(TestBed.inject(GlobalStore), { log: false }).as('globalStore');
       cy.wrap(TestBed.inject(CasesCreateCasefileReviewNavigationService), { log: false }).as('reviewNavigation');
+      if (fixture.componentInstance instanceof CasesDraftDeleteComponent && options.deleteReason !== undefined) {
+        fixture.componentInstance.form.controls.create_casefile_delete_reason.setValue(options.deleteReason);
+      }
       fixture.detectChanges();
     });
   });

@@ -11,6 +11,7 @@ import {
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
 
 const S = CREATE.review;
+const D = CREATE.deletion;
 const CHECKER = '/cases/draft/check-and-validate';
 const INPUTTER = '/cases/draft/create-and-manage/tabs';
 const COLLECTION = /\/opal-maintenance-service\/draft-casefiles(?:\?|$)/;
@@ -63,9 +64,11 @@ export function selectedPersistedCasefile(
   return draft;
 }
 
-/** Owns selected GET, permission fixtures and browser interactions; decisions remain local. */
+/** Owns selected GET, permission fixtures and browser interactions and explicit decision fixtures. */
 export class CheckCaseDetailsModesActions {
   private draft = selectedPersistedCasefile(17);
+  private selectedEtag = '"0"';
+  private deletionReason = '';
   private failure = '';
   private writes: string[] = [];
   private host: HTMLElement | null = null;
@@ -75,6 +78,8 @@ export class CheckCaseDetailsModesActions {
    * @param status Persisted lifecycle.
    * @param submitter Other or self BU-user. */
   public prepare(role: CheckerRole, status: string, submitter: string): void {
+    this.selectedEtag = '"0"';
+    this.deletionReason = '';
     this.failure = '';
     this.writes = [];
     this.host = null;
@@ -106,7 +111,7 @@ export class CheckCaseDetailsModesActions {
         draft.casefile.respondent_account.respondent.party_details.individual_details!.forenames = 'Second';
         draft.casefile_snapshot.respondent_account!.respondent_name = 'Second Respondent';
       } else expect(id, 'selected independent fixture ID').to.eq(17);
-      request.reply({ body: draft, headers: { ETag: '"0"' } });
+      request.reply({ body: draft, headers: { ETag: this.selectedEtag } });
     }).as('persistedSelectedGet');
     cy.intercept(
       { method: '+(POST|PUT|PATCH|DELETE)', url: /\/opal-maintenance-service\/draft-casefiles(?:[/?]|$)/ },
@@ -134,6 +139,96 @@ export class CheckCaseDetailsModesActions {
           request.query['restrict'] === 'counts' ? { count: summaries.length } : { count: summaries.length, summaries },
       });
     }).as('persistedDashboardCollection');
+  }
+
+  /** Opens the selected case from the checker review queue. */
+  public openFromChecker(): void {
+    cy.visit(CHECKER + '/tabs#to-review');
+    cy.get(DASHBOARD.row(17)).find('a').click();
+  }
+  /** Enables the explicit synthetic deletion contract.
+   * @param outcome Success or an uncertain committed response. */
+  public enableDeletion(outcome: string): void {
+    if (!['success', 'uncertain'].includes(outcome)) throw new Error('Unsupported synthetic deletion outcome');
+    cy.intercept('PATCH', '**/opal-maintenance-service/draft-casefiles/17', (request) => {
+      this.writes.push('PATCH');
+      expect(request.headers['if-match']).to.equal(this.selectedEtag);
+      expect(request.body).to.deep.equal({
+        business_unit_id: 44,
+        casefile_status: 'DELETED',
+        status_message: this.deletionReason,
+      });
+      this.draft.casefile_status = 'DELETED';
+      this.draft.casefile_status_name = 'Deleted';
+      this.draft.status_message = this.deletionReason;
+      this.draft.timeline_data.push({
+        username: 'Synthetic Checker',
+        status: 'Deleted',
+        status_date: '2026-10-20T10:00:00Z',
+        reason_text: this.deletionReason,
+      });
+      this.selectedEtag = '"1"';
+      if (outcome === 'uncertain') {
+        request.reply({
+          statusCode: 503,
+          body: {
+            retriable: true,
+            title: 'Synthetic gateway failure',
+            detail: 'Synthetic uncertain deletion',
+          },
+        });
+      } else {
+        request.reply({ statusCode: 200, body: structuredClone(this.draft), headers: { ETag: this.selectedEtag } });
+      }
+    }).as('deletionPatch');
+  }
+  /** Enters the accepted deletion reason.
+   * @param reason Synthetic reason sent unchanged. */
+  public enterDeletionReason(reason: string): void {
+    this.deletionReason = reason;
+    cy.get(D.reason).type(reason);
+  }
+  /** Confirms deletion through the rendered form. */
+  public confirmDeletion(): void {
+    cy.get(D.submit).click();
+  }
+  /** Submits an empty reason to exercise validation. */
+  public submitEmptyDeletion(): void {
+    cy.get(D.submit).click();
+    cy.get(D.summary).should('contain.text', 'Enter reason').and('be.focused');
+    this.expectNoWrites();
+    cy.screenshot('po10609-deletion-validation');
+  }
+  /** Cancels deletion back to the selected review. */
+  public cancelDeletion(): void {
+    cy.get(D.cancel).click();
+  }
+  /** Retrieves current state after an uncertain response. */
+  public checkLatestDeletionStatus(): void {
+    cy.get(D.checkStatus).click();
+  }
+  /** Checks mounted recovery without replaying the PATCH. */
+  public expectUncertainDeletion(): void {
+    cy.location('pathname').should('eq', CHECKER + '/delete/17');
+    cy.get(D.reason).should('be.disabled').and('have.value', this.deletionReason);
+    cy.get(D.status).should('contain.text', 'We could not confirm whether this case was deleted.');
+    cy.get('@deletionPatch.all').should('have.length', 1);
+    cy.screenshot('po10609-deletion-uncertain');
+  }
+  /** Checks attributed or observed deletion and the refreshed queue.
+   * @param outcome Confirmed request or observed current state. */
+  public expectDeletedReturn(outcome: string): void {
+    if (!['confirmed', 'observed'].includes(outcome)) throw new Error('Unsupported notice outcome');
+    const name = this.draft.casefile_snapshot.respondent_account.respondent_name;
+    const text = outcome === 'confirmed' ? 'You have deleted ' + name + '’s case.' : name + '’s case has been deleted.';
+    cy.location('pathname').should('eq', CHECKER + '/tabs');
+    cy.location('hash').should('eq', '#to-review');
+    cy.location('search').should('eq', '');
+    cy.get(DASHBOARD.success).should('contain.text', text);
+    cy.get(DASHBOARD.row(17)).should('not.exist');
+    cy.get('@deletionPatch.all').should('have.length', 1);
+    cy.then(() => expect(this.writes).to.deep.equal(['PATCH']));
+    cy.screenshot('po10609-deletion-' + outcome + '-return');
   }
 
   /** Introduces one explicit provider, mapping or ownership failure.
@@ -209,9 +304,9 @@ export class CheckCaseDetailsModesActions {
     this.expectNoWrites();
   }
 
-  /** Asserts permissions and intent control the actual decision UI.
-   * @param mode Expected review or view mode. */
-  public expectMode(mode: string): void {
+  /** Checks saved controls for the selected presentation.
+   * @param mode Review or read-only view. */
+  private expectModePresentation(mode: string): void {
     cy.get(S.heading).should('be.visible');
     this.expectNoEditing();
     if (mode === 'review') {
@@ -225,7 +320,21 @@ export class CheckCaseDetailsModesActions {
       cy.get(S.decisionContinue).should('not.exist');
       cy.get(S.delete).should('not.exist');
     }
+  }
+  /** Checks initial selected loading and presentation.
+   * @param mode Review or read-only view. */
+  public expectMode(mode: string): void {
+    this.expectModePresentation(mode);
     cy.get('@persistedSelectedGet.all').should('have.length', 1);
+  }
+  /** Checks cancellation performs fresh selected loading without mutation.
+   * @param expectedGets Total selected requests for this journey. */
+  public expectReviewAfterCancel(expectedGets: number): void {
+    cy.location('pathname').should('eq', CHECKER + '/review/17');
+    cy.location('hash').should('eq', '#to-review');
+    this.expectModePresentation('review');
+    cy.get('@persistedSelectedGet.all').should('have.length', expectedGets);
+    this.expectNoWrites();
   }
 
   /** Submits one explicit decision/reason through the rendered form.
@@ -290,23 +399,20 @@ export class CheckCaseDetailsModesActions {
     this.expectNoWrites();
   }
 
-  /** Opens the interim Delete walkthrough from review. */
+  /** Opens the deletion reason screen from review. */
   public chooseDelete(): void {
     cy.get(S.delete).click();
     this.expectDelete();
   }
 
-  /** Checks Delete has no mutation confirmation or local creation controls. */
+  /** Checks the eligible deletion reason screen without mutation. */
   public expectDelete(): void {
-    cy.contains('h1', 'Delete casefile').should('be.visible').and('be.focused');
-    cy.get(S.deleteReturn).should('be.visible');
-    cy.get(S.submit).should('not.exist');
+    cy.get(D.heading).should('contain.text', 'Are you sure you want to delete this case?').and('be.focused');
+    cy.get(D.reason).should('be.visible');
+    cy.get(D.submit).should('be.visible');
+    cy.get(D.cancel).should('be.visible');
     this.expectNoWrites();
-  }
-
-  /** Returns from interim Delete without changing the draft. */
-  public returnFromDelete(): void {
-    cy.get(S.deleteReturn).click();
+    cy.screenshot('po10609-deletion-reason');
   }
 
   /** Proves denial before selected GET or after loading an unauthorised record.

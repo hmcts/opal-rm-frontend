@@ -151,10 +151,6 @@ export class CheckCaseDetailsFlow {
   public assertConfirmation(): void {
     this.review.assertConfirmation();
   }
-  /** Checks the confirmation offers a focusable cases in review link. */
-  public assertCasesInReviewAvailable(): void {
-    this.review.assertCasesInReviewAvailable();
-  }
   /** Starts an empty case through Create a new case. */
   public startNextCase(): void {
     this.review.startNextCase();

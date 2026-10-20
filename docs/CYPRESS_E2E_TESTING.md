@@ -344,8 +344,8 @@ corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functi
 
 ## Review and submission QA (PO-10283)
 
-The PO-10283 selection extends the existing live scenario and adds controlled comments, optional omission,
-rejection/retry and actionable onward-choice coverage. Each scenario owns an independent browser-created local draft.
+The PO-10283 selection extends the existing live scenario and adds controlled comments, optional omission and
+rejection/retry coverage. Each scenario owns an independent browser-created local draft.
 The rejection is an intercepted HTTP 400, followed by an explicitly requested controlled success; it does not prove a
 live service failure or persistence rollback.
 
@@ -356,23 +356,23 @@ test-run markers, then uses the Maintenance contract described above. Before run
 image contains that implementation, test support is enabled in the target environment and the release is enabled.
 A client 204 alone does not establish the backend's transactional semantics.
 
-Full acceptance requires a successful authenticated cleanup, the generated-ID display fix and a working approved cases-in-review
-destination. The actionable-link assertion is an unmet acceptance assertion against the current confirmation `span`;
-it only requires an anchor with a nonempty, non-placeholder `href` and focus, so it does not independently prove the
-destination is correct. Once the product owner supplies the canonical route and source, add native Tab/Enter activation
-and an independently specified expected route or page outcome, then execute it. Do not derive the expected destination
-from the element's own `href`. Keep passing controlled evidence distinct from blocked live acceptance. Automated Axe
-and keyboard checks are partial accessibility evidence.
+Full literal ticket acceptance still requires successful authenticated cleanup, the generated-ID display fix and the
+cases-in-review onward choice. The user has deferred the onward choice for this QA-only branch while a product route
+and approved destination are unavailable. It is a pending ticket item, not a current scenario or merge gate for the
+agreed subset. When the route is agreed, add native keyboard activation and assert an independently specified page
+outcome. Keep passing controlled evidence distinct from blocked live acceptance. Automated Axe and keyboard checks
+are partial accessibility evidence.
 
-Use the configured `TEST_URL`; port 5001 below is the verified local runtime for this task. Discover the five selected
-scenarios (the retained live scenario plus four controlled scenarios) without browser execution:
+Use the configured `TEST_URL`; port 5001 below was the verified local runtime for the historical runs described below.
+Discover the four selected review scenarios (the retained live scenario plus three controlled scenarios) without
+browser execution:
 
 ```bash
 TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature' --env dryRun=true
 ```
 
-Run only the four controlled scenarios by excluding the live scenario's PO-10273 tag. The actionable-link scenario is
-expected to fail against the current `span`; record actual results rather than claiming browser acceptance:
+Run only the three controlled scenarios by excluding the live scenario's PO-10273 tag. Record actual results rather
+than claiming browser acceptance from discovery:
 
 ```bash
 TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature'
@@ -394,24 +394,25 @@ TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10
 
 ### Local execution status, 19 October 2026
 
-On the verified Redis-enabled local release-on runtime, focused discovery selected all nine PO-10283 examples with no
-pending or skipped cases. The four controlled review examples ran in Chrome: comments, optional omission and rejected
-submission/retry passed; the onward-choice example failed because the current confirmation renders a `span`, not a
-focusable link. All nineteen permission examples passed their final attempts, including both new review routes; one
+These results are historical and predate removal of the deferred onward-choice scenario. On the verified Redis-enabled
+local release-on runtime, focused discovery selected nine PO-10283 examples with no pending or skipped cases. Four
+controlled review examples ran in Chrome: comments, optional omission and rejected submission/retry passed; the now
+removed onward-choice example failed because the confirmation rendered a `span`. All nineteen permission examples
+passed their final attempts, including both new review routes; one
 example needed a setup retry. An initial accessibility run passed one of two examples: the new keyboard example stopped
 when Cypress native Enter did not activate the focused submit button. An isolated native-form probe reproduced that
 runner behavior. Changing only that test activation to native Space preserved Tab focus and task-list assertions; the
 focused rerun passed both examples and all ten Axe scans with no retries or skipped cases. An earlier affected
-50-example regression passed 48 and failed the onward link and the then-current Enter action; its keyboard result is
-superseded by the focused rerun, while the link failure remains. The other regression groups, including prerequisites,
+50-example regression passed 48 and failed the then-tested onward link and Enter action; its keyboard result is
+superseded by the focused rerun. The other regression groups, including prerequisites,
 payments, cancellation and permissions, passed. Actual smoke passed. Browser reports and exact commands are retained
 in the local PO-10283 evidence file; copied output trees can contain stale older files, so count the current run log
 and Cucumber report for each selection.
 
 The sole live submission was unexecuted in this 19 October PO-10283 run. Parent PO-10273 later supplied the cleanup
 contract and reported a separate local live run; that historical run is not acceptance evidence for this merge. Rebuild
-and verify the current runtime before rerunning the PO-10283 selection. The generated-ID display and independently
-approved cases-in-review destination remain acceptance dependencies.
+and verify the current runtime before rerunning the PO-10283 selection. The generated-ID display remains a current
+acceptance dependency. Cases-in-review navigation is a user-deferred literal ticket item pending a product route.
 
 ## Integrated live QA selection and evidence
 

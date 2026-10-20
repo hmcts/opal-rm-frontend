@@ -158,13 +158,6 @@ export class CheckCaseDetailsActions {
     cy.get<number>('@liveDraftCasefileId', { log: false }).then((id) => this.assertConfirmationPanel(id));
   }
 
-  /** Requires an actionable onward choice while its approved destination remains pending. */
-  public assertCasesInReviewAvailable(): void {
-    cy.get(S.review.inReview).should('have.prop', 'tagName', 'A');
-    cy.get(S.review.inReview).should('have.attr', 'href').and('not.equal', '').and('not.equal', '#');
-    cy.get(S.review.inReview).focus().should('be.focused');
-  }
-
   /** Checks shared confirmation behaviour and, for the live journey, its server-generated identifier.
    * @param id Identifier returned by the real maintenance service.
    */

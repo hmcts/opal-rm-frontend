@@ -92,10 +92,3 @@ Feature: Check case details and submit for review
     Then the corrected casefile is submitted after the rejection
     When I create a new case from casefile confirmation
     Then the submitted case journey is empty without another create request
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10283
-  Scenario: Offer the cases in review journey after submission
-    Given I am reviewing a complete casefile for submission
-    When I submit the casefile for submission
-    Then submission confirmation is shown after one create request
-    And confirmation offers an actionable cases in review link

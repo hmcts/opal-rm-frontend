@@ -83,6 +83,17 @@ describe('Rejected casefile replacement', () => {
           expect(store.draft()).to.deep.equal(amendment.draft);
           expect(store.etag()).to.equal('"4"');
         });
+        if (statusCode === 503 || statusCode === 409) {
+          cy.get<InstanceType<typeof GlobalStore>>('@globalStore').then((store) => store.resetBannerError());
+          cy.get(S.submit).should('be.enabled').click();
+          cy.get<InstanceType<typeof GlobalStore>>('@globalStore').should((store) => {
+            expect(store.bannerError().error).to.equal(true);
+            expect(store.bannerError().message).to.equal(
+              'Select Back to reload the saved case before submitting again. Confirming the reload discards your unsaved corrections.',
+            );
+          });
+          cy.get<ReviewStore>('@reviewStore').should((store) => expect(getState(store)).to.deep.equal(original));
+        }
         cy.get('@replacement.all').should('have.length', 1);
         cy.get('@prohibitedPost').should('not.have.been.called');
         cy.get('@routerNavigate').should('not.have.been.called');

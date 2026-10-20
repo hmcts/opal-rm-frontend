@@ -1593,4 +1593,34 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
     expect(TestBed.inject(GlobalStore).bannerError().error).not.toBe(true);
   });
+  it('explains the existing Back reload path when a locked Submit is activated after earlier feedback cleared', async () => {
+    const saved = seedAmendment();
+    maintenance.replaceDraftCasefile.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 503 })));
+    await fixture.componentInstance.handleSubmit();
+    expect(saved.requiresReload()).toBe(true);
+    const before = structuredClone(getState(store));
+    const envelope = structuredClone(getState(saved));
+    const global = TestBed.inject(GlobalStore);
+    global.resetBannerError();
+    const scroll = vi.mocked(TestBed.inject(UtilsService).scrollToTop);
+    scroll.mockClear();
+    fixture.detectChanges();
+    const submit: HTMLButtonElement = fixture.nativeElement.querySelector('#create_casefile_review_submit');
+    expect(submit.disabled).toBe(false);
+    submit.click();
+    await fixture.whenStable();
+    expect(global.bannerError()).toMatchObject({
+      error: true,
+      title: 'There was a problem',
+      message:
+        'Select Back to reload the saved case before submitting again. Confirming the reload discards your unsaved corrections.',
+    });
+    expect(scroll).toHaveBeenCalledOnce();
+    expect(getState(store)).toEqual(before);
+    expect(getState(saved)).toEqual(envelope);
+    expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
+    expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+    expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
 });

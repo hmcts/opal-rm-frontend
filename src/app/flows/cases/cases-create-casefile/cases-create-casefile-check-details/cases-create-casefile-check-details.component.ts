@@ -271,12 +271,12 @@ export class CasesCreateCasefileCheckDetailsComponent {
     }
   }
 
-  private showError(): void {
+  private showError(message = GENERIC_HTTP_ERROR_MESSAGE): void {
     this.globalStore.setBannerError({
       ...GLOBAL_ERROR_STATE,
       error: true,
       title: GENERIC_HTTP_ERROR_TITLE,
-      message: GENERIC_HTTP_ERROR_MESSAGE,
+      message,
     });
     this.utils.scrollToTop();
   }
@@ -527,14 +527,14 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   public async handleSubmit(): Promise<void> {
+    if (this.store.submissionIntent() === 'amendment') {
+      await this.handleAmendmentSubmit();
+      return;
+    }
     if (this.busy()) return;
     const completed = this.completedAmendment();
     if (completed) {
       await this.continueCompletedAmendment(completed);
-      return;
-    }
-    if (this.store.submissionIntent() === 'amendment') {
-      await this.handleAmendmentSubmit();
       return;
     }
     if (!this.editable()) return;
@@ -627,7 +627,13 @@ export class CasesCreateCasefileCheckDetailsComponent {
   }
 
   public async handleAmendmentSubmit(): Promise<void> {
-    if (this.busy() || this.persistedStore.requiresReload()) return;
+    if (this.busy()) return;
+    if (this.persistedStore.requiresReload()) {
+      this.showError(
+        'Select Back to reload the saved case before submitting again. Confirming the reload discards your unsaved corrections.',
+      );
+      return;
+    }
     const expected = this.currentAmendmentContext();
     const state = getState(this.store);
     if (!expected || !isCasesCreateCasefileSubmissionEligible(state)) {

@@ -73,9 +73,7 @@ const children: Routes = [
       {
         path: CASES_DRAFT_CHECKER_ROUTING_PATHS.children.delete + '/:draftCasefileId',
         loadComponent: () =>
-          import('../cases-draft-delete-placeholder/cases-draft-delete-placeholder.component').then(
-            (m) => m.CasesDraftDeletePlaceholderComponent,
-          ),
+          import('../cases-draft-delete/cases-draft-delete.component').then((m) => m.CasesDraftDeleteComponent),
         data: { title: 'Delete casefile', casefileIntent: 'checker-delete' },
         resolve: { title: TitleResolver, draftCasefile: casesDraftCasefileResolver },
       },

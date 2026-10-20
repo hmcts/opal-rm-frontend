@@ -1,4 +1,4 @@
-import type { CasesDraftDeletePlaceholderComponent } from 'src/app/flows/cases/cases-draft/cases-draft-delete-placeholder/cases-draft-delete-placeholder.component';
+import type { CasesDraftDeleteComponent } from 'src/app/flows/cases/cases-draft/cases-draft-delete/cases-draft-delete.component';
 import type { ComponentFixture } from '@angular/core/testing';
 import type { Data } from '@angular/router';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
@@ -566,8 +566,8 @@ describe('Persisted case details', () => {
         cy.get(S.deleteReturn).should('not.exist');
         cy.get('@reviewHost').find(CreateCasefileSelectors.heading).should('have.text', 'Delete casefile');
         cy.get('@routerNavigate').should('have.been.calledOnceWith', '/error/permission-denied');
-        cy.get<ComponentFixture<CasesDraftDeletePlaceholderComponent>>('@reviewFixture').then(({ componentInstance }) =>
-          componentInstance.handleReturn(),
+        cy.get<ComponentFixture<CasesDraftDeleteComponent>>('@reviewFixture').then(({ componentInstance }) =>
+          componentInstance.handleDelete(),
         );
         cy.get('@routerNavigate').should('have.been.calledOnce');
         if (redirect !== 'successful')

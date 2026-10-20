@@ -127,6 +127,45 @@ describe('checker dashboard presentation', () => {
     expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
     expect(fixture.componentInstance.successText()).toBeNull();
   });
+  it.each([401, 403])('keeps HTTP %s list denial under the common routing owner', async (status) => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
+    expect(seedDeletion()).toBe(true);
+    api.getDraftCasefiles.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
+    const fixture = await render();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.successText()).toBeNull();
+  });
+  it.each([401, 403])('hides private checker content and blocks actions after HTTP %s count denial', async (status) => {
+    const counts = new Subject<{ count: number }>();
+    api.getDraftCasefiles.mockReturnValue(
+      of({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] }),
+    );
+    api.getDraftCasefileCount.mockReturnValueOnce(of({ count: 3 })).mockReturnValueOnce(counts);
+    expect(seedDeletion()).toBe(true);
+    const fixture = await render();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
+    expect(seedDeletion()).toBe(true);
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    const selection = navigation.selection();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
+    counts.error(new HttpErrorResponse({ status }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
+    expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    await fixture.componentInstance.openRow(123);
+    await fixture.componentInstance.selectTab('deleted');
+    fixture.componentInstance.changePage(2);
+    fixture.componentInstance.changeSort({ key: 'respondent', direction: 'descending' });
+    await fixture.whenStable();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(navigation.selection()).toEqual(selection);
+    expect(api.getDraftCasefiles).toHaveBeenCalledOnce();
+  });
   it.each([new Error('Synthetic request failure'), new HttpErrorResponse({ status: 500 })])(
     'preserves deletion success for a non-authority list failure',
     async (error) => {

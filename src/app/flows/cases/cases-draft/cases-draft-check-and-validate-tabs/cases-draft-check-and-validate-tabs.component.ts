@@ -28,6 +28,8 @@ import { MojSubNavigationComponent } from '@hmcts/opal-frontend-common/component
 import { MojNotificationBadgeComponent } from '@hmcts/opal-frontend-common/components/moj/moj-notification-badge';
 import { CasesDraftDashboardBaseComponent } from '../components/abstract/cases-draft-dashboard-base/cases-draft-dashboard-base.component';
 import { CasesDraftTableComponent } from '../cases-draft-table/cases-draft-table.component';
+import type { SortDirectionType } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
+import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type';
 import type { CasesDraftTab } from '../types/cases-draft-tab.type';
 import type { ICasesDraftIdentity } from '../interfaces/cases-draft-identity.interface';
 import type { ICasesDraftResolvedList } from '../interfaces/cases-draft-resolved-list.interface';
@@ -56,10 +58,10 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
   private readonly successInjector = inject(Injector);
   protected readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   protected readonly mode = 'checker';
-  protected readonly identity = computed(() => (this.httpDenied() ? null : this.data.getIdentity()));
+  protected readonly identity = computed(() => this.data.getIdentity());
   public readonly successText = computed(() => {
     const notice = this.deletionSuccess();
-    if (!notice || !sameCasesDraftIdentity(notice.identity, this.identity())) return null;
+    if (!notice || !this.isCurrentIdentity(notice.identity)) return null;
     return notice.outcome === 'confirmed'
       ? 'You have deleted ' + notice.respondentName + '’s case.'
       : notice.respondentName + '’s case has been deleted.';
@@ -108,7 +110,10 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
             if (resolved && sameCasesDraftIdentity(identity, resolvedIdentity)) return of(resolved[outcome]);
             return this.data.getOutcomeCount(identity, outcome).pipe(
               startWith<number | null>(null),
-              catchError(() => of(null)),
+              catchError((error: unknown) => {
+                this.handleRequestError(error);
+                return of(null);
+              }),
             );
           }),
         ).pipe(map(([rejected, failed]) => ({ identity, rejected, failed })));
@@ -119,7 +124,12 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
   }
 
   private handleRequestError(error: unknown): void {
-    if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) this.httpDenied.set(true);
+    if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) {
+      // Keep live identity intact so the common HTTP interceptor owns denial navigation.
+      this.httpDenied.set(true);
+      this.deletionSuccess.set(null);
+      this.navigation.clearCheckerDeletion();
+    }
   }
 
   public dismissSuccess(): void {
@@ -127,7 +137,27 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
     afterNextRender(() => this.heading()?.nativeElement.focus(), { injector: this.successInjector });
   }
 
+  public override isCurrentIdentity(identity: ICasesDraftIdentity): boolean {
+    return !this.httpDenied() && super.isCurrentIdentity(identity);
+  }
+
+  public override async selectTab(tab: CasesDraftTab): Promise<void> {
+    if (this.httpDenied()) return;
+    await super.selectTab(tab);
+  }
+
+  public override changeSort(change: { key: CasesDraftSortColumn; direction: SortDirectionType }): void {
+    if (this.httpDenied()) return;
+    super.changeSort(change);
+  }
+
+  public override changePage(page: number): void {
+    if (this.httpDenied()) return;
+    super.changePage(page);
+  }
+
   public async openRow(id: number): Promise<void> {
+    if (this.httpDenied()) return;
     await this.navigate(
       this.navigation.placeholderUrl(this.navigation.selection().tab === 'to-review' ? 'review' : 'view', id),
     );

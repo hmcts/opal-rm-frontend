@@ -224,7 +224,7 @@ describe('CasesDraftDeleteComponent', () => {
   });
 
   it.each(['false', 'reject'])(
-    'keeps a meaningful heading and shared banner if permission-denial navigation %s',
+    'clears sensitive presentation and preserves shared feedback if permission-denial navigation %s',
     async (failure) => {
       create();
       fixture.detectChanges();

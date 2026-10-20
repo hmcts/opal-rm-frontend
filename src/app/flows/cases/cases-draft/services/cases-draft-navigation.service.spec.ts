@@ -61,6 +61,7 @@ describe('CasesDraftNavigationService', () => {
         outcome: 'confirmed',
       }),
     ).toBe(false);
+    expect(service.consumeCheckerDeletion()).toBeNull();
   });
   it.each([1, 123, Number.MAX_SAFE_INTEGER])(
     'builds an internal Delete URL for %s without dashboard metadata',

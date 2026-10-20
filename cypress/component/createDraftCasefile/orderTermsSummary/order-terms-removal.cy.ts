@@ -52,6 +52,22 @@ const failNextNavigation = (failure: 'false return' | 'rejection'): void => {
   });
 };
 
+const setupAccessibleRemoval = (): void => {
+  setupOrderTerms({
+    shell: true,
+    initialChild: PATHS.children.orderTermsSummary,
+    acceptedTerms: SUMMARY_TERMS,
+    minorCreditors: SUMMARY_CREDITORS,
+  });
+  cy.get(S.orderTermsSummary.remove(2)).click();
+  cy.get(S.heading).should('have.text', ORDER_TERMS_REMOVAL_COPY.confirmationHeading);
+};
+const checkReflow = (): void => {
+  cy.document().should((document) => {
+    expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth);
+  });
+};
+
 describe('Order terms removal routed transaction', () => {
   it('AC1. should show only the selected second term in a read-only confirmation', { tags: buildTags() }, () => {
     setupSummary();
@@ -317,4 +333,103 @@ describe('Order terms removal routed transaction', () => {
       },
     );
   }
+});
+
+describe('Order terms removal accessibility', () => {
+  it('AC1. should reveal creditor bank rows with native Tab and Space', { tags: buildTags() }, () => {
+    setupAccessibleRemoval();
+    cy.get(S.orderTermsSummary.creditorDisclosure(2)).should('not.have.attr', 'open');
+    cy.get(S.orderTermsSummary.creditorToggle(2)).then(([summary]) => summary.focus());
+    cy.get(S.orderTermsSummary.creditorToggle(2)).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(S.orderTermsSummary.creditorDisclosure(2)).should('have.attr', 'open');
+    cy.get(S.orderTermsSummary.creditorToggle(2)).should('be.focused');
+    cy.get(S.orderTermsSummary.creditorDetails(2)).should('be.visible').and('contain.text', '00112233');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.orderTermsRemoval.confirm).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.orderTermsRemoval.cancel).should('be.focused');
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+  });
+
+  it('AC2. should activate confirmation with Enter and focus the success notice', { tags: buildTags() }, () => {
+    setupAccessibleRemoval();
+    cy.get(S.orderTermsRemoval.confirm).focus().type('{enter}');
+    cy.get(S.orderTermsRemoval.notice).should('be.focused').and('contain.text', ORDER_TERMS_REMOVAL_COPY.success);
+    cy.get(S.orderTermsRemoval.dismiss).focus().type('{enter}');
+    cy.get(S.orderTermsRemoval.summaryHeading).should('be.focused');
+  });
+
+  it('AC3. should activate Cancel as a native link with Enter and return focus', { tags: buildTags() }, () => {
+    setupAccessibleRemoval();
+    cy.get(S.orderTermsRemoval.cancel).focus();
+    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get<Router>('@angularRouter')
+      .its('url')
+      .should('eq', '/' + PATHS.root + '/' + PATHS.children.orderTermsSummary);
+    cy.get(S.orderTermsSummary.remove(2)).should('be.focused');
+  });
+
+  it('AC1. should have no detected Axe violations on collapsed confirmation', { tags: buildTags() }, () => {
+    setupAccessibleRemoval();
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+  });
+
+  it('AC2. should have no detected Axe violations on returned success', { tags: buildTags() }, () => {
+    setupAccessibleRemoval();
+    cy.get(S.orderTermsRemoval.confirm).click();
+    cy.get(S.orderTermsRemoval.notice).should('be.focused');
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+  });
+
+  it(
+    'AC4. should have no detected Axe violations after a stale selection silently returns',
+    { tags: buildTags() },
+    () => {
+      setupAccessibleRemoval();
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+        store.removeAcceptedOrderTerm(2);
+      });
+      cy.get(S.orderTermsRemoval.summaryHeading).should('be.visible');
+      cy.get(S.orderTermsRemoval.notice).should('not.exist');
+      cy.get(S.orderTermsSummary.cards).should('have.length', 1);
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+    },
+  );
+
+  it('AC1. should reflow the open confirmation at 320 CSS pixels', { tags: buildTags() }, () => {
+    cy.viewport(320, 900);
+    setupAccessibleRemoval();
+    checkReflow();
+    cy.get(S.orderTermsSummary.creditorToggle(2)).click();
+    cy.get(S.orderTermsSummary.creditorDetails(2)).should('be.visible');
+    checkReflow();
+    cy.screenshot('po-9812-order-terms-removal-320px');
+  });
+});
+
+// Retain the original full titles and host-only confirmation states from the summary spec.
+describe('Order terms summary accessibility', () => {
+  it('AC5. should have no detected Axe violations on the removal confirmation', { tags: buildTags() }, () => {
+    setupSummary(SUMMARY_TERMS, SUMMARY_CREDITORS);
+    cy.get(S.orderTermsSummary.remove(2)).click();
+    cy.get(S.orderTerms.heading).should('have.text', 'Are you sure you want to remove these order terms?');
+    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+    cy.checkA11y();
+  });
+
+  it('AC5. should reflow on the removal confirmation at 320 CSS pixels', { tags: buildTags() }, () => {
+    cy.viewport(320, 900);
+    setupSummary(SUMMARY_TERMS, SUMMARY_CREDITORS);
+    cy.get(S.orderTermsSummary.remove(2)).click();
+    cy.get(S.orderTerms.heading).should('have.text', 'Are you sure you want to remove these order terms?');
+    cy.document().should((document) => {
+      expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth);
+    });
+    cy.screenshot('po-9812-order-terms-remove-320px');
+  });
 });

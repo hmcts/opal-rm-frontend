@@ -1,7 +1,10 @@
-import { Then, When } from '@badeball/cypress-cucumber-preprocessor';
+import { Given, Then, When } from '@badeball/cypress-cucumber-preprocessor';
 import { CentralAuthorityDetailsFlow } from '../../../e2e/functional/opal/flows/createDraftCasefile/central-authority-details.flow';
 
 const flow = new CentralAuthorityDetailsFlow();
+
+Given('I have opened live Central Authority for a {string} casefile', (path: string) => flow.prepareLivePath(path));
+Then('Central Authority capture has not submitted a Draft Casefile', () => flow.assertNoSubmission());
 
 When('I open Central Authority details in a new REMO Out casefile', () => flow.openInNewRemoOutCasefile());
 When(

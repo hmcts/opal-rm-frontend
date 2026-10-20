@@ -90,4 +90,8 @@ export class CheckCaseDetailsFlow {
   public assertRetainedDraft(): void {
     this.review.assertRetainedDraft();
   }
+  /** Checks the permission boundary at the cancellation URL. */
+  public assertCancellationUnavailable(): void {
+    this.review.assertCancellationUnavailable();
+  }
 }

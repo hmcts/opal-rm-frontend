@@ -6,6 +6,7 @@ import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/cr
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-indexation-types.constant';
 import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-payment-arrangements.constant';
+import { ReleaseFlagsSelectors } from '../../../../../shared/selectors/release-flags.selectors';
 
 /** Exercises intercepted HTTP submission through the real rendered journey. */
 export class CheckCaseDetailsActions {
@@ -215,5 +216,15 @@ export class CheckCaseDetailsActions {
     cy.get(S.review.section('orderTerms')).should('contain.text', '£10.00').and('contain.text', '£20.00');
     cy.get('@draftSubmission.all').should('have.length', 0);
     cy.get('@cancelPersistence').should('not.have.been.called');
+  }
+
+  /** Requires RM permission rejection before cancellation or case creation is available. */
+  public assertCancellationUnavailable(): void {
+    cy.location('pathname').should('eq', '/access-denied');
+    cy.get(S.heading).should('be.visible').and('contain.text', 'Access Denied');
+    cy.get(S.cancellation.heading).should('not.exist');
+    cy.get(S.cancellation.confirm).should('not.exist');
+    cy.get(ReleaseFlagsSelectors.createCaseLink).should('not.exist');
+    cy.get(ReleaseFlagsSelectors.primaryNavigation).should('not.exist');
   }
 }

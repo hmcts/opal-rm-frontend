@@ -4,6 +4,7 @@ Feature: Create case files release access
     Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
 
   @R1CRmCreateCaseFiles
+  @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
   Scenario: Only Cases is available when the create case files release is enabled
     When I open the RM path "/dashboard"
     Then only the Cases section and create case entry point are available
@@ -11,6 +12,7 @@ Feature: Create case files release access
     Then the create case type page is available without primary navigation
 
   @R1CRmCreateCaseFiles
+  @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
   Scenario: The enabled create case journey supports a direct URL and refresh
     When I open the RM path "/cases/create-casefile/case-type"
     Then the create case type page is available without primary navigation
@@ -18,6 +20,7 @@ Feature: Create case files release access
     Then the create case type page is available without primary navigation
 
   @R1CRmCreateCaseFiles
+  @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
   Scenario Outline: Other sections remain unavailable when the create case release is enabled
     When I open the RM path "<path>"
     Then the unreleased RM section is denied with only Cases in navigation
@@ -29,6 +32,7 @@ Feature: Create case files release access
       | /dashboard/administration |
 
   @R1CRmCreateCaseFilesOff
+  @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
   Scenario Outline: The disabled release blocks dashboard and create case URLs
     When I open the RM path "<path>"
     Then RM access is denied without primary navigation or a create case entry point
@@ -50,6 +54,7 @@ Feature: Create case files release access
       | /cases/create-casefile/submission-confirmation   |
 
   @R1CRmCreateCaseFilesOff
+  @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
   Scenario: Returning to the dashboard with no released sections remains access denied
     When I open the RM path "/dashboard"
     Then RM access is denied without primary navigation or a create case entry point

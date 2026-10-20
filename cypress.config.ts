@@ -70,6 +70,17 @@ function setupBrowserLaunch(on: Cypress.PluginEvents): void {
     const width = 3640;
     const height = 2560;
 
+    if (browser.family === 'chromium') {
+      // Cypress 15 relies on unload to reinstall window:confirm after page transitions.
+      // Preserve existing Chromium flags while opting out of Chrome's unload deprecation.
+      const disabledFeaturesIndex = launchOptions.args.findIndex((arg) => arg.startsWith('--disable-features='));
+      if (disabledFeaturesIndex === -1) {
+        launchOptions.args.push('--disable-features=DeprecateUnload');
+      } else {
+        launchOptions.args[disabledFeaturesIndex] += ',DeprecateUnload';
+      }
+    }
+
     if (browser.name === 'chrome' && browser.isHeadless) {
       launchOptions.args = [
         ...(launchOptions.args ?? []),
@@ -256,6 +267,10 @@ export default defineConfig({
         projectConfig: componentProjectConfig,
       },
       webpackConfig: {
+        optimization: {
+          // Keep module references stable as incremental component compilation changes the spec graph.
+          moduleIds: 'named',
+        },
         devServer: {
           port: Number(`809${process.env.CYPRESS_THREAD || '0'}`),
         },
@@ -275,6 +290,7 @@ export default defineConfig({
           plugins: [
             new TsconfigPathsPlugin({
               configFile: componentTsconfigPath,
+              baseUrl: __dirname,
             }),
           ],
         },

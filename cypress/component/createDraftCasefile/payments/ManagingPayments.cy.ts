@@ -58,26 +58,46 @@ const choose = (paymentArrangement: CasesCreateCasefilePaymentArrangement): void
 };
 
 describe('Create Casefile Managing payments', () => {
-  it('AC1, AC2. should use the canonical group name and exact error target', { tags: buildTags() }, () => {
-    setupManagingPayments();
+  it(
+    'AC1, AC2, EMAC1, EMAC1a. should reject an empty arrangement with exact errors and field focus',
+    { tags: buildTags() },
+    () => {
+      const postRequestSpy = cy.spy().as('invalidDraftCasefilePost');
+      cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
+      setupManagingPayments();
 
-    cy.get(Page.managingPayments.paymentArrangementRadios).then(($radios) => {
-      const radios = [...$radios] as HTMLInputElement[];
-      expect(radios.map((radio) => radio.name)).to.deep.equal([
-        CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement,
-        CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement,
-      ]);
-      expect(radios.map((radio) => radio.id)).to.deep.equal([
-        `${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}-court`,
-        `${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}-direct`,
-      ]);
-    });
-    cy.get(Page.managingPayments.returnToCaseDetails).click();
-    cy.get(Page.managingPayments.errorSummaryLinks)
-      .contains(MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement)
-      .click();
-    cy.focused().should('have.id', `${CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement}-court`);
-  });
+      const field = CASES_CREATE_CASEFILE_MANAGING_PAYMENTS_FIELD_NAMES.paymentArrangement;
+      cy.get(Page.managingPayments.paymentArrangementRadios).should(($radios) => {
+        const radios = [...$radios] as HTMLInputElement[];
+        expect(radios.map((radio) => radio.name)).to.deep.equal([field, field]);
+        expect(radios.map((radio) => radio.id)).to.deep.equal([`${field}-court`, `${field}-direct`]);
+      });
+
+      cy.get(Page.managingPayments.returnToCaseDetails).click();
+      assertInlineError(
+        Page.managingPayments.paymentArrangementError,
+        MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement,
+      );
+      cy.get(Page.managingPayments.errorSummary)
+        .should('be.focused')
+        .and('contain.text', ERROR_SUMMARY_TITLE)
+        .and('contain.text', MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement);
+      cy.get('@casesCreateCasefileStore').should((store: CasesCreateCasefileStoreInstance) => {
+        expect(store.paymentArrangement()).to.equal(null);
+        expect(store.taskStatuses().managingPayments).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
+      });
+      assertRouterPath(managingPaymentsPath);
+      cy.get(Page.managingPayments.errorSummaryLinks)
+        .should('have.length', 1)
+        .and('have.text', MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement)
+        .and('have.attr', 'href', '#');
+      cy.get(Page.managingPayments.errorSummaryLinks).click();
+      cy.get(Page.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT))
+        .should('be.focused')
+        .and('have.id', `${field}-court`);
+      cy.get('@invalidDraftCasefilePost').should('not.have.been.called');
+    },
+  );
 
   it('AC1. should render the exact empty accessible screen and no excluded controls', { tags: buildTags() }, () => {
     setupManagingPayments();
@@ -119,42 +139,6 @@ describe('Create Casefile Managing payments', () => {
       cy.get(Page.managingPayments.paymentArrangementRadio(saved)).should('be.checked');
     });
   }
-
-  it('AC2, EMAC1. should show the exact error, focus the summary and retain the route', { tags: buildTags() }, () => {
-    const postRequestSpy = cy.spy().as('invalidDraftCasefilePost');
-    cy.intercept({ method: 'POST', url: DRAFT_CASEFILE_WRITE_URL }, postRequestSpy);
-    setupManagingPayments();
-
-    cy.get(Page.managingPayments.returnToCaseDetails).click();
-
-    assertInlineError(
-      Page.managingPayments.paymentArrangementError,
-      MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement,
-    );
-    cy.get(Page.managingPayments.errorSummary)
-      .should('be.focused')
-      .and('contain.text', ERROR_SUMMARY_TITLE)
-      .and('contain.text', MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement);
-    cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
-      expect(store.paymentArrangement()).to.equal(null);
-      expect(store.taskStatuses().managingPayments).to.equal(CASES_CREATE_CASEFILE_TASK_STATUSES.REQUIRED);
-    });
-    cy.get('@invalidDraftCasefilePost').should('not.have.been.called');
-    assertRouterPath(managingPaymentsPath);
-  });
-
-  it('AC2, EMAC1a. should link the summary error to the first radio', { tags: buildTags() }, () => {
-    setupManagingPayments();
-    cy.get(Page.managingPayments.returnToCaseDetails).click();
-
-    cy.get(Page.managingPayments.errorSummaryLinks)
-      .contains(MANAGING_PAYMENTS_ERROR_MESSAGES.paymentArrangement)
-      .click();
-
-    cy.get(Page.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT)).should(
-      'be.focused',
-    );
-  });
 
   for (const saved of [
     CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT,

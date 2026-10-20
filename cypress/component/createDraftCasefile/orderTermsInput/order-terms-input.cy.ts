@@ -21,12 +21,14 @@ import { ORDER_TERMS_INPUT_COPY } from './constants/order-terms-input-copy.const
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9807', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
 const inputPath = (id = 'MAT') => PATHS.children.orderTermsInput + '/' + id;
 const openInput = (id = 'MAT') => setupOrderTerms({ savedId: id, initialChild: inputPath(id) });
-const openControls = () =>
+const openControls = (seedValidControls = false) =>
   setupOrderTerms({
     shell: true,
     savedId: 'MAT',
     initialChild: inputPath(),
     detailSource: of(structuredClone(M.allControls)),
+    draftDetail: M.allControls,
+    draftValues: seedValidControls ? { ...structuredClone(M.controlValues), lookup: '' } : undefined,
   });
 const matPresentation = orderTermPresentation({
   resultId: M.mat.result_id,
@@ -177,7 +179,7 @@ describe('Order term input', () => {
         return confirmed;
       });
       cy.get(S.orderTermsInput.cancel).click();
-      cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      cy.get<OrderTermsStore>('@casesCreateCasefileStore').should((store) => {
         expect(store.orderTerms()).to.deep.equal([]);
         expect(store.orderTermDraft() === null).to.eq(confirmed);
       });
@@ -711,8 +713,18 @@ describe('Order term input regressions', () => {
   );
 
   it('AC3. should accept a matching autocomplete label on blur and store its option ID', { tags: buildTags() }, () => {
-    openControls();
-    fillControls();
+    openControls(true);
+    cy.get(S.orderTermsInput.shortText).should('have.value', M.controlValues.short_text);
+    cy.get(S.orderTermsInput.longText).should('have.value', M.controlValues.long_text);
+    cy.get(S.orderTermsInput.integer).should('have.value', M.controlValues.count);
+    cy.get(S.orderTermsInput.radioOption).should('be.checked').and('have.value', M.controlValues.choice);
+    cy.get(S.orderTermsInput.select).should('have.value', M.controlValues.menu);
+    cy.get(S.orderTermsInput.checkbox).should('be.checked');
+    cy.get(S.orderTermsInput.autocomplete).should('have.value', '');
+    cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) => {
+      expect(store.orderTermDraft()?.values['lookup']).to.eq('');
+      expect(store.orderTerms()).to.deep.equal([]);
+    });
     cy.get(S.orderTermsInput.autocomplete).type('Example A').blur();
     cy.get<OrderTermsStore>('@casesCreateCasefileStore').should((store) =>
       expect(store.orderTermDraft()?.values['lookup']).to.eq('example_a'),

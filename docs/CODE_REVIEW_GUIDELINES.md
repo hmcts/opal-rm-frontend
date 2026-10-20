@@ -104,6 +104,20 @@ Severity reflects impact, not the category of the repository rule involved.
 - Treat failing required checks, TypeScript errors, and production-build failures introduced by the change as
   findings. Do not infer that a check passed without evidence.
 
+### Reused feature-file steps
+
+For added or modified steps, apply [Reusing feature-file steps](CYPRESS_E2E_TESTING.md#reusing-feature-file-steps).
+Check for overlapping expressions across the loaded registry (Given/When/Then share matching), unconstrained or
+unvalidated parameter values/DataTable columns, and callers left behind when a phrase is removed. Require unchanged
+scenario names, tags, Examples rows and Zephyr identities, with before/after selection and actual affected browser
+results. A duplicate-scenario scan alone does not prove that bindings are unambiguous.
+
+Check that reuse preserves independent scenario setup, live versus controlled data, keyboard/focus behaviour and
+observable assertions, including confirmation, retained state and no-write boundaries. A generic heading assertion
+must not replace a richer business check. Discovery passing does not prove browser behaviour or live prerequisites.
+Treat reuse preferences as advisory unless there is a concrete defect or coverage loss; do not require an unrelated
+suite rewrite. Component specs continue to use their direct script/helper style.
+
 ## Acceptable exceptions
 
 Do not report the following by themselves:

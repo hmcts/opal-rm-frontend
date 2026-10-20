@@ -4,7 +4,7 @@ Feature: Cancel case creation accessibility
   Background:
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
 
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9818 @JIRA-STORY:PO-10605
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9818 @JIRA-STORY:PO-10284 @JIRA-STORY:PO-10605
   Scenario: Open cancellation and continue to an empty case accessibly
     Given I am reviewing a complete casefile for submission
     When I open case creation cancellation

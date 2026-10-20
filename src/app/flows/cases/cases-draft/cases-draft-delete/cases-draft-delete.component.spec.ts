@@ -7,7 +7,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Data, provideRouter, Router, UrlTree } from '@angular/router';
 import { getState } from '@ngrx/signals';
 import { BehaviorSubject, Subject, of, EMPTY, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
@@ -80,6 +80,10 @@ describe('CasesDraftDeleteComponent', () => {
     globalStore = TestBed.inject(GlobalStore);
     router = TestBed.inject(Router);
     vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
   });
 
   function create(data: Data = { casefileIntent: 'checker-delete', draftCasefile: deleteResult() }) {

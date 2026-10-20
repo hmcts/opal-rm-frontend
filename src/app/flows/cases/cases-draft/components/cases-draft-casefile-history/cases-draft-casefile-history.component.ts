@@ -18,6 +18,7 @@ import { casefileStatusLabel, chronologicalCasefileTimeline } from '../../utils/
 export class CasesDraftCasefileHistoryComponent {
   public readonly draft = input.required<IOpalMaintenanceDraftCasefileDetail>();
   public readonly context = input.required<CasesDraftDashboardMode>();
+  public readonly historyHeading = input('Case history');
   public readonly statusLabel = computed(() => casefileStatusLabel(this.draft().casefile_status, this.context()));
   public readonly items = computed(() => chronologicalCasefileTimeline(this.draft().timeline_data));
 }

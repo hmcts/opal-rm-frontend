@@ -1,3 +1,4 @@
+import type { IOpalMaintenanceDraftCasefileReplaceRequest } from './interfaces/opal-maintenance-draft-casefile-replace-request.interface';
 import { decodeDraftCasefileDetail } from './utils/opal-maintenance-draft-casefile-detail';
 import type { IOpalMaintenanceDraftCasefileDetail } from './interfaces/opal-maintenance-draft-casefile-detail.interface';
 import type { ICasesDraftIdentity } from '../../cases-draft/interfaces/cases-draft-identity.interface';
@@ -70,6 +71,21 @@ export class OpalMaintenanceService {
     );
     cache.set(cacheKey, request);
     return request;
+  }
+
+  /** Replaces the saved aggregate once using its opaque GET version; callers own explicit recovery. */
+  public replaceDraftCasefile(
+    id: number,
+    request: IOpalMaintenanceDraftCasefileReplaceRequest,
+    etag: string,
+  ): Observable<HttpResponse<IOpalMaintenanceDraftCasefileDetail>> {
+    if (!Number.isSafeInteger(id) || id < 1) throw new Error('Invalid draft casefile identifier');
+    if (!/^"[^"\r\n]+"$/.test(etag)) throw new Error('Unusable saved casefile version');
+    return this.http.put<IOpalMaintenanceDraftCasefileDetail>(
+      '/opal-maintenance-service/draft-casefiles/' + id,
+      request,
+      { observe: 'response', headers: { 'If-Match': etag }, context: withoutHttpRetry() },
+    );
   }
 
   /** Loads a selected persisted resource without retries, transfer-cache reuse or fabricated version values. */

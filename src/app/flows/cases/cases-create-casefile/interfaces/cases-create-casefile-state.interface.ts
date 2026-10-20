@@ -1,3 +1,4 @@
+import type { CasesCreateCasefileSubmissionIntent } from '../types/cases-create-casefile-submission-intent.type';
 import type { CasesCreateCasefileCaseTypeSelection } from '../types/cases-create-casefile-case-type-selection.type';
 import type { CasesCreateCasefileApplicantDetails } from '../types/cases-create-casefile-applicant-details.type';
 import type { CasesCreateCasefilePaymentArrangement } from '../types/cases-create-casefile-payment-arrangement.type';
@@ -18,6 +19,7 @@ import type { ICasesCreateCasefileMinorCreditorRemoval } from './cases-create-ca
 import type { ICasesCreateCasefileMinorCreditorRemovalOutcome } from './cases-create-casefile-minor-creditor-removal-outcome.interface';
 
 export interface ICasesCreateCasefileState {
+  submissionIntent: CasesCreateCasefileSubmissionIntent;
   submissionSucceeded: boolean;
   caseTypeSelection: CasesCreateCasefileCaseTypeSelection | null;
   applicantDetails: CasesCreateCasefileApplicantDetails | null;

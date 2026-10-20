@@ -79,10 +79,11 @@ describe('draft production route boundaries', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
-  async function flushPersisted(id = 123) {
+  async function flushPersisted(id = 123, rejected = false) {
     await vi.waitFor(() => {
       const draft = createPersistedCasefileDetail();
       draft.draft_casefile_id = id;
+      if (rejected) draft.casefile_status = 'REJECTED';
       http.expectOne('/opal-maintenance-service/draft-casefiles/' + id).flush(draft, { headers: { ETag: '"0"' } });
     });
     await vi.waitFor(() =>
@@ -102,27 +103,30 @@ describe('draft production route boundaries', () => {
     return arrival;
   }
 
-  it.each([[amendment, 'Amend case', 'Case amendment will be available here.', 'govuk-grid-column-two-thirds']])(
-    'allows %s with no local create state or API request',
-    async (url, heading, body, grid) => {
-      const harness = await RouterTestingHarness.create(
-        url + '?tab=approved&page=2&sort=created&direction=descending#rejected',
-      );
-      const element = harness.routeNativeElement!;
-      expect(element.querySelector('h1')?.textContent?.trim()).toBe(heading);
-      expect(document.title).toBe('OPAL - ' + heading);
-      expect(element.textContent).toContain(body);
-      expect(element.querySelector(':scope > div')?.className).toBe(grid);
-      expect(element.querySelector('h1')?.getAttribute('tabindex')).toBe('-1');
-      expect(document.activeElement).toBe(element.querySelector('h1'));
-      expect(element.querySelector('a')?.getAttribute('href')).toBe(dashboard + '#rejected');
-      http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
-      expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
-      const parent = TestBed.inject(Router).routerState.snapshot.root.firstChild!;
-      expect(parent.component).toBeNull();
-      expect(parent.firstChild?.data['hidePrimaryNav']).toBe(url !== rejections ? true : undefined);
-    },
-  );
+  it('hydrates amendment in the real journey rather than the former placeholder', async () => {
+    const arrival = RouterTestingHarness.create(amendment);
+    await vi.waitFor(() => {
+      const draft = createPersistedCasefileDetail();
+      draft.draft_casefile_id = 123;
+      draft.casefile_status = 'REJECTED';
+      http.expectOne('/opal-maintenance-service/draft-casefiles/123').flush(draft, { headers: { ETag: '"4"' } });
+    });
+    await vi.waitFor(() =>
+      http
+        .expectOne((request) => request.url.endsWith('/maintenance-applications'))
+        .flush({ refData: PERSISTED_CASEFILE_REFERENCES.applications }),
+    );
+    http
+      .expectOne((request) => request.url.endsWith('/countries'))
+      .flush({ refData: PERSISTED_CASEFILE_REFERENCES.countries });
+    http.expectOne((request) => request.url.endsWith('/major-creditors')).flush({ refData: [] });
+    http.expectOne('/opal-maintenance-service/results/TEST01').flush(PERSISTED_CASEFILE_RESULT_DETAIL);
+    const harness = await arrival;
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe('Synthetic Respondent');
+    expect(harness.routeNativeElement?.querySelector('app-cases-draft-placeholder')).toBeNull();
+    expect(TestBed.inject(CasesCreateCasefileStore).submissionIntent()).toBe('amendment');
+    http.expectNone((request) => request.method === 'POST' || request.method === 'PUT');
+  });
   it('activates the full-width list after one exclusive resolved consultation', async () => {
     const harness = await RouterTestingHarness.create();
     const arrival = harness.navigateByUrl(rejections);
@@ -159,10 +163,9 @@ describe('draft production route boundaries', () => {
     'safely rejects draft ID %s',
     async (id) => {
       const harness = await RouterTestingHarness.create('/cases/create-casefile/task-list/' + id);
-      expect(harness.routeNativeElement?.textContent).toContain(
-        'This case could not be opened. Return to Create cases.',
-      );
-      expect(harness.routeNativeElement?.querySelector('a')).not.toBeNull();
+      expect(TestBed.inject(Router).url).toBe('/error/permission-denied');
+      expect(harness.routeNativeElement?.textContent).toContain('Denied');
+      expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
       http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
     },
   );
@@ -424,9 +427,9 @@ describe('draft production route boundaries', () => {
     page.changeSort({ key: 'respondent', direction: 'descending' });
     page.changePage(2);
     const open = page.openRow(26);
-    await flushPersisted(26);
+    await flushPersisted(26, true);
     await open;
-    expect(TestBed.inject(Router).url).toBe(details.replace('123', '26'));
+    expect(TestBed.inject(Router).url).toBe(amendment.replace('123', '26'));
     harness.detectChanges();
     harness.routeNativeElement!.querySelector('a')!.click();
     await flushExclusive(1);

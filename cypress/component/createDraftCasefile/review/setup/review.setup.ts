@@ -35,6 +35,7 @@ interface ReviewSetupOptions {
   failNavigation?: boolean;
   confirmation?: boolean;
   resolved?: ICasesDraftCasefileResolved;
+  amendment?: ICasesDraftCasefileResolved;
   user?: IOpalUserState;
   deleteScreen?: boolean;
 }
@@ -62,20 +63,24 @@ export function setupReview(options: ReviewSetupOptions = {}) {
       ...(options.confirmation ? createSubmittedReviewState() : createCompleteReviewState()),
       ...structuredClone(options.state ?? {}),
     });
+  if (options.amendment) {
+    store.hydratePersistedCasefile({ ...structuredClone(options.amendment.state), submissionIntent: 'amendment' });
+  }
   const snapshotData: Data = {
     casefileIntent: options.resolved?.intent ?? 'create',
-    countries: { refData: structuredClone(REVIEW_COUNTRIES) },
-    applications: { refData: structuredClone(REVIEW_APPLICATIONS) },
+    countries: { refData: structuredClone(options.amendment?.references.countries ?? REVIEW_COUNTRIES) },
+    applications: { refData: structuredClone(options.amendment?.references.applications ?? REVIEW_APPLICATIONS) },
     ...(options.resolved ? { draftCasefile: structuredClone(options.resolved) } : {}),
   };
   const routeData = new BehaviorSubject<Data>(snapshotData);
   const globalStore = new GlobalStore();
-  if (options.resolved) {
+  if (options.resolved || options.amendment) {
     globalStore.setAuthenticated(true);
     globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
-    globalStore.setUserState(structuredClone(options.user ?? reviewUser()));
+    globalStore.setUserState(structuredClone(options.user ?? reviewUser(options.amendment ? 'inputter' : 'checker')));
   }
   const persistedStore = new CasesDraftCasefileStore();
+  if (options.amendment) persistedStore.loadResolved(structuredClone(options.amendment));
   if (options.confirmation) store.setSubmissionSucceeded(true);
   const reviewComponent = options.confirmation
     ? CasesCreateCasefileSubmissionConfirmationComponent

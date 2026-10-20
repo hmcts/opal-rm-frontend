@@ -1,3 +1,6 @@
+import { casesDraftCasefileResolver } from '../../cases-draft/routing/resolvers/cases-draft-casefile.resolver';
+import { casesCreateCasefileCaseTypeGuard } from './guards/cases-create-casefile-case-type.guard';
+import { casesCreateCasefileAmendmentEntryCanDeactivateGuard } from './guards/cases-create-casefile-amendment-entry-can-deactivate.guard';
 import { casesCreateCasefileSubmissionPendingGuard } from './guards/cases-create-casefile-submission-pending.guard';
 import { casesCreateCasefileSubmissionGuard } from './guards/cases-create-casefile-submission.guard';
 import { casesCreateCasefileCheckDetailsGuard } from './guards/cases-create-casefile-check-details.guard';
@@ -36,6 +39,7 @@ export const routing: Routes = [
         (m) => m.CasesCreateCasefileSubmissionConfirmationComponent,
       ),
     canActivate: [casesCreateCasefileSubmissionGuard],
+    canDeactivate: [casesCreateCasefileAmendmentEntryCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.submissionConfirmation },
     resolve: { title: TitleResolver },
   },
@@ -46,8 +50,20 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileCaseTypeComponent,
       ),
     canDeactivate: [casesCreateCasefileChildCanDeactivateGuard],
+    canActivate: [casesCreateCasefileCaseTypeGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.caseType },
     resolve: { title: TitleResolver },
+  },
+  {
+    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList + '/:draftCasefileId',
+    loadComponent: () =>
+      import('../cases-create-casefile-task-list/cases-create-casefile-task-list.component').then(
+        (module) => module.CasesCreateCasefileTaskListComponent,
+      ),
+    providers: [CasesCreateCasefileOrderTermLookupsService],
+    canDeactivate: [casesCreateCasefileAmendmentEntryCanDeactivateGuard],
+    data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.taskList, casefileIntent: 'inputter-amend' },
+    resolve: { title: TitleResolver, draftCasefile: casesDraftCasefileResolver },
   },
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList,
@@ -56,6 +72,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileTaskListComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [casesCreateCasefileAmendmentEntryCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.taskList },
     resolve: { title: TitleResolver },
   },
@@ -133,6 +150,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileOrderTermsSummaryComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [casesCreateCasefileAmendmentEntryCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsSummary },
     resolve: { title: TitleResolver },
   },
@@ -170,6 +188,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileOrderTermsRemoveComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermsRemoveGuard],
+    canDeactivate: [casesCreateCasefileAmendmentEntryCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsRemove },
     resolve: { title: TitleResolver },
   },
@@ -191,6 +210,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileMinorCreditorSummaryComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileMinorCreditorSummaryGuard],
+    canDeactivate: [casesCreateCasefileAmendmentEntryCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorSummary },
     resolve: { title: TitleResolver },
   },
@@ -201,6 +221,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileMinorCreditorRemoveComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard, casesCreateCasefileMinorCreditorRemoveGuard],
+    canDeactivate: [casesCreateCasefileAmendmentEntryCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorRemove },
     resolve: { title: TitleResolver },
   },
@@ -255,7 +276,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileCheckDetailsComponent,
       ),
     canActivate: [casesCreateCasefileCheckDetailsGuard],
-    canDeactivate: [casesCreateCasefileSubmissionPendingGuard],
+    canDeactivate: [casesCreateCasefileSubmissionPendingGuard, casesCreateCasefileAmendmentEntryCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.checkCaseDetails, casefileIntent: 'create' },
     resolve: {
       title: TitleResolver,
@@ -270,6 +291,7 @@ export const routing: Routes = [
         (component) => component.CasesCreateCasefileCancelComponent,
       ),
     canActivate: [casesCreateCasefileFlowStateGuard],
+    canDeactivate: [casesCreateCasefileAmendmentEntryCanDeactivateGuard],
     data: { title: CASES_CREATE_CASEFILE_ROUTING_TITLES.cancel },
     resolve: { title: TitleResolver },
   },

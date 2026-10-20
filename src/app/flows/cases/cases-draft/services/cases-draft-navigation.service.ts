@@ -202,6 +202,12 @@ export class CasesDraftNavigationService {
     return this.navigateInAllRejectedScope(identity, url, 'placeholder');
   }
 
+  public amendmentReturnUrl(id: number): UrlTree {
+    return this.contextForPlaceholder('amendment', String(id))
+      ? this.allRejectedUrl()
+      : this.dashboardUrl(defaultCasesDraftNavigation('rejected', 'inputter'));
+  }
+
   public async returnFromPlaceholder(kind: unknown, idText: string | null): Promise<boolean> {
     const context = this.contextForPlaceholder(kind, idText);
     if (!context) return false;
@@ -228,10 +234,12 @@ export class CasesDraftNavigationService {
     return success !== null;
   }
 
-  public consumeAllRejectedResubmission(): ICasesDraftResubmissionSuccess | null {
+  public consumeAllRejectedResubmission(
+    origin: ICasesDraftResubmissionSuccess['origin'] = 'all-rejected',
+  ): ICasesDraftResubmissionSuccess | null {
     const event = decodeAllRejectedSuccess(this.rejectedSuccess(), this.liveAllRejectedScope());
     this.rejectedSuccess.set(null);
-    return event;
+    return event?.origin === origin ? event : null;
   }
 
   public clearAllRejectedSuccess(): void {

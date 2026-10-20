@@ -1,3 +1,6 @@
+import { casesCreateCasefileAmendmentEntryCanDeactivateGuard } from './guards/cases-create-casefile-amendment-entry-can-deactivate.guard';
+import { CasesDraftCasefileStore } from '../../cases-draft/stores/cases-draft-casefile.store';
+import { casesCreateCasefileCaseTypeGuard } from './guards/cases-create-casefile-case-type.guard';
 import { casesCreateCasefileSubmissionGuard } from './guards/cases-create-casefile-submission.guard';
 import { CasesCreateCasefileSubmissionConfirmationComponent } from '../cases-create-casefile-submission-confirmation/cases-create-casefile-submission-confirmation.component';
 import { casesCreateCasefileCheckDetailsGuard } from './guards/cases-create-casefile-check-details.guard';
@@ -93,7 +96,7 @@ describe('Create Casefile routes', () => {
     const route = routing.find((candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType);
 
     expect(route?.canDeactivate).toEqual([casesCreateCasefileChildCanDeactivateGuard]);
-    expect(route?.canActivate).toBeUndefined();
+    expect(route?.canActivate).toEqual([casesCreateCasefileCaseTypeGuard]);
     expect(route?.loadComponent).toEqual(expect.any(Function));
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.caseType });
     expect(route?.resolve).toEqual({ title: TitleResolver });
@@ -244,7 +247,7 @@ describe('Create Casefile routes', () => {
     );
 
     expect(route?.canActivate).toEqual([casesCreateCasefileFlowStateGuard, casesCreateCasefileOrderTermsRemoveGuard]);
-    expect(route?.canDeactivate).toBeUndefined();
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileAmendmentEntryCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.orderTermsRemove });
     expect(route?.resolve).toEqual({ title: TitleResolver });
     const component = await (route?.loadComponent?.() as Promise<{ name: string }>);
@@ -294,7 +297,7 @@ describe('Create Casefile routes', () => {
       casesCreateCasefileFlowStateGuard,
       casesCreateCasefileMinorCreditorSummaryGuard,
     ]);
-    expect(route?.canDeactivate).toBeUndefined();
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileAmendmentEntryCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorSummary });
     expect(route?.resolve).toEqual({ title: TitleResolver });
     const component = await (route?.loadComponent?.() as Promise<{ name: string }>);
@@ -310,7 +313,7 @@ describe('Create Casefile routes', () => {
       casesCreateCasefileFlowStateGuard,
       casesCreateCasefileMinorCreditorRemoveGuard,
     ]);
-    expect(route?.canDeactivate).toBeUndefined();
+    expect(route?.canDeactivate).toEqual([casesCreateCasefileAmendmentEntryCanDeactivateGuard]);
     expect(route?.data).toEqual({ title: CASES_CREATE_CASEFILE_ROUTING_TITLES.minorCreditorRemove });
     expect(route?.resolve).toEqual({ title: TitleResolver });
     const component = await (route?.loadComponent?.() as Promise<{ name: string }>);
@@ -320,6 +323,7 @@ describe('Create Casefile routes', () => {
   it('redirects Summary with a current term but no populated pending draft to Creditor', async () => {
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         CasesCreateCasefileStore,
         provideRouter([
           {
@@ -350,6 +354,7 @@ describe('Create Casefile routes', () => {
     async (currentOrderTermId) => {
       TestBed.configureTestingModule({
         providers: [
+          CasesDraftCasefileStore,
           CasesCreateCasefileStore,
           provideRouter([
             {
@@ -381,6 +386,7 @@ describe('Create Casefile routes', () => {
   it('allows direct Minor creditor details entry for the current accepted term', async () => {
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         CasesCreateCasefileStore,
         provideRouter([
           {
@@ -404,6 +410,7 @@ describe('Create Casefile routes', () => {
   it('redirects a refreshed Minor creditor details URL without journey state to Case Type', async () => {
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         CasesCreateCasefileStore,
         provideRouter([
           {
@@ -428,6 +435,7 @@ describe('Create Casefile routes', () => {
     const getMajorCreditors = vi.fn();
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         CasesCreateCasefileStore,
         { provide: OpalMaintenanceService, useValue: { getMajorCreditors } },
         provideRouter([

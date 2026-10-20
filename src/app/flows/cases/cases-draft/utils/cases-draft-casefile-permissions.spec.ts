@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { createPersistedCasefileDetail } from '../../services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
-import { resolveCasesDraftReadIdentity, canReviewDraftCasefile } from './cases-draft-casefile-permissions';
+import {
+  resolveCasesDraftReadIdentity,
+  canReviewDraftCasefile,
+  canAmendDraftCasefile,
+} from './cases-draft-casefile-permissions';
 
 const userWith = (permissions: number[]): IOpalUserState => ({
   ...structuredClone(OPAL_USER_STATE_MOCK),
@@ -17,6 +21,23 @@ const userWith = (permissions: number[]): IOpalUserState => ({
   ],
 });
 describe('persisted casefile permissions', () => {
+  it.each(['BUU-CHECKER', 'BUU-OTHER'])('amends rejected drafts independently of submitter %s', (submitted_by) => {
+    const draft = { ...createPersistedCasefileDetail(), casefile_status: 'REJECTED' as const, submitted_by };
+    expect(canAmendDraftCasefile(draft, userWith([21]), true)).toBe(true);
+    expect(canAmendDraftCasefile(draft, userWith([22]), true)).toBe(false);
+    expect(canAmendDraftCasefile(draft, userWith([21]), false)).toBe(false);
+    expect(canAmendDraftCasefile(draft, { ...userWith([21]), status: 'suspended' }, true)).toBe(false);
+    expect(canAmendDraftCasefile({ ...draft, business_unit_id: 45 }, userWith([21]), true)).toBe(false);
+    expect(canAmendDraftCasefile(draft, null, true)).toBe(false);
+  });
+  it.each(['SUBMITTED', 'RESUBMITTED', 'DELETED', 'PUBLISHED', 'PUBLISHING_PENDING', 'PUBLISHING_FAILED'] as const)(
+    'denies amendment for lifecycle %s',
+    (casefile_status) => {
+      expect(canAmendDraftCasefile({ ...createPersistedCasefileDetail(), casefile_status }, userWith([21]), true)).toBe(
+        false,
+      );
+    },
+  );
   it.each([[21], [22], [21, 22]].map((permissions) => ({ permissions })))(
     'allows read for released permission $permissions',
     ({ permissions }) => {

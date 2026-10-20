@@ -33,6 +33,7 @@ export function creditorAssignment(
   if (choice === 'major') {
     const selected = majorCreditors.find(
       (record) =>
+        record.active &&
         String(record.major_creditor_id) === String(formData.create_casefile_order_term_creditor_major_creditor_id),
     );
     return selected ? { type: 'major', majorCreditorId: selected.major_creditor_id, displayName: selected.name } : null;

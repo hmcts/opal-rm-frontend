@@ -110,6 +110,140 @@ describe('casesDraftCasefileResolver', () => {
       ],
     });
   });
+  const rejected = () => ({ ...createPersistedCasefileDetail(), casefile_status: 'REJECTED' as const });
+  const expectNoHydration = () => {
+    expect(TestBed.inject(CasesDraftCasefileStore).draft()).toBeNull();
+    expect(TestBed.inject(CasesCreateCasefileStore).caseTypeSelection()).toBeNull();
+  };
+  it.each(['BUU-CHECKER', 'BUU-OTHER'])(
+    'resolves amendment for rejected submitter %s without hydration',
+    (submitted_by) => {
+      user = userWith([21]);
+      maintenance.getDraftCasefile.mockReturnValue(of({ draft: { ...rejected(), submitted_by }, etag: '\"9\"' }));
+      expect(resolve(route('17', 'inputter-amend'))[0]).toMatchObject({
+        intent: 'inputter-amend',
+        mode: 'amend',
+        context: 'inputter',
+        dashboardMode: 'inputter',
+        etag: '\"9\"',
+      });
+      expectNoHydration();
+    },
+  );
+  it.each(['SUBMITTED', 'RESUBMITTED', 'DELETED', 'PUBLISHED', 'PUBLISHING_PENDING', 'PUBLISHING_FAILED'] as const)(
+    'denies amendment lifecycle %s before references',
+    (casefile_status) => {
+      maintenance.getDraftCasefile.mockReturnValue(of({ draft: { ...rejected(), casefile_status }, etag: '\"0\"' }));
+      expectDenied(resolve(route('17', 'inputter-amend')));
+      expect(maintenance.getCountries).not.toHaveBeenCalled();
+      expect(maintenance.getResult).not.toHaveBeenCalled();
+      expectNoHydration();
+    },
+  );
+  it.each(['checker-only', 'inactive', 'flag', 'wrong-bu'])('denies amendment %s before GET', (condition) => {
+    if (condition === 'checker-only') user = userWith([22]);
+    if (condition === 'inactive') user.status = 'suspended';
+    if (condition === 'flag') released = false;
+    if (condition === 'wrong-bu') user.business_unit_users[0].business_unit_id = 45;
+    expectDenied(resolve(route('17', 'inputter-amend')));
+    expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+    expectNoHydration();
+  });
+  it.each(['identity', 'permission'])('denies stale amendment %s during GET before reference disclosure', (change) => {
+    const pending = new Subject<{ draft: ReturnType<typeof createPersistedCasefileDetail>; etag: string }>();
+    maintenance.getDraftCasefile.mockReturnValue(pending);
+    const values = resolve(route('17', 'inputter-amend'));
+    if (change === 'identity') user.user_id++;
+    else user = userWith([22]);
+    pending.next({ draft: rejected(), etag: '\"0\"' });
+    expectDenied(values);
+    expect(maintenance.getCountries).not.toHaveBeenCalled();
+    expectNoHydration();
+  });
+  it.each(['identity', 'permission', 'flag'])('denies stale amendment %s during Result lookup', (change) => {
+    const pending = new Subject<typeof PERSISTED_CASEFILE_RESULT_PAGE.fields>();
+    maintenance.getDraftCasefile.mockReturnValue(of({ draft: rejected(), etag: '\"0\"' }));
+    lookups.resolve.mockReturnValue(pending);
+    const values = resolve(route('17', 'inputter-amend'));
+    if (change === 'identity') user.business_unit_users[0].business_unit_user_id = 'BUU-NEW';
+    if (change === 'permission') user = userWith([22]);
+    if (change === 'flag') released = false;
+    pending.next(PERSISTED_CASEFILE_RESULT_PAGE.fields);
+    pending.complete();
+    expectDenied(values);
+    expectNoHydration();
+  });
+  it('fetches the URL ID again when another amendment is already populated', () => {
+    maintenance.getDraftCasefile.mockReturnValue(of({ draft: rejected(), etag: '"4"' }));
+    const initial = resolve(route('17', 'inputter-amend'))[0];
+    if (initial instanceof RedirectCommand) throw new Error('Expected rejected amendment');
+    const saved = TestBed.inject(CasesDraftCasefileStore);
+    const editable = TestBed.inject(CasesCreateCasefileStore);
+    saved.loadResolved(initial);
+    editable.hydratePersistedCasefile({ ...initial.state, submissionIntent: 'amendment' });
+    const before = structuredClone(editable.respondentDetails());
+    maintenance.getDraftCasefile.mockReturnValue(
+      of({ draft: { ...rejected(), draft_casefile_id: 18, casefile_status: 'RESUBMITTED' }, etag: '"5"' }),
+    );
+
+    expectDenied(resolve(route('18', 'inputter-amend')));
+
+    expect(maintenance.getDraftCasefile).toHaveBeenNthCalledWith(1, 17);
+    expect(maintenance.getDraftCasefile).toHaveBeenNthCalledWith(2, 18);
+    expect(saved.draft()?.draft_casefile_id).toBe(17);
+    expect(saved.etag()).toBe('"4"');
+    expect(editable.respondentDetails()).toEqual(before);
+  });
+  it.each([null, '0', '-1', '1.5', '01', '9007199254740992', 'not-an-id'])(
+    'redirects malformed amendment ID %s without requests or hydration',
+    (id) => {
+      expectDenied(resolve(route(id, 'inputter-amend')));
+      expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+      expect(maintenance.getCountries).not.toHaveBeenCalled();
+      expect(maintenance.getMaintenanceApplications).not.toHaveBeenCalled();
+      expect(maintenance.getMajorCreditors).not.toHaveBeenCalled();
+      expect(maintenance.getResult).not.toHaveBeenCalled();
+      expect(lookups.resolve).not.toHaveBeenCalled();
+      expect(setBannerError).not.toHaveBeenCalled();
+      expectNoHydration();
+    },
+  );
+  it('denies an amendment owned by another business unit without references', () => {
+    maintenance.getDraftCasefile.mockReturnValue(of({ draft: { ...rejected(), business_unit_id: 45 }, etag: '\"0\"' }));
+    expectDenied(resolve(route('17', 'inputter-amend')));
+    expect(maintenance.getCountries).not.toHaveBeenCalled();
+    expect(maintenance.getResult).not.toHaveBeenCalled();
+    expectNoHydration();
+  });
+  it('cancels pending amendment references when routing unsubscribes', () => {
+    const fields = new Subject<typeof PERSISTED_CASEFILE_RESULT_PAGE.fields>();
+    maintenance.getDraftCasefile.mockReturnValue(of({ draft: rejected(), etag: '\"0\"' }));
+    lookups.resolve.mockReturnValue(fields);
+    const resolution = TestBed.runInInjectionContext(() =>
+      casesDraftCasefileResolver(route('17', 'inputter-amend'), {} as RouterStateSnapshot),
+    );
+    if (!(resolution instanceof Observable)) throw new Error('Expected observable');
+    const received = vi.fn();
+    const subscription = resolution.subscribe(received);
+    expect(fields.observed).toBe(true);
+    subscription.unsubscribe();
+    expect(fields.observed).toBe(false);
+    fields.next(PERSISTED_CASEFILE_RESULT_PAGE.fields);
+    expect(received).not.toHaveBeenCalled();
+    expectNoHydration();
+  });
+  it('does not commit an older navigation response released after a newer record', () => {
+    const older = new Subject<{ draft: ReturnType<typeof createPersistedCasefileDetail>; etag: string }>();
+    maintenance.getDraftCasefile
+      .mockReturnValueOnce(older)
+      .mockReturnValueOnce(of({ draft: { ...rejected(), draft_casefile_id: 18 }, etag: '\"1\"' }));
+    const oldValues = resolve(route('17', 'inputter-amend'));
+    const newValues = resolve(route('18', 'inputter-amend'));
+    expect(newValues[0]).toMatchObject({ draft: { draft_casefile_id: 18 } });
+    older.next({ draft: rejected(), etag: '\"0\"' });
+    expect(oldValues[0]).toMatchObject({ draft: { draft_casefile_id: 17 } });
+    expectNoHydration();
+  });
   it('waits for GET and every reference, result and lookup before emitting without store hydration', () => {
     const draft = new Subject<{ draft: ReturnType<typeof createPersistedCasefileDetail>; etag: string }>();
     const countries = new Subject<{ refData: typeof PERSISTED_CASEFILE_REFERENCES.countries }>();
@@ -164,6 +298,17 @@ describe('casesDraftCasefileResolver', () => {
     expect(resolve(route(id))).toEqual([]);
     expect(setBannerError).toHaveBeenCalled();
     expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+  });
+  it.each(
+    ['inputter-view', 'checker-view'].flatMap((intent) =>
+      [null, '0', '-1', '1.5', '01', '9007199254740992', 'not-an-id'].map((id) => ({ intent, id })),
+    ),
+  )('preserves malformed readable $intent/$id generic error handling', ({ intent, id }) => {
+    expect(resolve(route(id, intent))).toEqual([]);
+    expect(setBannerError).toHaveBeenCalled();
+    expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+    expect(maintenance.getCountries).not.toHaveBeenCalled();
+    expectNoHydration();
   });
   it.each(['', null, 'review'])('rejects untrusted intent %s', (intent) => {
     expect(resolve(route('17', intent))).toEqual([]);

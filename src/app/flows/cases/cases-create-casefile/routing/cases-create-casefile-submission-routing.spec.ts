@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from '@app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { createCasesDraftSummary } from '../../cases-draft/mocks/cases-draft-summary.mock';
 import { CasesDraftCreateAndManageTabsComponent } from '../../cases-draft/cases-draft-create-and-manage-tabs/cases-draft-create-and-manage-tabs.component';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
@@ -49,6 +50,7 @@ describe('Submission route lifecycle', () => {
   beforeEach(() =>
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         provideHttpClient(withInterceptors([httpErrorInterceptor])),
         provideHttpClientTesting(),
         provideLocationMocks(),
@@ -79,6 +81,7 @@ describe('Submission route lifecycle', () => {
     async (linkId) => {
       TestBed.configureTestingModule({
         providers: [
+          CasesDraftCasefileStore,
           provideHttpClient(),
           provideHttpClientTesting(),
           provideRouter([
@@ -138,6 +141,7 @@ describe('Submission route lifecycle', () => {
       const dashboardPath = '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.tabs;
       TestBed.configureTestingModule({
         providers: [
+          CasesDraftCasefileStore,
           provideRouter([
             { path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children },
             { path: dashboardPath.slice(1), component: CasesDraftCreateAndManageTabsComponent },
@@ -205,6 +209,7 @@ describe('Submission route lifecycle', () => {
       const dashboardPath = '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.tabs;
       TestBed.configureTestingModule({
         providers: [
+          CasesDraftCasefileStore,
           provideRouter([
             { path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children },
             { path: dashboardPath.slice(1), component: CasesDraftCreateAndManageTabsComponent },
@@ -236,6 +241,7 @@ describe('Submission route lifecycle', () => {
   it('sets the document title through the production confirmation resolver', async () => {
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([{ path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children: routing }]),
@@ -255,6 +261,7 @@ describe('Submission route lifecycle', () => {
   it.each([false, true])('denies direct confirmation for an unsubmitted draft (complete: %s)', async (complete) => {
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         provideRouter([
           {
             path: 'cases/create-casefile',
@@ -286,6 +293,7 @@ describe('Submission route lifecycle', () => {
   it('clears the accepted draft after HTTP 201 and prevents Back from reopening it', async () => {
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         provideRouter([
           { path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children },
           { path: 'dashboard/cases', component: OutsideComponent },
@@ -351,6 +359,7 @@ describe('Submission route lifecycle', () => {
   it.each([400, 409, 500])('uses the generic banner and retains the draft after retriable HTTP %i', async (status) => {
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         provideRouter([{ path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children }]),
       ],
     });
@@ -384,6 +393,7 @@ describe('Submission route lifecycle', () => {
   it('allows the generic interceptor to navigate away after a non-retriable permission error', async () => {
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         provideRouter([
           { path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children },
           { path: 'error/permission-denied', component: OutsideComponent },
@@ -419,6 +429,7 @@ describe('Submission route lifecycle', () => {
     }));
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         provideRouter([{ path: 'cases/create-casefile', component: CasesCreateCasefileComponent, children }]),
       ],
     });

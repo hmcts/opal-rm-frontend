@@ -11,6 +11,11 @@ describe('createCasesCreateCasefileCountrySelectionValidator', () => {
     { name: 'Northern Ireland', value: '4' },
   ] as const;
 
+  it.each([1, '1'])('rejects saved inactive country %s while retaining its display option', (value) => {
+    const validator = createCasesCreateCasefileCountrySelectionValidator([{ value: 1, active: false }]);
+    expect(validator(new FormControl(value))).toEqual({ required: true });
+  });
+
   it.each([
     ['a matching numeric value', autocompleteOptions, 1],
     ['a matching string value', selectOptions, '3'],

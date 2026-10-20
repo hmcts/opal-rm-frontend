@@ -1,3 +1,7 @@
+import {
+  casesCreateCasefileAmendmentEntryCanDeactivateGuard,
+  isCasesCreateCasefileAmendmentEntry,
+} from './cases-create-casefile-amendment-entry-can-deactivate.guard';
 import { CanDeactivateFn } from '@angular/router';
 import { canDeactivateGuard } from '@hmcts/opal-frontend-common/guards/can-deactivate';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../constants/cases-create-casefile-routing-paths.constant';
@@ -13,6 +17,9 @@ export const casesCreateCasefileChildCanDeactivateGuard: CanDeactivateFn<unknown
   nextState,
 ) => {
   const [destinationPath] = nextState.url.split(/[?#]/, 1);
+  if (isCasesCreateCasefileAmendmentEntry(nextState.url)) {
+    return casesCreateCasefileAmendmentEntryCanDeactivateGuard(component, currentRoute, currentState, nextState);
+  }
   const destinationIsWithinCreateCasefile = (destinationPath + '/').startsWith(createCasefileRootUrl + '/');
 
   return destinationIsWithinCreateCasefile

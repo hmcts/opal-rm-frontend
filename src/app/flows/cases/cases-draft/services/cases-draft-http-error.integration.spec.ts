@@ -109,7 +109,7 @@ describe('checker HTTP boundary through production interceptors and application 
     expect(destinations).not.toContain('/access-denied');
   });
   it.each([401, 403])(
-    'hides checker content after retriable HTTP %s badge denial without competing navigation',
+    'uses the shared banner for retriable HTTP %s badge failure without changing loaded content',
     async (status) => {
       await router.navigateByUrl('/access-denied');
       await settle();
@@ -120,7 +120,6 @@ describe('checker HTTP boundary through production interceptors and application 
           identity: { ...identity, userId: user.user_id },
           draftCasefileId: 17,
           respondentName: 'Synthetic Respondent',
-          outcome: 'confirmed',
         }),
       ).toBe(true);
       await router.navigateByUrl(dashboard + '#to-review');
@@ -138,9 +137,9 @@ describe('checker HTTP boundary through production interceptors and application 
       counts[1].flush({ retriable: true }, { status, statusText: 'Denied' });
       await settle();
       expect(router.url).toBe(dashboard + '#to-review');
-      expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
-      expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
-      expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
+      expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
+      expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
       expect(navigation.consumeCheckerDeletion()).toBeNull();
     },
   );

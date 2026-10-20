@@ -57,7 +57,7 @@ export const checkerEmptyMessages = {
   failed: 'There are no failed cases.',
 };
 
-export function checkerDeletionNotice(outcome: ICasesDraftDeletionNotice['outcome']): ICasesDraftDeletionNotice {
+export function checkerDeletionNotice(): ICasesDraftDeletionNotice {
   const user = checkerUser('checker');
   return {
     identity: {
@@ -67,6 +67,5 @@ export function checkerDeletionNotice(outcome: ICasesDraftDeletionNotice['outcom
     },
     draftCasefileId: 17,
     respondentName: 'Synthetic Respondent',
-    outcome,
   };
 }

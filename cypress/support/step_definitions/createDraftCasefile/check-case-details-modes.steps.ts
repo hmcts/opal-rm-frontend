@@ -42,9 +42,8 @@ When('I enter saved deletion reason {string}', (reason: string) => flow.enterDel
 When('I confirm the saved case deletion', () => flow.confirmDeletion());
 When('I submit the saved deletion without a reason', () => flow.submitEmptyDeletion());
 When('I cancel the saved case deletion', () => flow.cancelDeletion());
-When('I check the latest saved deletion status', () => flow.checkLatestDeletionStatus());
-Then('the saved deletion outcome remains unresolved without replay', () => flow.expectUncertainDeletion());
-Then('the checker sees the {string} deleted return', (outcome: string) => flow.expectDeletedReturn(outcome));
+Then('the saved deletion reason remains editable without replay', () => flow.expectDeletionError());
+Then('the checker sees the confirmed deleted return', () => flow.expectDeletedReturn());
 Then('the saved deletion reason screen is shown', () => flow.expectDelete());
 Then('the selected review is restored after {int} selected GET requests without mutation', (count: number) =>
   flow.expectReviewAfterCancel(count),

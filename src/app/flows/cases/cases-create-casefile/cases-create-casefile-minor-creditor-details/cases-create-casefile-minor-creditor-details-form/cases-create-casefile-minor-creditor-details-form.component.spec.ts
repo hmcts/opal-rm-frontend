@@ -155,6 +155,9 @@ describe('CasesCreateCasefileMinorCreditorDetailsFormComponent', () => {
     expect(document.activeElement?.id).toBe(`${F.creditorType}-individual`);
     links[1].click();
     expect(document.activeElement?.id).toBe(F.addressLine1);
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector(`#${F.countryId}-autocomplete`)).toBeInstanceOf(HTMLInputElement);
+    });
     links[2].click();
     expect(document.activeElement?.id).toBe(`${F.countryId}-autocomplete`);
     links[3].click();

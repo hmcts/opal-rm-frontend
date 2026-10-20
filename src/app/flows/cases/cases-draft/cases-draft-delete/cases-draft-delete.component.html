@@ -16,60 +16,19 @@
         [characterCountEnabled]="true"
         [maxCharacterLimit]="250"
       />
-      @if (phase() === 'ready' || phase() === 'pending') {
-        <div class="govuk-button-group">
-          <button
-            id="create_casefile_delete_submit"
-            type="submit"
-            class="govuk-button govuk-button--warning"
-            [disabled]="phase() === 'pending' || navigating() || routeNavigationPending()"
-          >
-            Yes - delete case
-          </button>
-          @if (phase() === 'ready' && !navigating() && !routeNavigationPending()) {
-            <opal-lib-govuk-cancel-link cancelLinkText="No - cancel" (linkClickEvent)="handleCancel()" />
-          }
-        </div>
-      }
-    </form>
-    @if (recoveryText(); as text) {
-      <p id="create_casefile_delete_status" class="govuk-body" role="status">{{ text }}</p>
-    }
-    @if (phase() === 'unresolved') {
       <div class="govuk-button-group">
         <button
-          opalLibGovukButton
-          buttonId="create_casefile_delete_check_status"
-          type="button"
-          [disabled]="checking() || navigating() || routeNavigationPending()"
-          (click)="handleCheckLatestStatus()"
+          id="create_casefile_delete_submit"
+          type="submit"
+          class="govuk-button govuk-button--warning"
+          [disabled]="!eligible() || submitting() || deleted() || navigating()"
         >
-          Check latest case status
+          Yes - delete case
         </button>
-        <button
-          opalLibGovukButton
-          buttonId="create_casefile_delete_review_cases"
-          type="button"
-          buttonClasses="govuk-button--secondary"
-          [disabled]="checking() || navigating() || routeNavigationPending()"
-          (click)="handleReturnToReviewCases()"
-        >
-          Return to Review cases
-        </button>
+        @if (eligible() && !submitting() && !deleted() && !navigating()) {
+          <opal-lib-govuk-cancel-link cancelLinkText="No - cancel" (linkClickEvent)="handleCancel()" />
+        }
       </div>
-    }
-    @if (phase() === 'complete' && !navigating() && !routeNavigationPending()) {
-      @if (returnFailed()) {
-        <p class="govuk-body" role="status">{{ completionReturnText }}</p>
-      }
-      <button
-        opalLibGovukButton
-        buttonId="create_casefile_delete_review_cases"
-        type="button"
-        (click)="handleReturnToReviewCases()"
-      >
-        Return to Review cases
-      </button>
-    }
+    </form>
   </div>
 }

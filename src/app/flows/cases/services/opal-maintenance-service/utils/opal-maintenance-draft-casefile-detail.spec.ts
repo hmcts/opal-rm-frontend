@@ -18,7 +18,11 @@ describe('decodeDraftCasefileDetail', () => {
       PERSISTED_CASEFILE_RESULT_PAGE.fields,
     );
   });
-  it.each([null, '', '0', '"x"', 'W/"0"'])('rejects invalid version %s safely', (etag) => {
+  it.each(['0', '"x"', 'W/"0"', '"9223372036854775808"'])('preserves opaque version %s', (etag) => {
+    const body = createPersistedCasefileDetail();
+    expect(decodeDraftCasefileDetail(body, etag, 17)).toEqual({ draft: body, etag });
+  });
+  it.each([null, ''])('rejects an absent version %s safely', (etag) => {
     expect(() => decodeDraftCasefileDetail(createPersistedCasefileDetail(), etag, 17)).toThrow(
       'Unusable draft casefile data',
     );

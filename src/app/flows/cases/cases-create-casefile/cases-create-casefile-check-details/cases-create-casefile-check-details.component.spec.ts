@@ -1,6 +1,13 @@
 import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
 import type { CasesDraftCasefileDecision } from '../../cases-draft/types/cases-draft-casefile-decision.type';
-import { NavigationStart, type Event as RouterEvent } from '@angular/router';
+import {
+  NavigationCancel,
+  NavigationCancellationCode,
+  NavigationEnd,
+  NavigationError,
+  NavigationStart,
+  type Event as RouterEvent,
+} from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { CasesDraftCasefileDecisionComponent } from '../../cases-draft/components/cases-draft-casefile-decision/cases-draft-casefile-decision.component';
 import { defaultCasesDraftNavigation } from '../../cases-draft/utils/cases-draft-navigation';
@@ -1811,20 +1818,155 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
   });
 
-  it('suppresses the handoff after competing navigation but retains completed protection', async () => {
+  it.each(['accepted', 'validation rejected'] as const)(
+    'retains the %s outcome after consecutive guard-rejected departures',
+    async (outcome) => {
+      loadReview();
+      const response = new Subject<ReturnType<typeof decisionResponse>>();
+      maintenance.patchDraftCasefile.mockReturnValue(response);
+      const operation = fixture.componentInstance.handleDecision(approvalDecision);
+      for (const id of [1, 2]) {
+        router.events.next(new NavigationStart(id, '/other'));
+        router.events.next(
+          new NavigationCancel(id, '/other', 'Guard rejected', NavigationCancellationCode.GuardRejected),
+        );
+      }
+      if (outcome === 'accepted') {
+        response.next(decisionResponse());
+        response.complete();
+      } else response.error(new HttpErrorResponse({ status: 400 }));
+      await operation;
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+      expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(false);
+      if (outcome === 'accepted') {
+        expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
+        expect(router.navigateByUrl).toHaveBeenCalledOnce();
+      } else {
+        expect(fixture.componentInstance.decisionLocked()).toBe(false);
+        expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+        expect(router.navigateByUrl).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('returns confirmed success after one blocked departure supersedes another', async () => {
     loadReview();
     const response = new Subject<ReturnType<typeof decisionResponse>>();
     maintenance.patchDraftCasefile.mockReturnValue(response);
     const operation = fixture.componentInstance.handleDecision(approvalDecision);
-    router.events.next(new NavigationStart(1, '/other'));
+    router.events.next(new NavigationStart(1, '/first'));
+    router.events.next(
+      new NavigationCancel(1, '/first', 'Superseded', NavigationCancellationCode.SupersededByNewNavigation),
+    );
+    router.events.next(new NavigationStart(2, '/second'));
+    router.events.next(new NavigationCancel(2, '/second', 'Guard rejected', NavigationCancellationCode.GuardRejected));
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+    expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+  });
+
+  it('does not let an older guard cancellation forgive the current unresolved departure', async () => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    router.events.next(new NavigationStart(1, '/first'));
+    router.events.next(new NavigationStart(2, '/second'));
+    router.events.next(new NavigationCancel(1, '/first', 'Guard rejected', NavigationCancellationCode.GuardRejected));
     response.next(decisionResponse());
     response.complete();
     await operation;
     expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
-    await fixture.componentInstance.handleDecision(approvalDecision);
-    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
   });
+
+  it('does not forgive an earlier committed route change after a later guard cancellation', async () => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    router.events.next(new NavigationStart(1, '/review#changed'));
+    router.events.next(new NavigationEnd(1, '/review#changed', '/review#changed'));
+    router.events.next(new NavigationStart(2, '/other'));
+    router.events.next(new NavigationCancel(2, '/other', 'Guard rejected', NavigationCancellationCode.GuardRejected));
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    NavigationCancellationCode.Redirect,
+    NavigationCancellationCode.NoDataFromResolver,
+    NavigationCancellationCode.Aborted,
+    undefined,
+  ])('does not forgive a departure cancelled for reason %s', async (code) => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    router.events.next(new NavigationStart(1, '/other'));
+    router.events.next(new NavigationCancel(1, '/other', 'Other cancellation', code));
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('retains unresolved-departure protection when navigation errors', async () => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    router.events.next(new NavigationStart(1, '/other'));
+    router.events.next(new NavigationError(1, '/other', new Error('Synthetic navigation error')));
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('does not apply a completed guard cancellation to a later decision attempt', async () => {
+    loadReview();
+    router.events.next(new NavigationStart(1, '/other'));
+    router.events.next(new NavigationCancel(1, '/other', 'Guard rejected', NavigationCancellationCode.GuardRejected));
+    maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse()));
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+  });
+
+  it.each(['first departure', 'replacement pending', 'replacement complete'] as const)(
+    'suppresses the handoff after competing navigation: %s',
+    async (departure) => {
+      loadReview();
+      const response = new Subject<ReturnType<typeof decisionResponse>>();
+      maintenance.patchDraftCasefile.mockReturnValue(response);
+      const operation = fixture.componentInstance.handleDecision(approvalDecision);
+      router.events.next(new NavigationStart(1, '/other'));
+      if (departure !== 'first departure') {
+        router.events.next(
+          new NavigationCancel(1, '/other', 'Superseded', NavigationCancellationCode.SupersededByNewNavigation),
+        );
+        router.events.next(new NavigationStart(2, '/replacement'));
+        if (departure === 'replacement complete')
+          router.events.next(new NavigationEnd(2, '/replacement', '/replacement'));
+      }
+      response.next(decisionResponse());
+      response.complete();
+      await operation;
+      expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      await fixture.componentInstance.handleDecision(approvalDecision);
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+    },
+  );
 
   it('does not revive an authority-invalidated attempt when the release returns', async () => {
     loadReview();

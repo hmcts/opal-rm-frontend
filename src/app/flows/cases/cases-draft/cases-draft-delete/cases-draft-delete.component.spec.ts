@@ -1,6 +1,7 @@
 import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
+import type { IOpalMaintenanceDraftCasefileDetail } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-detail.interface';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Data, NavigationStart, provideRouter, Router, UrlTree } from '@angular/router';
@@ -360,6 +361,113 @@ describe('CasesDraftDeleteComponent', () => {
     },
   );
 
+  it.each([0, 401, 403, 409, 412, 500, 503])(
+    'requires authoritative re-entry after uncertain HTTP %s without replaying PATCH',
+    async (status) => {
+      api.patchDraftCasefile.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
+      const component = create();
+      component.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+      fixture.detectChanges();
+      const before = structuredClone(getState(store));
+      globalStore.setBannerError({
+        ...globalStore.bannerError(),
+        error: true,
+        title: 'Synthetic shared title',
+        message: 'Synthetic shared detail',
+      });
+      await component.handleDelete();
+      await component.handleDelete();
+      fixture.detectChanges();
+      expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
+      expect(api.getDraftCasefile).not.toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(getState(store)).toEqual({ ...before, requiresReload: true });
+      expect(component.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
+      expect(component.form.controls.create_casefile_delete_reason.enabled).toBe(true);
+      expect(fixture.nativeElement.querySelector('#create_casefile_delete_submit').disabled).toBe(true);
+      expect(fixture.nativeElement.querySelector('#create_casefile_delete_recovery')?.textContent).toContain(
+        'Select No - cancel to reload the saved case before trying again.',
+      );
+      expect(fixture.nativeElement.querySelector('opal-lib-govuk-cancel-link')).not.toBeNull();
+      expect(globalStore.bannerError().message).toBe('Synthetic shared detail');
+    },
+  );
+
+  it.each([400, 422])('allows explicit retry after definite HTTP %s rejection', async (status) => {
+    api.patchDraftCasefile.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
+    const component = create();
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic corrected reason');
+    fixture.detectChanges();
+    await component.handleDelete();
+    expect(store.requiresReload()).toBe(false);
+    await component.handleDelete();
+    fixture.detectChanges();
+    expect(api.patchDraftCasefile).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.querySelector('#create_casefile_delete_submit').disabled).toBe(false);
+    expect(fixture.nativeElement.querySelector('#create_casefile_delete_recovery')).toBeNull();
+  });
+
+  it.each([
+    'unconfirmed status',
+    'wrong ID',
+    'wrong BU',
+    'unchanged version',
+    'missing version',
+    'HTTP status',
+    'empty body',
+  ])('does not announce deletion for a receipt with %s', async (condition) => {
+    let receipt: HttpResponse<IOpalMaintenanceDraftCasefileDetail | null> = deletedResponse();
+    if (condition === 'unconfirmed status') receipt.body!.casefile_status = 'SUBMITTED';
+    if (condition === 'wrong ID') receipt.body!.draft_casefile_id = 18;
+    if (condition === 'wrong BU') {
+      receipt.body!.business_unit_id = 99;
+      receipt.body!.casefile.respondent_account.business_unit_id = 99;
+    }
+    if (condition === 'unchanged version') receipt = receipt.clone({ headers: new HttpHeaders({ ETag: '\"0\"' }) });
+    if (condition === 'missing version') receipt = receipt.clone({ headers: new HttpHeaders() });
+    if (condition === 'HTTP status') receipt = receipt.clone({ status: 202 });
+    if (condition === 'empty body') receipt = receipt.clone({ body: null });
+    api.patchDraftCasefile.mockReturnValue(of(receipt));
+    const component = create();
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    fixture.detectChanges();
+    await component.handleDelete();
+    await component.handleDelete();
+    fixture.detectChanges();
+    expect(component.deleted()).toBe(false);
+    expect(store.requiresReload()).toBe(true);
+    expect(component.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+    expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
+    expect(api.getDraftCasefile).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('#create_casefile_delete_return')).toBeNull();
+  });
+
+  it('resets the deletion lock only when a fresh resolved entry supplies its current version', async () => {
+    api.patchDraftCasefile.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 409 })));
+    api.patchDraftCasefile.mockReturnValue(of(deletedResponse()));
+    const component = create();
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    fixture.detectChanges();
+    await component.handleDelete();
+    expect(store.requiresReload()).toBe(true);
+    await component.handleCancel();
+    const fresh = deleteResult();
+    fresh.etag = 'opaque-refreshed-version';
+    routeData.next({ draftCasefile: fresh });
+    expect(store.requiresReload()).toBe(false);
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason after fresh entry');
+    await component.handleDelete();
+    expect(api.patchDraftCasefile).toHaveBeenCalledTimes(2);
+    expect(api.patchDraftCasefile).toHaveBeenLastCalledWith(
+      17,
+      expect.objectContaining({ casefile_status: 'DELETED', status_message: 'Synthetic reason after fresh entry' }),
+      'opaque-refreshed-version',
+    );
+    expect(component.deleted()).toBe(true);
+  });
+
   it('handles EMPTY completion without recording success or fetching latest status', async () => {
     api.patchDraftCasefile.mockReturnValue(EMPTY);
     const record = vi.spyOn(TestBed.inject(CasesDraftNavigationService), 'recordCheckerDeletion');
@@ -601,6 +709,9 @@ describe('CasesDraftDeleteComponent', () => {
     const next = deleteResult();
     next.draft.draft_casefile_id = 18;
     routeData.next({ draftCasefile: next });
+    const nextReceipt = deletedResponse();
+    nextReceipt.body!.draft_casefile_id = 18;
+    api.patchDraftCasefile.mockReturnValueOnce(of(nextReceipt));
     component.form.controls.create_casefile_delete_reason.setValue('Next synthetic reason');
     await component.handleDelete();
     rejectNavigation(new Error('Synthetic stale return failure'));

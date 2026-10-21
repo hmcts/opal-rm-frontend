@@ -13,6 +13,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { defer, defaultIfEmpty, firstValueFrom, take } from 'rxjs';
 import { FormControl, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { ActivatedRoute, NavigationStart, Router } from '@angular/router';
@@ -35,6 +36,7 @@ import { canReviewDraftCasefile, resolveCasesDraftReadIdentity } from '../utils/
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { sameCasesDraftIdentity } from '../utils/cases-draft-identity';
+import { readCasesDraftDeletionReceipt } from '../utils/cases-draft-deletion-receipt';
 
 const meaningfulReason: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -70,6 +72,7 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
       maxlength: { message: 'Reason must be 250 characters or fewer', priority: 2 },
     },
   };
+  public readonly requiresReload = this.store.requiresReload;
   public readonly submitting = signal(false);
   public readonly navigating = signal(false);
   public readonly deleted = computed(() => this.completedNotice() !== null);
@@ -146,12 +149,12 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
     void this.deleteRouter
       .navigateByUrl('/error/permission-denied')
       .then((accepted) => {
-        if (!accepted) this.showNavigationError();
+        if (!accepted) this.showError();
       })
-      .catch(() => this.showNavigationError());
+      .catch(() => this.showError());
   }
 
-  private showNavigationError(): void {
+  private showError(): void {
     if (this.destroyRef.destroyed || this.globalStore.bannerError().error) return;
     this.globalStore.setBannerError({
       ...GLOBAL_ERROR_STATE,
@@ -160,6 +163,13 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
       message: GENERIC_HTTP_ERROR_MESSAGE,
     });
     this.utilsService.scrollToTop();
+  }
+
+  private handleDeletionFailure(error: unknown): void {
+    const rejected = error instanceof HttpErrorResponse && [400, 422].includes(error.status);
+    this.store.setRequiresReload(!rejected);
+    if (error instanceof HttpErrorResponse || this.globalStore.bannerError().error) this.utilsService.scrollToTop();
+    else this.showError();
   }
 
   public async handleReturnToReviewCases(): Promise<void> {
@@ -207,7 +217,7 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
   }
 
   public async handleDelete(): Promise<void> {
-    if (!this.eligible() || this.submitting() || this.deleted() || this.navigating()) return;
+    if (!this.eligible() || this.submitting() || this.deleted() || this.navigating() || this.requiresReload()) return;
     this.form.markAllAsTouched();
     this.handleErrorMessages();
     if (this.form.invalid) {
@@ -236,16 +246,17 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
           ),
         ).pipe(take(1), defaultIfEmpty(null), takeUntilDestroyed(this.destroyRef)),
       );
-      if (!this.currentEntry(entry) || !response?.body) return;
+      if (!this.currentEntry(entry)) return;
+      const receipt = readCasesDraftDeletionReceipt(response, { draft, etag });
       this.completedNotice.set({
         identity,
         draftCasefileId: draft.draft_casefile_id,
-        respondentName: response.body.casefile_snapshot.respondent_account.respondent_name,
+        respondentName: receipt.casefile_snapshot.respondent_account.respondent_name,
       });
       if (this.navigationRevision !== revision) return;
       await this.handleReturnToReviewCases();
-    } catch {
-      if (this.currentEntry(entry)) this.utilsService.scrollToTop();
+    } catch (error) {
+      if (this.currentEntry(entry)) this.handleDeletionFailure(error);
     } finally {
       if (this.currentEntry(entry)) {
         this.submitting.set(false);

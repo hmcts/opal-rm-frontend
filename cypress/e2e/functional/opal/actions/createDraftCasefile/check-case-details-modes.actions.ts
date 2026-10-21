@@ -203,7 +203,14 @@ export class CheckCaseDetailsModesActions {
   public expectDeletionError(): void {
     cy.location('pathname').should('eq', CHECKER + '/delete/17');
     cy.get(D.reason).should('not.be.disabled').and('have.value', this.deletionReason);
-    cy.get(D.submit).should('not.be.disabled');
+    cy.get(D.submit).should('be.disabled');
+    cy.get(D.recovery)
+      .should('be.visible')
+      .and('have.attr', 'role', 'status')
+      .and(
+        'contain.text',
+        'The deletion outcome is not confirmed. Select No - cancel to reload the saved case before trying again.',
+      );
     cy.get(D.cancel).should('be.visible');
     cy.get(CREATE.globalErrorBanner).should('contain.text', 'Synthetic deletion failed');
     cy.get('@deletionPatch.all').should('have.length', 1);

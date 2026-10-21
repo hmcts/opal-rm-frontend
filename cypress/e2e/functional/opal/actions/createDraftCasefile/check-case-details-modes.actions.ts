@@ -220,11 +220,18 @@ export class CheckCaseDetailsModesActions {
     cy.screenshot('po10611-confirmed-' + outcome);
   }
 
-  /** Checks an uncertain receipt retains the review with locked decisions and no success. */
+  /** Checks an uncertain receipt retains enabled controls while the parent prevents another mutation. */
   public expectDecisionError(): void {
     cy.location('pathname').should('eq', CHECKER + '/review/17');
     cy.get(CREATE.globalErrorBanner).should('be.visible');
-    cy.get(S.decisionContinue).should('be.disabled');
+    cy.get(S.decisionContinue).should('be.enabled').click();
+    cy.get(S.decisionContinue).click();
+    cy.get(S.decisionApprove).should('be.enabled');
+    cy.get(S.decisionReject).should('be.enabled').check();
+    cy.get(S.rejectionReason).should('be.enabled').type('Synthetic later rejection reason');
+    cy.get(S.decisionContinue).click();
+    cy.location('pathname').should('eq', CHECKER + '/review/17');
+    cy.get(CREATE.globalErrorBanner).should('be.visible');
     cy.get(DASHBOARD.success).should('not.exist');
     cy.get('@decisionPatch.all').should('have.length', 1);
     cy.then(() => expect(this.writes).to.deep.equal(['PATCH']));

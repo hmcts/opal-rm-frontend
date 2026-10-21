@@ -3,8 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  input,
-  effect,
   ElementRef,
   inject,
   Injector,
@@ -33,8 +31,6 @@ const meaningfulReason: ValidatorFn = (control) =>
 export class CasesDraftCasefileDecisionComponent extends AbstractFormBaseComponent {
   private readonly injector = inject(Injector);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
-  private parentBlocked = false;
-
   protected override fieldErrors = {
     create_casefile_review_decision: { required: { message: 'Select a review decision', priority: 1 } },
     create_casefile_review_rejection_reason: {
@@ -42,8 +38,6 @@ export class CasesDraftCasefileDecisionComponent extends AbstractFormBaseCompone
       maxlength: { message: 'Reason for rejection must be 250 characters or fewer', priority: 2 },
     },
   };
-
-  public readonly blocked = input(false);
 
   public readonly decisionEvent = output<CasesDraftCasefileDecision>();
   public override form = new FormGroup({
@@ -69,12 +63,6 @@ export class CasesDraftCasefileDecisionComponent extends AbstractFormBaseCompone
   constructor() {
     super();
     this.setInitialErrorMessages();
-    effect(() => {
-      const blocked = this.blocked();
-      if (blocked) this.form.disable({ emitEvent: false });
-      else if (this.parentBlocked) this.form.enable({ emitEvent: false });
-      this.parentBlocked = blocked;
-    });
     const reason = this.form.controls.create_casefile_review_rejection_reason;
     reason.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => this.reasonValue.set(value));
     this.form.controls.create_casefile_review_decision.valueChanges.pipe(takeUntilDestroyed()).subscribe((decision) => {
@@ -93,7 +81,6 @@ export class CasesDraftCasefileDecisionComponent extends AbstractFormBaseCompone
 
   /** Emits validated future decision intent; persistence and navigation belong to the parent. */
   public handleContinue(): void {
-    if (this.blocked()) return;
     this.form.markAllAsTouched();
     this.handleErrorMessages();
     this.reasonError.set(!!this.formControlErrorMessages['create_casefile_review_rejection_reason']);

@@ -1708,6 +1708,44 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(draftNavigation.setSelection).toHaveBeenCalledWith(selected);
   });
 
+  it.each(['accepted with cancelled navigation', 'unusable receipt'] as const)(
+    'keeps Continue enabled without replay after %s',
+    async (outcome) => {
+      loadReview();
+      const response = new Subject<HttpResponse<unknown>>();
+      maintenance.patchDraftCasefile.mockReturnValue(response);
+      router.navigateByUrl.mockResolvedValue(false);
+      fixture.detectChanges();
+      decisionForm().form.controls.create_casefile_review_decision.setValue('approve');
+      const submit: HTMLButtonElement = fixture.nativeElement.querySelector('#create_casefile_review_continue');
+      submit.click();
+      fixture.detectChanges();
+      expect(submit.disabled).toBe(false);
+      expect(decisionForm().form.enabled).toBe(true);
+      submit.click();
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+
+      response.next(outcome === 'unusable receipt' ? new HttpResponse({ status: 200 }) : decisionResponse());
+      response.complete();
+      await vi.waitFor(() => expect(fixture.componentInstance.busy()).toBe(false));
+      fixture.detectChanges();
+      expect(submit.disabled).toBe(false);
+      expect(decisionForm().form.enabled).toBe(true);
+      submit.click();
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+      expect(fixture.componentInstance.decisionLocked()).toBe(true);
+      expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(outcome === 'unusable receipt');
+      if (outcome === 'unusable receipt') {
+        expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+        expect(router.navigateByUrl).not.toHaveBeenCalled();
+      } else {
+        expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
+        expect(router.navigateByUrl).toHaveBeenCalledOnce();
+      }
+    },
+  );
+
   it('blocks concurrent Continue, Delete and Back, then keeps completion latched', async () => {
     loadReview();
     const response = new Subject<ReturnType<typeof decisionResponse>>();

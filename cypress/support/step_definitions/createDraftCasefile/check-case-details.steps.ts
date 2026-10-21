@@ -4,9 +4,7 @@ import { CheckCaseDetailsFlow } from '../../../e2e/functional/opal/flows/createD
 const flow = new CheckCaseDetailsFlow();
 Given('I am reviewing a live completed Draft Casefile', () => flow.openLive());
 When('I submit the live Draft Casefile', () => flow.submitLive());
-Then('the backend and confirmation show the same generated Draft Casefile identifier', () =>
-  flow.assertLiveConfirmation(),
-);
+Then('the live Draft Casefile submission is confirmed', () => flow.assertLiveConfirmation());
 Then('the submitted Create Draft Casefile journey is cleared', () => flow.clearSubmittedJourney());
 Given('I am reviewing a complete casefile for submission', () => flow.open());
 Given('I have completed a casefile ready for review', () => flow.prepareReadyForReview());

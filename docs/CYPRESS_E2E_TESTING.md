@@ -234,19 +234,20 @@ submission scenario are new; the permission outline adds the journey-entry and t
 
 `CheckCaseDetails.feature` contains exactly one live full submission scenario. It completes one synthetic draft using
 the existing live party, Order Details and MAT/Applicant creditor flows, then supplies the mandatory payment tasks.
-It observes the real create POST, requires HTTP 201 with a positive safe-integer ID and status `SUBMITTED`, and matches
-the generated identifier as text in the existing confirmation panel. Create a new case then proves journey clearing.
-The identifier assertion uses only the response returned by the live maintenance service; controlled scenarios do not
-provide an expected Draft Casefile ID. Other scenarios in that feature retain controlled submission responses. The
-live scenario records the observed ID before later assertions and attempts cleanup after both passing and failing
-scenarios. No cleanup runs until creation has actually been observed. This QA change has no `src` delta; the existing
-confirmation page does not display the generated ID, so that retained acceptance assertion requires a separate product fix.
-The scenario-level `@retries(0)` prevents a later assertion or cleanup failure from repeating a persisted
-submission. Keep it to avoid replaying a real submission after an assertion or cleanup failure; the remaining scenarios use the shared retry configuration.
+It observes the real create POST, requires HTTP 201 with a positive safe-integer ID and status `SUBMITTED`, and checks
+submission confirmation, focus and the single create request. Create a new case then proves journey clearing.
+Per the developer clarification confirmed on 21 October 2026, displaying the generated Draft Casefile ID in the
+confirmation panel belongs to future work outside PO-10273. The saved ticket export still lists that display check;
+this agreed scope change supersedes it for this branch. Backend receipt-ID validation and early capture for cleanup
+remain required. Other scenarios in that feature retain controlled submission responses.
 
-Earlier browser all-pass counts predate this cleanup implementation and are not evidence for the current code.
-Current deterministic and discovery evidence is recorded with the implementation handoff; discovery proves binding
-and selection only. Live acceptance remains dependent on the visible-ID product fix and the enabled Maintenance implementation below.
+The live scenario records the observed ID before later assertions and attempts cleanup after passing and failing
+scenarios. No cleanup runs until creation has actually been observed. This QA change has no `src` delta. Keep the
+scenario-level `@retries(0)` to avoid replaying a real submission after an assertion or cleanup failure; the remaining
+scenarios use the shared retry configuration.
+
+Discovery proves binding and selection only. Live execution must verify confirmation, cleared journey state and
+successful authenticated cleanup against the actual target services.
 
 ```bash
 TEST_URL=http://localhost:5000 \
@@ -255,9 +256,8 @@ corepack yarn test:functional:serial --browser=chrome \
   --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature'
 ```
 
-Cleanup uses the Maintenance contract in `opal-maintenance-service` branch
-`codex/PO-10273-draft-casefile-cleanup`, commit `4f2a946`, documented in
-`docs/DRAFT_CASEFILE_TEST_CLEANUP.md` in that repository. The live scenario creates a fresh marker matching
+Cleanup uses the Maintenance contract documented in `docs/DRAFT_CASEFILE_TEST_CLEANUP.md` in
+`opal-maintenance-service`. The implementation is now merged into Maintenance `master` (merge `d3123e7`, PR 302). The live scenario creates a fresh marker matching
 `^E2E-[0-9a-f]{16}$`, enters it through Central Authority's REMO Reference field, saves/reopens it, and checks the real
 POST payload contains the same value at `casefile.respondent_account.remo_reference`. No POST response is substituted.
 The response listener records the positive safe-integer ID and exact marker synchronously before later assertions.
@@ -285,12 +285,11 @@ has no application environment allowlist. Backend-owned overlays do not configur
 obsolete `DRAFT_CASEFILE_CLEANUP_*` and `OPAL_DEPLOYMENT_ENVIRONMENT` overrides; no such settings are needed here.
 Standalone Maintenance Compose enables the flag, and shared Docker inherits `.env.shared`.
 
-For a frontend PR dev deployment, use the existing CNP labels `enable_keep_helm` and
-`enable_opal_maintenance_service:pr-302`. These select `DEV_OPAL_MAINTENANCE_SERVICE_IMAGE_SUFFIX=pr-302` for the nested
-Maintenance image. Do not assume the default `latest` contains `4f2a946`. Verify the published PR image revision/content
-and resolved image digest before the normal deployment. The existing selector is PR/dev only: staging needs an
-explicit verified `opal-maintenance-service.java.image` deployment override until its normal selected image contains
-the implementation. Do not install an unpublished chart version or change a shared production image to a PR image.
+Maintenance cleanup is merged into `master`, so the frontend PR no longer needs the temporary
+`enable_keep_helm` / `enable_opal_maintenance_service:pr-302` image selection labels. Use the normal deployment image
+and verify that the actual deployed build contains the merged implementation. A local source merge or a mutable
+`latest` tag alone does not prove the deployed image's contents. Frontend-owned dev/staging subchart enablement is
+still required; production must remain disabled.
 
 The normal CNP selection uses `cypress/e2e/functional/opal/**/*.feature` and
 `not @skip and not @R1CRmCreateCaseFilesOff`, so it includes the PO-10273 live scenario and its shared cleanup hook.

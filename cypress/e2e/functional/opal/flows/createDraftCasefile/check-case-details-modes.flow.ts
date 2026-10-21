@@ -77,6 +77,29 @@ export class CheckCaseDetailsModesFlow {
   public expectReturn(dashboard: string): void {
     this.actions.expectReturn(dashboard);
   }
+  /** Supplies one explicit checker provider result.
+   * @param outcome Success, shared error or malformed receipt. */
+  public enableDecision(outcome: string): void {
+    this.actions.enableDecision(outcome);
+  }
+  /** Checks the exact confirmation and accepted queue transition.
+   * @param outcome Approved or rejected confirmation. */
+  public expectDecisionReturn(outcome: string): void {
+    this.actions.expectDecisionReturn(outcome);
+  }
+  /** Checks an uncertain completion is locked without success or replay. */
+  public expectDecisionError(): void {
+    this.actions.expectDecisionError();
+  }
+  /** Checks a notice lifetime boundary does not repeat the write.
+   * @param method Dismiss, refresh, history or departure. */
+  public clearDecisionNotice(method: string): void {
+    this.actions.clearDecisionNotice(method);
+  }
+  /** Checks the confirmed decision at a narrow viewport. */
+  public expectDecisionReflow(): void {
+    this.actions.expectDecisionReflow();
+  }
   /** Opens the deletion reason screen from review.
    */
   public chooseDelete(): void {

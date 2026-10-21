@@ -2,6 +2,7 @@ import { createPersistedCasefileResolved } from 'src/app/flows/cases/cases-draft
 import { createPersistedCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { reviewUser, setupReview } from './setup/review.setup';
+import { createDecisionScenario } from './mocks/casefile-decision.mock';
 
 const S = CreateCasefileSelectors.review;
 const buildTags = (): string[] => ['@JIRA-STORY:PO-10608', '@JIRA-EPIC:PO-10817', '@JIRA-LABEL:create-draft-casefile'];
@@ -115,16 +116,28 @@ describe('Persisted case review accessibility', () => {
 
   it(
     'AC3. should activate Approve with native Space and Tab then submit Continue with Enter',
-    { tags: buildTags() },
+    { tags: [...buildTags(), '@JIRA-STORY:PO-10611'] },
     () => {
-      setupReview({ resolved: createPersistedCasefileResolved() });
+      const { resolved, accepted } = createDecisionScenario();
+      cy.intercept('PATCH', '/opal-maintenance-service/draft-casefiles/17', {
+        statusCode: 200,
+        body: accepted,
+        headers: { ETag: '"1"' },
+      }).as('decisionPatch');
+      setupReview({ resolved });
       cy.get(S.decisionApprove).focus();
       cy.press(Cypress.Keyboard.Keys.SPACE);
       cy.get(S.decisionApprove).should('be.checked');
       cy.press(Cypress.Keyboard.Keys.TAB);
       cy.get(S.decisionContinue).should('be.focused');
       cy.get(S.decisionContinue).type('{enter}');
+      cy.wait('@decisionPatch').then(({ request }) => {
+        expect(request.headers['if-match']).to.equal('"0"');
+        expect(request.body).to.deep.equal({ business_unit_id: 44, casefile_status: 'PUBLISHING_PENDING' });
+      });
+      cy.get('@decisionPatch.all').should('have.length', 1);
       cy.get('@routerNavigate').should('have.been.calledOnce');
+      cy.get(S.decisionContinue).should('be.disabled');
     },
   );
 

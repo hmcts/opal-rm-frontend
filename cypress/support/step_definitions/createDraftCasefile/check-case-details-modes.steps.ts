@@ -48,3 +48,13 @@ Then('the saved deletion reason screen is shown', () => flow.expectDelete());
 Then('the selected review is restored after {int} selected GET requests without mutation', (count: number) =>
   flow.expectReviewAfterCancel(count),
 );
+
+Given('saved checker decision has the {string} API outcome', (outcome: string) => flow.enableDecision(outcome));
+Then('the checker sees the confirmed {string} decision return', (outcome: string) =>
+  flow.expectDecisionReturn(outcome),
+);
+Then('the saved checker decision fails without success or replay', () => flow.expectDecisionError());
+Then('the checker decision confirmation clears on {string} without replay', (method: string) =>
+  flow.clearDecisionNotice(method),
+);
+Then('the checker decision confirmation reflows at 320 CSS pixels', () => flow.expectDecisionReflow());

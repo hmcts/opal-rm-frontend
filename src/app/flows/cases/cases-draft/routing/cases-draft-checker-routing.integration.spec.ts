@@ -13,7 +13,7 @@ import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-u
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter, ResolveStart, Router } from '@angular/router';
+import { NavigationCancel, NavigationCancellationCode, provideRouter, ResolveStart, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { getState } from '@ngrx/signals';
 import { filter, firstValueFrom, of, Subject, take } from 'rxjs';
@@ -1144,31 +1144,107 @@ describe('checker production route boundaries', () => {
     expect(TestBed.inject(Router).url).toBe('/access-denied');
     expect(harness.routeNativeElement?.querySelector('tbody')).toBeNull();
   });
-  it('blocks departure during PATCH and suppresses a late handoff after the cancelled departure', async () => {
-    const reviewUrl = '/cases/draft/check-and-validate/review/123';
-    const harness = await openPersisted(reviewUrl);
-    const page = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent))
-      .componentInstance as CasesCreateCasefileCheckDetailsComponent;
-    const operation = page.handleDecision({ decision: 'approve', targetStatus: 'PUBLISHING_PENDING' });
-    const request = await vi.waitFor(() =>
-      http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
-    );
-    expect(request.request.headers.get('If-Match')).toBe('"0"');
-    expect(await TestBed.inject(Router).navigateByUrl(dashboard + '#to-review')).toBe(false);
-    const body = createPersistedCasefileDetail();
-    body.draft_casefile_id = 123;
-    body.casefile_status = 'PUBLISHING_PENDING';
-    request.flush(body, { headers: { ETag: '"1"' } });
-    await operation;
-    expect(TestBed.inject(Router).url).toBe(reviewUrl);
-    await page.handleDecision({ decision: 'approve', targetStatus: 'PUBLISHING_PENDING' });
-    http.expectNone((candidate) => candidate.method === 'PATCH');
-  });
-
   const checkerDecisions: CasesDraftCasefileDecision[] = [
     { decision: 'approve', targetStatus: 'PUBLISHING_PENDING' },
     { decision: 'reject', targetStatus: 'REJECTED', reason: 'Synthetic rejection reason' },
   ];
+  const cancelledCheckerDepartures = checkerDecisions.flatMap((decision) =>
+    (['sequential', 'rapid'] as const).map((departureOrder) => ({ decision, departureOrder })),
+  );
+  it.each(cancelledCheckerDepartures)(
+    'returns recorded $decision.decision to To review after $departureOrder pending departures',
+    async ({ decision, departureOrder }) => {
+      const reviewUrl = '/cases/draft/check-and-validate/review/123';
+      const harness = await openPersisted(reviewUrl);
+      await settle(harness);
+      const router = TestBed.inject(Router);
+      const page = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent))
+        .componentInstance as CasesCreateCasefileCheckDetailsComponent;
+      const radio = harness.fixture.nativeElement.querySelector(
+        '#create_casefile_review_decision-' + decision.decision,
+      ) as HTMLInputElement;
+      radio.click();
+      harness.detectChanges();
+      if (decision.decision === 'reject') {
+        const reason = harness.fixture.nativeElement.querySelector(
+          '#create_casefile_review_rejection_reason',
+        ) as HTMLTextAreaElement;
+        reason.value = decision.reason;
+        reason.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      const continueButton = harness.fixture.nativeElement.querySelector(
+        '#create_casefile_review_continue',
+      ) as HTMLButtonElement;
+      expect(continueButton.disabled).toBe(false);
+      continueButton.click();
+      const request = await vi.waitFor(() =>
+        http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+      );
+      expect(request.request.headers.get('If-Match')).toBe('"0"');
+      expect(request.request.body).toBe(
+        JSON.stringify({
+          business_unit_id: 44,
+          casefile_status: decision.targetStatus,
+          ...(decision.decision === 'reject' ? { status_message: decision.reason } : {}),
+        }),
+      );
+      const destinations = ['/dashboard/cases', dashboard + '#to-review'];
+      const cancellations = destinations.map((destination) =>
+        firstValueFrom(
+          router.events.pipe(
+            filter(
+              (event): event is NavigationCancel => event instanceof NavigationCancel && event.url === destination,
+            ),
+            take(1),
+          ),
+        ),
+      );
+      const assertPendingReview = () => {
+        expect(router.url).toBe(reviewUrl);
+        expect(page.submissionPending()).toBe(true);
+        expect(continueButton.disabled).toBe(false);
+        continueButton.click();
+        http.expectNone((candidate) => candidate.method === 'PATCH');
+        http.expectNone((candidate) => candidate.url === '/opal-maintenance-service/draft-casefiles');
+      };
+      if (departureOrder === 'rapid') {
+        const departures = destinations.map((destination) => router.navigateByUrl(destination));
+        expect(await Promise.all(departures)).toEqual([false, false]);
+        expect((await Promise.all(cancellations)).map((event) => event.code)).toEqual([
+          NavigationCancellationCode.SupersededByNewNavigation,
+          NavigationCancellationCode.GuardRejected,
+        ]);
+        assertPendingReview();
+      } else {
+        for (const [index, destination] of destinations.entries()) {
+          expect(await router.navigateByUrl(destination)).toBe(false);
+          expect((await cancellations[index]).code).toBe(NavigationCancellationCode.GuardRejected);
+          assertPendingReview();
+        }
+      }
+      const body = createPersistedCasefileDetail();
+      body.draft_casefile_id = 123;
+      body.casefile_status = decision.targetStatus;
+      request.flush(body, { headers: { ETag: '"1"' } });
+      await vi.waitFor(() => flushList('SUBMITTED', 0));
+      await settle(harness);
+      expect(router.url).toBe(dashboard + '#to-review');
+      expect(
+        harness.routeNativeElement?.querySelector('#cases-draft-to-review-tab')?.getAttribute('aria-current'),
+      ).toBe('page');
+      const outcome = decision.decision === 'approve' ? 'approved' : 'rejected';
+      expect(harness.routeNativeElement?.querySelector('#cases-draft-success')?.textContent).toContain(
+        'You have ' + outcome + ' Synthetic Respondent’s case.',
+      );
+      expect(harness.routeNativeElement?.querySelector('#cases-draft-empty')?.textContent).toBe(
+        'There are no cases to review.',
+      );
+      expect(harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent))).toBeNull();
+      await page.handleDecision(decision);
+      http.expectNone((candidate) => candidate.method === 'PATCH');
+    },
+  );
+
   const checkerErrors = checkerDecisions.flatMap((decision) =>
     (
       [

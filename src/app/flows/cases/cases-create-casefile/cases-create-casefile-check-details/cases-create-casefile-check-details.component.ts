@@ -56,7 +56,14 @@ import {
   Injector,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, NavigationStart, Router, UrlTree } from '@angular/router';
+import {
+  ActivatedRoute,
+  NavigationCancel,
+  NavigationCancellationCode,
+  NavigationStart,
+  Router,
+  UrlTree,
+} from '@angular/router';
 import { getState } from '@ngrx/signals';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
 import type { IOpalMaintenanceCountryReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-item.interface';
@@ -144,6 +151,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
 
   private decisionEntry = 0;
   private decisionNavigationRevision = 0;
+  private decisionNavigationId = 0;
   private activeDecision: ICasesDraftDecisionAttempt | null = null;
   private readonly completedDecision = signal(false);
   private readonly completedAmendment = signal<ICasesCreateCasefileAmendmentCompletion | null>(null);
@@ -259,7 +267,22 @@ export class CasesCreateCasefileCheckDetailsComponent {
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
-      if (event instanceof NavigationStart) this.decisionNavigationRevision++;
+      const expected = this.activeDecision;
+      if (event instanceof NavigationStart) {
+        this.decisionNavigationRevision++;
+        this.decisionNavigationId = event.id;
+      } else if (
+        event instanceof NavigationCancel &&
+        event.code !== undefined &&
+        [NavigationCancellationCode.GuardRejected, NavigationCancellationCode.SupersededByNewNavigation].includes(
+          event.code,
+        ) &&
+        event.id === this.decisionNavigationId &&
+        expected?.revision === this.decisionNavigationRevision - 1
+      ) {
+        // Forgive only this uncommitted start, preserving any earlier change of route context.
+        expected.revision = this.decisionNavigationRevision;
+      }
     });
     effect(() => {
       const identity = this.currentCheckerIdentity();

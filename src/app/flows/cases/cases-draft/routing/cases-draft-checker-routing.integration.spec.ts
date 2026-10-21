@@ -997,6 +997,43 @@ describe('checker production route boundaries', () => {
     await harness.navigateByUrl(dashboard + '?page=1&sort=respondent&direction=ascending#' + tab);
     http.expectNone((request) => request.url.includes('/draft-casefiles'));
   });
+  it('ignores forged success and respondent names on direct dashboard entry without issuing a mutation', async () => {
+    const forgedName = 'Synthetic Forged Banner';
+    const url =
+      dashboard +
+      '?success=approved&outcome=approved&respondentName=' +
+      encodeURIComponent(forgedName) +
+      '&name=' +
+      encodeURIComponent(forgedName) +
+      '#to-review';
+    const arrival = RouterTestingHarness.create(url);
+    const list = await vi.waitFor(() =>
+      http.expectOne(
+        (request) =>
+          request.method === 'GET' &&
+          request.url === '/opal-maintenance-service/draft-casefiles' &&
+          request.params.get('restrict') !== 'counts',
+      ),
+    );
+    expect(list.request.params.get('business_unit_id')).toBe('44');
+    expect(list.request.params.get('casefile_status')).toBe('SUBMITTED,RESUBMITTED');
+    for (const injected of ['success', 'outcome', 'respondentName', 'name'])
+      expect(list.request.params.has(injected)).toBe(false);
+    list.flush({ count: 0, summaries: [] });
+    flushCounts();
+    const harness = await arrival;
+    await settle(harness);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftCheckAndValidateTabsComponent))
+      .componentInstance as CasesDraftCheckAndValidateTabsComponent;
+    expect(TestBed.inject(Router).url).toBe(url);
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-heading')?.textContent).toBe('Review cases');
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-empty')).not.toBeNull();
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-success')).toBeNull();
+    expect(harness.routeNativeElement?.textContent).not.toContain(forgedName);
+    expect(page.successText()).toBeNull();
+    expect(page.navigation.consumeCheckerDecision()).toBeNull();
+    http.expectNone((request) => request.method === 'PATCH' || request.method === 'PUT');
+  });
   it('ignores injected table query metadata and generates only fragment links', async () => {
     const pending = RouterTestingHarness.create(dashboard + '?page=9&sort=applicant&direction=descending#rejected');
     await vi.waitFor(() => flushList('REJECTED', 26));

@@ -59,9 +59,9 @@
       />
     }
     @for (decisionDraft of decisionDrafts(); track decisionDraft.draft_casefile_id) {
-      <app-cases-draft-casefile-decision (decisionEvent)="handleDecision()" />
+      <app-cases-draft-casefile-decision [blocked]="decisionLocked()" (decisionEvent)="handleDecision($event)" />
     }
-    @if (reviewable()) {
+    @if (reviewable() && !decisionLocked()) {
       <p class="govuk-body govuk-!-margin-top-6">
         <a
           id="create_casefile_review_delete"

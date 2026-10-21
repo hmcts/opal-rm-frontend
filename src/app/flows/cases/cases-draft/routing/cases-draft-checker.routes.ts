@@ -1,3 +1,4 @@
+import { casesCreateCasefileSubmissionPendingGuard } from '../../cases-create-casefile/routing/guards/cases-create-casefile-submission-pending.guard';
 import { CasesDraftCasefileStore } from '../stores/cases-draft-casefile.store';
 import { resolveCasesDraftReadIdentity } from '../utils/cases-draft-casefile-permissions';
 import { casesDraftCasefileResolver } from './resolvers/cases-draft-casefile.resolver';
@@ -84,6 +85,7 @@ const children: Routes = [
             (m) => m.CasesCreateCasefileCheckDetailsComponent,
           ),
         data: { title: 'Review case', casefileIntent: 'checker-review' },
+        canDeactivate: [casesCreateCasefileSubmissionPendingGuard],
         resolve: { title: TitleResolver, draftCasefile: casesDraftCasefileResolver },
       },
       {

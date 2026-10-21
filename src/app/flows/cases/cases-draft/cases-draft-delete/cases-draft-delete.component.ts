@@ -57,6 +57,8 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
   private readonly store = inject(CasesDraftCasefileStore);
   private readonly globalStore = inject(GlobalStore);
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
+  private readonly returnButton = viewChild<ElementRef<HTMLButtonElement>>('returnButton');
+  private readonly completedNotice = signal<ICasesDraftDeletionNotice | null>(null);
   private readonly resolved = signal<ICasesDraftCasefileResolved | null>(null);
   private readonly denied = signal(false);
   private entry = 0;
@@ -70,7 +72,7 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
   };
   public readonly submitting = signal(false);
   public readonly navigating = signal(false);
-  public readonly deleted = signal(false);
+  public readonly deleted = computed(() => this.completedNotice() !== null);
   public override form = new FormGroup({
     create_casefile_delete_reason: new FormControl('', {
       nonNullable: true,
@@ -110,7 +112,8 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
       this.denied.set(false);
       this.submitting.set(false);
       this.navigating.set(false);
-      this.deleted.set(false);
+      this.completedNotice.set(null);
+      this.navigation.clearCheckerDeletion();
       this.form.controls.create_casefile_delete_reason.enable({ emitEvent: false });
       this.form.reset({ create_casefile_delete_reason: '' });
       this.clearAllErrorMessages();
@@ -138,6 +141,7 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
 
   private denyAccess(): void {
     this.denied.set(true);
+    this.completedNotice.set(null);
     this.form.reset({ create_casefile_delete_reason: '' });
     void this.deleteRouter
       .navigateByUrl('/error/permission-denied')
@@ -158,17 +162,28 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
     this.utilsService.scrollToTop();
   }
 
-  private async navigateAfterDeletion(notice: ICasesDraftDeletionNotice): Promise<void> {
+  public async handleReturnToReviewCases(): Promise<void> {
+    const notice = this.completedNotice();
+    if (!notice || !this.eligible() || this.navigating()) return;
     const current = this.navigation.selection();
     const selection = current.tab === 'to-review' ? current : defaultCasesDraftNavigation('to-review', 'checker');
     if (!this.navigation.recordCheckerDeletion(notice)) return;
+    const entry = this.entry;
     this.navigation.setSelection(selection);
     this.navigating.set(true);
     let accepted = false;
     try {
       accepted = await this.deleteRouter.navigateByUrl(this.navigation.dashboardUrl(selection));
+    } catch {
+      if (this.currentEntry(entry)) this.utilsService.scrollToTop();
     } finally {
-      if (!accepted) this.navigation.clearCheckerDeletion();
+      if (this.currentEntry(entry)) {
+        this.navigating.set(false);
+        if (!accepted) {
+          this.navigation.clearCheckerDeletion();
+          afterNextRender(() => this.returnButton()?.nativeElement.focus(), { injector: this.deleteInjector });
+        }
+      }
     }
   }
 
@@ -222,13 +237,13 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
         ).pipe(take(1), defaultIfEmpty(null), takeUntilDestroyed(this.destroyRef)),
       );
       if (!this.currentEntry(entry) || !response?.body) return;
-      this.deleted.set(true);
-      if (this.navigationRevision !== revision) return;
-      await this.navigateAfterDeletion({
+      this.completedNotice.set({
         identity,
         draftCasefileId: draft.draft_casefile_id,
         respondentName: response.body.casefile_snapshot.respondent_account.respondent_name,
       });
+      if (this.navigationRevision !== revision) return;
+      await this.handleReturnToReviewCases();
     } catch {
       if (this.currentEntry(entry)) this.utilsService.scrollToTop();
     } finally {

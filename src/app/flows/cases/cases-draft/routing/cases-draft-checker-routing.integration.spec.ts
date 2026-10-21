@@ -265,6 +265,89 @@ describe('checker production route boundaries', () => {
     http.expectNone((candidate) => candidate.method === 'PATCH');
   });
 
+  it('retries the dashboard return after deletion succeeds without issuing another PATCH', async () => {
+    const harness = await openPersisted(deleteUrl);
+    const router = TestBed.inject(Router);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const saved = shell.injector.get(CasesDraftCasefileStore);
+    const navigation = shell.injector.get(CasesDraftNavigationService);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+    const deletion = page.handleDelete();
+    const patch = await vi.waitFor(() =>
+      http.expectOne((request) => request.method === 'PATCH' && request.url.endsWith('/draft-casefiles/123')),
+    );
+    const deleted = createPersistedCasefileDetail();
+    deleted.draft_casefile_id = 123;
+    deleted.casefile_status = 'DELETED';
+    patch.flush(deleted, { headers: { ETag: '"1"' } });
+    const firstList = await vi.waitFor(() =>
+      http.expectOne(
+        (request) => request.url === '/opal-maintenance-service/draft-casefiles' && !request.params.has('restrict'),
+      ),
+    );
+    expect(firstList.request.params.get('casefile_status')).toBe('SUBMITTED,RESUBMITTED');
+    const firstCounts = http.match((request) => request.params.get('restrict') === 'counts');
+    expect(firstCounts).toHaveLength(2);
+    for (const request of firstCounts) request.flush({ count: 0 });
+    firstList.flush(
+      { retriable: true, title: 'Synthetic return failure', detail: 'Synthetic return detail' },
+      { status: 503, statusText: 'Synthetic return failure' },
+    );
+    await deletion;
+    await settle(harness);
+    expect(router.url).toBe(deleteUrl);
+    expect(bannerError().message).toBe('Synthetic return detail');
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(page.deleted()).toBe(true);
+    expect(page.submitting()).toBe(false);
+    expect(page.navigating()).toBe(false);
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_submit')).toBeNull();
+    expect(harness.routeNativeElement?.querySelector('opal-lib-govuk-cancel-link')).toBeNull();
+    const retry = harness.routeNativeElement?.querySelector<HTMLButtonElement>('#create_casefile_delete_return');
+    expect(retry).not.toBeNull();
+    expect(retry?.type).toBe('button');
+    expect(retry?.textContent?.trim()).toBe('Return to Review cases');
+    expect(document.activeElement).toBe(retry);
+    retry!.click();
+    retry!.click();
+    const secondList = await vi.waitFor(() =>
+      http.expectOne(
+        (request) => request.url === '/opal-maintenance-service/draft-casefiles' && !request.params.has('restrict'),
+      ),
+    );
+    expect(secondList.request.params.get('casefile_status')).toBe('SUBMITTED,RESUBMITTED');
+    expect(page.navigating()).toBe(true);
+    http.expectNone((request) => request.method === 'PATCH');
+    const secondCounts = http.match((request) => request.params.get('restrict') === 'counts');
+    expect(secondCounts).toHaveLength(2);
+    for (const request of secondCounts) request.flush({ count: 0 });
+    secondList.flush({
+      count: 1,
+      summaries: [
+        createCasesDraftSummary({
+          draft_casefile_id: 456,
+          casefile_status: 'SUBMITTED',
+          submitted_by: 'BUU-OTHER',
+        }),
+      ],
+    });
+    await vi.waitFor(() => expect(router.url).toBe(dashboard + '#to-review'));
+    await settle(harness);
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-success')?.textContent).toContain(
+      'You have deleted Synthetic Respondent’s case.',
+    );
+    expect(harness.routeNativeElement?.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(harness.routeNativeElement?.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('456');
+    expect(harness.routeNativeElement?.querySelector('[data-draft-id="123"]')).toBeNull();
+    expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))).toBeNull();
+    expect(saved.draft()).toBeNull();
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+  });
+
   it.each([401, 403, 503])('handles Cancel resolver HTTP %s without replacing shared feedback', async (status) => {
     const harness = await openPersisted(deleteUrl);
     const router = TestBed.inject(Router);

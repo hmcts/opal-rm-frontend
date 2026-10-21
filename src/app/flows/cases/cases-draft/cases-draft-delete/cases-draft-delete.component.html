@@ -16,6 +16,11 @@
         [characterCountEnabled]="true"
         [maxCharacterLimit]="250"
       />
+      @if (requiresReload()) {
+        <p id="create_casefile_delete_recovery" class="govuk-body" role="status">
+          The deletion outcome is not confirmed. Select No - cancel to reload the saved case before trying again.
+        </p>
+      }
       <div class="govuk-button-group">
         @if (deleted()) {
           <button
@@ -33,7 +38,7 @@
             id="create_casefile_delete_submit"
             type="submit"
             class="govuk-button govuk-button--warning"
-            [disabled]="!eligible() || submitting() || navigating()"
+            [disabled]="!eligible() || submitting() || navigating() || requiresReload()"
           >
             Yes - delete case
           </button>

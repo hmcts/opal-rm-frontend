@@ -302,6 +302,21 @@ support and feature files. Cleanup leaves Accept unrestricted: success has no bo
 `application/problem+json`. Verify cleanup through the live submission scenario and retain its outcome in the PR's
 test evidence.
 
+Cleanup failure regressions run in the existing Cypress component suite at
+`cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts`. The spec installs the real `afterEach` hook,
+uses the real Cypress command queue and receipt files, and controls only the DELETE request boundary. It covers
+non-204 failures (400, 401, 403, 404, 409, 500 and 503) mixed with a successful deletion, plus transport failure on
+the first request and after a 204. Assertions require hook failure, preservation of every outstanding ID/marker in
+memory and on disk, and persistence of all targets before the first request. Only successful receipts may be cleared.
+An assertion after cleanup requires the expected failure to have occurred, so silently accepting a failed deletion
+fails the regression test. Synthetic fixture ledgers are reset between tests and cleared after verification.
+This is controlled helper coverage; the live submission scenario remains the authenticated integration check.
+
+```bash
+corepack yarn exec cypress run --component --browser chrome \
+  --spec cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts
+```
+
 ## Shared casefile permission coverage
 
 `CasefilePermissions.feature` runs exactly seventeen unique protected routes with the release enabled. Each example first

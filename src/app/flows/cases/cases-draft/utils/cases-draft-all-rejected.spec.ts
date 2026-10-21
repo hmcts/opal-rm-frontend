@@ -76,7 +76,8 @@ it.each([
   { ...event, draftCasefileId: Infinity },
   { ...event, draftCasefileId: Number.MAX_SAFE_INTEGER + 1 },
   { ...event, respondentForename: null },
-  { ...event, respondentForename: ' ' },
+  { ...event, respondentForename: 42 },
+  { ...event, respondentForename: undefined },
   { ...event, respondentSurname: undefined },
   { ...event, respondentSurname: ' ' },
 ])('rejects malformed or foreign success event %j', (value) => {
@@ -94,6 +95,15 @@ it.each(['dashboard', 'all-rejected'] as const)('accepts a resubmission notice f
     ...event,
     origin,
     respondentForename: 'Synthetic',
+    respondentSurname: 'Respondent',
+  });
+});
+
+// Hydrated saved respondents represent omitted optional forenames as an empty string.
+it.each(['', ' ', '\t'])('accepts surname-only notices with optional forename %j', (respondentForename) => {
+  expect(decodeAllRejectedSuccess({ ...event, respondentForename }, identity)).toEqual({
+    ...event,
+    respondentForename: '',
     respondentSurname: 'Respondent',
   });
 });

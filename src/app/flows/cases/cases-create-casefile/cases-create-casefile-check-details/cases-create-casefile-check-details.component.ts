@@ -417,10 +417,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
       return;
     }
     this.globalStore.resetBannerError();
-    if (!this.draftNavigation.recordAllRejectedResubmission(completed.notice)) {
-      this.showError();
-      return;
-    }
+    this.draftNavigation.recordAllRejectedResubmission(completed.notice);
     if (!(await this.navigate(completed.target))) this.draftNavigation.clearAllRejectedSuccess();
   }
 

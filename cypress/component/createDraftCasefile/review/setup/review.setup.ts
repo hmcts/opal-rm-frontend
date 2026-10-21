@@ -125,6 +125,7 @@ export function setupReview(options: ReviewSetupOptions = {}) {
       cy.stub(TestBed.inject(Router), 'navigateByUrl').as('routerNavigate').resolves(!options.failNavigation);
       cy.wrap(store, { log: false }).as('reviewStore');
       cy.wrap(persistedStore, { log: false }).as('persistedCasefileStore');
+      if (options.resolved) cy.wrap(TestBed.inject(CasesDraftNavigationService), { log: false }).as('draftNavigation');
       cy.wrap(routeData, { log: false }).as('reviewRouteData');
       cy.wrap(fixture, { log: false }).as('reviewFixture');
       cy.wrap(fixture.nativeElement, { log: false }).as('reviewHost');

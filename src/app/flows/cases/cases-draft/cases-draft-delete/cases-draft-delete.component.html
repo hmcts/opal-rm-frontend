@@ -17,16 +17,29 @@
         [maxCharacterLimit]="250"
       />
       <div class="govuk-button-group">
-        <button
-          id="create_casefile_delete_submit"
-          type="submit"
-          class="govuk-button govuk-button--warning"
-          [disabled]="!eligible() || submitting() || deleted() || navigating()"
-        >
-          Yes - delete case
-        </button>
-        @if (eligible() && !submitting() && !deleted() && !navigating()) {
-          <opal-lib-govuk-cancel-link cancelLinkText="No - cancel" (linkClickEvent)="handleCancel()" />
+        @if (deleted()) {
+          <button
+            #returnButton
+            id="create_casefile_delete_return"
+            type="button"
+            class="govuk-button"
+            [disabled]="!eligible() || navigating()"
+            (click)="handleReturnToReviewCases()"
+          >
+            Return to Review cases
+          </button>
+        } @else {
+          <button
+            id="create_casefile_delete_submit"
+            type="submit"
+            class="govuk-button govuk-button--warning"
+            [disabled]="!eligible() || submitting() || navigating()"
+          >
+            Yes - delete case
+          </button>
+          @if (eligible() && !submitting() && !navigating()) {
+            <opal-lib-govuk-cancel-link cancelLinkText="No - cancel" (linkClickEvent)="handleCancel()" />
+          }
         }
       </div>
     </form>

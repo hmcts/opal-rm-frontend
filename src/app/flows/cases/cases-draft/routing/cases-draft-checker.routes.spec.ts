@@ -1,3 +1,4 @@
+import { casesCreateCasefileSubmissionPendingGuard } from '../../cases-create-casefile/routing/guards/cases-create-casefile-submission-pending.guard';
 import { describe, expect, it } from 'vitest';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
 import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from '@app/constants/route-data.constant';
@@ -26,5 +27,9 @@ describe('checker child routes', () => {
       expect(route.resolve).toEqual({ title: TitleResolver, draftCasefile: expect.any(Function) });
       expect(await (route.loadComponent as () => Promise<unknown>)()).toEqual(expect.any(Function));
     }
+  });
+  it('protects the checker review receipt while a submission is pending', () => {
+    const review = groups[1].children!.find((route) => route.data?.['casefileIntent'] === 'checker-review');
+    expect(review?.canDeactivate).toEqual([casesCreateCasefileSubmissionPendingGuard]);
   });
 });

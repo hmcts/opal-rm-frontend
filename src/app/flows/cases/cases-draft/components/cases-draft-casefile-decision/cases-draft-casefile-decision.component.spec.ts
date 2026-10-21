@@ -244,4 +244,26 @@ describe('CasesDraftCasefileDecisionComponent', () => {
     expect(query(`#${reasonId}`).getAttribute('aria-describedby')).toBe(`${reasonId}-hint ${reasonId}-count`);
     expect(query(`#${reasonId}`).hasAttribute('aria-invalid')).toBe(false);
   });
+  it('does not emit or allow controls while the parent blocks decisions', () => {
+    const emit = vi.spyOn(component.decisionEvent, 'emit');
+    component.form.controls.create_casefile_review_decision.setValue('approve');
+    fixture.componentRef.setInput('blocked', true);
+    fixture.detectChanges();
+    component.handleContinue();
+    expect(emit).not.toHaveBeenCalled();
+    expect(component.form.disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('#create_casefile_review_continue').disabled).toBe(true);
+  });
+
+  it('restores the retained decision and rejection controls when the parent releases the lock', () => {
+    reject('Synthetic retained reason');
+    fixture.componentRef.setInput('blocked', true);
+    fixture.detectChanges();
+    expect(component.form.disabled).toBe(true);
+    fixture.componentRef.setInput('blocked', false);
+    fixture.detectChanges();
+    expect(component.form.enabled).toBe(true);
+    expect(component.form.controls.create_casefile_review_rejection_reason.value).toBe('Synthetic retained reason');
+    expect(query<HTMLTextAreaElement>(`#${reasonId}`).disabled).toBe(false);
+  });
 });

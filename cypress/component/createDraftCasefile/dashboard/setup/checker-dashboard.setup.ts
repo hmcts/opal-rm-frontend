@@ -1,5 +1,5 @@
 import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
-import type { ICasesDraftDeletionNotice } from 'src/app/flows/cases/cases-draft/interfaces/cases-draft-deletion-notice.interface';
+import type { ICasesDraftDecisionNotice } from 'src/app/flows/cases/cases-draft/interfaces/cases-draft-decision-notice.interface';
 import {
   createPersistedCasefileDetail,
   PERSISTED_CASEFILE_REFERENCES,
@@ -32,7 +32,7 @@ import { CASES_DRAFT_CHECKER_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/
 import { checkerFixtures, checkerUser } from '../mocks/checker-dashboard.mock';
 export interface ICheckerDashboardSetupOptions {
   shell?: boolean;
-  deletionNotice?: ICasesDraftDeletionNotice;
+  decisionNotice?: ICasesDraftDecisionNotice;
   tab?: CasesDraftCheckerTab;
   rows?: IOpalMaintenanceDraftCasefileSummary[];
   role?: 'checker' | 'dual';
@@ -50,11 +50,11 @@ export interface ICheckerDashboardSetupOptions {
 class CheckerRouteHost {}
 /** Keeps production routes and guards; shell mounts additionally isolate external session and telemetry clients. */
 export function setupCheckerDashboard(options: ICheckerDashboardSetupOptions = {}): Cypress.Chainable<void> {
-  if (options.deletionNotice) {
-    cy.stub(CasesDraftNavigationService.prototype, 'consumeCheckerDeletion')
+  if (options.decisionNotice) {
+    cy.stub(CasesDraftNavigationService.prototype, 'consumeCheckerDecision')
       .returns(null)
       .onFirstCall()
-      .returns(structuredClone(options.deletionNotice));
+      .returns(structuredClone(options.decisionNotice));
   }
   const tab = options.tab ?? 'to-review';
   let selectedTab = tab;

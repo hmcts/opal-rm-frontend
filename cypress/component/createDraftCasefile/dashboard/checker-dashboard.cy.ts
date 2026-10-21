@@ -3,10 +3,14 @@ import { Subject, of } from 'rxjs';
 import type { IOpalMaintenanceDraftCasefileListResponse as List } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-list-response.interface';
 import { CASES_DRAFT_CHECKER_TABS as TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-checker-tabs.constant';
 import { setupCheckerDashboard } from './setup/checker-dashboard.setup';
-import { checkerFixtures, checkerEmptyMessages, checkerDeletionNotice } from './mocks/checker-dashboard.mock';
+import { checkerFixtures, checkerEmptyMessages, checkerDecisionNotice } from './mocks/checker-dashboard.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
 const R = CreateCasefileSelectors.review;
-const buildDeletionTags = () => ['@JIRA-STORY:PO-10609', '@JIRA-EPIC:PO-10817'];
+const buildDecisionTags = (): string[] => [
+  '@JIRA-STORY:PO-10611',
+  '@JIRA-EPIC:PO-10817',
+  '@JIRA-LABEL:create-draft-casefile',
+];
 const buildTags = () => ['@JIRA-STORY:PO-10606', '@JIRA-EPIC:PO-10817'];
 describe('Checker routed dashboard', () => {
   it('AC1, AC2. should show permanent queues and exclude own and out of scope work', { tags: buildTags() }, () => {
@@ -188,22 +192,41 @@ describe('Checker routed dashboard', () => {
     });
 });
 
-describe('Checker deletion notice presentation', () => {
+describe('Checker decision notice presentation', () => {
   beforeEach(() => cy.viewport(1280, 900));
-  it('AC3. should announce deletion and restore heading focus on dismissal', { tags: buildDeletionTags() }, () => {
-    setupCheckerDashboard({ rows: [], deletionNotice: checkerDeletionNotice() });
-    const message = 'You have deleted Synthetic Respondent’s case.';
-    cy.get(S.success).should('contain.text', message);
-    cy.get(S.successAnnouncement)
-      .should('have.attr', 'aria-atomic', 'true')
-      .and(($output) => expect($output.text().trim()).to.equal('success: ' + message));
-    cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-    cy.checkA11y();
-    cy.screenshot('po-10609-dashboard-success-1280', { capture: 'viewport' });
-    cy.get(S.successDismiss).focus();
-    cy.press(Cypress.Keyboard.Keys.ENTER);
+  for (const outcome of ['approved', 'rejected', 'deleted'] as const) {
+    it(
+      'AC1, AC2. should announce and dismiss ' + outcome + ' with heading focus',
+      { tags: buildDecisionTags() },
+      () => {
+        setupCheckerDashboard({ decisionNotice: checkerDecisionNotice(outcome), rows: [] });
+        const text = 'You have ' + outcome + ' Synthetic Respondent’s case.';
+        cy.get(S.success).should('contain.text', text);
+        cy.get(S.successAnnouncement)
+          .should('have.length', 1)
+          .and('have.attr', 'aria-atomic', 'true')
+          .should(($output) => expect($output.text().trim()).to.equal('success: ' + text));
+        cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+        cy.checkA11y();
+        cy.screenshot('po-10611-dashboard-' + outcome + '-success-1280', { capture: 'viewport' });
+        cy.get(S.successDismiss).focus();
+        cy.press(Cypress.Keyboard.Keys.ENTER);
+        cy.get(S.success).should('not.exist');
+        cy.get(S.heading).should('be.focused');
+        cy.checkA11y();
+      },
+    );
+  }
+  it('AC3. should show no success for direct dashboard entry without a notice', { tags: buildDecisionTags() }, () => {
+    setupCheckerDashboard();
+    cy.get(S.heading).should('be.visible');
     cy.get(S.success).should('not.exist');
-    cy.get(S.heading).should('be.focused');
-    cy.checkA11y();
+  });
+  it('AC1, AC3. should render the persisted name as ordinary escaped text', { tags: buildDecisionTags() }, () => {
+    const notice = checkerDecisionNotice('approved');
+    notice.respondentName = '<b>Synthetic</b> O’Example';
+    setupCheckerDashboard({ decisionNotice: notice });
+    cy.get(S.success).should('contain.text', 'You have approved <b>Synthetic</b> O’Example’s case.');
+    cy.get(S.success).find('b').should('not.exist');
   });
 });

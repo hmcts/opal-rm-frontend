@@ -56,5 +56,7 @@
       </div>
     </div>
   }
-  <button class="govuk-button" id="create_casefile_review_continue" type="submit">Continue</button>
+  <button class="govuk-button" id="create_casefile_review_continue" type="submit" [disabled]="blocked()">
+    Continue
+  </button>
 </form>

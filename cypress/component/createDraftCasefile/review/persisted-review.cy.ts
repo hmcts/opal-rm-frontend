@@ -1,3 +1,4 @@
+import type { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import type { CasesDraftDeleteComponent } from 'src/app/flows/cases/cases-draft/cases-draft-delete/cases-draft-delete.component';
 import type { ComponentFixture } from '@angular/core/testing';
 import type { Data } from '@angular/router';
@@ -12,10 +13,16 @@ import { CASES_DRAFT_CHECKER_ROUTING_PATHS } from 'src/app/flows/cases/cases-dra
 import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { createCompleteReviewState } from './mocks/review.mock';
+import { createDecisionScenario } from './mocks/casefile-decision.mock';
 import { reviewUser, setupReview, type ReviewStore } from './setup/review.setup';
 
 const S = CreateCasefileSelectors.review;
 const buildTags = (): string[] => ['@JIRA-STORY:PO-10608', '@JIRA-EPIC:PO-10817', '@JIRA-LABEL:create-draft-casefile'];
+const buildDecisionTags = (): string[] => [
+  '@JIRA-STORY:PO-10611',
+  '@JIRA-EPIC:PO-10817',
+  '@JIRA-LABEL:create-draft-casefile',
+];
 const checkerReturn =
   '/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.root + '/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.children.tabs + '#to-review';
 const inputterReturn =
@@ -277,8 +284,14 @@ describe('Persisted case details', () => {
     );
   });
 
-  it('AC3. should block 251 characters and accept exactly 250 without saving the case', { tags: buildTags() }, () => {
-    setupReview({ resolved: createPersistedCasefileResolved() });
+  it('AC3. should block 251 characters and persist exactly 250 once', { tags: buildDecisionTags() }, () => {
+    const { resolved, accepted } = createDecisionScenario('reject');
+    cy.intercept('PATCH', '/opal-maintenance-service/draft-casefiles/17', {
+      statusCode: 200,
+      body: accepted,
+      headers: { ETag: '"1"' },
+    }).as('decisionPatch');
+    setupReview({ resolved });
     spyCompletion();
     cy.get(S.decisionReject).check();
     cy.get(S.rejectionReason).type('R'.repeat(251));
@@ -287,23 +300,41 @@ describe('Persisted case details', () => {
     assertSummaryError('Reason for rejection must be 250 characters or fewer');
     cy.screenshot('po-10608-persisted-reason-validation-1280');
     cy.get('@routerNavigate').should('not.have.been.called');
+    cy.get('@decisionPatch.all').should('have.length', 0);
+    assertNoMutation();
     cy.get(S.rejectionReason).type('{backspace}');
     cy.get(S.rejectionReasonCount).should('contain.text', 'You have 0 characters remaining');
     cy.get(S.decisionContinue).click();
-    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) =>
-      expect(navigate.firstCall.args[0].toString()).to.equal(checkerReturn),
-    );
-    assertSavedEnvelope();
-    assertNoMutation();
+    cy.wait('@decisionPatch').then(({ request }) => {
+      expect(request.headers['if-match']).to.equal('"0"');
+      expect(request.body).to.deep.equal({
+        business_unit_id: 44,
+        casefile_status: 'REJECTED',
+        status_message: 'R'.repeat(250),
+      });
+    });
+    cy.get('@decisionPatch.all').should('have.length', 1);
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
+      expect(navigate).to.have.been.calledOnce;
+      expect(navigate.firstCall.args[0].toString()).to.equal(checkerReturn);
+    });
+    cy.get('@completeSubmission').should('not.have.been.called');
   });
 
-  it('AC3. should clear rejection errors and reason when switching to Approve', { tags: buildTags() }, () => {
-    setupReview({ resolved: createPersistedCasefileResolved() });
+  it('AC3. should clear rejection errors and reason when switching to Approve', { tags: buildDecisionTags() }, () => {
+    const { resolved, accepted } = createDecisionScenario();
+    cy.intercept('PATCH', '/opal-maintenance-service/draft-casefiles/17', {
+      statusCode: 200,
+      body: accepted,
+      headers: { ETag: '"1"' },
+    }).as('decisionPatch');
+    setupReview({ resolved });
     spyCompletion();
     cy.get(S.decisionReject).check();
     cy.get(S.rejectionReason).type('R'.repeat(251));
     cy.get(S.decisionContinue).click();
     assertSummaryError('Reason for rejection must be 250 characters or fewer');
+    cy.get('@decisionPatch.all').should('have.length', 0);
     cy.get(S.decisionApprove).check();
     cy.get(S.rejectionReason).should('not.exist');
     cy.get(S.decisionSummary).should('not.exist');
@@ -312,57 +343,96 @@ describe('Persisted case details', () => {
     cy.get(S.rejectionReasonCount).should('contain.text', 'You have 250 characters remaining');
     cy.get(S.decisionApprove).check();
     cy.get(S.decisionContinue).click();
-    assertSavedEnvelope();
-    assertNoMutation();
+    cy.wait('@decisionPatch').then(({ request }) => {
+      expect(request.headers['if-match']).to.equal('"0"');
+      expect(request.body).to.deep.equal({ business_unit_id: 44, casefile_status: 'PUBLISHING_PENDING' });
+    });
+    cy.get('@decisionPatch.all').should('have.length', 1);
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
+      expect(navigate).to.have.been.calledOnce;
+      expect(navigate.firstCall.args[0].toString()).to.equal(checkerReturn);
+    });
+    cy.get('@completeSubmission').should('not.have.been.called');
   });
 
-  ['approve', 'reject'].forEach((decision) => {
-    it(
-      `AC3. should locally return after ${decision} while preserving lifecycle and creation completion`,
-      { tags: buildTags() },
-      () => {
-        setupReview({ resolved: createPersistedCasefileResolved() });
-        spyCompletion();
-        cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
-        if (decision === 'reject') cy.get(S.rejectionReason).type('Synthetic review reason');
-        cy.get(S.decisionContinue).click();
-        cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) =>
-          expect(navigate.firstCall.args[0].toString()).to.equal(checkerReturn),
-        );
-        assertSavedEnvelope();
-        cy.get<ReviewStore>('@reviewStore').should((store) => expect(store.submissionSucceeded()).to.equal(false));
-        assertNoMutation();
-      },
-    );
-  });
+  for (const decision of ['approve', 'reject'] as const) {
+    it('AC1, AC2. should persist ' + decision + ' once before returning', { tags: buildDecisionTags() }, () => {
+      const { resolved, accepted, reason } = createDecisionScenario(decision);
+      let release!: () => void;
+      const held = new Promise<void>((done) => {
+        release = done;
+      });
+      cy.intercept('PATCH', '/opal-maintenance-service/draft-casefiles/17', (request) =>
+        held.then(() =>
+          request.reply({
+            statusCode: 200,
+            body: accepted,
+            headers: { ETag: '"1"' },
+          }),
+        ),
+      ).as('decisionPatch');
+      setupReview({ resolved });
+      spyCompletion();
+      cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
+      if (decision === 'reject') cy.get(S.rejectionReason).type(reason);
+      cy.get(S.decisionContinue).click().should('be.disabled');
+      cy.get(S.decisionApprove).should('be.disabled');
+      cy.get(S.decisionReject).should('be.disabled');
+      if (decision === 'reject') cy.get(S.rejectionReason).should('be.disabled');
+      cy.get(S.delete).should('not.exist');
+      cy.get('@routerNavigate').should('not.have.been.called');
+      cy.then(() => release());
+      cy.wait('@decisionPatch').then(({ request }) => {
+        expect(request.headers['if-match']).to.equal('"0"');
+        expect(request.body).to.deep.equal({
+          business_unit_id: 44,
+          casefile_status: accepted.casefile_status,
+          ...(decision === 'reject' ? { status_message: reason } : {}),
+        });
+      });
+      cy.get('@decisionPatch.all').should('have.length', 1);
+      cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
+        expect(navigate).to.have.been.calledOnce;
+        expect(navigate.firstCall.args[0].toString()).to.equal(checkerReturn);
+      });
+      cy.get(S.decisionContinue).should('be.disabled');
+      cy.get<ReviewStore>('@reviewStore').should((store) => expect(store.submissionSucceeded()).to.equal(false));
+      cy.get('@completeSubmission').should('not.have.been.called');
+    });
+  }
 
-  ['false', 'rejected'].forEach((failure) => {
+  for (const failure of ['false', 'rejected'] as const) {
     it(
-      `AC3. should retain local decisions after ${failure} navigation and allow retry without mutation`,
-      { tags: buildTags() },
+      'AC1, AC2. should keep an accepted decision locked when navigation is ' + failure,
+      { tags: buildDecisionTags() },
       () => {
-        setupReview({ resolved: createPersistedCasefileResolved(), failNavigation: true });
+        const { resolved, accepted } = createDecisionScenario();
+        cy.intercept('PATCH', '/opal-maintenance-service/draft-casefiles/17', {
+          statusCode: 200,
+          body: accepted,
+          headers: { ETag: '"1"' },
+        }).as('decisionPatch');
+        setupReview({ resolved, failNavigation: true });
         spyCompletion();
         if (failure === 'rejected')
           cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
             navigate.rejects(new Error('Synthetic navigation rejection')),
           );
-        cy.get(S.decisionReject).check();
-        cy.get(S.rejectionReason).type('Synthetic reason retained for retry');
+        cy.get(S.decisionApprove).check();
         cy.get(S.decisionContinue).click();
-        cy.get<InstanceType<typeof GlobalStore>>('@globalStore').should((store) =>
-          expect(store.bannerError().error).to.equal(true),
-        );
-        cy.get(S.decisionReject).should('be.checked');
-        cy.get(S.rejectionReason).should('have.value', 'Synthetic reason retained for retry');
-        cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) => navigate.resolves(true));
-        cy.get(S.decisionContinue).click();
-        cy.get('@routerNavigate').should('have.been.calledTwice');
-        assertSavedEnvelope();
-        assertNoMutation();
+        cy.wait('@decisionPatch');
+        cy.get(S.decisionContinue).should('be.disabled');
+        cy.get(S.decisionApprove).should('be.checked').and('be.disabled');
+        cy.get(S.delete).should('not.exist');
+        cy.get('@decisionPatch.all').should('have.length', 1);
+        cy.get('@routerNavigate').should('have.been.calledOnce');
+        cy.get<InstanceType<typeof CasesDraftNavigationService>>('@draftNavigation').then((navigation) => {
+          expect(navigation.consumeCheckerDecision()).to.equal(null);
+        });
+        cy.get('@completeSubmission').should('not.have.been.called');
       },
     );
-  });
+  }
 
   it(
     'AC1, AC3. should reset decisions, reason and errors on same-component draft A to B reuse',
@@ -440,7 +510,7 @@ describe('Persisted case details', () => {
       cy.get<ComponentFixture<CasesCreateCasefileCheckDetailsComponent>>('@reviewFixture').then(
         ({ componentInstance }) => {
           componentInstance.handleBack();
-          componentInstance.handleDecision();
+          componentInstance.handleDecision({ decision: 'approve', targetStatus: 'PUBLISHING_PENDING' });
         },
       );
       cy.get('@routerNavigate').should('not.have.been.called');
@@ -486,7 +556,8 @@ describe('Persisted case details', () => {
       cy.get(S.decisionHost).should('not.exist');
       cy.get(S.delete).should('not.exist');
       cy.get<ComponentFixture<CasesCreateCasefileCheckDetailsComponent>>('@reviewFixture').then(
-        ({ componentInstance }) => componentInstance.handleDecision(),
+        ({ componentInstance }) =>
+          componentInstance.handleDecision({ decision: 'approve', targetStatus: 'PUBLISHING_PENDING' }),
       );
       cy.get('@routerNavigate').should('not.have.been.called');
       cy.get('@reviewHost').find(S.backLink).click();

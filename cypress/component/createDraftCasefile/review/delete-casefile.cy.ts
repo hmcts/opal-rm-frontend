@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import type { BehaviorSubject } from 'rxjs';
 import type { Data } from '@angular/router';
+import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { setupReview } from './setup/review.setup';
@@ -127,6 +128,7 @@ describe('Delete casefile request handling', () => {
     cy.get(D.submit).click().should('be.disabled');
     cy.get(D.cancel).should('not.exist');
     cy.get(D.reason).should('be.disabled').and('have.value', scenario.reason);
+    cy.get(D.returnToReviewCases).should('not.exist');
     cy.then(() => release());
     cy.wait('@deletePatch').then(({ request }) => {
       expect(request.headers['if-match']).to.equal('"0"');
@@ -140,6 +142,62 @@ describe('Delete casefile request handling', () => {
     cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
       expect(navigate.firstCall.args[0].toString()).to.equal('/cases/draft/check-and-validate/tabs#to-review');
     });
+  });
+
+  it('AC3. should retry the return after a completed deletion without another PATCH', { tags: buildTags() }, () => {
+    const scenario = createDeletionScenario();
+    let releaseReturn: () => void = () => {
+      throw new Error('Return navigation was not initialized');
+    };
+    const heldReturn = new Promise<boolean>((resolve) => {
+      releaseReturn = () => resolve(true);
+    });
+    cy.intercept('PATCH', scenario.url, {
+      statusCode: 200,
+      body: scenario.deleted,
+      headers: { ETag: '"1"' },
+    }).as('deletePatch');
+    cy.intercept('GET', scenario.url, { body: scenario.deleted, headers: { ETag: '"1"' } }).as('deleteStatus');
+    setupReview({
+      resolved: scenario.resolved,
+      deleteScreen: true,
+      deleteReason: scenario.reason,
+      failNavigation: true,
+    });
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) => {
+      navigate.onSecondCall().returns(heldReturn);
+    });
+    cy.get(D.submit).click();
+    cy.wait('@deletePatch');
+    cy.get(D.returnToReviewCases)
+      .should('be.visible')
+      .and('not.be.disabled')
+      .and('contain.text', 'Return to Review cases');
+    cy.get(D.submit).should('not.exist');
+    cy.get(D.reason).should('be.disabled');
+    cy.get(D.cancel).should('not.exist');
+    cy.get<CasesDraftNavigationService>('@draftNavigation').then((navigation) => {
+      expect(navigation.consumeCheckerDeletion()).to.equal(null);
+    });
+    cy.get(D.returnToReviewCases).click().should('be.disabled');
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
+      expect(navigate.callCount).to.equal(2);
+      expect(navigate.firstCall.args[0].toString()).to.equal('/cases/draft/check-and-validate/tabs#to-review');
+      expect(navigate.secondCall.args[0].toString()).to.equal('/cases/draft/check-and-validate/tabs#to-review');
+    });
+    cy.get<CasesDraftNavigationService>('@draftNavigation').then((navigation) => {
+      expect(navigation.consumeCheckerDeletion()).to.deep.equal({
+        identity: scenario.resolved.identity,
+        draftCasefileId: scenario.resolved.draft.draft_casefile_id,
+        respondentName: scenario.deleted.casefile_snapshot.respondent_account.respondent_name,
+      });
+    });
+    cy.get('@deletePatch.all').should('have.length', 1);
+    cy.get('@deleteStatus.all').should('have.length', 0);
+    cy.then(() => releaseReturn());
+    cy.get(D.returnToReviewCases).should('not.be.disabled');
+    cy.get('@routerNavigate').should('have.been.calledTwice');
+    cy.get('@deletePatch.all').should('have.length', 1);
   });
 
   for (const status of [409, 401, 500]) {
@@ -182,6 +240,41 @@ describe('Delete casefile request handling', () => {
 
 describe('Delete casefile partial accessibility evidence', () => {
   beforeEach(() => cy.viewport(1280, 900));
+  it(
+    'AC3. should support keyboard return and accessible reflow after a completed deletion',
+    { tags: buildTags() },
+    () => {
+      const scenario = createDeletionScenario();
+      cy.intercept('PATCH', scenario.url, {
+        statusCode: 200,
+        body: scenario.deleted,
+        headers: { ETag: '"1"' },
+      }).as('deletePatch');
+      setupReview({
+        resolved: scenario.resolved,
+        deleteScreen: true,
+        deleteReason: scenario.reason,
+        failNavigation: true,
+      });
+      cy.get(D.submit).click();
+      cy.wait('@deletePatch');
+      cy.get(D.returnToReviewCases).should('be.visible').and('not.be.disabled');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po-10609-delete-completed-return-1280');
+      cy.viewport(320, 900);
+      cy.document().should((document) => {
+        expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth);
+      });
+      cy.screenshot('po-10609-delete-completed-return-320');
+      cy.get(D.heading).focus();
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(D.returnToReviewCases).should('be.focused').type('{enter}');
+      cy.get('@routerNavigate').should('have.been.calledTwice');
+      cy.get('@deletePatch.all').should('have.length', 1);
+    },
+  );
+
   for (const state of ['normal', 'error', 'request error'] as const) {
     it(
       'AC2, AC4. should have no detected Axe violations and reflow at 320 CSS pixels in ' + state,

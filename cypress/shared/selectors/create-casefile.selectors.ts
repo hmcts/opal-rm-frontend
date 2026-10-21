@@ -26,6 +26,7 @@ export const CreateCasefileSelectors = {
     counter: '#create_casefile_delete_reason_field .govuk-character-count__status',
     screenReaderCounter: '#create_casefile_delete_reason_field .govuk-character-count__sr-status',
     submit: '#create_casefile_delete_submit',
+    returnToReviewCases: '#create_casefile_delete_return',
     cancel: '#create_casefile_delete_page opal-lib-govuk-cancel-link a',
     summary: '#create_casefile_delete_page .govuk-error-summary',
     summaryLink: '#create_casefile_delete_page .govuk-error-summary a',

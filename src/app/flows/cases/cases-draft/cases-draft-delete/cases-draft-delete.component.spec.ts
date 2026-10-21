@@ -506,6 +506,131 @@ describe('CasesDraftDeleteComponent', () => {
     },
   );
 
+  it.each([false, new Error('Synthetic navigation failure')])(
+    'retries the return after a completed deletion without another PATCH (%s)',
+    async (failure) => {
+      api.patchDraftCasefile.mockReturnValue(of(deletedResponse()));
+      if (failure === false) vi.mocked(router.navigateByUrl).mockResolvedValueOnce(false);
+      else vi.mocked(router.navigateByUrl).mockRejectedValueOnce(failure);
+      const component = create();
+      component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+      fixture.detectChanges();
+      await component.handleDelete();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const retry = fixture.nativeElement.querySelector('#create_casefile_delete_return') as HTMLButtonElement;
+      expect(retry.disabled).toBe(false);
+      expect(document.activeElement).toBe(retry);
+      expect(fixture.nativeElement.querySelector('#create_casefile_delete_submit')).toBeNull();
+      expect(component.form.controls.create_casefile_delete_reason.disabled).toBe(true);
+      retry.click();
+      await fixture.whenStable();
+      expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+      expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
+      expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toEqual({
+        identity: deleteResult().identity,
+        draftCasefileId: 17,
+        respondentName: deletedResponse().body!.casefile_snapshot.respondent_account.respondent_name,
+      });
+    },
+  );
+
+  it('blocks repeated return attempts while navigation is pending', async () => {
+    api.patchDraftCasefile.mockReturnValue(of(deletedResponse()));
+    let finishNavigation!: (accepted: boolean) => void;
+    vi.mocked(router.navigateByUrl).mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finishNavigation = resolve;
+      }),
+    );
+    const component = create();
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+    fixture.detectChanges();
+    const deletion = component.handleDelete();
+    await Promise.resolve();
+    fixture.detectChanges();
+    const retry = fixture.nativeElement.querySelector('#create_casefile_delete_return') as HTMLButtonElement;
+    expect(retry.disabled).toBe(true);
+    await component.handleReturnToReviewCases();
+    await component.handleDelete();
+    await component.handleCancel();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
+    finishNavigation(false);
+    await deletion;
+    fixture.detectChanges();
+    expect(retry.disabled).toBe(false);
+  });
+
+  it('cannot use the return action before deletion completes', async () => {
+    const component = create();
+    fixture.detectChanges();
+    await component.handleReturnToReviewCases();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+  });
+
+  it('blocks return after the checker identity changes', async () => {
+    api.patchDraftCasefile.mockReturnValue(of(deletedResponse()));
+    vi.mocked(router.navigateByUrl).mockResolvedValueOnce(false);
+    const component = create();
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+    fixture.detectChanges();
+    await component.handleDelete();
+    userState.set({ ...userState(), user_id: 99 });
+    await component.handleReturnToReviewCases();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#create_casefile_delete_return')).toBeNull();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+  });
+
+  it('does not clear a newer case notice when an old return fails after route reuse', async () => {
+    api.patchDraftCasefile.mockReturnValue(of(deletedResponse()));
+    let rejectNavigation!: (error: Error) => void;
+    vi.mocked(router.navigateByUrl).mockReturnValueOnce(
+      new Promise<boolean>((_resolve, reject) => {
+        rejectNavigation = reject;
+      }),
+    );
+    const component = create();
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+    fixture.detectChanges();
+    const oldDeletion = component.handleDelete();
+    await Promise.resolve();
+    const next = deleteResult();
+    next.draft.draft_casefile_id = 18;
+    routeData.next({ draftCasefile: next });
+    component.form.controls.create_casefile_delete_reason.setValue('Next synthetic reason');
+    await component.handleDelete();
+    rejectNavigation(new Error('Synthetic stale return failure'));
+    await oldDeletion;
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()?.draftCasefileId).toBe(18);
+    expect(scrollToTop).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
+    expect(api.patchDraftCasefile).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores a return rejection after the delete page is destroyed', async () => {
+    api.patchDraftCasefile.mockReturnValue(of(deletedResponse()));
+    let rejectNavigation!: (error: Error) => void;
+    vi.mocked(router.navigateByUrl).mockReturnValueOnce(
+      new Promise<boolean>((_resolve, reject) => {
+        rejectNavigation = reject;
+      }),
+    );
+    const component = create();
+    component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+    fixture.detectChanges();
+    const deletion = component.handleDelete();
+    await Promise.resolve();
+    fixture.destroy();
+    rejectNavigation(new Error('Synthetic late return failure'));
+    await deletion;
+    expect(scrollToTop).not.toHaveBeenCalled();
+    expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
+  });
+
   it('passes an opaque saved ETag to PATCH unchanged', async () => {
     const result = deleteResult();
     result.etag = '"opaque-version"';

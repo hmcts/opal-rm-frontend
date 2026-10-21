@@ -734,18 +734,18 @@ __metadata:
   linkType: hard
 
 "@angular/platform-server@npm:^21.1.3":
-  version: 21.2.23
-  resolution: "@angular/platform-server@npm:21.2.23"
+  version: 21.2.25
+  resolution: "@angular/platform-server@npm:21.2.25"
   dependencies:
     tslib: "npm:^2.3.0"
     xhr2: "npm:^0.2.0"
   peerDependencies:
-    "@angular/common": 21.2.23
-    "@angular/compiler": 21.2.23
-    "@angular/core": 21.2.23
-    "@angular/platform-browser": 21.2.23
+    "@angular/common": 21.2.25
+    "@angular/compiler": 21.2.25
+    "@angular/core": 21.2.25
+    "@angular/platform-browser": 21.2.25
     rxjs: ^6.5.3 || ^7.4.0
-  checksum: 10/e547030946bc509b169f3653c0be8707d78d2358dedc66c699429fa2caf0c13bd2d819a9c265a4e59014c8a68697f4fc0d6e9437d8681e76b4ca75fb2f27c5a5
+  checksum: 10/17de530786beff1764a25faa5c16b8cc301d0d488501605ba1eeb196aa17a05433626524770a1c92bfe3b725492eaa9448849e56c996ad7952ce7044cd399b1d
   languageName: node
   linkType: hard
 
@@ -10866,8 +10866,8 @@ __metadata:
   linkType: hard
 
 "eslint@npm:^10.0.0":
-  version: 10.12.0
-  resolution: "eslint@npm:10.12.0"
+  version: 10.13.0
+  resolution: "eslint@npm:10.13.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.8.0"
     "@eslint-community/regexpp": "npm:^4.12.2"
@@ -10906,7 +10906,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10/1cff87e4db79d4c9b6bd0af4c2aa483d88936a16f70e73af192a2aeee5ec597ad1de5d42ba1242336c27b25be6f0e503e4ea41ca036ab134eb5f4b4c24af15b9
+  checksum: 10/04b7140a6fb4614d3cd5feb35041cd3b2b92f80d7fd015d8d320c76e015577863dc530c1bcf228eb3b58b06151e45b6452dd349a6863d21eeefa02ceaee1377f
   languageName: node
   linkType: hard
 
@@ -11962,9 +11962,9 @@ __metadata:
   linkType: hard
 
 "govuk-frontend@npm:^6.0.0":
-  version: 6.4.0
-  resolution: "govuk-frontend@npm:6.4.0"
-  checksum: 10/e98a24d8e68626154775b5f84478ad12d144c1c4822d539faaf608bb3b60862d4786f6ac5f195893439b38bdb23c8177826768beb9cb793d8f8edb43e74a4e6f
+  version: 6.6.0
+  resolution: "govuk-frontend@npm:6.6.0"
+  checksum: 10/ba1c5634a83954765613b065d98b01b23c0a5026a7b65306632f715253448a3c957794a1550604cc566118a3630a0fdcebc349deb269ede076b351b1cb736ce8
   languageName: node
   linkType: hard
 

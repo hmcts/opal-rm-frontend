@@ -116,10 +116,11 @@ describe('checker HTTP boundary through production interceptors and application 
       const navigation = TestBed.inject(CasesDraftNavigationService);
       const user = TestBed.inject(GlobalStore).userState()!;
       expect(
-        navigation.recordCheckerDeletion({
+        navigation.recordCheckerDecision({
           identity: { ...identity, userId: user.user_id },
           draftCasefileId: 17,
           respondentName: 'Synthetic Respondent',
+          outcome: 'deleted',
         }),
       ).toBe(true);
       await router.navigateByUrl(dashboard + '#to-review');
@@ -140,7 +141,7 @@ describe('checker HTTP boundary through production interceptors and application 
       expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
       expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
       expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
-      expect(navigation.consumeCheckerDeletion()).toBeNull();
+      expect(navigation.consumeCheckerDecision()).toBeNull();
     },
   );
   it('uses the common banner for checker list failures', async () => {

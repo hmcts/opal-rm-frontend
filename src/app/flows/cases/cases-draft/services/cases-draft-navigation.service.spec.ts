@@ -6,7 +6,8 @@ import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileStore } from '../../cases-create-casefile/stores/cases-create-casefile.store';
-import type { ICasesDraftDeletionNotice } from '../interfaces/cases-draft-deletion-notice.interface';
+import type { ICasesDraftDecisionNotice } from '../interfaces/cases-draft-decision-notice.interface';
+import type { CasesDraftDecisionOutcome } from '../types/cases-draft-decision-outcome.type';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
 import { defaultCasesDraftNavigation } from '../utils/cases-draft-navigation';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
@@ -54,13 +55,14 @@ describe('CasesDraftNavigationService', () => {
   });
   it('refuses checker deletion notices in inputter mode', () => {
     expect(
-      service.recordCheckerDeletion({
+      service.recordCheckerDecision({
         identity: { userId: 1, businessUnitId: 44, submittedBy: 'BUU' },
         draftCasefileId: 17,
         respondentName: 'Synthetic',
+        outcome: 'deleted',
       }),
     ).toBe(false);
-    expect(service.consumeCheckerDeletion()).toBeNull();
+    expect(service.consumeCheckerDecision()).toBeNull();
   });
   it.each([1, 123, Number.MAX_SAFE_INTEGER])(
     'builds an internal Delete URL for %s without dashboard metadata',
@@ -848,7 +850,7 @@ describe('checker CasesDraftNavigationService', () => {
     service = TestBed.inject(CasesDraftNavigationService);
     router = TestBed.inject(Router);
   });
-  function deletionNotice(): ICasesDraftDeletionNotice {
+  function decisionNotice(): ICasesDraftDecisionNotice {
     const user = userState()!;
     return {
       identity: {
@@ -858,17 +860,54 @@ describe('checker CasesDraftNavigationService', () => {
       },
       draftCasefileId: 17,
       respondentName: 'Synthetic Respondent',
+      outcome: 'deleted',
     };
   }
+  it.each(['approved', 'rejected', 'deleted'] as const)('consumes %s once', (outcome) => {
+    const notice: ICasesDraftDecisionNotice = {
+      outcome,
+      identity: { userId: 100, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+      draftCasefileId: 17,
+      respondentName: 'Synthetic Respondent',
+    };
+    expect(service.recordCheckerDecision(notice)).toBe(true);
+    expect(service.consumeCheckerDecision()).toEqual(notice);
+    expect(service.consumeCheckerDecision()).toBeNull();
+  });
+  it('rejects an unsupported outcome and clears a previous notice', () => {
+    const notice: ICasesDraftDecisionNotice = {
+      outcome: 'approved',
+      identity: { userId: 100, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+      draftCasefileId: 17,
+      respondentName: 'Synthetic Respondent',
+    };
+    expect(service.recordCheckerDecision(notice)).toBe(true);
+    expect(service.recordCheckerDecision({ ...notice, outcome: 'unknown' as CasesDraftDecisionOutcome })).toBe(false);
+    expect(service.consumeCheckerDecision()).toBeNull();
+  });
+  it.each(['BU', 'BU-user'] as const)('invalidates an approval when %s changes', (scope) => {
+    const notice: ICasesDraftDecisionNotice = {
+      outcome: 'approved',
+      identity: { userId: 100, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+      draftCasefileId: 17,
+      respondentName: 'Synthetic Respondent',
+    };
+    expect(service.recordCheckerDecision(notice)).toBe(true);
+    const changed = checkerUser();
+    if (scope === 'BU') changed.business_unit_users[0].business_unit_id = 45;
+    else changed.business_unit_users[0].business_unit_user_id = 'BUU-OTHER';
+    userState.set(changed);
+    expect(service.consumeCheckerDecision()).toBeNull();
+  });
   it('consumes checker deletion once and isolates the retained identity', () => {
-    const notice = deletionNotice();
-    expect(service.recordCheckerDeletion(notice)).toBe(true);
+    const notice = decisionNotice();
+    expect(service.recordCheckerDecision(notice)).toBe(true);
     notice.identity.submittedBy = 'CHANGED';
-    expect(service.consumeCheckerDeletion()?.identity.submittedBy).not.toBe('CHANGED');
-    expect(service.consumeCheckerDeletion()).toBeNull();
+    expect(service.consumeCheckerDecision()?.identity.submittedBy).not.toBe('CHANGED');
+    expect(service.consumeCheckerDecision()).toBeNull();
   });
   it.each(['authentication', 'flag', 'identity', 'permission'] as const)('drops notice after %s loss', (loss) => {
-    expect(service.recordCheckerDeletion(deletionNotice())).toBe(true);
+    expect(service.recordCheckerDecision(decisionNotice())).toBe(true);
     if (loss === 'authentication') authenticated.set(false);
     if (loss === 'flag') featureFlags.set({});
     if (loss === 'identity') userState.set({ ...userState()!, user_id: 99 });
@@ -877,35 +916,35 @@ describe('checker CasesDraftNavigationService', () => {
       changed.business_unit_users[0].permissions = [];
       userState.set(changed);
     }
-    expect(service.consumeCheckerDeletion()).toBeNull();
+    expect(service.consumeCheckerDecision()).toBeNull();
   });
   it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
     'rejects unsafe deletion notice identifier %s and clears the previous notice',
     (draftCasefileId) => {
-      expect(service.recordCheckerDeletion(deletionNotice())).toBe(true);
-      expect(service.recordCheckerDeletion({ ...deletionNotice(), draftCasefileId })).toBe(false);
-      expect(service.consumeCheckerDeletion()).toBeNull();
+      expect(service.recordCheckerDecision(decisionNotice())).toBe(true);
+      expect(service.recordCheckerDecision({ ...decisionNotice(), draftCasefileId })).toBe(false);
+      expect(service.consumeCheckerDecision()).toBeNull();
     },
   );
   it.each(['identity', 'name'] as const)('rejects invalid deletion notice %s', (invalid) => {
-    const notice = deletionNotice();
+    const notice = decisionNotice();
     if (invalid === 'identity') notice.identity.submittedBy = 'OTHER';
     if (invalid === 'name') notice.respondentName = '  ';
-    expect(service.recordCheckerDeletion(notice)).toBe(false);
-    expect(service.consumeCheckerDeletion()).toBeNull();
+    expect(service.recordCheckerDecision(notice)).toBe(false);
+    expect(service.consumeCheckerDecision()).toBeNull();
   });
   it('clears a retained checker deletion notice explicitly', () => {
-    expect(service.recordCheckerDeletion(deletionNotice())).toBe(true);
-    service.clearCheckerDeletion();
-    expect(service.consumeCheckerDeletion()).toBeNull();
+    expect(service.recordCheckerDecision(decisionNotice())).toBe(true);
+    service.clearCheckerDecision();
+    expect(service.consumeCheckerDecision()).toBeNull();
   });
   it('does not preserve a notice after authority disappears and returns in the same identity', () => {
-    service.recordCheckerDeletion(deletionNotice());
+    service.recordCheckerDecision(decisionNotice());
     authenticated.set(false);
     TestBed.tick();
     authenticated.set(true);
     TestBed.tick();
-    expect(service.consumeCheckerDeletion()).toBeNull();
+    expect(service.consumeCheckerDecision()).toBeNull();
   });
   it('cannot retain inputter list metadata, placeholder context or success', async () => {
     const navigate = vi.spyOn(router, 'navigateByUrl');

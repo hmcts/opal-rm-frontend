@@ -137,7 +137,14 @@ describe('Persisted case review accessibility', () => {
       });
       cy.get('@decisionPatch.all').should('have.length', 1);
       cy.get('@routerNavigate').should('have.been.calledOnce');
-      cy.get(S.decisionContinue).should('be.disabled');
+      cy.get(S.decisionApprove).should('be.enabled').focus();
+      cy.get(S.decisionReject).should('be.enabled');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.decisionContinue).should('be.enabled').and('be.focused').type('{enter}');
+      cy.get(S.decisionContinue).type('{enter}');
+      cy.get('@decisionPatch.all').should('have.length', 1);
+      cy.get('@routerNavigate').should('have.been.calledOnce');
+      scan();
     },
   );
 

@@ -7,8 +7,13 @@ import type { CasesCreateCasefileCheckDetailsComponent } from 'src/app/flows/cas
 import { OpalMaintenanceService } from 'src/app/flows/cases/services/opal-maintenance-service/opal-maintenance.service';
 import { getState } from '@ngrx/signals';
 import type { CasesDraftCasefileStore } from 'src/app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
+import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import { CreateCasefileSelectors as Page } from '../../../shared/selectors/create-casefile.selectors';
-import { createRejectedAmendment, createResubmittedAmendment } from './mocks/rejected-amendment.mock';
+import {
+  createRejectedAmendment,
+  createResubmittedAmendment,
+  createSurnameOnlyRejectedAmendment,
+} from './mocks/rejected-amendment.mock';
 import { interceptAmendmentReferences } from './setup/rejected-amendment.intercept';
 import { setupReview, type ReviewStore } from './setup/review.setup';
 
@@ -56,6 +61,50 @@ describe('Rejected casefile replacement', () => {
     cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) =>
       expect(navigate.firstCall.args[0].toString()).to.equal('/cases/draft/create-and-manage/tabs#rejected'),
     );
+  });
+
+  it('AC3. should return surname-only respondents after one successful replacement', { tags: buildTags() }, () => {
+    const amendment = createSurnameOnlyRejectedAmendment();
+    const replacement = structuredClone(amendment.draft);
+    replacement.casefile_status = 'RESUBMITTED';
+    replacement.submitted_by = amendment.identity.submittedBy;
+    cy.intercept('PUT', '/opal-maintenance-service/draft-casefiles/17', {
+      body: replacement,
+      headers: { ETag: '"5"' },
+    }).as('replacement');
+    setupReview({ amendment });
+
+    cy.get(S.submit).click();
+    cy.wait('@replacement').then(({ request }) => {
+      expect(request.headers['if-match']).to.equal('"4"');
+      expect(request.body.casefile.respondent_account.respondent.party_details.individual_details).not.to.have.property(
+        'forenames',
+      );
+    });
+    cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
+      expect(navigate).to.have.been.calledOnce;
+      expect(navigate.firstCall.args[0].toString()).to.equal('/cases/draft/create-and-manage/tabs#rejected');
+    });
+    cy.get<InstanceType<typeof CasesDraftCasefileStore>>('@persistedCasefileStore').should((store) => {
+      expect(store.draft()).to.equal(null);
+      expect(store.etag()).to.equal(null);
+    });
+    cy.get<ReviewStore>('@reviewStore').should((store) =>
+      expect(getState(store)).to.deep.equal(CASES_CREATE_CASEFILE_STATE),
+    );
+    cy.then(() => {
+      const navigation = TestBed.inject(CasesDraftNavigationService);
+      expect(navigation.consumeAllRejectedResubmission('dashboard')).to.deep.equal({
+        origin: 'dashboard',
+        identity: amendment.identity,
+        draftCasefileId: 17,
+        respondentForename: '',
+        respondentSurname: 'Respondent',
+      });
+    });
+    cy.get(S.submit).click();
+    cy.get('@replacement.all').should('have.length', 1);
+    cy.get('@prohibitedPost').should('not.have.been.called');
   });
 
   [422, 503, 409].forEach((statusCode) => {

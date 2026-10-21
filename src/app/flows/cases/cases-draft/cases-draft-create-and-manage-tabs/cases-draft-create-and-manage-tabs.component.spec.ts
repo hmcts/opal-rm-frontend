@@ -132,6 +132,20 @@ describe('resolver-backed dashboard', () => {
       (await render('rejected', response('rejected'))).nativeElement.querySelector('#cases-draft-success'),
     ).toBeNull();
   });
+  it('shows a surname-only submission notice without an extra name separator', async () => {
+    TestBed.inject(CasesDraftNavigationService).recordAllRejectedResubmission({
+      origin: 'dashboard',
+      identity: { userId: userState().user_id, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' },
+      draftCasefileId: 123,
+      respondentForename: '',
+      respondentSurname: 'Respondent',
+    });
+    const fixture = await render('rejected', response('rejected'));
+    expect(fixture.componentInstance.successText()).toBe("You have submitted Respondent's case for review.");
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')?.textContent).toContain(
+      "You have submitted Respondent's case for review.",
+    );
+  });
   it('hides success immediately when the inputter identity changes', async () => {
     TestBed.inject(CasesDraftNavigationService).recordAllRejectedResubmission({
       origin: 'dashboard',

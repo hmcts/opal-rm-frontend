@@ -113,6 +113,14 @@ describe('all rejected resolved page', () => {
     expect(navigation.allRejectedSelection()).toEqual(selection);
     expect(data.getAllRejectedList).not.toHaveBeenCalled();
   });
+  it('shows a surname-only submission notice without an extra name separator', () => {
+    record({ respondentForename: '', respondentSurname: 'Respondent' });
+    const page = render();
+    expect(page.successText()).toBe("You have submitted Respondent's case for review.");
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-success')?.textContent).toContain(
+      "You have submitted Respondent's case for review.",
+    );
+  });
   it('escapes HTML-looking respondent names and consumes the event once', () => {
     record({ respondentForename: '<img src=x>', respondentSurname: '<script>synthetic</script>' });
     render();

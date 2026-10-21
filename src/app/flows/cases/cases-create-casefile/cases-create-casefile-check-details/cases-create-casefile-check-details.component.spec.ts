@@ -1569,26 +1569,23 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       expect(store.submissionSucceeded()).toBe(false);
     },
   );
-  it('keeps verified completion after the scoped success notice is refused and retries navigation only', async () => {
+  it('returns after verified completion even when the success notice is refused and never repeats PUT', async () => {
     const saved = seedAmendment();
-    draftNavigation.recordAllRejectedResubmission.mockReturnValueOnce(false);
+    draftNavigation.recordAllRejectedResubmission.mockReturnValue(false);
+    router.navigateByUrl.mockResolvedValueOnce(false);
     await fixture.componentInstance.handleSubmit();
     expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
     expect(saved.draft()).toBeNull();
     expect(saved.etag()).toBeNull();
     expect(saved.identity()).toBeNull();
     expect(saved.references()).toBeNull();
-    expect(TestBed.inject(GlobalStore).bannerError()).toMatchObject({
-      error: true,
-      title: 'There was a problem',
-      message: 'You can try again. If the problem persists, contact the service desk.',
-    });
-    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledExactlyOnceWith('/cases/draft/create-and-manage/tabs#rejected');
     expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
     expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+    expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
     await fixture.componentInstance.handleSubmit();
     expect(draftNavigation.recordAllRejectedResubmission).toHaveBeenCalledTimes(2);
-    expect(router.navigateByUrl).toHaveBeenCalledExactlyOnceWith('/cases/draft/create-and-manage/tabs#rejected');
+    expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
     expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
     expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
     expect(TestBed.inject(GlobalStore).bannerError().error).not.toBe(true);

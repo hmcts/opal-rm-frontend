@@ -121,7 +121,7 @@ export class CheckCaseDetailsFlow {
     this.review.prepareLiveSubmission();
   }
 
-  /** Requires the real response and existing confirmation panel to show the same generated identifier. */
+  /** Checks submission confirmation after validating the real backend receipt. */
   public assertLiveConfirmation(): void {
     this.review.assertLiveConfirmation();
   }

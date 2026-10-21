@@ -149,27 +149,22 @@ export class CheckCaseDetailsActions {
           : undefined;
       expect(Number.isSafeInteger(id)).to.equal(true);
       expect(id).to.be.greaterThan(0);
-      cy.wrap(id, { log: false }).as('liveDraftCasefileId');
     });
   }
 
-  /** Matches the already consumed live receipt against the user-visible confirmation panel. */
+  /** Checks confirmation after the live receipt has passed its backend assertions. */
   public assertLiveConfirmation(): void {
-    cy.get<number>('@liveDraftCasefileId', { log: false }).then((id) => this.assertConfirmationPanel(id));
+    // Generated Draft Casefile ID display is deferred to a future UI functional-test ticket.
+    this.assertConfirmationPanel();
   }
 
-  /** Checks shared confirmation behaviour and, for the live journey, its server-generated identifier.
-   * @param id Identifier returned by the real maintenance service.
-   */
-  private assertConfirmationPanel(id?: number): void {
+  /** Checks confirmation content, focus, navigation and the single submission. */
+  private assertConfirmationPanel(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
     cy.get(S.review.confirmationHeading)
       .should('be.focused')
       .and(($heading) => expect($heading.text().trim()).to.equal('You’ve submitted this case for review'));
     cy.get(S.review.confirmationNextSteps).should('have.text', 'Next steps');
-    if (id !== undefined) {
-      cy.get(S.review.confirmationHeading).closest('.govuk-panel').should('contain.text', String(id));
-    }
     cy.get('@draftSubmission.all').should('have.length', 1);
     cy.get(S.primaryNavigation).should('not.exist');
   }

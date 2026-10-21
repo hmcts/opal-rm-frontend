@@ -297,12 +297,10 @@ The normal CNP selection uses `cypress/e2e/functional/opal/**/*.feature` and
 Gradle CI does not execute Cypress. Confirm the scenario in the frontend functional report, along with authenticated
 permission 21, reference-data lookups and the enabled create-casefile release in the actual target environment.
 
-Run deterministic cleanup regression checks with `node --test scripts/draft-casefile-cleanup.test.mjs` (also included
-in `corepack yarn test`). These cover marker/ID validation, early response capture, session-proxy request shape,
-already-absent success, non-204 failures, transport failure, receipt sharing across separate support/feature bundles,
-retention and deduplication; they do not replace live browser evidence. The receipt collection uses Cypress env because
-module-local state is not shared between the independently bundled support file and feature files. Cleanup leaves
-Accept unrestricted: success has no body, and backend errors use `application/problem+json`.
+The receipt collection uses Cypress env because module-local state is not shared between independently bundled
+support and feature files. Cleanup leaves Accept unrestricted: success has no body, and backend errors use
+`application/problem+json`. Verify cleanup through the live submission scenario and retain its outcome in the PR's
+test evidence.
 
 ## Shared casefile permission coverage
 

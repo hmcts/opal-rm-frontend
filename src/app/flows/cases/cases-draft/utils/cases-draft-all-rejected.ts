@@ -41,7 +41,7 @@ export function decodeAllRejectedSuccess(
   const forename = value['respondentForename'];
   const surname = value['respondentSurname'];
   if (typeof id !== 'number' || !Number.isSafeInteger(id) || id < 1) return null;
-  if (!nonEmptyName(forename) || !nonEmptyName(surname)) return null;
+  if (typeof forename !== 'string' || !nonEmptyName(surname)) return null;
   return {
     origin,
     identity: { ...identity },

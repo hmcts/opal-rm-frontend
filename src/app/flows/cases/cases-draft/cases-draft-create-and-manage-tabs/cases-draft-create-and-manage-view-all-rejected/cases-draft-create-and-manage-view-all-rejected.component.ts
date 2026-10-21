@@ -78,7 +78,8 @@ export class CasesDraftCreateAndManageViewAllRejectedComponent {
   public readonly successText = computed(() => {
     const event = this.success();
     if (!event || !sameCasesDraftIdentity(event.identity, this.identity())) return null;
-    return `You have submitted ${event.respondentForename} ${event.respondentSurname}'s case for review.`;
+    const name = [event.respondentForename, event.respondentSurname].filter(Boolean).join(' ');
+    return `You have submitted ${name}'s case for review.`;
   });
 
   constructor() {

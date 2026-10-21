@@ -23,6 +23,7 @@ import { CasesCreateCasefileStore } from '../stores/cases-create-casefile.store'
 import { CASES_CREATE_CASEFILE_STATE } from '../constants/cases-create-casefile-state.constant';
 import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
 import { CasesDraftCasefileStore } from '../../cases-draft/stores/cases-draft-casefile.store';
+import type { IOpalMaintenanceDraftCasefileReplaceRequest } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-replace-request.interface';
 import {
   createPersistedCasefileDetail,
   PERSISTED_CASEFILE_REFERENCES,
@@ -109,7 +110,7 @@ describe('rejected amendment through production HTTP interceptors, guards and ap
     if (savedDetails)
       http.expectOne('/opal-maintenance-service/results/TEST01').flush(PERSISTED_CASEFILE_RESULT_DETAIL);
   }
-  async function openAmendmentReview(allRejected = false): Promise<void> {
+  async function openAmendmentReview(allRejected = false, surnameOnly = false): Promise<void> {
     fixture.detectChanges();
     const arrival = allRejected
       ? TestBed.inject(CasesDraftNavigationService).navigateToPlaceholder('amendment', 17, 'all-rejected')
@@ -117,6 +118,10 @@ describe('rejected amendment through production HTTP interceptors, guards and ap
     await vi.waitFor(() => {
       const draft = createPersistedCasefileDetail();
       draft.casefile_status = 'REJECTED';
+      if (surnameOnly) {
+        delete draft.casefile.respondent_account.respondent.party_details.individual_details!.forenames;
+        draft.casefile_snapshot.respondent_account.respondent_name = 'Respondent';
+      }
       http.expectOne(replacementUrl).flush(draft, { headers: { ETag: '"4"' } });
     });
     await flushReferences(true);
@@ -126,7 +131,8 @@ describe('rejected amendment through production HTTP interceptors, guards and ap
       .query(By.directive(CasesCreateCasefileComponent))
       .injector.get(CasesDraftCasefileStore);
     const respondent = structuredClone(store.respondentDetails()!);
-    respondent.firstNames = 'Corrected';
+    if (surnameOnly) respondent.lastName = 'Corrected Respondent';
+    else respondent.firstNames = 'Corrected';
     store.setRespondentDetails(respondent);
     const review = router.navigateByUrl(reviewUrl);
     await flushReferences();
@@ -334,6 +340,56 @@ describe('rejected amendment through production HTTP interceptors, guards and ap
         expect(persisted.requiresReload()).toBe(true);
         expect(persisted.etag()).toBe('"4"');
       }
+      expectNoReplay();
+    },
+  );
+  it.each([false, true])(
+    'returns a successfully submitted surname-only respondent to the originating rejected list (all rejected: %s)',
+    async (allRejected) => {
+      await openAmendmentReview(allRejected, true);
+      expect(store.respondentDetails()?.firstNames).toBe('');
+      const draft = createPersistedCasefileDetail();
+      draft.casefile_status = 'RESUBMITTED';
+      draft.submitted_by = 'BUU-INPUTTER';
+      const individual = draft.casefile.respondent_account.respondent.party_details.individual_details!;
+      delete individual.forenames;
+      individual.surname = 'Corrected Respondent';
+      draft.casefile_snapshot.respondent_account.respondent_name = 'Corrected Respondent';
+      const request = await dispatchReplacement();
+      const payload = (
+        typeof request.request.body === 'string' ? JSON.parse(request.request.body) : request.request.body
+      ) as IOpalMaintenanceDraftCasefileReplaceRequest;
+      expect(payload.casefile.respondent_account.respondent.party_details.individual_details).toEqual({
+        surname: 'Corrected Respondent',
+        restrict_personal_information: false,
+      });
+      request.flush(draft, { headers: { ETag: '"5"' } });
+      await vi.waitFor(() => {
+        expect(getState(store)).toEqual(CASES_CREATE_CASEFILE_STATE);
+        expect(persisted.draft()).toBeNull();
+        expect(persisted.references()).toBeNull();
+      });
+      let listing!: TestRequest;
+      await vi.waitFor(() => {
+        listing = http.expectOne(
+          (candidate) =>
+            candidate.url === '/opal-maintenance-service/draft-casefiles' && !candidate.params.has('restrict'),
+        );
+      });
+      listing.flush({ count: 0, summaries: [] });
+      for (const count of http.match((candidate) => candidate.url === '/opal-maintenance-service/draft-casefiles'))
+        count.flush({ count: 0 });
+      await settle();
+      expect(router.url).toBe(
+        allRejected ? '/cases/draft/create-and-manage/rejections' : '/cases/draft/create-and-manage/tabs#rejected',
+      );
+      expect(listing.request.params.get('casefile_status')).toBe('REJECTED');
+      expect(listing.request.params.get('submitted_by')).toBe(allRejected ? null : 'BUU-INPUTTER');
+      const successId = allRejected ? '#cases-draft-all-rejected-success' : '#cases-draft-success';
+      expect(fixture.nativeElement.querySelector(successId)?.textContent).toContain(
+        "You have submitted Corrected Respondent's case for review.",
+      );
+      expect(TestBed.inject(GlobalStore).bannerError().error).toBeFalsy();
       expectNoReplay();
     },
   );

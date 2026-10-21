@@ -9,7 +9,7 @@
     "start": "ng serve",
     "build": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
-    "test": "node --test scripts/draft-casefile-cleanup.test.mjs && ng test --runner=vitest --watch=false",
+    "test": "ng test --runner=vitest --watch=false",
     "test:watch": "ng test --runner=vitest --watch",
     "test:coverage": "ng test --runner=vitest --watch=false --coverage",
     "test:a11y": "echo 'Covered in cypress testing' && exit 0",

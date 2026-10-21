@@ -12,7 +12,7 @@ export function createDraftCasefileTestRunReference(): string {
 }
 
 /** Builds the agreed cleanup route, rejecting invalid or coerced receipt IDs. */
-export function pathForDraftCasefileCleanup(id: number): string {
+function pathForDraftCasefileCleanup(id: number): string {
   if (!Number.isSafeInteger(id) || id <= 0) {
     throw new Error('Draft Casefile cleanup requires a positive safe-integer casefile ID');
   }

@@ -46,12 +46,6 @@ export class CheckCaseDetailsActions {
     cy.get(S.centralAuthority.returnToCaseDetails).click();
   }
 
-  /** Completes the remaining mandatory tasks before opening review. */
-  public completeRemainingTasks(): void {
-    this.completePaymentTasks();
-    this.openReview();
-  }
-
   /** Returns from Order Terms and completes the current draft's mandatory payment tasks. */
   public completePaymentTasks(): void {
     cy.get(S.orderTerms.return).click();

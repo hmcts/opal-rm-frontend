@@ -1,5 +1,5 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import type { ICasesDraftDeletionNotice } from '../interfaces/cases-draft-deletion-notice.interface';
+import type { ICasesDraftDecisionNotice } from '../interfaces/cases-draft-decision-notice.interface';
 import type { CasesDraftDashboardMode } from '../types/cases-draft-dashboard-mode.type';
 import type { CasesDraftAllRejectedPlaceholderKind } from '../types/cases-draft-all-rejected-placeholder-kind.type';
 import type { ICasesDraftAllRejectedSelection } from '../interfaces/cases-draft-all-rejected-selection.interface';
@@ -31,7 +31,7 @@ export class CasesDraftNavigationService {
   private readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
   private readonly routes = this.mode === 'checker' ? CASES_DRAFT_CHECKER_ROUTING_PATHS : CASES_DRAFT_ROUTING_PATHS;
   private readonly current = signal<ICasesDraftNavigation>(defaultCasesDraftNavigation(undefined, this.mode));
-  private readonly checkerDeletion = signal<ICasesDraftDeletionNotice | null>(null);
+  private readonly checkerDecision = signal<ICasesDraftDecisionNotice | null>(null);
   private readonly createOrigin = signal<ICasesDraftNavigation | null>(null);
   // Seed from the live identity so the first effect preserves valid local table state.
   private previousIdentity = this.authorisedIdentity();
@@ -54,14 +54,14 @@ export class CasesDraftNavigationService {
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
-      if (!(event instanceof NavigationStart) || !this.checkerDeletion()) return;
+      if (!(event instanceof NavigationStart) || !this.checkerDecision()) return;
       const destination = this.router.serializeUrl(
         this.router.createUrlTree(
           ['/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.root + '/' + CASES_DRAFT_CHECKER_ROUTING_PATHS.children.tabs],
           { fragment: 'to-review' },
         ),
       );
-      if (event.url !== destination) this.clearCheckerDeletion();
+      if (event.url !== destination) this.clearCheckerDecision();
     });
 
     effect(() => {
@@ -69,7 +69,7 @@ export class CasesDraftNavigationService {
       if (!identity || !this.sameIdentity(identity, this.previousIdentity)) {
         this.current.set(defaultCasesDraftNavigation(undefined, this.mode));
         this.createOrigin.set(null);
-        this.clearCheckerDeletion();
+        this.clearCheckerDecision();
         this.resetAllRejected(this.mode === 'inputter' ? identity : null);
       }
       this.previousIdentity = identity;
@@ -145,32 +145,34 @@ export class CasesDraftNavigationService {
     );
   }
 
-  public recordCheckerDeletion(value: ICasesDraftDeletionNotice): boolean {
-    this.clearCheckerDeletion();
+  private validCheckerDecision(value: ICasesDraftDecisionNotice): boolean {
     const identity = this.mode === 'checker' ? this.authorisedIdentity() : null;
-    if (
-      !identity ||
-      !sameCasesDraftIdentity(identity, value.identity) ||
-      !Number.isSafeInteger(value.draftCasefileId) ||
-      value.draftCasefileId < 1 ||
-      !value.respondentName.trim()
-    )
-      return false;
-    this.checkerDeletion.set({ ...value, identity: { ...identity } });
+    return (
+      !!identity &&
+      sameCasesDraftIdentity(identity, value.identity) &&
+      Number.isSafeInteger(value.draftCasefileId) &&
+      value.draftCasefileId > 0 &&
+      typeof value.respondentName === 'string' &&
+      value.respondentName.trim().length > 0 &&
+      ['approved', 'rejected', 'deleted'].includes(value.outcome)
+    );
+  }
+
+  public recordCheckerDecision(value: ICasesDraftDecisionNotice): boolean {
+    this.clearCheckerDecision();
+    if (!this.validCheckerDecision(value)) return false;
+    this.checkerDecision.set({ ...value, identity: { ...value.identity } });
     return true;
   }
 
-  public consumeCheckerDeletion(): ICasesDraftDeletionNotice | null {
-    const notice = this.checkerDeletion();
-    this.clearCheckerDeletion();
-    const identity = this.mode === 'checker' ? this.authorisedIdentity() : null;
-    return notice && identity && sameCasesDraftIdentity(identity, notice.identity)
-      ? { ...notice, identity: { ...notice.identity } }
-      : null;
+  public consumeCheckerDecision(): ICasesDraftDecisionNotice | null {
+    const notice = this.checkerDecision();
+    this.clearCheckerDecision();
+    return notice && this.validCheckerDecision(notice) ? { ...notice, identity: { ...notice.identity } } : null;
   }
 
-  public clearCheckerDeletion(): void {
-    this.checkerDeletion.set(null);
+  public clearCheckerDecision(): void {
+    this.checkerDecision.set(null);
   }
 
   public setAllRejectedSelection(selection: ICasesDraftAllRejectedSelection): void {

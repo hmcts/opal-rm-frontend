@@ -28,7 +28,7 @@ import {
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
 import { RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG } from '../../constants/release-1c-rm-create-case-files-feature-flag.constant';
-import type { ICasesDraftDeletionNotice } from '../interfaces/cases-draft-deletion-notice.interface';
+import type { ICasesDraftDecisionNotice } from '../interfaces/cases-draft-decision-notice.interface';
 import type { ICasesDraftCasefileResolved } from '../interfaces/cases-draft-casefile-resolved.interface';
 import { CasesDraftNavigationService } from '../services/cases-draft-navigation.service';
 import { CasesDraftCasefileStore } from '../stores/cases-draft-casefile.store';
@@ -60,7 +60,7 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
   private readonly globalStore = inject(GlobalStore);
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   private readonly returnButton = viewChild<ElementRef<HTMLButtonElement>>('returnButton');
-  private readonly completedNotice = signal<ICasesDraftDeletionNotice | null>(null);
+  private readonly completedNotice = signal<ICasesDraftDecisionNotice | null>(null);
   private readonly resolved = signal<ICasesDraftCasefileResolved | null>(null);
   private readonly denied = signal(false);
   private entry = 0;
@@ -116,7 +116,7 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
       this.submitting.set(false);
       this.navigating.set(false);
       this.completedNotice.set(null);
-      this.navigation.clearCheckerDeletion();
+      this.navigation.clearCheckerDecision();
       this.form.controls.create_casefile_delete_reason.enable({ emitEvent: false });
       this.form.reset({ create_casefile_delete_reason: '' });
       this.clearAllErrorMessages();
@@ -177,7 +177,7 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
     if (!notice || !this.eligible() || this.navigating()) return;
     const current = this.navigation.selection();
     const selection = current.tab === 'to-review' ? current : defaultCasesDraftNavigation('to-review', 'checker');
-    if (!this.navigation.recordCheckerDeletion(notice)) return;
+    if (!this.navigation.recordCheckerDecision(notice)) return;
     const entry = this.entry;
     this.navigation.setSelection(selection);
     this.navigating.set(true);
@@ -190,7 +190,7 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
       if (this.currentEntry(entry)) {
         this.navigating.set(false);
         if (!accepted) {
-          this.navigation.clearCheckerDeletion();
+          this.navigation.clearCheckerDecision();
           afterNextRender(() => this.returnButton()?.nativeElement.focus(), { injector: this.deleteInjector });
         }
       }
@@ -249,6 +249,7 @@ export class CasesDraftDeleteComponent extends AbstractFormBaseComponent {
       if (!this.currentEntry(entry)) return;
       const receipt = readCasesDraftDeletionReceipt(response, { draft, etag });
       this.completedNotice.set({
+        outcome: 'deleted',
         identity,
         draftCasefileId: draft.draft_casefile_id,
         respondentName: receipt.casefile_snapshot.respondent_account.respondent_name,

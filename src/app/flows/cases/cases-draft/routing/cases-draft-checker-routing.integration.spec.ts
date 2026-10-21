@@ -414,7 +414,8 @@ describe('checker production route boundaries', () => {
     const navigation = shell.injector.get(CasesDraftNavigationService);
     const saved = shell.injector.get(CasesDraftCasefileStore);
     expect(
-      navigation.recordCheckerDeletion({
+      navigation.recordCheckerDecision({
+        outcome: 'deleted',
         identity: saved.identity()!,
         draftCasefileId: 123,
         respondentName: 'Synthetic Respondent',
@@ -422,7 +423,7 @@ describe('checker production route boundaries', () => {
     ).toBe(true);
     await TestBed.inject(Router).navigateByUrl('/error/internal-server');
     await settle(harness);
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
   });
 
   it.each([401, 403, 503])('preserves shared HTTP %s feedback during verified dashboard return', async (status) => {
@@ -470,7 +471,7 @@ describe('checker production route boundaries', () => {
         operationId: 'SYNTHETIC-RETURN',
       }),
     );
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(page.deleted()).toBe(true);
     expect(page.navigating()).toBe(false);
     expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
@@ -514,7 +515,7 @@ describe('checker production route boundaries', () => {
     await settle(harness);
     expect(router.url).toBe(deleteUrl);
     expect(bannerError().message).toBe('Synthetic return detail');
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(page.deleted()).toBe(true);
     expect(page.submitting()).toBe(false);
     expect(page.navigating()).toBe(false);
@@ -558,7 +559,7 @@ describe('checker production route boundaries', () => {
     expect(harness.routeNativeElement?.querySelector('[data-draft-id="123"]')).toBeNull();
     expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))).toBeNull();
     expect(saved.draft()).toBeNull();
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
   });
 
@@ -599,7 +600,7 @@ describe('checker production route boundaries', () => {
     expect(bannerError()).toEqual(expectedBanner);
     expect(setBannerError).toHaveBeenCalledExactlyOnceWith(expectedBanner);
     expect(page.navigating()).toBe(false);
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(page.readable()).toBe(true);
     expect(page.eligible()).toBe(true);
     expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
@@ -641,7 +642,7 @@ describe('checker production route boundaries', () => {
     await operation;
     expect(router.currentNavigation()?.initialUrl.toString()).toBe('/pending-destination');
     http.expectNone((candidate) => candidate.url === '/opal-maintenance-service/draft-casefiles');
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     if (destinationCompletes) destinationReady.next(true);
     destinationReady.complete();
     expect(await departure).toBe(destinationCompletes);

@@ -683,3 +683,48 @@ Require four passing browser scenarios with none skipped or pending. A dry run c
 only. Preserve and sanitise generated reports before another runner invocation resets output. Specialist follow-up
 must verify native browser Leave/Cancel behaviour, full keyboard traversal, screen-reader announcements and
 magnification with the same enabled release and provisioned accounts.
+
+## PO-10611 decision confirmation QA
+
+The changed saved-case journeys use the existing shared authentication with the release
+`release-1c-rm-create-case-files` enabled. They control `/api/user-state`, selected draft/reference data and PATCH/PUT
+using synthetic fixtures. They prove the real frontend routes, guards, shared interceptor and visible confirmation
+against supplied HTTP responses. They do not establish deployed API, SSO or environment provisioning.
+
+Use the configured frontend target for `TEST_URL`; `http://localhost:5200` below matches `corepack yarn dev:ssr`.
+The release must already be enabled. Do not change flags, users or permissions as a test side effect.
+
+First run discovery to verify selection and bindings:
+
+```bash
+TEST_URL=http://localhost:5200 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10611 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10611 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsModes.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckerDashboardAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendment.feature,cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendmentAccessibility.feature' --env dryRun=true
+```
+
+Expect 25 expanded examples: five valid decisions, one switch to Approve, eight checker notice lifecycle cases,
+two uncertain receipts, two checker accessibility cases, two retained successful inputter origins, four inputter
+notice lifecycle cases and one extended inputter accessibility case. Preserve existing scenario/Jira identities;
+only the superseded local-only successful-decision outline is replaced. No new Jira Test identity is claimed.
+A dry run checks selection and step bindings only.
+
+Run the actual browser journeys with the same selection:
+
+```bash
+TEST_URL=http://localhost:5200 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10611 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10611 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsModes.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckerDashboardAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendment.feature,cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendmentAccessibility.feature'
+```
+
+Require all 25 examples to pass with zero failed, pending or skipped examples. Record actual command results,
+expanded counts, browser, safe environment alias and tested SHA/base in ignored execution evidence. Review and redact
+reports before preserving them; the next runner resets `functional-output/` and `smoke-output/`.
+Run the full affected release selection separately to retain validation, scope, deletion, dashboard and rejected
+amendment regressions. Run release-off cases only against an already disabled test configuration.
+
+Real-service acceptance additionally requires a compatible deployed provider and authenticated, provisioned checker
+with owning-BU permission 22, an eligible case submitted by a different BU-user and a saved ETag. Inputter resubmission
+requires permission 21. Observe real approval/rejection receipts and dashboard refresh without replacing HTTP
+responses; `PUBLISHING_PENDING` confirms recorded approval without claiming publication completion. These are separate
+from the controlled-response journeys. Local passwordless authentication does not verify deployed SSO.
+
+Axe, keyboard dismissal/focus, single-announcement DOM assertions and 320 CSS-pixel reflow provide partial
+accessibility evidence. Specialist assurance must separately cover full keyboard traversal and visible focus,
+screen-reader names and one success announcement, and magnification. Record unavailable real-service or specialist
+prerequisites precisely; do not claim them as passed.

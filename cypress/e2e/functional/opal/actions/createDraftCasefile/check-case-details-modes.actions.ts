@@ -2,6 +2,7 @@ import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selecto
 import { CasesDraftSelectors as DASHBOARD } from '../../../../../shared/selectors/cases-draft.selectors';
 import { checkerUser } from '../../mocks/createDraftCasefile/checker-dashboard.mock';
 import type { CheckerRole } from '../../mocks/createDraftCasefile/checker-dashboard.mock';
+import type { CasesDraftCasefileDecision } from 'src/app/flows/cases/cases-draft/types/cases-draft-casefile-decision.type';
 import type { IOpalMaintenanceDraftCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-detail.interface';
 import {
   createPersistedCasefileDetail,
@@ -69,6 +70,8 @@ export class CheckCaseDetailsModesActions {
   private draft = selectedPersistedCasefile(17);
   private selectedEtag = '"0"';
   private deletionReason = '';
+  private decisionReason = '';
+  private decisionIntent: CasesDraftCasefileDecision['decision'] = 'approve';
   private failure = '';
   private writes: string[] = [];
   private host: HTMLElement | null = null;
@@ -80,6 +83,8 @@ export class CheckCaseDetailsModesActions {
   public prepare(role: CheckerRole, status: string, submitter: string): void {
     this.selectedEtag = '"0"';
     this.deletionReason = '';
+    this.decisionReason = '';
+    this.decisionIntent = 'approve';
     this.failure = '';
     this.writes = [];
     this.host = null;
@@ -146,6 +151,123 @@ export class CheckCaseDetailsModesActions {
     cy.visit(CHECKER + '/tabs#to-review');
     cy.get(DASHBOARD.row(17)).find('a').click();
   }
+  /** Supplies one explicit provider outcome and checks the versioned checker request.
+   * @param outcome Success, shared error or malformed receipt boundary. */
+  public enableDecision(outcome: string): void {
+    if (!['success', 'error', 'malformed'].includes(outcome)) throw new Error('Unsupported synthetic decision outcome');
+    cy.intercept('PATCH', '**/opal-maintenance-service/draft-casefiles/17', (request) => {
+      this.writes.push('PATCH');
+      const approval = this.decisionIntent === 'approve';
+      const status = approval ? 'PUBLISHING_PENDING' : 'REJECTED';
+      expect(request.headers['if-match']).to.equal(this.selectedEtag);
+      expect(request.body).to.deep.equal({
+        business_unit_id: 44,
+        casefile_status: status,
+        ...(!approval ? { status_message: this.decisionReason } : {}),
+      });
+      if (outcome === 'error') {
+        request.reply({
+          statusCode: 503,
+          body: { retriable: true, title: 'Synthetic request failure', detail: 'Synthetic decision failed' },
+        });
+        return;
+      }
+      this.draft.casefile_status = status;
+      this.draft.casefile_status_name = approval ? 'Publishing pending' : 'Rejected';
+      if (approval) delete this.draft.status_message;
+      else this.draft.status_message = this.decisionReason;
+      this.draft.timeline_data.push({
+        username: 'Synthetic Checker',
+        status: approval ? 'Approved' : 'Rejected',
+        status_date: '2026-10-21T10:00:00Z',
+        ...(!approval ? { reason_text: this.decisionReason } : {}),
+      });
+      this.selectedEtag = '"1"';
+      const body = outcome === 'malformed' ? { draft_casefile_id: 17 } : structuredClone(this.draft);
+      request.reply({ statusCode: 200, body, headers: { ETag: this.selectedEtag } });
+    }).as('decisionPatch');
+  }
+
+  /** Resolves a named reason boundary without allowing arbitrary fixture values.
+   * @param reason Supported empty, whitespace, valid or length boundary.
+   * @returns The exact reason to enter into the rendered form. */
+  private savedDecisionReason(reason: string): string {
+    if (reason === 'empty') return '';
+    if (reason === 'whitespace') return '   ';
+    if (reason === 'valid') return 'Synthetic rejection reason';
+    if (reason === '250' || reason === '251') return 'x'.repeat(Number(reason));
+    throw new Error('Unsupported saved decision reason');
+  }
+
+  /** Checks the accepted notice, refreshed empty queue and absence of repeated writes.
+   * @param outcome Approved or rejected confirmation copy. */
+  public expectDecisionReturn(outcome: string): void {
+    if (!['approved', 'rejected'].includes(outcome)) throw new Error('Unsupported checker confirmation outcome');
+    const text =
+      'You have ' + outcome + ' ' + this.draft.casefile_snapshot.respondent_account.respondent_name + '’s case.';
+    cy.location('pathname').should('eq', CHECKER + '/tabs');
+    cy.location('hash').should('eq', '#to-review');
+    cy.location('search').should('eq', '');
+    cy.get(DASHBOARD.success).should('contain.text', text);
+    cy.get(DASHBOARD.successAnnouncement)
+      .should('have.length', 1)
+      .and('have.attr', 'aria-atomic', 'true')
+      .should(($output) => expect($output.text().trim()).to.equal('success: ' + text));
+    cy.get(DASHBOARD.row(17)).should('not.exist');
+    cy.get(DASHBOARD.empty).should('contain.text', 'There are no cases to review.');
+    cy.get('@decisionPatch.all').should('have.length', 1);
+    cy.then(() => expect(this.writes).to.deep.equal(['PATCH']));
+    cy.screenshot('po10611-confirmed-' + outcome);
+  }
+
+  /** Checks an uncertain receipt retains the review with locked decisions and no success. */
+  public expectDecisionError(): void {
+    cy.location('pathname').should('eq', CHECKER + '/review/17');
+    cy.get(CREATE.globalErrorBanner).should('be.visible');
+    cy.get(S.decisionContinue).should('be.disabled');
+    cy.get(DASHBOARD.success).should('not.exist');
+    cy.get('@decisionPatch.all').should('have.length', 1);
+    cy.then(() => expect(this.writes).to.deep.equal(['PATCH']));
+  }
+
+  /** Leaves or dismisses the visible notice without reconstructing it or replaying PATCH.
+   * @param method Dismiss, refresh, history or departure boundary. */
+  public clearDecisionNotice(method: string): void {
+    if (!['dismiss', 'refresh', 'history', 'departure'].includes(method))
+      throw new Error('Unsupported notice departure');
+    if (method === 'dismiss') {
+      cy.get(DASHBOARD.successDismiss).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get(DASHBOARD.heading).should('be.focused');
+    }
+    if (method === 'refresh') cy.reload();
+    if (method === 'history') {
+      cy.go('back');
+      cy.location('pathname').should('eq', CHECKER + '/review/17');
+      cy.go('forward');
+    }
+    if (method === 'departure') {
+      this.navigate('/dashboard/cases');
+      cy.get(DASHBOARD.checkerEntry).should('be.visible');
+      this.navigate(CHECKER + '/tabs#to-review');
+    }
+    cy.location('pathname').should('eq', CHECKER + '/tabs');
+    cy.get(DASHBOARD.heading).should('be.visible');
+    cy.get(DASHBOARD.success).should('not.exist');
+    cy.get('@decisionPatch.all').should('have.length', 1);
+    cy.then(() => expect(this.writes).to.deep.equal(['PATCH']));
+  }
+
+  /** Checks narrow-screen notice visibility without horizontal document overflow. */
+  public expectDecisionReflow(): void {
+    cy.viewport(320, 900);
+    cy.get(DASHBOARD.success).should('be.visible');
+    cy.document().should((document) => {
+      expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth);
+    });
+    cy.screenshot('po10611-confirmation-320', { capture: 'viewport' });
+  }
+
   /** Enables the explicit synthetic deletion contract.
    * @param outcome Success or a shared request error. */
   public enableDeletion(outcome: string): void {
@@ -341,16 +463,13 @@ export class CheckCaseDetailsModesActions {
    * @param decision Approve, Reject or none.
    * @param reason Empty, whitespace, 250, 251 or valid. */
   public decide(decision: string, reason: string): void {
-    if (decision !== 'none') cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
-    if (decision === 'reject' && reason !== 'empty') {
-      const text =
-        reason === 'whitespace'
-          ? '   '
-          : reason === 'valid'
-            ? 'Synthetic rejection reason'
-            : 'x'.repeat(Number(reason));
-      cy.get(S.rejectionReason).clear().type(text);
+    if (!['none', 'approve', 'reject'].includes(decision)) throw new Error('Unsupported saved decision');
+    this.decisionReason = this.savedDecisionReason(reason);
+    if (decision !== 'none') {
+      this.decisionIntent = decision === 'approve' ? 'approve' : 'reject';
+      cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
     }
+    if (decision === 'reject' && reason !== 'empty') cy.get(S.rejectionReason).clear().type(this.decisionReason);
     cy.get(S.decisionContinue).click();
   }
 
@@ -367,6 +486,8 @@ export class CheckCaseDetailsModesActions {
 
   /** Changes a rejected decision to Approve; its conditional error state must disappear. */
   public switchToApprove(): void {
+    this.decisionIntent = 'approve';
+    this.decisionReason = '';
     cy.get(S.decisionApprove).check();
     cy.get(S.rejectionReason).should('not.exist');
     cy.get(CREATE.errorSummary).should('not.exist');

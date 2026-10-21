@@ -23,3 +23,7 @@ When('I go Back and choose to keep my corrections', () => actions.declineBack())
 When('I go Back and choose to discard my corrections', () => actions.acceptBack());
 Then('one fresh read restores the saved respondent without resubmitting', () => actions.expectReloaded());
 Then('my corrections remain and no replacement request is replayed', () => actions.expectUncertainRetention());
+
+Then('the resubmission confirmation clears on {string} without replay', (method: string) =>
+  actions.clearResubmissionNotice(method),
+);

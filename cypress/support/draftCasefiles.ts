@@ -1,7 +1,9 @@
+import type { IDraftCasefileCleanupReceipt } from './interfaces/draft-casefile-cleanup-receipt.interface';
+
 let installed = false;
 
 /** Support and feature files have separate bundles; Cypress env shares only these non-secret receipts. */
-function createdReceipts(): { id: number; testRunReference: string }[] {
+function createdReceipts(): IDraftCasefileCleanupReceipt[] {
   return Cypress.env('draftCasefileCleanupReceipts') ?? [];
 }
 
@@ -27,12 +29,60 @@ export function recordCreatedId(id: number, testRunReference: string): void {
   }
   Cypress.env('draftCasefileCleanupReceipts', [
     ...createdReceipts().filter((receipt) => receipt.id !== id),
-    { id, testRunReference },
+    {
+      ...createdReceipts().find((receipt) => receipt.id === id && receipt.testRunReference === testRunReference),
+      id,
+      testRunReference,
+    },
   ]);
 }
 
+/** Only newly configured owned receipts may defer deletion, explicitly and on a local frontend. */
+export function configureDraftCasefileCleanup(
+  id: number,
+  testRunReference: string,
+  options: { policy: 'required' | 'deferred'; actor: string },
+): void {
+  const receipt = createdReceipts().find((value) => value.id === id && value.testRunReference === testRunReference);
+  if (!receipt || !options.actor.trim())
+    throw new Error('Cleanup configuration requires an observed owned receipt and actor');
+  if (options.policy === 'deferred') {
+    const host = new URL(Cypress.config('baseUrl') ?? '').hostname;
+    if (Cypress.env('PO10626_DEFER_CLEANUP') !== true || !['localhost', '127.0.0.1', '[::1]'].includes(host)) {
+      throw new Error('PO-10626 cleanup deferral requires explicit local development configuration');
+    }
+  }
+  Cypress.env(
+    'draftCasefileCleanupReceipts',
+    createdReceipts().map((value) =>
+      value === receipt
+        ? {
+            ...value,
+            cleanupPolicy: options.policy,
+            cleanupActor: options.actor,
+          }
+        : value,
+    ),
+  );
+}
+
+/** Persist before any lifecycle mutation or teardown authentication can fail. */
+export function persistDraftCasefileCleanupReceipts(): Cypress.Chainable<IDraftCasefileCleanupReceipt[]> {
+  return cy.wrap([...createdReceipts()], { log: false }).each((receipt: IDraftCasefileCleanupReceipt) => {
+    const ledgerPath = `functional-output/draft-casefile-cleanup/${receipt.testRunReference}-${receipt.id}.json`;
+    return cy.writeFile(
+      ledgerPath,
+      {
+        baseUrl: Cypress.config('baseUrl'),
+        outstanding: [receipt],
+      },
+      { log: false },
+    );
+  });
+}
+
 /** Installs cleanup for local and deployed E2E, including after failed scenario assertions. */
-export function installDraftCasefileCleanup(): void {
+export function installDraftCasefileCleanup(restoreActor?: (actor: string) => void): void {
   if (installed) return;
   installed = true;
   afterEach(() => {
@@ -40,20 +90,18 @@ export function installDraftCasefileCleanup(): void {
     if (!ids.length) return;
 
     const failures: string[] = [];
-    return cy
-      .wrap(ids, { log: false })
-      .each(({ id, testRunReference }: { id: number; testRunReference: string }) => {
-        // Persist every receipt before any request so a transport failure cannot lose later targets.
-        // CNP archives functional-output/** after both passing and failing functional stages.
+    return persistDraftCasefileCleanupReceipts()
+      .each(({ id, testRunReference, cleanupPolicy, cleanupActor }: IDraftCasefileCleanupReceipt) => {
+        if (cleanupPolicy === 'deferred') {
+          return cy.log(`PO-10626: owned draft ${id} retained; its cleanup receipt is outstanding`);
+        }
         const ledgerPath = `functional-output/draft-casefile-cleanup/${testRunReference}-${id}.json`;
-        return cy.writeFile(
-          ledgerPath,
-          { baseUrl: Cypress.config('baseUrl'), outstanding: [{ id, testRunReference }] },
-          { log: false },
-        );
-      })
-      .each(({ id, testRunReference }: { id: number; testRunReference: string }) => {
-        const ledgerPath = `functional-output/draft-casefile-cleanup/${testRunReference}-${id}.json`;
+        if (cleanupActor) {
+          cy.then(() => {
+            if (!restoreActor) throw new Error('Cleanup actor restoration is unavailable; receipts retained');
+            restoreActor(cleanupActor);
+          });
+        }
         return cy
           .request({
             method: 'DELETE',

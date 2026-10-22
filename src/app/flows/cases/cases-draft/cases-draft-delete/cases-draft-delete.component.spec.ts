@@ -438,7 +438,7 @@ describe('CasesDraftDeleteComponent', () => {
     expect(store.requiresReload()).toBe(true);
     expect(component.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
     expect(router.navigateByUrl).not.toHaveBeenCalled();
-    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDecision()).toBeNull();
     expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
     expect(api.getDraftCasefile).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#create_casefile_delete_return')).toBeNull();

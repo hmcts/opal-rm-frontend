@@ -301,7 +301,7 @@ describe('Delete casefile request handling', () => {
     cy.get(D.cancel).should('be.visible');
     cy.get(D.form).submit();
     cy.get<CasesDraftNavigationService>('@draftNavigation').then((navigation) => {
-      expect(navigation.consumeCheckerDeletion()).to.equal(null);
+      expect(navigation.consumeCheckerDecision()).to.equal(null);
     });
     cy.get('@routerNavigate').should('not.have.been.called');
     cy.get('@deletePatch.all').should('have.length', 1);

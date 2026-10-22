@@ -2,6 +2,9 @@
 
 Use this guide when writing or updating Cypress E2E tests and Cucumber feature files in opal-rm-frontend.
 
+For Draft Casefile concurrency, response-loss recovery and lifecycle support requirements, see the
+[PO-10626 suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md).
+
 ## Required References
 
 Read this guide's Feature Layout and Tags, Accessibility Coverage, Step Definitions, Actions, Flows, and Selectors,

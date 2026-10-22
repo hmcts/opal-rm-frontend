@@ -226,7 +226,7 @@ describe('checker production route boundaries', () => {
       expect(harness.routeNativeElement?.querySelector('opal-lib-govuk-cancel-link a')).not.toBeNull();
       await page.handleDelete();
       http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
-      expect(navigation.consumeCheckerDeletion()).toBeNull();
+      expect(navigation.consumeCheckerDecision()).toBeNull();
 
       const cancellation = page.handleCancel();
       await flushPersisted(123, 'RESUBMITTED', undefined, '"saved-version-b"');
@@ -376,7 +376,7 @@ describe('checker production route boundaries', () => {
     expect(page.deleted()).toBe(false);
     expect(saved.requiresReload()).toBe(true);
     expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
     expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_recovery')).not.toBeNull();
     await page.handleDelete();

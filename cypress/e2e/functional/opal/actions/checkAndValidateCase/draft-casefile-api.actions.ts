@@ -9,6 +9,7 @@ import {
   persistDraftCasefileCleanupReceipts,
 } from '../../../../../support/draftCasefiles';
 import { versionValue } from './draft-casefile-evidence.actions';
+import type { IDraftCasefileFixtureOptions } from './interfaces/draft-casefile-fixture-options.interface';
 import { buildSyntheticDraftRequest } from './draft-casefile-payload';
 
 const requestOptions = {
@@ -152,9 +153,13 @@ export function captureCreatedDraft(
 /**
  * Creates once through the current authenticated session; ambiguous transport failures must not retry.
  * @param inputter Existing authenticated staff identity that owns required cleanup.
+ * @param options Optional synthetic name and minor-creditor variations.
  * @returns The observed ID, exact run marker and validated creation ETag.
  */
-export function postSyntheticDraft(inputter: string): Cypress.Chainable<{ id: number; marker: string; etag: string }> {
+export function postSyntheticDraft(
+  inputter: string,
+  options?: IDraftCasefileFixtureOptions,
+): Cypress.Chainable<{ id: number; marker: string; etag: string }> {
   return readDraftFixtureReferenceData().then(({ applicationCode, countryCjsCode }) => {
     const marker = createDraftCasefileTestRunReference();
     cy.log(`Synthetic draft fixture run: ${marker}`);
@@ -162,7 +167,7 @@ export function postSyntheticDraft(inputter: string): Cypress.Chainable<{ id: nu
       .request<unknown>({
         method: 'POST',
         url: '/opal-maintenance-service/draft-casefiles',
-        body: buildSyntheticDraftRequest(marker, applicationCode, countryCjsCode),
+        body: buildSyntheticDraftRequest(marker, applicationCode, countryCjsCode, options),
         failOnStatusCode: false,
         followRedirect: false,
         retryOnNetworkFailure: false,

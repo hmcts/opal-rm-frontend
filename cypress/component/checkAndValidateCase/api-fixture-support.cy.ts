@@ -383,6 +383,36 @@ describe('PO-10626 owned API fixture support', () => {
     },
   );
 
+  it(
+    'AC1, AC4. should pass optional creditor/name seeds through the normal POST without changing cleanup ownership',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10628'] },
+    () => {
+      const calls: Cypress.RequestOptions[] = [];
+      stubLedger();
+      stubRequests(referenceReplies(), calls);
+      postSyntheticDraft('synthetic-second-inputter', { uniqueNames: true, minorCreditorCount: 2 }).then((created) => {
+        const posts = calls.filter(({ method }) => method === 'POST');
+        expect(posts).to.have.length(1);
+        expect(posts[0].url).to.equal(draftsPath);
+        const payload = posts[0].body as ReturnType<typeof buildSyntheticDraftRequest>;
+        expect(payload.casefile.minor_creditors?.map(({ creditor_sequence }) => creditor_sequence)).to.deep.equal([
+          1, 2,
+        ]);
+        expect(payload.casefile.applicant.party_details.individual_details!.surname).to.include(
+          created.marker.slice(4),
+        );
+        expect(Cypress.env('draftCasefileCleanupReceipts')).to.deep.equal([
+          {
+            id: created.id,
+            testRunReference: created.marker,
+            cleanupActor: 'synthetic-second-inputter',
+            cleanupPolicy: 'required',
+          },
+        ]);
+      });
+    },
+  );
+
   const prerequisites: { name: string; path: string; body: unknown; error: string }[] = [
     {
       name: 'missing country dataset',

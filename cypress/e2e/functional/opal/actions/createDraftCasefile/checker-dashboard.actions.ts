@@ -1,4 +1,5 @@
-import { selectedPersistedCasefile, stubPersistedCasefileReferences } from './check-case-details-modes.actions';
+import { selectedPersistedCasefile } from '../../mocks/createDraftCasefile/persisted-casefile.mock';
+import { stubPersistedCasefileReferences } from '../../setup/createDraftCasefile/persisted-casefile.intercept';
 import { CreateCasefileSelectors } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CasesDraftSelectors as S } from '../../../../../shared/selectors/cases-draft.selectors';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
@@ -316,13 +317,22 @@ export class CheckerDashboardActions {
         window.history.pushState({}, '', path);
         window.dispatchEvent(new window.PopStateEvent('popstate'));
       });
+      return;
+    }
+    cy.visit(path);
+  }
+
+  /** Checks saved-page mode or safe rejection after the attempted navigation.
+   * @param kind Saved review or view destination.
+   * @param id Selected or malformed case identifier. */
+  public expectSafeDetails(kind: 'review' | 'view', id: string): void {
+    if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) {
       cy.get(S.checkerEntry).should('be.visible');
       cy.get(CreateCasefileSelectors.globalErrorBanner).should('be.visible');
       cy.get(CreateCasefileSelectors.review.heading).should('not.exist');
       this.assertNoPersistence();
       return;
     }
-    cy.visit(path);
     this.expectSavedSummary();
     cy.get(CreateCasefileSelectors.review.decisionContinue).should(kind === 'review' ? 'be.visible' : 'not.exist');
     cy.get('@checkerCollection.all').should('have.length', 0);
@@ -389,6 +399,9 @@ export class CheckerDashboardActions {
       expect(this.release, 'controlled pending list').not.to.eq(null);
       this.release!(true);
     });
+  }
+  /** Checks revoked access removes the pending queue and prevents persistence. */
+  public expectPendingAccessDenied(): void {
     cy.location('pathname').should('eq', '/error/permission-denied');
     cy.get(S.table).should('not.exist');
     cy.get(S.failedCount).should('not.exist');

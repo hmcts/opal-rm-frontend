@@ -1,4 +1,5 @@
-import { selectedPersistedCasefile, stubPersistedCasefileReferences } from './check-case-details-modes.actions';
+import { selectedPersistedCasefile } from '../../mocks/createDraftCasefile/persisted-casefile.mock';
+import { stubPersistedCasefileReferences } from '../../setup/createDraftCasefile/persisted-casefile.intercept';
 import { CasesDraftSelectors as S } from '../../../../../shared/selectors/cases-draft.selectors';
 import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selectors/create-casefile.selectors';
 import { ReleaseFlagsSelectors as RELEASE } from '../../../../../shared/selectors/release-flags.selectors';

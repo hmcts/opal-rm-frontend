@@ -42,3 +42,10 @@ Then(
   'a later checker {string} failure with status {int} and reference {string} uses the existing error route',
   (kind: string, status: number, reference: string) => flow.laterFailure(kind, status, reference),
 );
+
+Then('the saved checker {string} destination safely handles identifier {string}', (kind: string, id: string) =>
+  flow.expectSafeDetails(checkerDestination(kind), id),
+);
+Then('the pending checker consultation is denied without retained data or mutation', () =>
+  flow.expectPendingAccessDenied(),
+);

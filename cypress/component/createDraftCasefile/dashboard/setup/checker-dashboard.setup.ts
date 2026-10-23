@@ -1,10 +1,7 @@
+import { persistedReferenceStubs } from '../../review/setup/persisted-references.setup';
 import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import type { ICasesDraftDecisionNotice } from 'src/app/flows/cases/cases-draft/interfaces/cases-draft-decision-notice.interface';
-import {
-  createPersistedCasefileDetail,
-  PERSISTED_CASEFILE_REFERENCES,
-  PERSISTED_CASEFILE_RESULT_DETAIL,
-} from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
+import { createPersistedCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { CasesDraftCheckAndValidateTabsComponent } from 'src/app/flows/cases/cases-draft/cases-draft-check-and-validate-tabs/cases-draft-check-and-validate-tabs.component';
 import type { CasesDraftSortColumn } from 'src/app/flows/cases/cases-draft/types/cases-draft-sort-column.type';
 import { AppComponent } from 'src/app/app.component';
@@ -140,37 +137,7 @@ export function setupCheckerDashboard(options: ICheckerDashboardSetupOptions = {
     'getDraftCasefile' | 'getCountries' | 'getMaintenanceApplications' | 'getMajorCreditors' | 'getResult'
   > = {
     getDraftCasefile: detailRequest,
-    getCountries: cy
-      .stub()
-      .as('checkerCountriesRequest')
-      .returns(
-        of({
-          count: PERSISTED_CASEFILE_REFERENCES.countries.length,
-          refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.countries),
-        }),
-      ),
-    getMaintenanceApplications: cy
-      .stub()
-      .as('checkerApplicationsRequest')
-      .returns(
-        of({
-          count: PERSISTED_CASEFILE_REFERENCES.applications.length,
-          refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.applications),
-        }),
-      ),
-    getMajorCreditors: cy
-      .stub()
-      .as('checkerMajorCreditorsRequest')
-      .returns(
-        of({
-          count: PERSISTED_CASEFILE_REFERENCES.majorCreditors.length,
-          refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.majorCreditors),
-        }),
-      ),
-    getResult: cy
-      .stub()
-      .as('checkerResultRequest')
-      .returns(of(structuredClone(PERSISTED_CASEFILE_RESULT_DETAIL))),
+    ...persistedReferenceStubs('checker'),
   };
   cy.wrap(listResponses, { log: false }).as('checkerListResponse');
   cy.wrap(countResponses, { log: false }).as('checkerCountResponses');
@@ -188,7 +155,7 @@ export function setupCheckerDashboard(options: ICheckerDashboardSetupOptions = {
     }
     return mount(options.shell ? AppComponent : CheckerRouteHost, {
       providers: [
-        provideRouter(routing),
+        provideRouter(options.shell ? routing : routing.filter((route) => route.path === PATHS.root)),
         { provide: GlobalStore, useValue: globalStore },
         { provide: AuthService, useValue: { checkAuthenticated: () => of(true) } },
         { provide: OpalUserService, useValue: { getLoggedInUserState: () => of(user) } },
@@ -217,12 +184,16 @@ export function setupCheckerDashboard(options: ICheckerDashboardSetupOptions = {
         const dashboard = fixture.debugElement.queryAll(
           (element) => element.componentInstance instanceof CasesDraftCheckAndValidateTabsComponent,
         )[0]?.componentInstance as CasesDraftCheckAndValidateTabsComponent | undefined;
-        if (dashboard) {
-          dashboard.changeSort({
-            key: (options.sort ?? CASES_DRAFT_CHECKER_TABS[tab].defaultSort) as CasesDraftSortColumn,
-            direction: options.direction ?? 'ascending',
-          });
-          dashboard.changePage(options.page ?? 1);
+        if (
+          dashboard &&
+          (options.sort !== undefined || options.direction !== undefined || options.page !== undefined)
+        ) {
+          if (options.sort !== undefined || options.direction !== undefined)
+            dashboard.changeSort({
+              key: (options.sort ?? CASES_DRAFT_CHECKER_TABS[tab].defaultSort) as CasesDraftSortColumn,
+              direction: options.direction ?? 'ascending',
+            });
+          if (options.page !== undefined) dashboard.changePage(options.page);
           fixture.detectChanges();
         }
       });

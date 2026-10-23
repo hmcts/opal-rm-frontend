@@ -1,22 +1,25 @@
 import { CASES_CREATE_CASEFILE_STATE } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-state.constant';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
-import { REVIEW_SUBMISSION_RECEIPT } from './mocks/review.mock';
-import { interceptReviewSubmission, REVIEW_SUBMISSION_URL } from './setup/review-submission.intercept';
-import { getState } from '@ngrx/signals';
-import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
-import type { CasesCreateCasefileReviewNavigationService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-review-navigation.service';
-import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import {
+  REVIEW_SUBMISSION_RECEIPT,
   createCompleteReviewState,
   createRemoOutReviewState,
   createOrganisationReviewState,
   createMixedCreditorReviewState,
 } from './mocks/review.mock';
+import { interceptReviewSubmission, REVIEW_SUBMISSION_URL } from './setup/review-submission.intercept';
+import { getState } from '@ngrx/signals';
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
+import { type CasesCreateCasefileReviewNavigationService } from 'src/app/flows/cases/cases-create-casefile/services/cases-create-casefile-review-navigation.service';
+import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { setupReview, type ReviewStore } from './setup/review.setup';
 
 const S = CreateCasefileSelectors.review;
+
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9817', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
+
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
+
 const assertDraftRetained = () =>
   cy
     .get<ReviewStore>('@reviewStore')
@@ -310,6 +313,40 @@ describe('Check case details submission', () => {
 });
 
 describe('Check case details keyboard, accessibility and reflow', () => {
+  it(
+    'AC6. should have no detected Axe violations in the valid review and expanded bank disclosure',
+    { tags: buildTags() },
+    () => {
+      setupReview();
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.get(S.change('applicant')).focus();
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.bankToggle).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.SPACE);
+      cy.get(S.bankDetails).should('have.attr', 'open');
+      cy.checkA11y();
+    },
+  );
+
+  it('AC6. should reflow before and after disclosure at 320 CSS pixels', { tags: buildTags() }, () => {
+    cy.viewport(320, 900);
+    setupReview();
+    cy.get(S.heading).should('be.visible');
+    cy.document().should((document) =>
+      expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
+    );
+    cy.screenshot('po-9817-review-collapsed-320px');
+    cy.get(S.bankToggle).click();
+    cy.get(S.bankDetails).should('have.attr', 'open');
+    cy.document().should((document) =>
+      expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
+    );
+    cy.screenshot('po-9817-review-expanded-320px');
+  });
+});
+
+describe('Check case details accessibility', () => {
   it(
     'AC6. should have no detected Axe violations in the valid review and expanded bank disclosure',
     { tags: buildTags() },

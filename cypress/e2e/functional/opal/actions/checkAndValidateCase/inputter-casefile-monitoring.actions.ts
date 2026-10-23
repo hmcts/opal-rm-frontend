@@ -486,10 +486,11 @@ export class InputterCasefileMonitoringActions {
   /** Matches every generated account to an independent persisted snapshot.
    * @param owned Exact published or stable-pending fixture.
    * @param pending Expected pending state.
+   * @param scanStates Whether every visited account-search page requires a strict accessibility scan.
    */
-  public expectAccounts(owned: IOwnedDraftCasefile, pending: boolean): void {
-    this.firstPage();
-    this.findRow(owned.id);
+  public expectAccounts(owned: IOwnedDraftCasefile, pending: boolean, scanStates = false): void {
+    this.firstPage(scanStates);
+    this.findRow(owned.id, scanStates);
     readDraftSnapshot(owned.id).then((snapshot) => assertMonitoringAccounts(snapshot, pending));
     this.expectNoWrites();
   }

@@ -362,3 +362,81 @@ every traversed page, after each ascending/descending sort, and after every sear
 before leaving that state. Functional callers keep their read-only assertions without enabling these additional
 scans. Controlled support dispatch checks prove state-by-state scanner invocation and stop-on-failure behavior;
 they do not establish live Axe acceptance.
+
+## PO-10625 independent checker decisions
+
+`CheckerReviewDecisions.feature` contains 10 live functional examples: Submitted publication with two minor
+creditors, Resubmitted approval, Submitted/Resubmitted rejection, Submitted/Resubmitted blank-reason validation,
+self-review, permission denial, and stale approve/reject. `CheckerReviewDecisionsAccessibility.feature` contains
+six independent broad journeys: publication, rejection, blank validation, self-review, denied permission, and
+stale approval. All carry `@R1CRmCreateCaseFiles`, `@JIRA-STORY:PO-10625`, `@JIRA-EPIC:PO-10817`,
+`@JIRA-LABEL:create-draft-casefile`, `@AC1`, and `@retries(0)`; the accessibility examples also carry
+`@accessibility`. No example is skipped or pending. Later queue-window/empty additions are separate coverage.
+
+Every Given creates fresh data with the exact E2E marker and required cleanup receipt. Positive fixtures require
+independent ACTIVE BU 44 inputter permission 21 and checker permission 22 identities. The self-review negative
+alone uses the same dual-role identity. Denied tests authenticate `PO10625_DENIED_EMAIL` (default provisioned
+`opal-test-4@dev.platform.hmcts.net`), verify its actual user-state lacks BU 44 permission 22, require the actual
+access-denied route and absence of case data, then restore the owner before independent GET and cleanup.
+
+Before any rejection, approval or resubmission fixture creation, the operator must verify compatible lifecycle
+cleanup and set **boolean** `PO10625_LIFECYCLE_CLEANUP_VERIFIED=true` in the live runner. This is a safety guard,
+not evidence of delivered cleanup. Approval additionally requires the maintained
+`PO10628_PUBLICATION_CLEANUP_VERIFIED=true` publication preflight. Never enable either switch automatically for
+live execution. Current Submitted-only cleanup cannot support these transitions; a missing prerequisite is an
+unrun or failed journey, never a passing acceptance result. Preserve required cleanup receipts on failure.
+
+Queue list/count/detail and UI PATCH observations pass through real provider responses. Queue scope requires
+BU 44, `not_submitted_by` the checker and exactly `SUBMITTED,RESUBMITTED`, without date filtering. The actual
+owned row is found through real pagination, and its matching detail GET establishes the original opaque ETag.
+A successful decision requires one UI dispatch, one PATCH, HTTP 200, an advanced ETag, exact additional checker
+history and the maintained dashboard notice; the owned row must disappear from the provider collection and all
+rendered To review pages. Rejection follows the owning inputter's real rejected row into its saved history.
+
+Publication requires actual GET polling to **PUBLISHED**, complete respondent/applicant accounts and both minor
+creditors. Every account ID and number must exist; all four numbers must match the exact inputter Approved row,
+in persisted creditor sequence, as read-only text without links, inputs or buttons. `PUBLISHING_PENDING` is only
+a receipt state, `PUBLISHING_FAILED` and polling timeout fail full acceptance. No publication observation endpoint
+or manufactured completion is used. A stale UI decision competes with an actual API rejection bearing
+`Synthetic winning concurrent decision`, then requires one original-ETag UI attempt, HTTP 409, the shared safe
+conflict page and a fresh GET exactly equal to the winner.
+
+Blank-reason validation requires `Enter reason for rejection`, the maintained native summary-link activation
+focusing the reason textarea, its inline ARIA association, zero PATCH and a fresh unchanged aggregate/ETag/history.
+The maintained shared summary uses an emitted field identity; its literal href is not an acceptance contract.
+Accessibility validation corrects the reason without submitting. Accessibility journeys use the shared strict Axe
+scanner with native Enter/Tab, heading and tab focus checks, scans for every meaningful visited state including
+pagination, success notices, inputter outcomes, conflict, read-only and denied states. These scans provide partial
+automated accessibility evidence.
+
+Controlled support (synthetic boundaries, no live journey):
+
+```bash
+corepack yarn exec cypress run --component --browser chrome \
+  --spec 'cypress/component/checkAndValidateCase/checker-review-journey-support.cy.ts,cypress/component/checkAndValidateCase/inputter-monitoring-journey-support.cy.ts'
+```
+
+Discovery only (16 examples; no browser actions or live fixtures):
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+corepack yarn exec cypress run --browser chrome --config '{"baseUrl":null}' \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisions.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisionsAccessibility.feature' \
+  --env 'dryRun=true,omitFiltered=false,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625'
+```
+
+Live, only after external runtime/cleanup preflight and parent-coordinated reviews, using the same exact selection:
+
+```bash
+TEST_URL=http://localhost:5100 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisions.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisionsAccessibility.feature' \
+  --env 'tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625'
+```
+
+Controlled support establishes helper assertions and scanner dispatch. Discovery establishes inventory, metadata
+and bindings. Neither establishes live authorization, real publication, provider persistence or cleanup success.
+Do not report live AC1 acceptance until the full actual UI/API/publication/inputter/cleanup run succeeds.

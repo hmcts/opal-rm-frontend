@@ -657,6 +657,7 @@ variables set to `@R1CRmCreateCaseFiles and not @skip` to include all fifteen sh
 `OrderDetails.feature`, `OrderDetailsAccessibility.feature`, `CheckCaseDetails.feature` and
 `CheckCaseDetailsAccessibility.feature` for the reused prerequisite and payment-to-review integration regressions,
 then the smoke suite and required local pre-flight. Preserve reports before the runner resets its output directory.
+
 ## Draft Casefile cancellation QA (PO-10284)
 
 `CancelCaseCreation.feature` covers returning to review with the accepted draft retained, confirming cancellation

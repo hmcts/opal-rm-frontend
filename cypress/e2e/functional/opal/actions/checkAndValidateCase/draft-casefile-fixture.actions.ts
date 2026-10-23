@@ -1,13 +1,8 @@
-import type { Interception } from 'cypress/types/net-stubbing';
 import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import type { IOwnedDraftCasefile } from './interfaces/draft-casefile-owned.interface';
 import type { IDraftCasefileSnapshot } from './interfaces/draft-casefile-snapshot.interface';
-import { CheckCaseDetailsFlow } from '../../flows/createDraftCasefile/check-case-details.flow';
 import { performAuthentication } from '../../../../actions/login.actions';
-import {
-  configureDraftCasefileCleanup,
-  persistDraftCasefileCleanupReceipts,
-} from '../../../../../support/draftCasefiles';
+import { postSyntheticDraft } from './draft-casefile-api.actions';
 import { readDraftSnapshot } from './draft-casefile-evidence.actions';
 
 /**
@@ -51,26 +46,7 @@ export function createOwnedSubmittedDraft(): Cypress.Chainable<IOwnedDraftCasefi
     inputterName = user.name;
     expect(inputterId === checkerId, 'inputter and checker have independent BU identities').to.equal(false);
   });
-  const creation = new CheckCaseDetailsFlow();
-  creation.openLive();
-  creation.submitLive();
-  return cy.get<Interception>('@draftSubmission').then((call) => {
-    expect(call.response?.statusCode, 'real fixture creation').to.equal(201);
-    const id: unknown = call.response?.body?.draft_casefile_id;
-    const marker: unknown = call.request.body?.casefile?.respondent_account?.remo_reference;
-    if (
-      typeof id !== 'number' ||
-      !Number.isSafeInteger(id) ||
-      id < 1 ||
-      typeof marker !== 'string' ||
-      !/^E2E-[0-9a-f]{16}$/.test(marker)
-    ) {
-      throw new Error('Live fixture did not return an owned ID and exact run marker');
-    }
-    configureDraftCasefileCleanup(id, marker, {
-      actor: inputter,
-      policy: Cypress.env('PO10626_DEFER_CLEANUP') === true ? 'deferred' : 'required',
-    });
+  return postSyntheticDraft(inputter).then(({ id, marker, etag }) => {
     const owned: IOwnedDraftCasefile = {
       id,
       marker,
@@ -81,7 +57,15 @@ export function createOwnedSubmittedDraft(): Cypress.Chainable<IOwnedDraftCasefi
       inputterName,
       checkerName,
     };
-    return persistDraftCasefileCleanupReceipts().then(() => owned);
+    return readDraftSnapshot(id).then((snapshot) => {
+      expect(snapshot.etag, 'new fixture version').to.equal(etag);
+      expect(snapshot.draft.casefile_status).to.equal('SUBMITTED');
+      expect(snapshot.draft.submitted_by).to.equal(inputterId);
+      expect(snapshot.draft.casefile.respondent_account.remo_reference).to.equal(marker);
+      expect(snapshot.draft.timeline_data).to.have.length(1);
+      expect(snapshot.draft.timeline_data[0].status).to.equal('Submitted');
+      return owned;
+    });
   });
 }
 

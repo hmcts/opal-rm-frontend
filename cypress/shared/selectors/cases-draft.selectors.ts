@@ -1,5 +1,15 @@
 import type { CasesDraftTab, CasesDraftOutcomeTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 export const CasesDraftSelectors = {
+  allRejectedPageStatus: 'app-cases-draft-table opal-lib-moj-sortable-table > output',
+  allRejectedHeading: '#cases-draft-all-rejected-heading',
+  allRejectedBack: '#cases-draft-all-rejected-back',
+  allRejectedEmpty: '#cases-draft-all-rejected-empty',
+  allRejectedSuccess: '#cases-draft-all-rejected-success',
+  allRejectedDismiss: '#cases-draft-all-rejected-dismiss',
+  allRejectedPage: (page: number) => '#cases-draft-pagination a[aria-label="Page ' + page + '"]',
+  allRejectedNext: '#cases-draft-pagination a[rel="next"]',
+  allRejectedPrevious: '#cases-draft-pagination a[rel="prev"]',
+  allRejectedEllipses: '#cases-draft-pagination .govuk-pagination__item--ellipses',
   failedCount: '#cases-draft-failed-count',
   placeholderHeading: '#cases-draft-placeholder-heading',
   placeholderBack: '#cases-draft-placeholder-back',

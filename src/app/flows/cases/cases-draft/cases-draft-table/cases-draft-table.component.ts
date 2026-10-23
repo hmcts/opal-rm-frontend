@@ -17,6 +17,7 @@ import { MojPaginationComponent } from '@hmcts/opal-frontend-common/components/m
 import { DaysAgoPipe } from '@hmcts/opal-frontend-common/pipes/days-ago';
 import { DateService } from '@hmcts/opal-frontend-common/services/date-service';
 import { getCasesDraftTabMetadata } from '../utils/cases-draft-tab-metadata';
+import { CASES_DRAFT_ALL_REJECTED } from '../constants/cases-draft-all-rejected.constant';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import type { ICasesDraftRow } from '../interfaces/cases-draft-row.interface';
 import type { ICasesDraftNavigation } from '../interfaces/cases-draft-navigation.interface';
@@ -46,10 +47,19 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
     if (this.mode === 'inputter') return 'details';
     return this.selection().tab === 'to-review' ? 'review' : 'view';
   });
+  private readonly columns = computed(() =>
+    this.allRejected()
+      ? CASES_DRAFT_ALL_REJECTED.columns
+      : getCasesDraftTabMetadata(this.selection().tab, this.mode).columns,
+  );
   public readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
   public readonly dates = inject(DateService);
   public readonly rows = input.required<readonly ICasesDraftRow[]>();
   public readonly selection = input.required<ICasesDraftNavigation>();
+  public readonly presentation = input<'dashboard' | 'all-rejected'>('dashboard');
+  public readonly allRejected = computed(() => this.presentation() === 'all-rejected');
+  public readonly showSubmittedBy = computed(() => this.allRejected() || this.mode === 'checker');
+  public readonly totalPages = computed(() => Math.max(1, Math.ceil(this.rows().length / this.itemsPerPageSignal())));
   public readonly sortChanged = output<{ key: CasesDraftSortColumn; direction: ICasesDraftNavigation['direction'] }>();
   public readonly pageChanged = output<number>();
   public readonly rowOpened = output<number>();
@@ -59,12 +69,18 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
       const row = this.rowsById().get(Number(item['id']))!;
       return {
         ...row,
-        detailHref: this.router.serializeUrl(this.navigation.placeholderUrl(this.rowDestination(), row.id)),
+        detailHref: this.router.serializeUrl(
+          this.allRejected()
+            ? this.navigation.allRejectedPlaceholderUrl('details', row.id)
+            : this.navigation.placeholderUrl(this.rowDestination(), row.id),
+        ),
       };
     }),
   );
-  public readonly tableCaption = computed(
-    () => getCasesDraftTabMetadata(this.selection().tab, this.mode).label + ' cases',
+  public readonly tableCaption = computed(() =>
+    this.allRejected()
+      ? CASES_DRAFT_ALL_REJECTED.heading
+      : getCasesDraftTabMetadata(this.selection().tab, this.mode).label + ' cases',
   );
   public readonly sortTitle = computed(
     () =>
@@ -91,6 +107,8 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
     this.mode === 'checker' && this.selection().tab === 'to-review' ? 'Review case for ' : 'View case details for ',
   );
   public readonly pageAnnouncement = computed(() => {
+    if (this.allRejected())
+      return `${CASES_DRAFT_ALL_REJECTED.heading}, page ${this.currentPageSignal()} of ${this.totalPages()}`;
     const count = this.sortedTableDataSignal().length;
     return `Page ${this.currentPageSignal()} of ${Math.max(1, Math.ceil(count / this.itemsPerPageSignal()))}, showing cases ${count ? this.startIndexComputed() : 0} to ${this.endIndexComputed()} of ${count}`;
   });
@@ -100,17 +118,19 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
     effect(() => {
       const rows = this.rows();
       const selection = this.selection();
+      this.columns();
+      this.allRejected();
       untracked(() => this.applySelection(rows, selection));
     });
   }
 
   private applySelection(rows: readonly ICasesDraftRow[], selection: ICasesDraftNavigation): void {
+    if (this.allRejected()) this.paginationPageTitle = CASES_DRAFT_ALL_REJECTED.heading;
+    else this.paginationPageTitle = this.mode === 'checker' ? 'Review cases' : 'Create cases';
     this.itemsPerPageSignal.set(25);
     this.setTableData(this.tableData(rows));
     this.applyFilterState();
-    this.sortStateSignal.set(
-      Object.fromEntries(getCasesDraftTabMetadata(selection.tab, this.mode).columns.map((column) => [column, 'none'])),
-    );
+    this.sortStateSignal.set(Object.fromEntries(this.columns().map((column) => [column, 'none'])));
     if (selection.direction === 'none') {
       this.sortedTableDataSignal.set(this.tableData(rows));
       this.sortedColumnTitleSignal.set('');
@@ -139,7 +159,7 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
   }
 
   public override onSortChange(event: { key: string; sortType: SortDirectionType }): void {
-    const columns: readonly string[] = getCasesDraftTabMetadata(this.selection().tab, this.mode).columns;
+    const columns: readonly string[] = this.columns();
     if (!columns.includes(event.key) || event.sortType === 'none') return;
     const column = event.key as CasesDraftSortColumn;
     this.pageChangeAnnouncement.set('');

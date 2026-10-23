@@ -4,7 +4,7 @@ import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/cr
 import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
 import { checkerUser, type CheckerRole } from '../../mocks/createDraftCasefile/checker-dashboard.mock';
 import { rejectedAmendmentDraft } from '../../mocks/createDraftCasefile/rejected-amendment.mock';
-import { stubPersistedCasefileReferences } from './check-case-details-modes.actions';
+import { stubPersistedCasefileReferences } from '../../setup/createDraftCasefile/persisted-casefile.intercept';
 import { PERSISTED_CASEFILE_REFERENCES } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
 

@@ -30,8 +30,24 @@ and execution sections together with [AGENTS.md](../AGENTS.md), [REPO_GUIDELINES
 ## Actions, Flows, and Selectors
 
 - Actions in `cypress/e2e/functional/opal/actions/**` wrap interactions, API stubs, and navigation using selectors from `cypress/shared/selectors/**`.
-- Flows in `cypress/e2e/functional/opal/flows/**` compose actions into business journeys and are the verbs exposed to steps and component specs.
+- Make the business outcome visible through an explicit `Then` step delegating to an expectation method. An action
+  may wait for navigation or readiness, but should not be the only place that proves the scenario's outcome.
+  When separating an existing action from its assertions, preserve the assertions and migrate every functional and
+  accessibility caller. A page heading alone must not replace record identity, mode, permission, or no-write checks.
+- Flows in `cypress/e2e/functional/opal/flows/**` compose actions into business journeys exposed to steps. Component
+  specs retain the direct script/helper style described in [CYPRESS_COMPONENT_TESTING.md](CYPRESS_COMPONENT_TESTING.md).
 - Selectors are centralized. Add hooks in Angular templates and document them in `cypress/shared/selectors/**`. Avoid positional CSS.
+
+### Shared fixtures and request setup
+
+- Put reusable response builders and scenario data under the capability's `mocks/**`, and shared request wiring under
+  `setup/**` or `intercept/**`. Actions should import these directly rather than importing another feature's Action
+  module solely to reuse its fixtures or stubs. Do not introduce barrel exports.
+- Extract only genuinely shared contracts. Preserve endpoint/method matching, query handling, aliases, and response
+  semantics; leave scenario-specific selected-record behaviour with its owner. Keep business assertions in explicit
+  expectation methods and mutable scenario data independent.
+- Controlled reference responses prove frontend behaviour against those contracts. They do not establish deployed
+  provider behaviour, live authentication, or permissions. Preserve the scenario's existing live/controlled boundary.
 
 ## Reusing feature-file steps
 
@@ -91,6 +107,9 @@ Reuse existing Steps, Flows and Actions, while giving each scenario independent 
 state. Use focused spec/Story selections for development feedback without reducing required
 full regressions. Report expanded examples, failures, retries, missing cases and wall time;
 a successful runner exit alone does not prove a complete passing suite.
+
+Apply [test-maintenance evidence](CONTRIBUTING.md#test-maintenance-evidence) to shared fixture/step changes and runtime
+claims, including failed or incomplete parallel attempts and the final executed selection.
 
 ## Running a Feature
 
@@ -214,6 +233,12 @@ role-account environment variables are required. The live User Service must prov
 and the BU 44 permission state above. The explicit permission preflight reads the actual `/api/user-state` response
 (`domains.maintenance`) after shared authentication. This preflight verifies existing access and never provisions or
 changes it; authentication or existing-access failures fail setup.
+
+If shared login stalls or reaches `/account-created`, inspect the actual `/api/user-state` status and safe diagnostic
+details before attributing the failure to provisioning. Check the configured local User Service and required cache
+dependencies, including Redis, as applicable; a dependency failure can prevent user-state resolution. Do not change
+accounts, permissions, guards, or authentication stubs to make the run pass. Record and correct the evidenced local
+prerequisite, then rerun the affected selection. Keep credentials, tokens, and user data out of diagnostic reports.
 
 | Environment variable      | Purpose                                                         |
 | ------------------------- | --------------------------------------------------------------- |
@@ -668,8 +693,9 @@ cancellation page and fresh destination; Axe provides partial accessibility evid
 The permission scenario reuses the shared live permission preflight: first verify ACTIVE Maintenance membership,
 BU 44 permission 21 and released entry with the authorised account, then authenticate the provisioned denied account
 and verify ACTIVE Maintenance membership without BU 44 permission 21. Direct cancellation navigation must reach
-`/access-denied` with no cancellation controls or case creation entry. `/account-created` is a provisioning failure,
-and a disabled release must fail the authorised entry check rather than count as permission rejection.
+`/access-denied` with no cancellation controls or case creation entry. `/account-created` is a setup failure requiring
+the user-state diagnosis above, and a disabled release must fail the authorised entry check rather than count as
+permission rejection.
 
 Run with the enabled release and provisioned accounts described above:
 

@@ -8,7 +8,12 @@ import { CANCEL_CASE_CREATION_COPY as COPY } from './constants/cancel-case-creat
 import { setupCancellation, type CancelStore } from './setup/cancel-case-creation.setup';
 
 const S = CreateCasefileSelectors.cancellation;
-const buildTags = (): string[] => ['@JIRA-STORY:PO-9818', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
+const buildTags = (): string[] => [
+  '@JIRA-STORY:PO-10605',
+  '@JIRA-STORY:PO-9818',
+  '@JIRA-EPIC:PO-6506',
+  '@JIRA-LABEL:create-draft-casefile',
+];
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
 const axeTags = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'];
 const scan = (): void => {
@@ -46,8 +51,10 @@ describe('Cancel case creation', () => {
     cy.get<CasesCreateCasefileReviewNavigationService>('@cancelReviewNavigation').should(
       (navigation) => expect(navigation.context()).to.be.null,
     );
-    cy.get('@cancelRouterNavigate').should('have.been.calledWith', route(PATHS.children.caseType), {
-      state: { focusCaseTypeHeading: true },
+    cy.get<string>('@cancelReturnUrl').then((destination) => {
+      cy.get<Cypress.Agent<sinon.SinonStub>>('@cancelRouterNavigate').should((navigate) =>
+        expect(navigate.firstCall.args[0].toString()).to.equal(destination),
+      );
     });
   });
 
@@ -98,6 +105,7 @@ describe('Cancel case creation', () => {
     cy.get<Cypress.Agent<sinon.SinonStub>>('@cancelRouterNavigate').then((navigate) => navigate.resolves(true));
     cy.get(S.back).click();
     cy.get('@cancelRouterNavigate').should('have.been.calledTwice');
+    cy.get('@cancelStoreReset').should('not.have.been.called');
     cy.get(S.error).should('not.exist');
     cy.get<CancelStore>('@cancelStore').should((store) =>
       expect(getState(store)).to.deep.equal(createCasesCreateCasefileCancellationState()),

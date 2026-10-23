@@ -1,8 +1,15 @@
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
 import { Router } from '@angular/router';
-import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
+import {
+  GENERIC_HTTP_ERROR_MESSAGE,
+  GENERIC_HTTP_ERROR_TITLE,
+} from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { AbstractFormParentBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-form-parent-base';
-import { DASHBOARD_ROUTING_PATHS } from '@app/pages/dashboard/constants/dashboard-routing-paths.constant';
 import { CASES_CREATE_CASEFILE_APPLICANT_TYPES } from '../constants/cases-create-casefile-applicant-types.constant';
 import { CASES_CREATE_CASEFILE_CASE_TYPES } from '../constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../routing/constants/cases-create-casefile-routing-paths.constant';
@@ -22,10 +29,23 @@ import { ICasesCreateCasefileCaseTypeForm } from './interfaces/cases-create-case
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBaseComponent implements OnInit {
-  private readonly arrivalNavigation = inject(Router).currentNavigation();
+  private readonly cancelRouter = inject(Router);
+  // Deferred outlet activation can construct this page after NavigationEnd cleared currentNavigation.
+  private readonly completedNavigation = this.cancelRouter.lastSuccessfulNavigation();
+  private readonly completedCaseTypeArrival =
+    this.completedNavigation?.finalUrl?.toString().split(/[?#]/)[0] ===
+    '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType;
+  private readonly arrivalNavigation =
+    this.cancelRouter.currentNavigation() ?? (this.completedCaseTypeArrival ? this.completedNavigation : null);
   private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
   private readonly store = inject(CasesCreateCasefileStore);
-  public readonly focusHeadingOnArrival = this.arrivalNavigation?.extras.state?.['focusCaseTypeHeading'] === true;
+  private readonly dashboardNavigation = inject(CasesDraftNavigationService);
+  private readonly globalStore = inject(GlobalStore);
+  public readonly cancelling = signal(false);
+
+  public readonly focusHeadingOnArrival =
+    this.arrivalNavigation?.trigger === 'imperative' &&
+    this.arrivalNavigation.extras.state?.['focusCaseTypeHeading'] === true;
 
   private isCaseType(value: unknown): value is CasesCreateCasefileCaseType {
     return Object.values(CASES_CREATE_CASEFILE_CASE_TYPES).includes(value as CasesCreateCasefileCaseType);
@@ -101,7 +121,22 @@ export class CasesCreateCasefileCaseTypeComponent extends AbstractFormParentBase
     this.stateUnsavedChanges = unsavedChanges;
   }
 
-  public handleCancel(): void {
-    this.routerNavigate(`/${DASHBOARD_ROUTING_PATHS.root}/${DASHBOARD_ROUTING_PATHS.children.cases}`, true);
+  public async handleCancel(): Promise<void> {
+    if (this.cancelling()) return;
+    this.cancelling.set(true);
+    try {
+      await this.cancelRouter.navigateByUrl(this.dashboardNavigation.prepareCreationReturn());
+    } catch (error: unknown) {
+      if (!(error instanceof HttpErrorResponse)) {
+        this.globalStore.setBannerError({
+          ...GLOBAL_ERROR_STATE,
+          error: true,
+          title: GENERIC_HTTP_ERROR_TITLE,
+          message: GENERIC_HTTP_ERROR_MESSAGE,
+        });
+      }
+    } finally {
+      this.cancelling.set(false);
+    }
   }
 }

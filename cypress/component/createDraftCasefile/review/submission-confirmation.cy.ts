@@ -11,8 +11,6 @@ const buildTags = (story = 'PO-9819'): string[] => [
   '@JIRA-LABEL:create-draft-casefile',
 ];
 
-// Generated identifier and In Review navigation remain implementation gaps in PO-9819.
-// These scenarios verify the available action without treating those gaps as accepted behaviour.
 describe('Submission confirmation', () => {
   beforeEach(() => {
     const mutation = cy.spy().as('confirmationPersistence');

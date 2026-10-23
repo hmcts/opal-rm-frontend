@@ -1,5 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Router } from '@angular/router';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import { HttpErrorResponse } from '@angular/common/http';
+import {
+  GENERIC_HTTP_ERROR_MESSAGE,
+  GENERIC_HTTP_ERROR_TITLE,
+} from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
+import { Subject } from 'rxjs';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import {
+  ActivatedRoute,
+  Router,
+  UrlTree,
+  NavigationCancel,
+  NavigationCancellationCode,
+  DefaultUrlSerializer,
+} from '@angular/router';
 import { getState, patchState, WritableStateSource } from '@ngrx/signals';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createSpyObj } from '@app/testing/create-spy-obj.helper';
@@ -19,24 +34,33 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileCaseTypeComponent>;
   let component: CasesCreateCasefileCaseTypeComponent;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
-  const router = createSpyObj(Router, ['navigate', 'currentNavigation']);
+  let globalStore: InstanceType<typeof GlobalStore>;
+  const router = createSpyObj(Router, ['navigate', 'currentNavigation', 'lastSuccessfulNavigation', 'navigateByUrl']);
+
+  const events = new Subject<NavigationCancel>();
+  const returnUrl = new UrlTree();
+  Object.assign(router, { events: events.asObservable() });
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CasesCreateCasefileCaseTypeComponent],
       providers: [
+        { provide: CasesDraftNavigationService, useValue: { prepareCreationReturn: () => returnUrl } },
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: { parent: null } },
       ],
     }).compileComponents();
 
+    router['navigateByUrl'].mockReset().mockResolvedValue(true);
     router['navigate'].mockReset();
     router['currentNavigation'].mockReset();
+    router['lastSuccessfulNavigation'].mockReset();
     fixture = TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
     component = fixture.componentInstance;
     store = TestBed.inject(CasesCreateCasefileStore);
     store.resetStore();
-    fixture.detectChanges();
+    globalStore = TestBed.inject(GlobalStore);
+    globalStore.resetBannerError();
   });
 
   it.each(['imperative', 'popstate', 'ordinary'])('resets only for an intentional new-case arrival: %s', (trigger) => {
@@ -59,6 +83,65 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     expect(getState(store)).toEqual(startNewCase ? CASES_CREATE_CASEFILE_STATE : before);
     expect(review.context()).toEqual(startNewCase ? null : { origin: 'review', section: 'respondent' });
     if (startNewCase) expect(arrival.nativeElement.querySelectorAll('input:checked')).toHaveLength(0);
+  });
+
+  it.each(['imperative', 'popstate', 'ordinary'])(
+    'preserves arrival intent when the component is activated after navigation completes: %s',
+    async (trigger) => {
+      patchState(
+        store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+        createCasesCreateCasefileReviewState(),
+      );
+      const review = TestBed.inject(CasesCreateCasefileReviewNavigationService);
+      review.setContext({ origin: 'review', section: 'respondent' });
+      const before = structuredClone(getState(store));
+      const intentional = trigger === 'imperative';
+      router['currentNavigation'].mockReturnValue(null);
+      router['lastSuccessfulNavigation'].mockReturnValue(
+        trigger === 'ordinary'
+          ? {
+              trigger: 'imperative',
+              extras: {},
+              finalUrl: new DefaultUrlSerializer().parse('/cases/create-casefile/case-type'),
+            }
+          : {
+              trigger,
+              extras: { state: { startNewCase: true, focusCaseTypeHeading: true } },
+              finalUrl: new DefaultUrlSerializer().parse('/cases/create-casefile/case-type'),
+            },
+      );
+      const arrival = TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
+      arrival.detectChanges();
+      await arrival.whenStable();
+      expect(getState(store)).toEqual(intentional ? CASES_CREATE_CASEFILE_STATE : before);
+      expect(review.context()).toEqual(intentional ? null : { origin: 'review', section: 'respondent' });
+      const heading = arrival.nativeElement.querySelector('#create_casefile_case_type_heading');
+      expect(heading).not.toBeNull();
+      expect(document.activeElement === heading).toBe(intentional);
+      if (intentional) expect(arrival.nativeElement.querySelectorAll('input:checked')).toHaveLength(0);
+    },
+  );
+
+  it.each(['previous-route', 'current-navigation'])('does not reuse stale completed intent: %s', (kind) => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const before = structuredClone(getState(store));
+    router['lastSuccessfulNavigation'].mockReturnValue({
+      trigger: 'imperative',
+      extras: { state: { startNewCase: true, focusCaseTypeHeading: true } },
+      finalUrl: new DefaultUrlSerializer().parse(
+        kind === 'previous-route' ? '/outside' : '/cases/create-casefile/case-type',
+      ),
+    });
+    router['currentNavigation'].mockReturnValue(
+      kind === 'current-navigation' ? { trigger: 'imperative', extras: {} } : null,
+    );
+    const arrival = TestBed.createComponent(CasesCreateCasefileCaseTypeComponent);
+    arrival.detectChanges();
+    expect(getState(store)).toEqual(before);
+    expect(arrival.componentInstance.focusHeadingOnArrival).toBe(false);
   });
 
   it('exposes null initial form data', () => {
@@ -211,9 +294,76 @@ describe('CasesCreateCasefileCaseTypeComponent', () => {
     expect(store.stateChanges()).toBe(true);
   });
 
-  it('cancels to the Cases dashboard', () => {
-    component.handleCancel();
+  it('cancels to the inputter dashboard without resetting before the guard decides', async () => {
+    store.setCaseTypeSelection({ caseType: 'REMO Out' });
+    const before = structuredClone(getState(store));
+    await component.handleCancel();
+    expect(router['navigateByUrl']).toHaveBeenCalledWith(returnUrl);
+    expect(getState(store)).toEqual(before);
+  });
 
-    expect(router['navigate']).toHaveBeenCalledWith(['/dashboard/cases'], {});
+  it('reports an unexpected cancellation navigation error through the global banner', async () => {
+    router['navigateByUrl'].mockRejectedValueOnce(new Error('Synthetic router failure'));
+    await component.handleCancel();
+    fixture.detectChanges();
+    expect(globalStore.bannerError()).toMatchObject({
+      error: true,
+      title: GENERIC_HTTP_ERROR_TITLE,
+      message: GENERIC_HTTP_ERROR_MESSAGE,
+    });
+    expect(fixture.nativeElement.querySelector('#create_casefile_case_type_cancel_error')).toBeNull();
+    expect(component.cancelling()).toBe(false);
+  });
+
+  it('does not display an error when cancellation navigation is cancelled', async () => {
+    router['navigateByUrl'].mockResolvedValueOnce(false);
+    await component.handleCancel();
+    fixture.detectChanges();
+    expect(globalStore.bannerError().error).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('#create_casefile_case_type_cancel_error')).toBeNull();
+    expect(component.cancelling()).toBe(false);
+  });
+
+  it('preserves a resolver HTTP error already handled by the application', async () => {
+    globalStore.setBannerError({
+      error: true,
+      title: GENERIC_HTTP_ERROR_TITLE,
+      message: GENERIC_HTTP_ERROR_MESSAGE,
+      operationId: 'SYNTHETIC-REFERENCE',
+    });
+    router['navigateByUrl'].mockRejectedValueOnce(new HttpErrorResponse({ status: 500 }));
+    await component.handleCancel();
+    expect(globalStore.bannerError().operationId).toBe('SYNTHETIC-REFERENCE');
+    expect(component.cancelling()).toBe(false);
+  });
+
+  it('retains all data without an error after a dismissed unsaved-change prompt', async () => {
+    patchState(
+      store as unknown as WritableStateSource<ICasesCreateCasefileState>,
+      createCasesCreateCasefileReviewState(),
+    );
+    const before = structuredClone(getState(store));
+    router['navigateByUrl'].mockImplementationOnce(async () => {
+      events.next(new NavigationCancel(1, '/dashboard', 'Guard rejected', NavigationCancellationCode.GuardRejected));
+      return false;
+    });
+    await component.handleCancel();
+    expect(globalStore.bannerError().error).toBeFalsy();
+    expect(getState(store)).toEqual(before);
+  });
+
+  it('ignores duplicate cancellation while navigation is pending', async () => {
+    let finish!: (value: boolean) => void;
+    router['navigateByUrl'].mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const action = component.handleCancel();
+    await component.handleCancel();
+    expect(router['navigateByUrl']).toHaveBeenCalledOnce();
+    finish(true);
+    await action;
+    expect(component.cancelling()).toBe(false);
   });
 });

@@ -1,3 +1,5 @@
+import { CASES_CREATE_CASEFILE_DASHBOARD_LINKS } from '../../flows/cases/cases-create-casefile/constants/cases-create-casefile-dashboard-links.constant';
+import { CASES_PERMISSIONS } from '../../flows/cases/constants/cases-permissions.constant';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -65,7 +67,7 @@ const DASHBOARD_CONFIG: IDashboardPageConfiguration = {
   template: '<opal-lib-dashboard-page [dashboardConfig]="dashboardConfig" />',
 })
 class DashboardPageHostComponent {
-  public readonly dashboardConfig = DASHBOARD_CONFIG;
+  public dashboardConfig = structuredClone(DASHBOARD_CONFIG);
 }
 
 describe('DashboardPage integration', () => {
@@ -84,6 +86,20 @@ describe('DashboardPage integration', () => {
         { provide: GlobalStore, useValue: { userState: () => null } },
       ],
     }).compileComponents();
+  });
+
+  it('keeps the Cases entry ID, permission and same-tab attributes while linking to In review', () => {
+    permissionsServiceMock.getUniquePermissions.mockReturnValue(CASES_PERMISSIONS);
+    fixture = TestBed.createComponent(DashboardPageHostComponent);
+    fixture.componentInstance.dashboardConfig.groups = [
+      { id: 'cases', title: 'Cases', links: CASES_CREATE_CASEFILE_DASHBOARD_LINKS },
+    ];
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector('#casesCreateCasefileLink') as HTMLAnchorElement;
+    expect(link.textContent?.trim()).toBe('Create cases');
+    expect(link.getAttribute('href')).toBe('/cases/draft/create-and-manage/tabs#in-review');
+    expect(link.getAttribute('target')).toBe('_self');
+    expect(link.getAttribute('rel')).toBeNull();
   });
 
   it('should only render links the user has permission to access', () => {

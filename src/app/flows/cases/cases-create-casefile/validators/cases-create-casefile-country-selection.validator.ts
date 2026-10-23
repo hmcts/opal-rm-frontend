@@ -2,13 +2,16 @@ import type { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/fo
 
 export interface ICasesCreateCasefileCountryOption {
   value: string | number;
+  active?: boolean;
 }
 
 export const createCasesCreateCasefileCountrySelectionValidator =
   (options: readonly ICasesCreateCasefileCountryOption[]): ValidatorFn =>
   (control: AbstractControl): ValidationErrors | null => {
     const selected = control.value;
-    return selected !== null && selected !== '' && options.some((option) => String(option.value) === String(selected))
+    return selected !== null &&
+      selected !== '' &&
+      options.some((option) => option.active !== false && String(option.value) === String(selected))
       ? null
       : { required: true };
   };

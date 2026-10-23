@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from 'src/app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { EMPTY } from 'rxjs';
 import { AppComponent } from 'src/app/app.component';
 import { HIDE_PRIMARY_NAV_ROUTE_DATA_KEY } from 'src/app/constants/route-data.constant';
@@ -66,6 +67,7 @@ export const setupOrderDetails = (
           {
             path: PATHS.root,
             component: CasesCreateCasefileComponent,
+            providers: [CasesDraftCasefileStore],
             children: routing,
             data: { [HIDE_PRIMARY_NAV_ROUTE_DATA_KEY]: true },
             canDeactivate: [canDeactivateGuard],

@@ -60,7 +60,8 @@ it.each([
   [],
   'success',
   {},
-  { ...event, origin: 'dashboard' },
+  { ...event, origin: 'checker' },
+  { ...event, origin: ['dashboard'] },
   { ...event, identity: null },
   { ...event, identity: [] },
   { ...event, identity: { ...identity, userId: 101 } },
@@ -75,7 +76,8 @@ it.each([
   { ...event, draftCasefileId: Infinity },
   { ...event, draftCasefileId: Number.MAX_SAFE_INTEGER + 1 },
   { ...event, respondentForename: null },
-  { ...event, respondentForename: ' ' },
+  { ...event, respondentForename: 42 },
+  { ...event, respondentForename: undefined },
   { ...event, respondentSurname: undefined },
   { ...event, respondentSurname: ' ' },
 ])('rejects malformed or foreign success event %j', (value) => {
@@ -86,4 +88,22 @@ it('requires an authorised identity and copies trimmed names into a fresh event'
   const decoded = decodeAllRejectedSuccess(event, identity)!;
   expect(decoded).toEqual({ ...event, respondentForename: 'Synthetic', respondentSurname: 'Respondent' });
   expect(decoded.identity).not.toBe(identity);
+});
+
+it.each(['dashboard', 'all-rejected'] as const)('accepts a resubmission notice for its %s origin', (origin) => {
+  expect(decodeAllRejectedSuccess({ ...event, origin }, identity)).toEqual({
+    ...event,
+    origin,
+    respondentForename: 'Synthetic',
+    respondentSurname: 'Respondent',
+  });
+});
+
+// Hydrated saved respondents represent omitted optional forenames as an empty string.
+it.each(['', ' ', '\t'])('accepts surname-only notices with optional forename %j', (respondentForename) => {
+  expect(decodeAllRejectedSuccess({ ...event, respondentForename }, identity)).toEqual({
+    ...event,
+    respondentForename: '',
+    respondentSurname: 'Respondent',
+  });
 });

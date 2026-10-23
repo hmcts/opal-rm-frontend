@@ -1,6 +1,21 @@
+import { CasesDraftCasefileStore } from '../../cases-draft/stores/cases-draft-casefile.store';
+import { CasesDraftNavigationService } from '../../cases-draft/services/cases-draft-navigation.service';
+import { CasesDraftCasefileHistoryComponent } from '../../cases-draft/components/cases-draft-casefile-history/cases-draft-casefile-history.component';
+import type { ICasesDraftCasefileResolved } from '../../cases-draft/interfaces/cases-draft-casefile-resolved.interface';
 import { CasesCreateCasefileReviewNavigationService } from '../services/cases-create-casefile-review-navigation.service';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  DestroyRef,
+  ElementRef,
+  Injector,
+  viewChild,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
 import { GovukButtonComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-button';
 import {
@@ -24,6 +39,7 @@ const createAbsolutePath = (child: string): string => '/' + CASES_CREATE_CASEFIL
 @Component({
   selector: 'app-cases-create-casefile-task-list',
   imports: [
+    CasesDraftCasefileHistoryComponent,
     GovukBackLinkComponent,
     GovukSummaryListComponent,
     GovukSummaryListRowComponent,
@@ -37,6 +53,13 @@ const createAbsolutePath = (child: string): string => '/' + CASES_CREATE_CASEFIL
 })
 export class CasesCreateCasefileTaskListComponent {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
+  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
+  private readonly draftNavigation = inject(CasesDraftNavigationService);
+  private readonly reviewNavigation = inject(CasesCreateCasefileReviewNavigationService);
+  protected readonly persistedStore = inject(CasesDraftCasefileStore);
   protected readonly store = inject(CasesCreateCasefileStore);
   protected readonly statuses = CASES_CREATE_CASEFILE_TASK_STATUSES;
   protected readonly paths = {
@@ -53,6 +76,12 @@ export class CasesCreateCasefileTaskListComponent {
     checkCaseDetails: createAbsolutePath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.checkCaseDetails),
     cancel: createAbsolutePath(CASES_CREATE_CASEFILE_ROUTING_PATHS.children.cancel),
   } as const;
+
+  protected readonly amendment = computed(() => this.store.submissionIntent() === 'amendment');
+  protected readonly respondentName = computed(() => {
+    const respondent = this.store.respondentDetails();
+    return [respondent?.title, respondent?.firstNames, respondent?.lastName].filter(Boolean).join(' ');
+  });
 
   protected readonly caseTypeSelection = computed(() => this.store.caseTypeSelection());
   protected readonly showApplicantType = computed(
@@ -77,7 +106,21 @@ export class CasesCreateCasefileTaskListComponent {
   constructor() {
     // Arrival at the task list ends a correction return; incomplete drafts must
     // remain free to open their editors rather than bouncing back from summaries.
-    inject(CasesCreateCasefileReviewNavigationService).clearContext();
+    this.reviewNavigation.clearContext();
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
+      const resolved: ICasesDraftCasefileResolved | undefined = data['draftCasefile'];
+      if (!resolved) {
+        if (this.amendment()) this.focusAmendmentHeading();
+        return;
+      }
+      this.store.hydratePersistedCasefile({ ...resolved.state, submissionIntent: 'amendment' });
+      this.persistedStore.loadResolved(resolved);
+      this.focusAmendmentHeading();
+    });
+  }
+
+  private focusAmendmentHeading(): void {
+    afterNextRender(() => this.heading()?.nativeElement.focus(), { injector: this.injector });
   }
 
   protected navigateTo(path: string, event?: Event): void {
@@ -86,7 +129,21 @@ export class CasesCreateCasefileTaskListComponent {
   }
 
   protected handleBack(event: Event): void {
+    if (this.store.submissionIntent() === 'amendment') {
+      event.preventDefault();
+      const id = this.persistedStore.draft()?.draft_casefile_id;
+      if (id) void this.router.navigateByUrl(this.draftNavigation.amendmentReturnUrl(id));
+      return;
+    }
     this.store.resetForCaseTypeEdit();
     this.navigateTo(this.paths.caseType, event);
+  }
+  public canDeactivate(): boolean {
+    return (
+      !this.store.unsavedChanges() &&
+      !this.store.stateChanges() &&
+      this.store.creditorDraft() === null &&
+      this.store.orderTermAmendment() === null
+    );
   }
 }

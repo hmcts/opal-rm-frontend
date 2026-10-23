@@ -12,6 +12,7 @@ export class CasesCreateCasefileCentralAuthorityMapperService {
   ): IAlphagovAccessibleAutocompleteItem[] {
     return records.map((record) => ({
       value: record.major_creditor_id,
+      ...(record.active === false ? { active: false } : {}),
       name: `${record.major_creditor_code} - ${record.name}`,
     }));
   }
@@ -47,6 +48,8 @@ export class CasesCreateCasefileCentralAuthorityMapperService {
   ): ICasesCreateCasefileCentralAuthorityDetails {
     const majorCreditorId = formData[FIELD_NAMES.majorCreditorId];
 
+    const selected = records.find((record) => record.major_creditor_id === majorCreditorId);
+    if (selected?.active === false) throw new Error('Invalid Central authority selection');
     return {
       remoReference: formData[FIELD_NAMES.remoReference],
       centralAuthorityReference: formData[FIELD_NAMES.centralAuthorityReference],

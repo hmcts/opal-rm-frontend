@@ -5,6 +5,14 @@ import { createCasesCreateCasefileOrderDetailsApplicationValidator } from './cas
 describe('Order Details application validation', () => {
   const options = [{ name: 'TEST01 - Synthetic application', value: 901 }];
 
+  it.each([901, '901'])('rejects saved inactive application %s without removing its display option', (value) => {
+    expect(
+      createCasesCreateCasefileOrderDetailsApplicationValidator([{ ...options[0], active: false }])(
+        new FormControl(value),
+      ),
+    ).toEqual({ invalidSelection: true });
+  });
+
   it.each([901, '901'])('accepts current canonical ID %s', (value) => {
     expect(createCasesCreateCasefileOrderDetailsApplicationValidator(options)(new FormControl(value))).toBeNull();
   });

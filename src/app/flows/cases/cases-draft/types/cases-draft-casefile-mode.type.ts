@@ -1,1 +1,1 @@
-export type CasesDraftCasefileMode = 'view' | 'review';
+export type CasesDraftCasefileMode = 'amend' | 'view' | 'review';

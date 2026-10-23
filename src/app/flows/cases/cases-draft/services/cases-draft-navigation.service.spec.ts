@@ -561,6 +561,20 @@ describe('CasesDraftNavigationService', () => {
     expect(navigate.mock.calls[0]).toHaveLength(1);
     expect((navigate.mock.calls[0][0] as import('@angular/router').UrlTree).queryParams).toEqual({});
   });
+  it.each(['dashboard', 'all-rejected'] as const)('delivers a success notice only to its %s origin', (origin) => {
+    const event = { ...success(), origin };
+    expect(service.recordAllRejectedResubmission(event)).toBe(true);
+    const otherOrigin = origin === 'dashboard' ? 'all-rejected' : 'dashboard';
+    expect(service.consumeAllRejectedResubmission(otherOrigin)).toBeNull();
+    expect(service.recordAllRejectedResubmission(event)).toBe(true);
+    expect(service.consumeAllRejectedResubmission(origin)).toEqual({
+      ...event,
+      respondentForename: 'Synthetic',
+      respondentSurname: 'Respondent',
+    });
+    expect(service.consumeAllRejectedResubmission(origin)).toBeNull();
+  });
+
   it('consumes only an explicitly recorded validated success once and can dismiss it', () => {
     expect(service.consumeAllRejectedResubmission()).toBeNull();
     const event = success();

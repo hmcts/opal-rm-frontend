@@ -41,7 +41,9 @@ export class CasesCreateCasefileCentralAuthorityFormComponent extends AbstractFo
   @Output() public readonly cancel = new EventEmitter<void>();
 
   @Input({ required: true }) public initialFormData!: ICasesCreateCasefileCentralAuthorityFormData;
-  @Input({ required: true }) public centralAuthorityAutocompleteItems!: IAlphagovAccessibleAutocompleteItem[];
+  @Input({ required: true }) public centralAuthorityAutocompleteItems!: (IAlphagovAccessibleAutocompleteItem & {
+    active?: boolean;
+  })[];
   public readonly fieldNames = CASES_CREATE_CASEFILE_CENTRAL_AUTHORITY_FIELD_NAMES;
   public override form = new FormGroup<ICasesCreateCasefileCentralAuthorityFormControls>({
     create_casefile_central_authority_remo_reference: new FormControl<string | null>(null, Validators.maxLength(20)),
@@ -63,6 +65,12 @@ export class CasesCreateCasefileCentralAuthorityFormComponent extends AbstractFo
   }
 
   public override ngOnInit(): void {
+    this.form.controls.create_casefile_central_authority_major_creditor_id.addValidators((control) =>
+      control.value === null ||
+      this.centralAuthorityAutocompleteItems.some((item) => item.value === control.value && item.active !== false)
+        ? null
+        : { invalidSelection: true },
+    );
     this.setInitialErrorMessages();
     this.rePopulateForm(this.initialFormData);
     super.ngOnInit();

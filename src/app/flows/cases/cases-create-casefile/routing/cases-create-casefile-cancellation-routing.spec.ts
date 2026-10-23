@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from '@app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
@@ -54,6 +55,7 @@ describe('Cancellation route lifecycle', () => {
     }));
     TestBed.configureTestingModule({
       providers: [
+        CasesDraftCasefileStore,
         provideHttpClient(),
         provideHttpClientTesting(),
         provideLocationMocks(),

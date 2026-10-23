@@ -1,4 +1,19 @@
 <div class="govuk-grid-column-full">
+  @if (successText(); as message) {
+    <div
+      opal-lib-moj-alert
+      id="cases-draft-success"
+      type="success"
+      [ariaLabel]="message"
+      [showDismiss]="true"
+      (dismissed)="dismissSuccess()"
+    >
+      <opal-lib-moj-alert-icon icon type="success" />
+      <opal-lib-moj-alert-content content>
+        <opal-lib-moj-alert-content-text>{{ message }}</opal-lib-moj-alert-content-text>
+      </opal-lib-moj-alert-content>
+    </div>
+  }
   <opal-lib-custom-page-header
     ><ng-container pageHeaderHeading
       ><h1 #heading id="cases-draft-heading" tabindex="-1" class="govuk-heading-l">Create cases</h1></ng-container

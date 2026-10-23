@@ -1,3 +1,9 @@
+import {
+  createPersistedCasefileDetail,
+  PERSISTED_CASEFILE_REFERENCES,
+  PERSISTED_CASEFILE_RESULT_PAGE,
+} from '../../../services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
+import { mapPersistedCasefile } from './utils/map-casefile/cases-create-casefile-payload-map-state';
 import { describe, expect, it } from 'vitest';
 import { createCasesCreateCasefileReviewState } from '../../mocks/cases-create-casefile-review-state.mock';
 import { CasesCreateCasefilePayloadService } from './cases-create-casefile-payload.service';
@@ -21,6 +27,237 @@ function state() {
 }
 
 describe('CasesCreateCasefilePayloadService', () => {
+  it('round trips the complete supported aggregate without creation metadata', () => {
+    const draft = createPersistedCasefileDetail();
+    const context = structuredClone({
+      ...PERSISTED_CASEFILE_REFERENCES,
+      resultPages: { TEST01: PERSISTED_CASEFILE_RESULT_PAGE },
+    });
+    const state = mapPersistedCasefile(draft, context);
+    const before = structuredClone(state);
+    expect(service.buildReplaceCasefilePayload(state, context, 44, draft.casefile_type)).toEqual({
+      business_unit_id: 44,
+      casefile: draft.casefile,
+    });
+    expect(state).toEqual(before);
+  });
+  it('changes one field and preserves every other supported saved value', () => {
+    const draft = createPersistedCasefileDetail();
+    const context = structuredClone({
+      ...PERSISTED_CASEFILE_REFERENCES,
+      resultPages: { TEST01: PERSISTED_CASEFILE_RESULT_PAGE },
+    });
+    const state = mapPersistedCasefile(draft, context);
+    state.respondentDetails!.firstNames = 'Corrected';
+    const expected = structuredClone(draft.casefile);
+    expected.respondent_account.respondent.party_details.individual_details!.forenames = 'Corrected';
+    expect(service.buildReplaceCasefilePayload(state, context, 44, draft.casefile_type)).toEqual({
+      business_unit_id: 44,
+      casefile: expected,
+    });
+  });
+  it('rejects changed type and incomplete replacement state', () => {
+    const snapshot = state();
+    expect(() => service.buildReplaceCasefilePayload(snapshot, references, 44, 'REMO Out')).toThrow(
+      'Casefile type has changed',
+    );
+    snapshot.unsavedChanges = true;
+    expect(() => service.buildReplaceCasefilePayload(snapshot, references, 44, 'REMO In')).toThrow(
+      'Casefile is incomplete',
+    );
+  });
+  it.each([
+    ['uk', 'individual'],
+    ['non-uk', 'individual'],
+    ['none', 'individual'],
+    ['uk', 'organisation'],
+    ['non-uk', 'organisation'],
+    ['none', 'organisation'],
+  ] as const)(
+    'preserves the complete supported %s bank/%s aggregate and one-field correction',
+    (bankType, applicantType) => {
+      const snapshot = state();
+      const authority = {
+        major_creditor_id: 501,
+        major_creditor_code: 'CA01',
+        business_unit_id: 44,
+        active: true,
+        central_authority: true,
+        name: 'Synthetic authority',
+        address_line_1: 'Test Street',
+        address_line_2: null,
+        address_line_3: null,
+        address_line_4: null,
+        address_line_5: null,
+        postcode: null,
+        country_id: null,
+        country_name: null,
+        contact_name: null,
+        contact_email: null,
+      };
+      const context = {
+        ...references,
+        countries: references.countries.map((country) => ({
+          ...country,
+          country_name: 'Synthetic country',
+          date_used_from: '2000-01-01',
+        })),
+        applications: [{ ...PERSISTED_CASEFILE_REFERENCES.applications[0] }],
+        majorCreditors: [
+          authority,
+          { ...authority, major_creditor_id: 502, major_creditor_code: 'MA01', central_authority: false },
+        ],
+        resultPages: { TEST01: PERSISTED_CASEFILE_RESULT_PAGE },
+      };
+      const person = snapshot.respondentDetails!;
+      person.employer = {
+        employerName: 'Synthetic employer',
+        employeeReference: 'EMP1',
+        emailAddress: 'employer@example.com',
+        telephoneNumber: '01234',
+        address: { ...person.contactDetails.address, countryId: 3 },
+      };
+      person.thirdParty = {
+        nameOrOrganisation: 'Synthetic representative',
+        relationship: 'Representative',
+        reference: 'REF1',
+        address: { ...person.contactDetails.address, countryId: 4 },
+      };
+      const bank =
+        bankType === 'uk'
+          ? {
+              type: 'uk' as const,
+              nameOnAccount: 'Synthetic',
+              paymentReference: 'PAY1',
+              sortCode: '000000',
+              accountNumber: '00000000',
+            }
+          : bankType === 'non-uk'
+            ? {
+                type: 'non-uk' as const,
+                nameOnAccount: 'Synthetic',
+                paymentReference: 'PAY1',
+                accountNumber: '123',
+                bicSwiftCode: 'TESTGB12',
+                iban: 'TEST123',
+                bankName: 'Synthetic Bank',
+                branchSortCode: '12345',
+              }
+            : { type: 'none' as const };
+      if (applicantType === 'organisation') {
+        snapshot.caseTypeSelection = { caseType: 'REMO In', applicantType: 'Organisation' };
+        snapshot.applicantDetails = {
+          organisationName: 'Synthetic organisation',
+          foreignAuthorityReference: 'AUTH1',
+          contactDetails: snapshot.applicantDetails!.contactDetails,
+          bankDetails: bank,
+        };
+      } else {
+        snapshot.applicantDetails!.bankDetails = bank;
+        if ('thirdParty' in snapshot.applicantDetails!)
+          snapshot.applicantDetails.thirdParty = structuredClone(person.thirdParty);
+      }
+      snapshot.minorCreditors = [
+        {
+          sequenceNumber: 7,
+          displayName: 'Synthetic person',
+          details: {
+            identity: { type: 'individual', title: 'Mr', firstNames: 'Synthetic', lastName: 'Creditor' },
+            address: person.contactDetails.address,
+            bank,
+          },
+        },
+        {
+          sequenceNumber: 12,
+          displayName: 'Synthetic organisation',
+          details: {
+            identity: { type: 'organisation', organisationName: 'Synthetic creditor' },
+            address: person.contactDetails.address,
+            bank,
+          },
+        },
+      ];
+      snapshot.centralAuthorityDetails = {
+        remoReference: 'REMO1',
+        centralAuthorityReference: 'AUTH1',
+        majorCreditor: authority,
+      };
+      snapshot.commentsAndNotes = { comment: 'Synthetic comment', note: 'Synthetic note' };
+      snapshot.orderTerms.push(
+        { ...structuredClone(snapshot.orderTerms[0]), termId: 2, creditor: { type: 'minor', sequenceNumber: 12 } },
+        {
+          ...structuredClone(snapshot.orderTerms[0]),
+          termId: 3,
+          creditor: { type: 'major', majorCreditorId: 502, displayName: 'Synthetic creditor' },
+        },
+      );
+      const canonical = service.buildAddCasefilePayload(snapshot, context, 44);
+      const draft = { ...createPersistedCasefileDetail(), ...canonical };
+      const hydrated = mapPersistedCasefile(draft, context);
+      const before = structuredClone(hydrated);
+      expect(service.buildReplaceCasefilePayload(hydrated, context, 44, draft.casefile_type)).toEqual({
+        business_unit_id: 44,
+        casefile: canonical.casefile,
+      });
+      expect(hydrated).toEqual(before);
+      hydrated.respondentDetails!.firstNames = 'Corrected';
+      const expected = structuredClone(canonical.casefile);
+      expected.respondent_account.respondent.party_details.individual_details!.forenames = 'Corrected';
+      expect(service.buildReplaceCasefilePayload(hydrated, context, 44, draft.casefile_type)).toEqual({
+        business_unit_id: 44,
+        casefile: expected,
+      });
+      hydrated.commentsAndNotes!.note = null;
+      hydrated.respondentDetails!.thirdParty = null;
+      hydrated.orderTerms.splice(1, 1);
+      delete expected.respondent_account.notes;
+      delete expected.respondent_account.respondent.third_party_details;
+      expected.respondent_account.order_details.order_terms.splice(1, 1);
+      expect(service.buildReplaceCasefilePayload(hydrated, context, 44, draft.casefile_type)).toEqual({
+        business_unit_id: 44,
+        casefile: expected,
+      });
+    },
+  );
+  it.each(['countries', 'applications', 'majorCreditors'] as const)(
+    'rejects inactive outbound %s after historical hydration',
+    (reference) => {
+      const draft = createPersistedCasefileDetail();
+      const authority = {
+        major_creditor_id: 501,
+        major_creditor_code: 'CA01',
+        business_unit_id: 44,
+        active: true,
+        central_authority: false,
+        name: 'Synthetic creditor',
+        address_line_1: 'Test Street',
+        address_line_2: null,
+        address_line_3: null,
+        address_line_4: null,
+        address_line_5: null,
+        postcode: null,
+        country_id: null,
+        country_name: null,
+        contact_name: null,
+        contact_email: null,
+      };
+      const context = structuredClone({
+        ...PERSISTED_CASEFILE_REFERENCES,
+        majorCreditors: [
+          authority,
+          { ...authority, major_creditor_id: 502, major_creditor_code: 'MA01', central_authority: false },
+        ],
+        resultPages: { TEST01: PERSISTED_CASEFILE_RESULT_PAGE },
+      });
+      Object.assign(draft.casefile.respondent_account.order_details.order_terms[0], {
+        creditor_type: 'Major Creditor',
+        major_creditor_code: 'CA01',
+      });
+      context[reference].forEach((item) => (item.active = false));
+      const hydrated = mapPersistedCasefile(draft, context);
+      expect(() => service.buildReplaceCasefilePayload(hydrated, context, 44, draft.casefile_type)).toThrow();
+    },
+  );
   it('maps accepted case values into a typed allowlist without mutating state', () => {
     const snapshot = state();
     const before = structuredClone(snapshot);

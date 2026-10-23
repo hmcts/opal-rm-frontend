@@ -14,7 +14,12 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { GovukButtonDirective } from '@hmcts/opal-frontend-common/directives/govuk-button';
+import {
+  MojAlertComponent,
+  MojAlertContentComponent,
+  MojAlertIconComponent,
+  MojAlertTextComponent,
+} from '@hmcts/opal-frontend-common/components/moj/moj-alert';
 import type { SortDirectionType } from '@hmcts/opal-frontend-common/components/abstract/abstract-sortable-table/types';
 import { CasesDraftTableComponent } from '../../cases-draft-table/cases-draft-table.component';
 import { CASES_DRAFT_ALL_REJECTED } from '../../constants/cases-draft-all-rejected.constant';
@@ -29,7 +34,13 @@ import { sameCasesDraftIdentity } from '../../utils/cases-draft-identity';
 
 @Component({
   selector: 'app-cases-draft-create-and-manage-view-all-rejected',
-  imports: [GovukButtonDirective, CasesDraftTableComponent],
+  imports: [
+    CasesDraftTableComponent,
+    MojAlertComponent,
+    MojAlertContentComponent,
+    MojAlertIconComponent,
+    MojAlertTextComponent,
+  ],
   templateUrl: './cases-draft-create-and-manage-view-all-rejected.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -67,7 +78,8 @@ export class CasesDraftCreateAndManageViewAllRejectedComponent {
   public readonly successText = computed(() => {
     const event = this.success();
     if (!event || !sameCasesDraftIdentity(event.identity, this.identity())) return null;
-    return `You have submitted ${event.respondentForename} ${event.respondentSurname}'s case for review.`;
+    const name = [event.respondentForename, event.respondentSurname].filter(Boolean).join(' ');
+    return `You have submitted ${name}'s case for review.`;
   });
 
   constructor() {
@@ -175,7 +187,7 @@ export class CasesDraftCreateAndManageViewAllRejectedComponent {
     const identity = this.identity();
     this.navigationInFlight.set(true);
     try {
-      const accepted = await this.navigation.navigateToPlaceholder('details', id, 'all-rejected');
+      const accepted = await this.navigation.navigateToPlaceholder('amendment', id, 'all-rejected');
       if (!accepted) this.restoreFocus(focus, identity);
     } catch (error: unknown) {
       if (!this.destroyRef.destroyed) this.data.reportError(error);

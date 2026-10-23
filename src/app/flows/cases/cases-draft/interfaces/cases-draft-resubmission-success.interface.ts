@@ -1,6 +1,6 @@
 import type { ICasesDraftIdentity } from './cases-draft-identity.interface';
 export interface ICasesDraftResubmissionSuccess {
-  origin: 'all-rejected';
+  origin: 'dashboard' | 'all-rejected';
   identity: ICasesDraftIdentity;
   draftCasefileId: number;
   respondentForename: string;

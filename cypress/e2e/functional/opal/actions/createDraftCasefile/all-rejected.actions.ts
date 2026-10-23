@@ -205,20 +205,20 @@ export class AllRejectedActions {
       .first()
       .invoke('attr', 'href')
       .then((href) => {
-        expect(href).to.match(/\/check-case-details\/[1-9]\d*$/);
+        expect(href).to.match(/\/task-list\/[1-9]\d*$/);
         cy.get(S.tableRows).find('a').first().focus();
         pressDashboardEnter();
         cy.location('pathname').should('eq', href!);
         cy.location('search').should('eq', '');
       });
-    this.expectSavedSummary();
+    this.expectAmendmentTasks();
     cy.get('@rejectedPersistedReads').should('have.been.calledOnce');
     this.assertJourneyPersistence();
   }
   /** Return list for the controlled browser journey.
    */
   public returnList(): void {
-    cy.get(CREATE.review.back).focus();
+    cy.get(CREATE.caseDetails.backLink).focus();
     pressDashboardEnter();
   }
   /** Browser back for the controlled browser journey.
@@ -328,8 +328,8 @@ export class AllRejectedActions {
    * @param kind Expected or configured kind.
    */
   public directShell(kind: string): void {
-    this.detailsOpened = kind === 'details';
-    if (this.detailsOpened) stubPersistedCasefileReferences();
+    this.detailsOpened = true;
+    stubPersistedCasefileReferences();
     const child = kind === 'details' ? CREATE_PATHS.children.checkCaseDetails : CREATE_PATHS.children.taskList;
     cy.visit('/' + CREATE_PATHS.root + '/' + child + '/123');
   }
@@ -346,13 +346,18 @@ export class AllRejectedActions {
       cy.get('@rejectedWrites').should('not.have.been.called');
       return;
     }
-    cy.get(S.placeholderHeading).should('have.text', 'Amend case').and('be.focused');
-    cy.get(S.placeholderBack)
-      .should('have.text', 'Back')
-      .and('have.attr', 'href', DASHBOARD + '#in-review');
-    cy.location('search').should('eq', '');
-    cy.then(() => expect(this.rejectionRequests).to.have.length(0));
-    this.assertJourneyPersistence();
+    this.expectAmendmentTasks();
+    cy.get('@rejectedPersistedReads').should('have.been.calledOnce');
+    cy.get(CREATE.caseDetails.backLink).click();
+    cy.location('pathname').should('eq', DASHBOARD);
+    cy.location('hash').should('eq', '#rejected');
+    cy.get('@rejectedWrites').should('not.have.been.called');
+  }
+  /** Checks direct rejected entry restores editable tasks and rejection history. */
+  private expectAmendmentTasks(): void {
+    cy.get(CREATE.caseDetails.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+    cy.get(CREATE.caseDetails.respondentStatus).should('contain.text', 'Provided');
+    cy.get(CREATE.review.history).should('be.visible');
   }
   /** Restores complete saved details while keeping the summary non-actionable. */
   private expectSavedSummary(): void {

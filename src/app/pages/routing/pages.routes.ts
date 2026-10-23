@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from '@app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { inject } from '@angular/core';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import {
@@ -54,6 +55,7 @@ export const routing: Routes = [
         (m) => m.CasesCreateCasefileComponent,
       ),
     providers: [
+      CasesDraftCasefileStore,
       CasesCreateCasefileOrderTermLookupsService,
       {
         provide: BUSINESS_UNIT_ID_RESOLVER,
@@ -87,27 +89,11 @@ export const routing: Routes = [
   },
   {
     path: CASES_CREATE_CASEFILE_ROUTING_PATHS.root,
-    canActivate: [authGuard, accountGuard, release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],
-    canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],
-    data: { ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, sectionKey: 'cases' },
-    children: [
-      {
-        path: CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList + '/:draftCasefileId',
-        loadComponent: () =>
-          import('../../flows/cases/cases-draft/cases-draft-placeholder/cases-draft-placeholder.component').then(
-            (module) => module.CasesDraftPlaceholderComponent,
-          ),
-        data: { title: 'Amend case', placeholderKind: 'amendment' },
-        resolve: { title: TitleResolver },
-      },
-    ],
-  },
-  {
-    path: CASES_CREATE_CASEFILE_ROUTING_PATHS.root,
     loadComponent: () =>
       import('../../flows/cases/cases-create-casefile/cases-create-casefile.component').then(
         (component) => component.CasesCreateCasefileComponent,
       ),
+    providers: [CasesDraftCasefileStore],
     children: casesCreateCasefileRouting,
     canActivate: [authGuard, accountGuard, release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],
     canActivateChild: [release1cRmCreateCaseFilesFeatureFlagGuard, casesDraftAccessGuard],

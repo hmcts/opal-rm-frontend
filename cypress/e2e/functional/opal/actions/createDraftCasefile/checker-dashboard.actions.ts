@@ -395,7 +395,7 @@ export class CheckerDashboardActions {
     cy.then(() => expect(this.requests.filter((request) => !request['restrict'])).to.have.length(2));
     this.assertNoPersistence();
   }
-  /** Proves separate in-memory return state and fragment-only shell links for dual roles. */
+  /** Proves separate in-memory return state across persisted inputter and checker journeys. */
   public independentReturns(): void {
     stubPersistedCasefileReferences();
     cy.visit('/cases/draft/create-and-manage/tabs#rejected');
@@ -407,14 +407,28 @@ export class CheckerDashboardActions {
     cy.get(S.pagination).contains('a', '2').click();
     cy.get(S.pageStatus).should('contain.text', 'Create cases, page 2 of 2');
     cy.get(S.row(1)).find('a').click();
-    this.expectSavedSummary();
+    cy.location('pathname').should('eq', '/cases/create-casefile/task-list/1');
+    cy.get(CreateCasefileSelectors.caseDetails.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+    cy.get(CreateCasefileSelectors.caseDetails.respondentStatus).should('contain.text', 'Provided');
+    cy.get(CreateCasefileSelectors.caseDetails.orderTermsStatus).should('contain.text', 'Provided');
+    cy.get(CreateCasefileSelectors.review.history).should('be.visible');
     cy.location('search').should('eq', '');
-    cy.get(CreateCasefileSelectors.review.back).click();
+    cy.get(CreateCasefileSelectors.caseDetails.backLink).click();
     cy.get(S.pageStatus).should('contain.text', 'Page 2 of 2, showing cases 26 to 26 of 26');
     cy.get(S.tableRows).should('have.length', 1);
     cy.get(S.row(1)).should('be.visible');
     cy.get('th[columnKey="applicant"]').should('have.attr', 'aria-sort', 'descending');
     cy.location('search').should('eq', '');
+    cy.then(() => {
+      expect(
+        this.requests.filter(
+          (request) =>
+            request['submitted_by'] === 'BUU-CHECKER' &&
+            request['casefile_status'] === 'REJECTED' &&
+            !request['restrict'],
+        ),
+      ).to.have.length(2);
+    });
     cy.get(S.primaryNavigation).contains('a', 'Cases').click();
     cy.get(S.checkerEntry).click();
     this.selectTab('deleted');

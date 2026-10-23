@@ -71,7 +71,7 @@ Feature: Inputter casefile dashboard
     Then the Deleted cases are shown after the failed consultation
 
   @JIRA-STORY:PO-10605 @JIRA-EPIC:PO-10817
-  Scenario Outline: Persisted details restore saved summaries while amendment remains a protected shell
+  Scenario Outline: Persisted destinations restore saved details or fail safely
     Given my inputter casefile collection is available
     When I open the persisted "<kind>" destination with identifier "<id>"
     Then the "<kind>" shell shows "<message>" without mutation requests
@@ -79,8 +79,8 @@ Feature: Inputter casefile dashboard
       | kind      | id  | message                                                |
       | details   | 123 | Saved case details                                     |
       | details   | 0   | Saved details fail safely                              |
-      | amendment | 123 | Case amendment will be available here.                 |
-      | amendment | bad | This case could not be opened. Return to Create cases. |
+      | amendment | 123 | Saved amendment tasks                                  |
+      | amendment | bad | Amendment entry fails safely                           |
 
   @JIRA-STORY:PO-10605 @JIRA-EPIC:PO-10817
   Scenario Outline: Permission in another business unit cannot open inputter routes

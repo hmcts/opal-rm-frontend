@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Data, provideRouter, Router } from '@angular/router';
+import { ActivatedRoute, Data, provideRouter, Router, UrlTree } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -102,12 +102,24 @@ describe('all rejected resolved page', () => {
     render();
     expect(fixture.nativeElement.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(fixture.nativeElement.textContent).toContain("You have submitted Synthetic Respondent's case for review.");
-    fixture.nativeElement.querySelector('#cases-draft-all-rejected-dismiss').click();
+    const alert = fixture.nativeElement.querySelector('#cases-draft-all-rejected-success') as HTMLElement;
+    const heading = fixture.nativeElement.querySelector('h1') as HTMLElement;
+    expect(alert.classList.contains('moj-alert--success')).toBe(true);
+    expect(alert.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    alert.querySelector<HTMLButtonElement>('.moj-alert__dismiss')!.click();
     await settle();
     expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-success')).toBeNull();
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h1'));
     expect(navigation.allRejectedSelection()).toEqual(selection);
     expect(data.getAllRejectedList).not.toHaveBeenCalled();
+  });
+  it('shows a surname-only submission notice without an extra name separator', () => {
+    record({ respondentForename: '', respondentSurname: 'Respondent' });
+    const page = render();
+    expect(page.successText()).toBe("You have submitted Respondent's case for review.");
+    expect(fixture.nativeElement.querySelector('#cases-draft-all-rejected-success')?.textContent).toContain(
+      "You have submitted Respondent's case for review.",
+    );
   });
   it('escapes HTML-looking respondent names and consumes the event once', () => {
     record({ respondentForename: '<img src=x>', respondentSurname: '<script>synthetic</script>' });
@@ -121,7 +133,7 @@ describe('all rejected resolved page', () => {
     expect(fixture.componentInstance.successText()).toBeNull();
   });
   it.each([
-    { origin: 'dashboard' },
+    { origin: 'unknown' },
     { identity: { ...identity, submittedBy: 'BUU-FOREIGN' } },
     { draftCasefileId: 0 },
     { respondentSurname: '' },
@@ -179,7 +191,7 @@ describe('all rejected resolved page', () => {
       link.focus();
       await page.openRow(26);
       expect(document.activeElement).toBe(link);
-      expect(navigation.contextForPlaceholder('details', '26')).toBeNull();
+      expect(navigation.contextForPlaceholder('amendment', '26')).toBeNull();
       expect(navigation.allRejectedSelection()).toEqual(selection);
       const back = fixture.nativeElement.querySelector('#cases-draft-all-rejected-back');
       back.focus();
@@ -190,6 +202,18 @@ describe('all rejected resolved page', () => {
       expect(data.reportError).toHaveBeenCalledTimes(throws ? 2 : 0);
     },
   );
+  it('opens another inputter rejected case directly in amendment and remembers the list selection', async () => {
+    navigation.setAllRejectedSelection(selection);
+    const page = render();
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+
+    await page.openRow(26);
+
+    expect(router.serializeUrl(navigate.mock.calls[0][0] as UrlTree)).toBe('/cases/create-casefile/task-list/26');
+    expect(navigation.contextForPlaceholder('amendment', '26')).toMatchObject({ kind: 'amendment', id: 26 });
+    expect(navigation.allRejectedSelection()).toEqual(selection);
+  });
   it('ignores invalid, absent and modified activation and coalesces row navigation', async () => {
     const page = render();
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');

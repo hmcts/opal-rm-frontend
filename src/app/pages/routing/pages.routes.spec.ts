@@ -11,6 +11,7 @@ import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from '@app/constants/route-data.constan
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '@app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { describe, expect, it } from 'vitest';
 import { routing } from './pages.routes';
+import { CasesDraftCasefileStore } from '@app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { release1cRmCreateCaseFilesFeatureFlagGuard } from '@app/flows/cases/utils/resolve-create-case-files-release.utils';
 
 describe('page routes', () => {
@@ -50,12 +51,15 @@ describe('page routes', () => {
 describe('persisted route boundary', () => {
   it('uses a read-authorised shell for persisted details while retaining the inputter amendment boundary', () => {
     const groups = routing.filter((route) => route.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.root);
-    expect(groups).toHaveLength(3);
+    expect(groups).toHaveLength(2);
+    expect(groups.every((route) => route.providers?.includes(CasesDraftCasefileStore))).toBe(true);
     expect(groups[0].loadComponent).toEqual(expect.any(Function));
     expect(groups[0].data?.['routePermissionId']).toEqual([21, 22]);
     expect(groups[0].children?.[0].data?.['casefileIntent']).toBe('inputter-view');
     expect(groups[0].children?.[0].resolve?.['draftCasefile']).toEqual(expect.any(Function));
-    expect(groups[1].children?.[0].data?.['placeholderKind']).toBe('amendment');
+    const amendment = groups[1].children?.find((route) => route.path === 'task-list/:draftCasefileId');
+    expect(amendment?.data?.['casefileIntent']).toBe('inputter-amend');
+    expect(amendment?.resolve?.['draftCasefile']).toEqual(expect.any(Function));
     expect(groups[1].canActivateChild).toContain(casesDraftAccessGuard);
   });
   it('registers a visible containerless lazy dashboard with the access boundary on child navigation', () => {

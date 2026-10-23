@@ -12,3 +12,9 @@ Feature: All rejected cases release boundary
       | role     |
       | inputter |
       | dual     |
+
+  @JIRA-STORY:PO-10610 @JIRA-EPIC:PO-10817
+  Scenario: Deny direct rejected amendment before retrieving the record
+    Given rejected amendment entry is unavailable because of "release-disabled"
+    When I open the rejected amendment URL directly
+    Then rejected amendment entry is denied for "release-disabled"

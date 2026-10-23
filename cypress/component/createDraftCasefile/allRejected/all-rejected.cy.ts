@@ -166,4 +166,18 @@ describe('All rejected cases collection', () => {
     cy.get(S.allRejectedSuccess).should('not.exist');
     assertUnchangedConsultation();
   });
+  it(
+    'AC4. should display surname-only success without an extra space',
+    { tags: [...buildTags(), '@JIRA-STORY:PO-10610'] },
+    () => {
+      cy.viewport(1280, 900);
+      setupAllRejected({ rows: [], success: { ...F.success, respondentForename: '' } });
+      cy.get(S.allRejectedSuccess)
+        .find('opal-lib-moj-alert-content-text')
+        .should('have.text', "You have submitted Respondent's case for review.");
+      cy.get(S.allRejectedEmpty).should('be.visible');
+      assertUnchangedConsultation();
+      cy.screenshot('po-10610-surname-only-resubmission-notice');
+    },
+  );
 });

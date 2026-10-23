@@ -33,15 +33,17 @@ export function decodeAllRejectedSuccess(
   value: unknown,
   identity: ICasesDraftIdentity | null,
 ): ICasesDraftResubmissionSuccess | null {
-  if (!identity || !record(value) || value['origin'] !== 'all-rejected') return null;
+  if (!identity || !record(value)) return null;
+  const origin = value['origin'];
+  if (origin !== 'dashboard' && origin !== 'all-rejected') return null;
   if (!matchesIdentity(value['identity'], identity)) return null;
   const id = value['draftCasefileId'];
   const forename = value['respondentForename'];
   const surname = value['respondentSurname'];
   if (typeof id !== 'number' || !Number.isSafeInteger(id) || id < 1) return null;
-  if (!nonEmptyName(forename) || !nonEmptyName(surname)) return null;
+  if (typeof forename !== 'string' || !nonEmptyName(surname)) return null;
   return {
-    origin: 'all-rejected',
+    origin,
     identity: { ...identity },
     draftCasefileId: id,
     respondentForename: forename.trim(),

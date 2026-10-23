@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from '../../cases-draft/stores/cases-draft-casefile.store';
 import { provideRouter, Router } from '@angular/router';
 import { CasesCreateCasefileTaskListComponent } from '../cases-create-casefile-task-list/cases-create-casefile-task-list.component';
 import { CasesCreateCasefileOrderTermsSummaryComponent } from '../cases-create-casefile-order-terms-summary/cases-create-casefile-order-terms-summary.component';
@@ -50,7 +51,7 @@ describe('CasesCreateCasefileReviewNavigationService', () => {
   });
 
   it('allows adding replacement terms after the last reviewed term was removed', () => {
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    TestBed.configureTestingModule({ providers: [provideRouter([]), CasesDraftCasefileStore] });
     const navigation = TestBed.inject(CasesCreateCasefileReviewNavigationService);
     const store = TestBed.inject(CasesCreateCasefileStore);
     patchState(store as unknown as WritableStateSource<ICasesCreateCasefileState>, {

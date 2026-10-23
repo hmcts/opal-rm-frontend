@@ -1,5 +1,18 @@
 import { AsyncPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, ElementRef, viewChild, signal } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  viewChild,
+  signal,
+  untracked,
+} from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -21,6 +34,13 @@ import { MojSubNavigationComponent } from '@hmcts/opal-frontend-common/component
 import { MojNotificationBadgeComponent } from '@hmcts/opal-frontend-common/components/moj/moj-notification-badge';
 import { CasesDraftDashboardBaseComponent } from '../components/abstract/cases-draft-dashboard-base/cases-draft-dashboard-base.component';
 import { CasesDraftTableComponent } from '../cases-draft-table/cases-draft-table.component';
+import {
+  MojAlertComponent,
+  MojAlertContentComponent,
+  MojAlertIconComponent,
+  MojAlertTextComponent,
+} from '@hmcts/opal-frontend-common/components/moj/moj-alert';
+import type { ICasesDraftResubmissionSuccess } from '../interfaces/cases-draft-resubmission-success.interface';
 import type { CasesDraftTab } from '../types/cases-draft-tab.type';
 import type { ICasesDraftIdentity } from '../interfaces/cases-draft-identity.interface';
 import type { ICasesDraftResolvedList } from '../interfaces/cases-draft-resolved-list.interface';
@@ -38,15 +58,27 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from '../../cases-create-casefile
     MojSubNavigationComponent,
     MojNotificationBadgeComponent,
     CasesDraftTableComponent,
+    MojAlertComponent,
+    MojAlertContentComponent,
+    MojAlertIconComponent,
+    MojAlertTextComponent,
   ],
   templateUrl: './cases-draft-create-and-manage-tabs.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesDraftCreateAndManageTabsComponent extends CasesDraftDashboardBaseComponent {
   private readonly httpDenied = signal(false);
+  private readonly success = signal<ICasesDraftResubmissionSuccess | null>(null);
+  private readonly successInjector = inject(Injector);
   protected readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   protected readonly mode = 'inputter';
   protected readonly identity = computed(() => (this.httpDenied() ? null : this.data.getIdentity()));
+  public readonly successText = computed(() => {
+    const event = this.success();
+    if (!event || !sameCasesDraftIdentity(event.identity, this.identity())) return null;
+    const name = [event.respondentForename, event.respondentSurname].filter(Boolean).join(' ');
+    return `You have submitted ${name}'s case for review.`;
+  });
   public readonly tabs: readonly CasesDraftTab[] = ['in-review', 'rejected', 'approved', 'deleted'];
   public readonly allRejectedUrl = computed(() => this.dashboardRouter.serializeUrl(this.navigation.allRejectedUrl()));
   public readonly tabData$: Observable<ICasesDraftTabData | null>;
@@ -54,6 +86,18 @@ export class CasesDraftCreateAndManageTabsComponent extends CasesDraftDashboardB
 
   constructor() {
     super();
+    this.success.set(this.navigation.consumeAllRejectedResubmission('dashboard'));
+    effect(() => {
+      const identity = this.identity();
+      untracked(() => {
+        if (!sameCasesDraftIdentity(this.success()?.identity ?? null, identity)) this.success.set(null);
+        if (!identity) this.navigation.clearAllRejectedSuccess();
+      });
+    });
+    inject(DestroyRef).onDestroy(() => {
+      this.success.set(null);
+      this.navigation.clearAllRejectedSuccess();
+    });
     const { identity$, tab$, tabData$ } = this.initialiseDashboard((error) => this.handleRequestError(error));
     this.tabData$ = tabData$;
     const resolvedList = this.activatedRoute.snapshot.data['draftCasefiles'] as ICasesDraftResolvedList | undefined;
@@ -96,7 +140,10 @@ export class CasesDraftCreateAndManageTabsComponent extends CasesDraftDashboardB
   }
   public async openRow(id: number): Promise<void> {
     try {
-      await this.navigation.navigateToPlaceholder('details', id);
+      await this.navigation.navigateToPlaceholder(
+        this.navigation.selection().tab === 'rejected' ? 'amendment' : 'details',
+        id,
+      );
     } catch (error: unknown) {
       this.data.reportError(error);
     }
@@ -109,6 +156,10 @@ export class CasesDraftCreateAndManageTabsComponent extends CasesDraftDashboardB
     } catch (error: unknown) {
       this.data.reportError(error);
     }
+  }
+  public dismissSuccess(): void {
+    this.success.set(null);
+    afterNextRender(() => this.heading()?.nativeElement.focus(), { injector: this.successInjector });
   }
   public async startNewCase(): Promise<void> {
     this.navigation.rememberCreateOrigin();

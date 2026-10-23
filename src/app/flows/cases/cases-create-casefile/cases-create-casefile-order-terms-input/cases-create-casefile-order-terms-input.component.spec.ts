@@ -1,3 +1,4 @@
+import { CasesDraftCasefileStore } from '@app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
@@ -121,6 +122,7 @@ async function configure(routes: Routes = []): Promise<InstanceType<typeof Cases
   await TestBed.configureTestingModule({
     imports: [CasesCreateCasefileOrderTermsInputComponent],
     providers: [
+      CasesDraftCasefileStore,
       CasesCreateCasefileStore,
       provideRouter(routes),
       ...(routes.length ? [] : [{ provide: ActivatedRoute, useValue: { data: of({ orderTerm: page }) } }]),

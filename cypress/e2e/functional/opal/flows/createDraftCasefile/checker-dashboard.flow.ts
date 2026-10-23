@@ -80,6 +80,17 @@ export class CheckerDashboardFlow {
     if (kind === 'dashboard') throw new Error('Expected review or view shell');
     this.actions.safeShell(kind, id);
   }
+  /** Verifies the saved destination rejects untrusted modes and unsafe IDs.
+   * @param kind Saved review or view destination.
+   * @param id Selected or malformed case identifier. */
+  public expectSafeDetails(kind: CheckerDestination, id: string): void {
+    if (kind === 'dashboard') throw new Error('Expected review or view destination');
+    this.actions.expectSafeDetails(kind, id);
+  }
+  /** Verifies the denied pending consultation has no retained rows or mutation. */
+  public expectPendingAccessDenied(): void {
+    this.actions.expectPendingAccessDenied();
+  }
   /** Delegates the pendingOutcome journey to its page action. */
   public pendingOutcome(): void {
     this.actions.pendingOutcome();

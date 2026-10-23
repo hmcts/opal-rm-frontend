@@ -63,6 +63,7 @@ Feature: Checker casefile dashboard
   Scenario Outline: Saved details validate IDs and reject mode query tampering
     Given my checker dashboard session has role "checker"
     When I open the safe checker "<kind>" shell with identifier "<id>"
+    Then the saved checker "<kind>" destination safely handles identifier "<id>"
     Examples:
       | kind   | id               |
       | review | 123              |
@@ -82,6 +83,7 @@ Feature: Checker casefile dashboard
     Given my checker dashboard session has role "checker"
     And a Failed list response is pending
     When I lose checker permission while a consultation is pending
+    Then the pending checker consultation is denied without retained data or mutation
 
   @JIRA-STORY:PO-10606 @JIRA-EPIC:PO-10817
   Scenario: Dual role return metadata remains independent

@@ -283,7 +283,8 @@ corepack yarn test:functional:serial --browser=chrome \
 
 Cleanup uses the Maintenance contract documented in `docs/DRAFT_CASEFILE_TEST_CLEANUP.md` in
 `opal-maintenance-service`. The implementation is now merged into Maintenance `master` (merge `d3123e7`, PR 302). The live scenario creates a fresh marker matching
-`^E2E-[0-9a-f]{16}$`, enters it through Central Authority's REMO Reference field, saves/reopens it, and checks the real
+`^E2E-[0-9a-f]{16}$`, using a random 16-digit suffix so the field's uppercasing preserves the exact marker. It
+enters it through Central Authority's REMO Reference field, saves/reopens it, and checks the real
 POST payload contains the same value at `casefile.respondent_account.remo_reference`. No POST response is substituted.
 The response listener records the positive safe-integer ID and exact marker synchronously before later assertions.
 Controlled receipt IDs are never registered.

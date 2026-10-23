@@ -799,3 +799,49 @@ Require four passing browser scenarios with none skipped or pending. A dry run c
 only. Preserve and sanitise generated reports before another runner invocation resets output. Specialist follow-up
 must verify native browser Leave/Cancel behaviour, full keyboard traversal, screen-reader announcements and
 magnification with the same enabled release and provisioned accounts.
+
+## PO-10628 live inputter monitoring
+
+The [monitoring suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#po-10628-live-inputter-monitoring)
+contains the AC1–AC6 mapping, exact commands, real prerequisites and external specialist checks for the enabled
+`InputterCasefileMonitoring.feature` and adjacent accessibility feature: **16 examples (11 functional + 5
+accessibility), zero skipped/pending**, with fresh scenario-owned fixtures. All three selectors must agree:
+`TAGS`, `CYPRESS_TAGS` and `--env tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628`.
+
+This pack observes real list/count/detail responses without replacing them. Actual persisted lifecycle dates anchor
+D+7/D+8 consultations with **AUT Date only**; ordinary timers/server/database clocks stay real. All rejected includes
+own and second-inputter BU work with no submitter/date restriction. Real PUBLISHED snapshots must provide every
+respondent/applicant/two minor-creditor number as exact read-only text; stable pending must expose none. Native
+keyboard/focus checks and shared strict Axe cover populated/empty tabs, pagination, All rejected/amendment return,
+published rows and denied destination. Full amendment resubmission belongs to PO-10623.
+
+Do not run live setup against the inspected incompatible local Maintenance runtime (migrations only through1.34,
+unverified exact build, missing publication/observation implementation). Verify actual compatible backend revision,
+list/detail/decision permissions and ETags, testing support, create-casefile release, provisioned primary/checker/
+second-inputter/denied identities, valid reference data, real publication consumer/procedure/queue and successful
+pending/published owner/marker cleanup first. The monitoring pack does not consume observation routes; V1_49 remains
+a prerequisite when running adjacent PO-10626 observation coverage. Backend timezone/inclusive calendar semantics
+and stable-pending configuration require external verification too.
+
+`PO10628_SECOND_INPUTTER_EMAIL` must explicitly select an existing independent permission21 actor. Externally verified
+boolean guards `PO10628_PUBLICATION_CLEANUP_VERIFIED` and `PO10628_STABLE_PENDING_VERIFIED` never self-enable in live
+steps and do not establish acceptance. Publication guards apply only to approval/pending/published fixtures; ordinary submitted/rejected/deleted/empty/
+permission examples remain independently runnable after verification of their own runtime prerequisites and
+execution authorisation. Missing runtime capabilities fail visibly; no skip, fake-success or cleanup bypass is permitted. Empty setup fails on existing personal work without altering it. Port5100 belongs to the
+isolated checkout; leave the existing port5000 instance untouched.
+
+For safe discovery use the suite's exact command with `dryRun=true` and its ignored discovery config explicitly
+setting `e2e.baseUrl=null` (CLI null overrides retained the configured URL here); this executes no
+browser journey or fixture mutation and provides **no live acceptance evidence**. The separate
+`inputter-monitoring-journey-support.cy.ts` checks calendar/assertion helper boundaries with controlled DOM and
+snapshots. Keep its results separate from live acceptance and retain raw logs/receipts. Until real execution plus
+all remaining Definition of Done checks pass, report **Not Agent Complete**. Screen-reader and magnification checks
+need the specialist setup and expected results documented in the suite guide.
+
+A subsequent read-only capability split found ordinary POST/list/detail/PATCH/PUT plus enabled testing support,
+but cleanup accepts **SUBMITTED only**. The suite's `@PO10628SubmittedOnly` tag selects exactly **4 enabled examples**
+(SUBMITTED boundary row, functional denial, accessibility empty and accessibility denial), preserving16overall.
+Use the suite guide's exact three matching tag selectors and command after final review, actual authentication/
+reference-data/submitted-cleanup preflight and explicit live authorisation. Add `dryRun=true` and baseUrl null for
+discovery only. A four-example pass cannot complete the other12 examples; no REJECTED/DELETED/RESUBMITTED or
+approval fixtures may be created until their own real cleanup capabilities are verified.

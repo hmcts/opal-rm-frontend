@@ -25,7 +25,10 @@ export class CheckCaseDetailsActions {
   /** Observes the single live submission without replacing the backend response. */
   public prepareLiveSubmission(): void {
     this.expectedSubmissionCount = 0;
-    this.testRunReference = createDraftCasefileTestRunReference();
+    // A decimal suffix satisfies the cleanup marker contract and survives the UI's uppercase formatting.
+    this.testRunReference = createDraftCasefileTestRunReference().replace(/[a-f]/g, (nibble) =>
+      String(Number.parseInt(nibble, 16) - 10),
+    );
     const testRunReference = this.testRunReference;
     cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', (request) => {
       request.on('response', (response) => {

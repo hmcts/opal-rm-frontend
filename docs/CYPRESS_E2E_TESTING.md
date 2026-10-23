@@ -2,6 +2,92 @@
 
 Use this guide when writing or updating Cypress E2E tests and Cucumber feature files in opal-rm-frontend.
 
+For Draft Casefile concurrency, response-loss recovery and lifecycle support requirements, see the
+[PO-10626 suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md).
+
+## Draft Casefile concurrency and recovery QA (PO-10626)
+
+Use the PO-10611 frontend foundation (`275011b2`, common UI `0.0.114`). Build this checkout with independent
+dependencies from its inherited immutable lockfile, run an isolated local port such as `TEST_URL=http://localhost:5100`,
+and verify the frontend process directory. Ambiguous and definite-failure cases still require retained context.
+Conflict cases exercise the actual shared concurrency page, Cases navigation, actor dashboard, saved-status tab and
+owned row before a fresh GET and complete rendered winner check. The scoped response-loss fault rejects Fetch
+delivery after an independently observed real HTTP 200; it does not model every socket failure.
+
+The [suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md) records the exact discovery,
+live and support commands. Its inventory retains **14 examples (8 functional + 6 accessibility)**; the current
+executable selection is **13 (7 functional + 6 accessibility)**. The retained AC1 approval row alone carries
+`@skip @PO10626RequiresPublishedCleanup`. A 13-example pass does not complete AC1 or PO-10626. The default runner
+excludes `@skip`; inventory-only discovery uses `omitFiltered=false` to expose the row as pending. The installed
+preprocessor skips `@skip` regardless of tag selection; its default `omitFiltered=true` hides that row. Expect 14
+inventoried cases: 13 dry-run passes and one pending approval. Parsed Gherkin also retains all 14 names/rows/tags.
+Both tag environment variables and the lowercase
+`--env tags=...` override must agree so inherited selection cannot hide cases.
+
+Each example uses normal API creation with live environment-valid reference data and existing ACTIVE Maintenance
+users: inputter permission 21 and a distinct checker permission 22 in BU 44. Setup does not create users, alter
+permissions or provide backend-owned fields. The case-creation UI regression instructions below remain required.
+Enable the create-casefile release and Maintenance testing support separately; verify the actual backend revision,
+V1_49 observation migration and persisted review/deletion/amendment routes. The backend change remains a blocked
+draft until direct evidence establishes otherwise.
+
+Publication evidence uses the fixed authenticated POST/GET route
+`/opal-maintenance-service/testing-support/draft-casefiles/{id}/publication-evidence` and exact `Test-Run-Reference`.
+Both calls require the current owning inputter with permission 21 in the stored BU; neither accepts a caller-supplied
+URI or body. POST registers a complete zero-attempt baseline before the tested mutation, after rejected-prerequisite
+setup and before checker authentication/browser navigation. Registration returns 201 or idempotent 200; an
+unregistered GET returns 409. The exact response fields are `observation_id`, `registered_at`, `send_attempt_count`,
+`acknowledged_send_count`, `uncertain_send_count`, `unfinished_send_count` and `evidence_complete`. Counts are safe
+nonnegative integers with attempts equal to acknowledged plus uncertain plus unfinished sends. Final evidence must
+be complete and retain the observation identity/time. Approval needs one additional attempt and acknowledgement;
+all other journeys need zero. Producer evidence does not prove consumer delivery or account creation.
+
+The final Gherkin assertion runs after every UI/Axe check, restores the inputter and reads the observation before
+cleanup. Restoring `cy.session` navigates away, so no UI assertion may follow it. Publication receipts contain only ID, exact marker and the seven
+safe before/after fields. Mutation receipts contain the owned ID/marker, journey/fault, application/network counts
+and opaque versions. Both use `functional-output/po10626/`; never persist names, cookies, request bodies or casefile
+snapshots there. Missing/incomplete evidence fails; no partial-success mode remains. The existing single
+cleanup hook persists all receipts, restores each recorded inputter, then sends the ID-scoped DELETE with the exact
+marker. Only 204 clears a receipt. Non-204/transport failure retains receipts and fails acceptance, including 409.
+No body, If-Match, cleanup GET or `ignore_missing` query is used. `PO10626_DEFER_CLEANUP` remains an existing helper
+capability for explicitly deferred localhost receipts; these new required-cleanup fixtures do not use it.
+
+The feature's explicit dependency comment is:
+
+```gherkin
+# BE dependency: PO-10629 consumer and published-account cleanup are outstanding.
+# Current DELETE rejects PUBLISHING_PENDING and PUBLISHED with 409.
+# Retain this AC1 approval example; remove its pending tags only after the
+# delivered cleanup contract and a full live approval/recovery run are verified.
+```
+
+The approval status assertion records:
+
+```ts
+// BE dependency: successful approval can remain PUBLISHING_PENDING until the
+// PO-10629 consumer is delivered. Producer evidence proves send attempts and
+// acknowledgments, not account creation. Published lifecycle cleanup remains
+// required before the pending approval example can satisfy full AC1 acceptance.
+```
+
+Confirm both consumer and published-account cleanup deliveries and their final contract before reactivating approval;
+an issue's status alone is insufficient. Require a full owned approval/recovery/evidence/cleanup run before removing
+the tags. `PUBLISHING_FAILED` cleanup eligibility does not authorise deliberately forcing publication failure.
+Preserve failed receipts and raw outputs before runner resets. Controlled component checks prove helper boundaries;
+discovery proves selection/bindings. Neither proves real owner/session ordering, publication evidence or cleanup.
+The suite retains all UI recovery, Axe and native keyboard checks, with no additional accessibility exemptions.
+
+Full inventory discovery (no browser actions or approval fixture creation):
+
+```bash
+TEST_URL=http://localhost:5100 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrency.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrencyAccessibility.feature' \
+  --env 'dryRun=true,omitFiltered=false,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626'
+```
+
 ## Required References
 
 Read this guide's Feature Layout and Tags, Accessibility Coverage, Step Definitions, Actions, Flows, and Selectors,

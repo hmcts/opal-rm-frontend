@@ -1,3 +1,4 @@
+import { pathForDraftCasefileCleanup } from '../../../../../support/draftCasefiles';
 import type { IDraftCasefileDetail } from './interfaces/draft-casefile-detail.interface';
 import type { IDraftCasefileSnapshot } from './interfaces/draft-casefile-snapshot.interface';
 import type { IDraftCasefilePublicationEvidence } from './interfaces/draft-casefile-publication-evidence.interface';
@@ -102,84 +103,140 @@ export function assertUnchangedDraft(before: IDraftCasefileSnapshot, after: IDra
 }
 
 /**
- * Missing or late producer observations cannot be interpreted as a count of zero.
- * @param owned Identity and exact run marker of the owned case.
- * @param owned.id Positive owned draft identifier.
- * @param owned.marker Exact marker captured from real creation.
- * @param body Wire data read from or sent to the real API.
- * @returns The validated result or Cypress chain consumed by the next action.
+ * Validates journal identity and safe counts without treating incomplete evidence as zero.
+ * @param body Unknown response from the Maintenance publication observation endpoint.
+ * @returns Only the seven safe contract fields, including consistent incomplete observations.
  */
-export function decodePublicationEvidence(
-  owned: { id: number; marker: string },
-  body: unknown,
-): IDraftCasefilePublicationEvidence {
+export function decodePublicationEvidence(body: unknown): IDraftCasefilePublicationEvidence {
   if (
     !record(body) ||
-    body['draft_casefile_id'] !== owned.id ||
-    body['test_run_reference'] !== owned.marker ||
-    body['complete'] !== true ||
-    body['recording_started_before_approval'] !== true ||
-    !Number.isSafeInteger(body['accepted_publication_requests']) ||
-    Number(body['accepted_publication_requests']) < 0
+    typeof body['observation_id'] !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body['observation_id']) ||
+    typeof body['registered_at'] !== 'string' ||
+    !/T.*(?:Z|[+-]\d{2}:\d{2})$/.test(body['registered_at']) ||
+    !Number.isFinite(Date.parse(body['registered_at'])) ||
+    typeof body['evidence_complete'] !== 'boolean'
   ) {
-    throw new Error('Incomplete or mismatched publication evidence');
+    throw new Error('Malformed publication observation identity');
   }
-  return body as unknown as IDraftCasefilePublicationEvidence;
+  for (const key of [
+    'send_attempt_count',
+    'acknowledged_send_count',
+    'uncertain_send_count',
+    'unfinished_send_count',
+  ]) {
+    const value = body[key];
+    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)
+      throw new Error(`Publication evidence requires a nonnegative safe integer: ${key}`);
+  }
+  const evidence = body as unknown as IDraftCasefilePublicationEvidence;
+  if (
+    evidence.send_attempt_count !==
+      evidence.acknowledged_send_count + evidence.uncertain_send_count + evidence.unfinished_send_count ||
+    evidence.evidence_complete !== (evidence.uncertain_send_count === 0 && evidence.unfinished_send_count === 0)
+  ) {
+    throw new Error('Inconsistent publication evidence');
+  }
+  return {
+    observation_id: evidence.observation_id,
+    registered_at: evidence.registered_at,
+    send_attempt_count: evidence.send_attempt_count,
+    acknowledged_send_count: evidence.acknowledged_send_count,
+    uncertain_send_count: evidence.uncertain_send_count,
+    unfinished_send_count: evidence.unfinished_send_count,
+    evidence_complete: evidence.evidence_complete,
+  };
 }
 
 /**
- * URI is supplied from the delivered provider contract, rather than pretending the proposed endpoint exists.
- * @param owned Identity and exact run marker of the owned case.
- * @param owned.id Positive owned draft identifier.
- * @param owned.marker Exact marker captured from real creation.
- * @returns The validated result or Cypress chain consumed by the next action.
+ * Scopes both evidence methods to the validated owned draft and exact run marker.
+ * @param owned Owned fixture identity used by both observation methods.
+ * @param owned.id Positive safe-integer draft identifier.
+ * @param owned.marker Exact scenario run marker.
+ * @returns The fixed Maintenance publication evidence route.
  */
-export function readPublicationEvidence(owned: {
+function publicationEvidencePath(owned: { id: number; marker: string }): string {
+  if (!/^E2E-[0-9a-f]{16}$/.test(owned.marker)) throw new Error('Publication evidence requires the exact run marker');
+  return `${pathForDraftCasefileCleanup(owned.id)}/publication-evidence`;
+}
+
+/**
+ * Registers before publication, using the already authenticated current inputter.
+ * @param owned Owned draft identifier and exact marker captured during creation.
+ * @param owned.id Positive safe-integer draft identifier.
+ * @param owned.marker Exact scenario run marker.
+ * @returns A complete baseline with no publication attempts.
+ */
+export function registerPublicationEvidence(owned: {
   id: number;
   marker: string;
 }): Cypress.Chainable<IDraftCasefilePublicationEvidence> {
-  const path: unknown = Cypress.env('PO10626_PUBLICATION_EVIDENCE_PATH');
-  if (
-    typeof path !== 'string' ||
-    !path.startsWith('/opal-maintenance-service/testing-support/') ||
-    !path.includes('{id}') ||
-    path.includes('..') ||
-    path.includes('?') ||
-    path.includes('#')
-  ) {
-    throw new Error('Set PO10626_PUBLICATION_EVIDENCE_PATH to the delivered test-support URI containing {id}');
-  }
   return cy
     .request<unknown>({
-      method: 'GET',
-      url: path.replace('{id}', String(owned.id)),
+      method: 'POST',
+      url: publicationEvidencePath(owned),
       headers: { 'Test-Run-Reference': owned.marker },
       failOnStatusCode: false,
+      followRedirect: false,
       retryOnNetworkFailure: false,
       retryOnStatusCodeFailure: false,
       log: false,
     })
     .then((response) => {
-      expect(response.status, 'producer evidence response').to.equal(200);
-      return decodePublicationEvidence(owned, response.body);
+      expect(response.status, 'publication registration').to.be.oneOf([201, 200]);
+      const evidence = decodePublicationEvidence(response.body);
+      expect(evidence.evidence_complete, 'complete registration baseline').to.equal(true);
+      expect(evidence.send_attempt_count, 'registration before any publication').to.equal(0);
+      return evidence;
     });
 }
 
 /**
- * Compares accepted producer sends independently of consumer redelivery.
+ * Reads the existing observation using the already authenticated current inputter.
+ * @param owned Owned draft identifier and exact marker captured during creation.
+ * @param owned.id Positive safe-integer draft identifier.
+ * @param owned.marker Exact scenario run marker.
+ * @returns Current validated journal fields; acceptance still requires complete evidence.
+ */
+export function readPublicationEvidence(owned: {
+  id: number;
+  marker: string;
+}): Cypress.Chainable<IDraftCasefilePublicationEvidence> {
+  return cy
+    .request<unknown>({
+      method: 'GET',
+      url: publicationEvidencePath(owned),
+      headers: { 'Test-Run-Reference': owned.marker },
+      failOnStatusCode: false,
+      followRedirect: false,
+      retryOnNetworkFailure: false,
+      retryOnStatusCodeFailure: false,
+      log: false,
+    })
+    .then((response) => {
+      expect(response.status, 'publication evidence read').to.equal(200);
+      return decodePublicationEvidence(response.body);
+    });
+}
+
+/**
+ * Requires observation continuity and complete attempt plus acknowledgment deltas.
  * @param before Authoritative baseline captured before the tested action.
- * @param after Authoritative state/evidence read after the action.
- * @param delta Expected number of additional accepted publication requests.
+ * @param after Authoritative evidence read after the action.
+ * @param delta Expected number of additional publication sends.
  */
 export function assertPublicationDelta(
   before: IDraftCasefilePublicationEvidence,
   after: IDraftCasefilePublicationEvidence,
   delta: 0 | 1,
 ): void {
-  expect(after.draft_casefile_id).to.equal(before.draft_casefile_id);
-  expect(after.test_run_reference).to.equal(before.test_run_reference);
-  expect(
-    after.accepted_publication_requests - before.accepted_publication_requests,
-    'accepted producer sends',
-  ).to.equal(delta);
+  // The scoped URL/header identify the owned draft; the observation must never be replaced.
+  expect(after.observation_id, 'same publication observation').to.equal(before.observation_id);
+  expect(after.registered_at, 'same observation registration time').to.equal(before.registered_at);
+  expect(before.evidence_complete, 'complete publication baseline').to.equal(true);
+  expect(after.evidence_complete, 'complete publication result').to.equal(true);
+  expect(after.uncertain_send_count, 'uncertain sends').to.equal(0);
+  expect(after.unfinished_send_count, 'unfinished sends').to.equal(0);
+  expect(after.send_attempt_count - before.send_attempt_count, 'publisher attempt delta').to.equal(delta);
+  expect(after.acknowledged_send_count - before.acknowledged_send_count, 'acknowledged send delta').to.equal(delta);
 }

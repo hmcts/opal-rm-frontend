@@ -1,8 +1,10 @@
-/** Consumer-side evidence shape; the HTTP mapping must match the delivered test-support contract. */
+/** Safe fields retained from the Maintenance publisher observation journal. */
 export interface IDraftCasefilePublicationEvidence {
-  draft_casefile_id: number;
-  test_run_reference: string;
-  accepted_publication_requests: number;
-  recording_started_before_approval: boolean;
-  complete: boolean;
+  observation_id: string;
+  registered_at: string;
+  send_attempt_count: number;
+  acknowledged_send_count: number;
+  uncertain_send_count: number;
+  unfinished_send_count: number;
+  evidence_complete: boolean;
 }

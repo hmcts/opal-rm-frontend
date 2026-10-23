@@ -237,19 +237,20 @@ submission scenario are new; the permission outline adds the journey-entry and t
 
 `CheckCaseDetails.feature` contains exactly one live full submission scenario. It completes one synthetic draft using
 the existing live party, Order Details and MAT/Applicant creditor flows, then supplies the mandatory payment tasks.
-It observes the real create POST, requires HTTP 201 with a positive safe-integer ID and status `SUBMITTED`, and matches
-the generated identifier as text in the existing confirmation panel. Create a new case then proves journey clearing.
-The identifier assertion uses only the response returned by the live maintenance service; controlled scenarios do not
-provide an expected Draft Casefile ID. Other scenarios in that feature retain controlled submission responses. The
-live scenario records the observed ID before later assertions and attempts cleanup after both passing and failing
-scenarios. No cleanup runs until creation has actually been observed. This QA change has no `src` delta; the existing
-confirmation page does not display the generated ID, so that retained acceptance assertion requires a separate product fix.
-The scenario-level `@retries(0)` prevents a later assertion or cleanup failure from repeating a persisted
-submission. Keep it to avoid replaying a real submission after an assertion or cleanup failure; the remaining scenarios use the shared retry configuration.
+It observes the real create POST, requires HTTP 201 with a positive safe-integer ID and status `SUBMITTED`, and checks
+submission confirmation, focus and the single create request. Create a new case then proves journey clearing.
+Per the developer clarification confirmed on 21 October 2026, displaying the generated Draft Casefile ID in the
+confirmation panel belongs to future work outside PO-10273. The saved ticket export still lists that display check;
+this agreed scope change supersedes it for this branch. Backend receipt-ID validation and early capture for cleanup
+remain required. Other scenarios in that feature retain controlled submission responses.
 
-Earlier browser all-pass counts predate this cleanup implementation and are not evidence for the current code.
-Current deterministic and discovery evidence is recorded with the implementation handoff; discovery proves binding
-and selection only. Live acceptance remains dependent on the visible-ID product fix and the enabled Maintenance implementation below.
+The live scenario records the observed ID before later assertions and attempts cleanup after passing and failing
+scenarios. No cleanup runs until creation has actually been observed. This QA change has no `src` delta. Keep the
+scenario-level `@retries(0)` to avoid replaying a real submission after an assertion or cleanup failure; the remaining
+scenarios use the shared retry configuration.
+
+Discovery proves binding and selection only. Live execution must verify confirmation, cleared journey state and
+successful authenticated cleanup against the actual target services.
 
 ```bash
 TEST_URL=http://localhost:5000 \
@@ -258,9 +259,8 @@ corepack yarn test:functional:serial --browser=chrome \
   --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature'
 ```
 
-Cleanup uses the Maintenance contract in `opal-maintenance-service` branch
-`codex/PO-10273-draft-casefile-cleanup`, commit `4f2a946`, documented in
-`docs/DRAFT_CASEFILE_TEST_CLEANUP.md` in that repository. The live scenario creates a fresh marker matching
+Cleanup uses the Maintenance contract documented in `docs/DRAFT_CASEFILE_TEST_CLEANUP.md` in
+`opal-maintenance-service`. The implementation is now merged into Maintenance `master` (merge `d3123e7`, PR 302). The live scenario creates a fresh marker matching
 `^E2E-[0-9a-f]{16}$`, enters it through Central Authority's REMO Reference field, saves/reopens it, and checks the real
 POST payload contains the same value at `casefile.respondent_account.remo_reference`. No POST response is substituted.
 The response listener records the positive safe-integer ID and exact marker synchronously before later assertions.
@@ -288,12 +288,11 @@ has no application environment allowlist. Backend-owned overlays do not configur
 obsolete `DRAFT_CASEFILE_CLEANUP_*` and `OPAL_DEPLOYMENT_ENVIRONMENT` overrides; no such settings are needed here.
 Standalone Maintenance Compose enables the flag, and shared Docker inherits `.env.shared`.
 
-For a frontend PR dev deployment, use the existing CNP labels `enable_keep_helm` and
-`enable_opal_maintenance_service:pr-302`. These select `DEV_OPAL_MAINTENANCE_SERVICE_IMAGE_SUFFIX=pr-302` for the nested
-Maintenance image. Do not assume the default `latest` contains `4f2a946`. Verify the published PR image revision/content
-and resolved image digest before the normal deployment. The existing selector is PR/dev only: staging needs an
-explicit verified `opal-maintenance-service.java.image` deployment override until its normal selected image contains
-the implementation. Do not install an unpublished chart version or change a shared production image to a PR image.
+Maintenance cleanup is merged into `master`, so the frontend PR no longer needs the temporary
+`enable_keep_helm` / `enable_opal_maintenance_service:pr-302` image selection labels. Use the normal deployment image
+and verify that the actual deployed build contains the merged implementation. A local source merge or a mutable
+`latest` tag alone does not prove the deployed image's contents. Frontend-owned dev/staging subchart enablement is
+still required; production must remain disabled.
 
 The normal CNP selection uses `cypress/e2e/functional/opal/**/*.feature` and
 `not @skip and not @R1CRmCreateCaseFilesOff`, so it includes the PO-10273 live scenario and its shared cleanup hook.
@@ -301,12 +300,25 @@ The normal CNP selection uses `cypress/e2e/functional/opal/**/*.feature` and
 Gradle CI does not execute Cypress. Confirm the scenario in the frontend functional report, along with authenticated
 permission 21, reference-data lookups and the enabled create-casefile release in the actual target environment.
 
-Run deterministic cleanup regression checks with `node --test scripts/draft-casefile-cleanup.test.mjs` (also included
-in `corepack yarn test`). These cover marker/ID validation, early response capture, session-proxy request shape,
-already-absent success, non-204 failures, transport failure, receipt sharing across separate support/feature bundles,
-retention and deduplication; they do not replace live browser evidence. The receipt collection uses Cypress env because
-module-local state is not shared between the independently bundled support file and feature files. Cleanup leaves
-Accept unrestricted: success has no body, and backend errors use `application/problem+json`.
+The receipt collection uses Cypress env because module-local state is not shared between independently bundled
+support and feature files. Cleanup leaves Accept unrestricted: success has no body, and backend errors use
+`application/problem+json`. Verify cleanup through the live submission scenario and retain its outcome in the PR's
+test evidence.
+
+Cleanup failure regressions run in the existing Cypress component suite at
+`cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts`. The spec installs the real `afterEach` hook,
+uses the real Cypress command queue and receipt files, and controls only the DELETE request boundary. It covers
+non-204 failures (400, 401, 403, 404, 409, 500 and 503) mixed with a successful deletion, plus transport failure on
+the first request and after a 204. Assertions require hook failure, preservation of every outstanding ID/marker in
+memory and on disk, and persistence of all targets before the first request. Only successful receipts may be cleared.
+An assertion after cleanup requires the expected failure to have occurred, so silently accepting a failed deletion
+fails the regression test. Synthetic fixture ledgers are reset between tests and cleared after verification.
+This is controlled helper coverage; the live submission scenario remains the authenticated integration check.
+
+```bash
+corepack yarn exec cypress run --component --browser chrome \
+  --spec cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts
+```
 
 Run the individual capture and retention outcome with:
 
@@ -353,69 +365,70 @@ The rejection is an intercepted HTTP 400, followed by an explicitly requested co
 live service failure or persistence rollback.
 
 The existing live scenario observes the real HTTP 201 receipt, requires a positive generated ID and `SUBMITTED` status,
-compares that ID with the confirmation, and proves state clearing and blocked re-entry to submitted forms. It retains
+and proves state clearing and blocked re-entry to submitted forms. It retains
 PO-10273 ownership and disables automatic scenario retries. Cleanup records only observed live IDs and their saved
 test-run markers, then uses the Maintenance contract described above. Before running it, verify the selected backend
 image contains that implementation, test support is enabled in the target environment and the release is enabled.
 A client 204 alone does not establish the backend's transactional semantics.
 
-Full literal ticket acceptance still requires successful authenticated cleanup, the generated-ID display fix and the
-cases-in-review onward choice. The user has deferred the onward choice for this QA-only branch while a product route
-and approved destination are unavailable. It is a pending ticket item, not a current scenario or merge gate for the
-agreed subset. When the route is agreed, add native keyboard activation and assert an independently specified page
-outcome. Keep passing controlled evidence distinct from blocked live acceptance. Automated Axe and keyboard checks
-are partial accessibility evidence.
+The user has deferred generated-ID display and cases-in-review onward navigation to future work. These are outside
+this branch's agreed QA scope. The backend receipt ID is still validated and captured before assertions for cleanup.
+When the onward route is agreed, add native keyboard activation and assert an independently specified page outcome.
+Automated Axe and keyboard checks are partial accessibility evidence.
 
-Use the configured `TEST_URL`; port 5001 below was the verified local runtime for the historical runs described below.
+Use the configured `TEST_URL`; the examples below use the local frontend on port 5000.
 Discover the four selected review scenarios (the retained live scenario plus three controlled scenarios) without
 browser execution:
 
 ```bash
-TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature' --env dryRun=true
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature' --env dryRun=true
 ```
 
 Run only the three controlled scenarios by excluding the live scenario's PO-10273 tag. Record actual results rather
 than claiming browser acceptance from discovery:
 
 ```bash
-TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature'
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature'
 ```
 
 Run the sole live submission scenario only after the runtime prerequisites above are evidenced. Expect one live create
-POST, visible agreement with the real server ID, blocked re-entry and a 204 cleanup for its ID and exact marker:
+POST, a valid backend receipt, blocked re-entry and a 204 cleanup for its ID and exact marker:
 
 ```bash
-TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and @JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and @JIRA-STORY:PO-10273 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature'
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and @JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and @JIRA-STORY:PO-10273 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature'
 ```
 
 The final focused selection combines functional review, accessibility and permission coverage. It includes the live
 scenario, so keep this as discovery until the runtime prerequisites are met:
 
 ```bash
-TEST_URL=http://localhost:5001 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature' --env dryRun=true
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature' --env dryRun=true
 ```
 
-### Local execution status, 19 October 2026
+### Local verification, 21 October 2026
 
-These results are historical and predate removal of the deferred onward-choice scenario. On the verified Redis-enabled
-local release-on runtime, focused discovery selected nine PO-10283 examples with no pending or skipped cases. Four
-controlled review examples ran in Chrome: comments, optional omission and rejected submission/retry passed; the now
-removed onward-choice example failed because the confirmation rendered a `span`. All nineteen permission examples
-passed their final attempts, including both new review routes; one
-example needed a setup retry. An initial accessibility run passed one of two examples: the new keyboard example stopped
-when Cypress native Enter did not activate the focused submit button. An isolated native-form probe reproduced that
-runner behavior. Changing only that test activation to native Space preserved Tab focus and task-list assertions; the
-focused rerun passed both examples and all ten Axe scans with no retries or skipped cases. An earlier affected
-50-example regression passed 48 and failed the then-tested onward link and Enter action; its keyboard result is
-superseded by the focused rerun. The other regression groups, including prerequisites,
-payments, cancellation and permissions, passed. Actual smoke passed. Browser reports and exact commands are retained
-in the local PO-10283 evidence file; copied output trees can contain stale older files, so count the current run log
-and Cucumber report for each selection.
+After merging the latest PO-10273, focused discovery selected all eight PO-10283 examples. Actual Chrome execution
+using the normal CNP tag expression passed all 30 affected examples: nine review/submission, two accessibility and
+nineteen permission examples, with no retries, pending or skipped cases. The accessibility examples completed ten Axe
+scans. The live scenario received HTTP 201 and its authenticated cleanup completed with HTTP 204; the receipt ledger
+was empty afterwards, and a read-only database query confirmed draft 15 was absent and no draft casefiles remained.
 
-The sole live submission was unexecuted in this 19 October PO-10283 run. Parent PO-10273 later supplied the cleanup
-contract and reported a separate local live run; that historical run is not acceptance evidence for this merge. Rebuild
-and verify the current runtime before rerunning the PO-10283 selection. The generated-ID display remains a current
-acceptance dependency. Cases-in-review navigation is a user-deferred literal ticket item pending a product route.
+```bash
+TEST_URL=http://localhost:5000 TAGS='not @skip and not @R1CRmCreateCaseFilesOff' CYPRESS_TAGS='not @skip and not @R1CRmCreateCaseFilesOff' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```
+
+Also passed: `corepack yarn prettier`, `corepack yarn lint:cypress`, `corepack yarn lint:ng`,
+`corepack yarn tsc -p e2e.tsconfig.json --noEmit`, `corepack yarn check:cypress:test-metadata`,
+`corepack yarn find:duplicate:scenarios`, and `corepack yarn test` (1,854 tests).
+The merge preserved the child branch's scenario names, tags and Examples rows. The default CNP functional glob and tag
+expression select these features and the shared support hook. Deployed CI execution and QA sign-off remain unverified.
+For a deployed run, enable the create-casefile release, provision the documented accounts/reference data and enable
+Maintenance test support in dev/staging; expect the same submission, permission denial and cleanup outcomes.
+
+Production build, component tests, new-code coverage and UI screenshots were not repeated: this QA change alters no
+application source, UI or dependencies, and Sonar measures `src/`. No coverage exclusions were added. Automated Axe
+and keyboard results do not replace human assistive-technology verification of the comments, review, error and
+confirmation pages. The intercepted rejection proves frontend retention/retry, not a live backend rejection.
 
 ## Integrated live QA selection and evidence
 

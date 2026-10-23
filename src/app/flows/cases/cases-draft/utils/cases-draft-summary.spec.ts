@@ -41,7 +41,7 @@ describe('mapCasesDraftRows', () => {
       ),
     ).toHaveLength(1);
   });
-  it('excludes pending publication and retains populated account strings in source order', () => {
+  it('includes pending publication and retains published account strings in source order', () => {
     const published = createCasesDraftSummary({
       casefile_status: 'PUBLISHED',
       validated_date: '2026-09-01T10:00:00Z',
@@ -60,7 +60,7 @@ describe('mapCasesDraftRows', () => {
       [published, createCasesDraftSummary({ casefile_status: 'PUBLISHING_PENDING' })],
       'approved',
     );
-    expect(rows).toHaveLength(1);
+    expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
       respondentAccount: '000123A',
       applicantAccount: null,
@@ -68,6 +68,22 @@ describe('mapCasesDraftRows', () => {
       minorCreditorAccounts: ['M10', 'M2', 'M10'],
       approved: '2026-09-01T10:00:00Z',
       created: published.created_date,
+    });
+  });
+
+  it('hides every pending account number even when the snapshot supplies values', () => {
+    const pending = createCasesDraftSummary({
+      casefile_status: 'PUBLISHING_PENDING',
+      casefile_snapshot: {
+        respondent_account: { account_number: 'UNPUBLISHED' },
+        applicant_account: { account_number: 'UNPUBLISHED' },
+        minor_creditor_accounts: [{ account_number: 'UNPUBLISHED' }],
+      },
+    });
+    expect(mapCasesDraftRows([pending], 'approved')[0]).toMatchObject({
+      respondentAccount: null,
+      applicantAccount: null,
+      minorCreditorAccounts: [],
     });
   });
 

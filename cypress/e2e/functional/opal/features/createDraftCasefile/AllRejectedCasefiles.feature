@@ -4,7 +4,7 @@ Feature: All rejected casefiles
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
 
   @JIRA-STORY:PO-10607 @JIRA-EPIC:PO-10817
-  Scenario: Consult the complete other-inputter rejection collection
+  Scenario: Consult the complete business-unit rejection collection
     Given other inputters have rejected casefiles in my RM business unit
     When I open all rejected cases from my Rejected tab
     Then I see the complete other-inputter collection with six sortable columns and shared MOJ pagination

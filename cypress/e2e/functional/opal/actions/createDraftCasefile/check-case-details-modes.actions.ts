@@ -1,14 +1,10 @@
+import { selectedPersistedCasefile } from '../../mocks/createDraftCasefile/persisted-casefile.mock';
+import { stubPersistedCasefileReferences } from '../../setup/createDraftCasefile/persisted-casefile.intercept';
 import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CasesDraftSelectors as DASHBOARD } from '../../../../../shared/selectors/cases-draft.selectors';
 import { checkerUser } from '../../mocks/createDraftCasefile/checker-dashboard.mock';
 import type { CheckerRole } from '../../mocks/createDraftCasefile/checker-dashboard.mock';
 import type { CasesDraftCasefileDecision } from 'src/app/flows/cases/cases-draft/types/cases-draft-casefile-decision.type';
-import type { IOpalMaintenanceDraftCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-detail.interface';
-import {
-  createPersistedCasefileDetail,
-  PERSISTED_CASEFILE_REFERENCES,
-  PERSISTED_CASEFILE_RESULT_DETAIL,
-} from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
 
 const S = CREATE.review;
@@ -16,54 +12,6 @@ const D = CREATE.deletion;
 const CHECKER = '/cases/draft/check-and-validate';
 const INPUTTER = '/cases/draft/create-and-manage/tabs';
 const COLLECTION = /\/opal-maintenance-service\/draft-casefiles(?:\?|$)/;
-
-/** Complete historical references used by the real resolver and mapper in every persisted journey. */
-export function stubPersistedCasefileReferences(): void {
-  cy.intercept('GET', '**/opal-maintenance-service/countries*', (request) => {
-    expect(request.query).not.to.have.property('active');
-    request.reply({ body: { refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.countries) } });
-  });
-  cy.intercept('GET', '**/opal-maintenance-service/maintenance-applications*', (request) => {
-    expect(request.query).to.deep.equal({ application_group: 'Create Casefile' });
-    request.reply({ body: { refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.applications) } });
-  });
-  cy.intercept('GET', '**/opal-maintenance-service/major-creditors*', (request) => {
-    expect(request.query).to.deep.equal({ business_unit_id: '44' });
-    request.reply({ body: { refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.majorCreditors) } });
-  });
-  cy.intercept('GET', '**/opal-maintenance-service/results/TEST01', {
-    body: structuredClone(PERSISTED_CASEFILE_RESULT_DETAIL),
-  });
-}
-
-/** Adapts independently authored wire data to the selected dashboard ID and lifecycle.
- * @param id Selected draft identifier.
- * @param status Saved lifecycle status.
- * @param submitter Saved BU-user identity.
- * @returns Complete independent selected HTTP fixture. */
-export function selectedPersistedCasefile(
-  id: number,
-  status = 'SUBMITTED',
-  submitter = 'BUU-OTHER',
-): IOpalMaintenanceDraftCasefileDetail {
-  const draft = createPersistedCasefileDetail();
-  draft.draft_casefile_id = id;
-  const statuses = [
-    'SUBMITTED',
-    'RESUBMITTED',
-    'REJECTED',
-    'DELETED',
-    'PUBLISHED',
-    'PUBLISHING_PENDING',
-    'PUBLISHING_FAILED',
-  ] as const;
-  const selectedStatus = statuses.find((value) => value === status);
-  if (!selectedStatus) throw new Error('Unsupported persisted fixture lifecycle: ' + status);
-  draft.casefile_status = selectedStatus;
-  draft.casefile_status_name = status.charAt(0) + status.slice(1).toLowerCase();
-  draft.submitted_by = submitter;
-  return draft;
-}
 
 /** Owns selected GET, permission fixtures and browser interactions and explicit decision fixtures. */
 export class CheckCaseDetailsModesActions {

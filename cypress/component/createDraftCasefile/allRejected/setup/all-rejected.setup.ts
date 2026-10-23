@@ -1,8 +1,5 @@
-import {
-  createPersistedCasefileDetail,
-  PERSISTED_CASEFILE_REFERENCES,
-  PERSISTED_CASEFILE_RESULT_DETAIL,
-} from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
+import { persistedReferenceStubs } from '../../review/setup/persisted-references.setup';
+import { createPersistedCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, RouterOutlet } from '@angular/router';
@@ -75,37 +72,7 @@ export function setupAllRejected(options: IAllRejectedSetupOptions = {}) {
     'getDraftCasefile' | 'getCountries' | 'getMaintenanceApplications' | 'getMajorCreditors' | 'getResult'
   > = {
     getDraftCasefile: detailRequest,
-    getCountries: cy
-      .stub()
-      .as('allRejectedCountriesRequest')
-      .returns(
-        of({
-          count: PERSISTED_CASEFILE_REFERENCES.countries.length,
-          refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.countries),
-        }),
-      ),
-    getMaintenanceApplications: cy
-      .stub()
-      .as('allRejectedApplicationsRequest')
-      .returns(
-        of({
-          count: PERSISTED_CASEFILE_REFERENCES.applications.length,
-          refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.applications),
-        }),
-      ),
-    getMajorCreditors: cy
-      .stub()
-      .as('allRejectedMajorCreditorsRequest')
-      .returns(
-        of({
-          count: PERSISTED_CASEFILE_REFERENCES.majorCreditors.length,
-          refData: structuredClone(PERSISTED_CASEFILE_REFERENCES.majorCreditors),
-        }),
-      ),
-    getResult: cy
-      .stub()
-      .as('allRejectedResultRequest')
-      .returns(of(structuredClone(PERSISTED_CASEFILE_RESULT_DETAIL))),
+    ...persistedReferenceStubs('allRejected'),
   };
   return cy.document().then((document) => {
     document.documentElement.lang = 'en';

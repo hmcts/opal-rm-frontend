@@ -28,6 +28,7 @@ Feature: Checker dashboard accessibility
   Scenario Outline: Review and view shells remain accessible with valid or invalid identifiers
     Given my checker dashboard session has role "checker"
     When I open the safe checker "<kind>" shell with identifier "<id>"
+    Then the saved checker "<kind>" destination safely handles identifier "<id>"
     Then I check the page for accessibility
     And I capture the "<capture>" checker shell
     Examples:

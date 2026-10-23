@@ -1,3 +1,5 @@
+import { By } from '@angular/platform-browser';
+import { CasesDraftCasefileDecisionComponent } from 'src/app/flows/cases/cases-draft/components/cases-draft-casefile-decision/cases-draft-casefile-decision.component';
 import { CasesDraftNavigationService } from 'src/app/flows/cases/cases-draft/services/cases-draft-navigation.service';
 import { CASES_DRAFT_DASHBOARD_MODE } from 'src/app/flows/cases/cases-draft/constants/cases-draft-dashboard-mode.token';
 import { BehaviorSubject } from 'rxjs';
@@ -39,6 +41,7 @@ interface ReviewSetupOptions {
   user?: IOpalUserState;
   deleteScreen?: boolean;
   deleteReason?: string;
+  decision?: { choice: 'approve' | 'reject'; reason?: string };
 }
 
 /** Mirrors the user-service response mapping while retaining the shared synthetic role fixture. */
@@ -135,6 +138,15 @@ export function setupReview(options: ReviewSetupOptions = {}) {
         fixture.componentInstance.form.controls.create_casefile_delete_reason.setValue(options.deleteReason);
       }
       fixture.detectChanges();
+      if (options.decision) {
+        const decision = fixture.debugElement.query(By.directive(CasesDraftCasefileDecisionComponent))
+          ?.componentInstance as CasesDraftCasefileDecisionComponent | undefined;
+        if (!decision) throw new Error('Decision seed requires an eligible review');
+        decision.form.controls.create_casefile_review_decision.setValue(options.decision.choice);
+        if (options.decision.reason !== undefined)
+          decision.form.controls.create_casefile_review_rejection_reason.setValue(options.decision.reason);
+        fixture.detectChanges();
+      }
     });
   });
 }

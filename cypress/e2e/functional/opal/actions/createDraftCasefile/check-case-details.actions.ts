@@ -1,5 +1,6 @@
 import { CasesDraftSelectors as Dashboard } from '../../../../../shared/selectors/cases-draft.selectors';
 import { CASES_DRAFT_ROUTING_PATHS as DRAFT_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
+import { createDraftCasefileTestRunReference, recordCreatedId } from '../../../../../support/draftCasefiles';
 import { CHECK_CASE_DETAILS_SUBMISSION as SUBMISSION } from '../../mocks/createDraftCasefile/check-case-details.mock';
 import type { IOpalMaintenanceDraftCasefileRequest } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-request.interface';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
@@ -8,9 +9,10 @@ import { CASES_CREATE_CASEFILE_INDEXATION_TYPES } from 'src/app/flows/cases/case
 import { CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-payment-arrangements.constant';
 import { ReleaseFlagsSelectors } from '../../../../../shared/selectors/release-flags.selectors';
 
-/** Exercises intercepted HTTP submission through the real rendered journey. */
+/** Exercises review and controlled or live HTTP submission through the rendered journey. */
 export class CheckCaseDetailsActions {
   private expectedSubmissionCount = 0;
+  private testRunReference = '';
   /** Stubs the create boundary so this journey never sends a live submission. */
   public prepareSubmission(): void {
     this.expectedSubmissionCount = 0;
@@ -20,8 +22,34 @@ export class CheckCaseDetailsActions {
     }).as('draftSubmission');
   }
 
-  /** Completes the remaining mandatory tasks before opening review. */
-  public completeRemainingTasks(): void {
+  /** Observes the single live submission without replacing the backend response. */
+  public prepareLiveSubmission(): void {
+    this.expectedSubmissionCount = 0;
+    this.testRunReference = createDraftCasefileTestRunReference();
+    const testRunReference = this.testRunReference;
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', (request) => {
+      request.on('response', (response) => {
+        const body: unknown = response.body;
+        const id = body && typeof body === 'object' && 'draft_casefile_id' in body ? body.draft_casefile_id : undefined;
+        if (typeof id === 'number' && Number.isSafeInteger(id) && id > 0) {
+          recordCreatedId(id, testRunReference);
+        }
+      });
+    }).as('draftSubmission');
+  }
+
+  /** Saves the cleanup marker through the real REMO Reference form before submission. */
+  public saveLiveTestRunReference(): void {
+    cy.get(S.caseDetails.centralAuthorityLink).click();
+    cy.get(S.centralAuthority.remoReference).clear().type(this.testRunReference);
+    cy.get(S.centralAuthority.returnToCaseDetails).click();
+    cy.get(S.caseDetails.centralAuthorityLink).click();
+    cy.get(S.centralAuthority.remoReference).should('have.value', this.testRunReference);
+    cy.get(S.centralAuthority.returnToCaseDetails).click();
+  }
+
+  /** Returns from Order Terms and completes the current draft's mandatory payment tasks. */
+  public completePaymentTasks(): void {
     cy.get(S.orderTerms.return).click();
     cy.get(S.caseDetails.interestAndIndexationLink).click();
     cy.get(S.interestAndIndexation.interestRadio(false)).check();
@@ -30,8 +58,28 @@ export class CheckCaseDetailsActions {
     cy.get(S.caseDetails.managingPaymentsLink).click();
     cy.get(S.managingPayments.paymentArrangementRadio(CASES_CREATE_CASEFILE_PAYMENT_ARRANGEMENTS.COURT)).check();
     cy.get(S.managingPayments.returnToCaseDetails).click();
+  }
+
+  /** Opens the completed draft's review page from its task list. */
+  public openReview(): void {
     cy.get(S.caseDetails.checkCaseButton).click();
     cy.get(S.review.heading).should('have.text', 'Check case details');
+  }
+
+  /** Requires all six mandatory tasks before Check Case becomes available. */
+  public assertReadyForReview(): void {
+    for (const selector of [
+      S.caseDetails.respondentStatus,
+      S.caseDetails.applicantStatus,
+      S.caseDetails.orderDetailsStatus,
+      S.caseDetails.orderTermsStatus,
+      S.caseDetails.interestAndIndexationStatus,
+      S.caseDetails.managingPaymentsStatus,
+    ]) {
+      cy.get(selector).should('contain.text', 'Provided');
+    }
+    cy.get(S.caseDetails.checkCaseButton).should('be.visible');
+    cy.get(S.caseDetails.blockingGuidance).should('not.exist');
   }
 
   /** Saves a respondent correction from its contextual review action. */
@@ -78,6 +126,36 @@ export class CheckCaseDetailsActions {
       );
       expect(payload).not.to.have.property('taskStatuses');
     });
+    this.assertConfirmationPanel();
+  }
+
+  /** Check the live receipt after its ID has been recorded by the response listener. */
+  public submitLive(): void {
+    this.expectedSubmissionCount = 1;
+    cy.get(S.review.submit).click();
+    cy.wait('@draftSubmission').then(({ request, response }) => {
+      expect(response?.statusCode).to.equal(201);
+      const payload = request.body as IOpalMaintenanceDraftCasefileRequest;
+      expect(payload.casefile.respondent_account.remo_reference).to.equal(this.testRunReference);
+      const receipt: unknown = response?.body;
+      expect(receipt).to.have.property('casefile_status', 'SUBMITTED');
+      const id =
+        receipt && typeof receipt === 'object' && 'draft_casefile_id' in receipt
+          ? receipt.draft_casefile_id
+          : undefined;
+      expect(Number.isSafeInteger(id)).to.equal(true);
+      expect(id).to.be.greaterThan(0);
+    });
+  }
+
+  /** Checks confirmation after the live receipt has passed its backend assertions. */
+  public assertLiveConfirmation(): void {
+    // Generated Draft Casefile ID display is deferred to a future UI functional-test ticket.
+    this.assertConfirmationPanel();
+  }
+
+  /** Checks confirmation content, focus, navigation and the single submission. */
+  private assertConfirmationPanel(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.submissionConfirmation);
     cy.get(S.review.confirmationHeading)
       .should('be.focused')

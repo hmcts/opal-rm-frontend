@@ -15,6 +15,17 @@ export class OrderTermsManagementFlow {
     this.actions.observe();
     this.actions.openSummary();
   }
+
+  /** Adds an observed MAT/Applicant term to the draft already on its task list.
+   * @param amount Synthetic amount to enter and verify.
+   * @param alias Scenario alias holding the stable term identity.
+   */
+  public addApplicantTermToCurrentDraft(amount: string, alias: string): void {
+    this.actions.observe();
+    this.actions.openSummary();
+    this.addApplicantTerm(amount, alias);
+    this.assertTerm(alias, amount);
+  }
   /** Opens Result selection for a new Order Term. */
   public openSelection(): void {
     this.actions.openSelection();

@@ -22,7 +22,64 @@ export class CasePartiesActions {
     cy.get(S.applicantType).select(path);
     cy.get(S.continueButton).click();
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.taskList);
+    cy.get(S.caseDetails.caseTypeValue).should('have.text', CASES_CREATE_CASEFILE_CASE_TYPES.REMO_IN);
     cy.get(S.caseDetails.applicantTypeValue).should('contain.text', path);
+    cy.get(S.caseDetails.respondentLink).should('have.attr', 'href');
+    cy.get(S.caseDetails.applicantLink).should('have.attr', 'href');
+  }
+
+  /**
+   * Starts an independent outbound draft while observing any submission attempt.
+   * @param caseType Outbound case type selected on the case-type page.
+   */
+  public startOutbound(caseType: (typeof CASES_CREATE_CASEFILE_CASE_TYPES)['REMO_OUT' | 'REMO_OUT_CMS']): void {
+    const submitted = cy.spy().as('liveDraftCreation');
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', () => {
+      submitted();
+    });
+    cy.visit('/' + PATHS.root + '/' + PATHS.children.caseType);
+    cy.get(S.caseTypeRadio(caseType)).check();
+    cy.get(S.continueButton).click();
+    cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.taskList);
+    this.assertOutboundTaskList(caseType);
+  }
+
+  /**
+   * Requires the selected outbound task list without an applicant type or draft submission.
+   * @param caseType Expected outbound case type.
+   */
+  public assertOutboundTaskList(caseType: string): void {
+    cy.get(S.caseDetails.caseTypeValue).should('have.text', caseType);
+    cy.get(S.caseDetails.applicantTypeRow).should('not.exist');
+    cy.get(S.caseDetails.respondentLink).should('have.attr', 'href');
+    this.assertNoSubmission();
+  }
+
+  /** Requires every Order task to remain blocked before mandatory party capture. */
+  public assertInitialOrderTasksBlocked(): void {
+    for (const selector of [
+      S.caseDetails.orderDetailsItem,
+      S.caseDetails.orderTermsItem,
+      S.caseDetails.interestAndIndexationItem,
+      S.caseDetails.managingPaymentsItem,
+    ]) {
+      cy.get(selector).should('contain.text', 'Cannot start yet').find('a').should('not.exist');
+    }
+    cy.get(S.caseDetails.checkCaseButton).should('not.exist');
+    cy.get(S.caseDetails.blockingGuidance).should('be.visible');
+  }
+
+  /** Requires only Order Details to unlock once both mandatory parties are provided. */
+  public assertOrderDetailsAvailableAfterParties(): void {
+    cy.get(S.caseDetails.orderDetailsLink).should('have.attr', 'href');
+    for (const selector of [
+      S.caseDetails.orderTermsItem,
+      S.caseDetails.interestAndIndexationItem,
+      S.caseDetails.managingPaymentsItem,
+    ]) {
+      cy.get(selector).find('a').should('not.exist');
+    }
+    cy.get(S.caseDetails.checkCaseButton).should('not.exist');
   }
 
   /** Opens the respondent page and captures the live Country list before interaction. */

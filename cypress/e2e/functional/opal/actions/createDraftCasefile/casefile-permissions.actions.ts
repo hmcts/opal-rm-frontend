@@ -17,6 +17,8 @@ export class CasefilePermissionsActions {
    */
   public openTask(path: string): void {
     const tasks = [
+      PATHS.children.caseType,
+      PATHS.children.taskList,
       PATHS.children.respondentDetails,
       PATHS.children.applicantIndividual,
       PATHS.children.applicantOrganisation,
@@ -32,8 +34,11 @@ export class CasefilePermissionsActions {
       PATHS.children.orderTermCreditor,
       PATHS.children.interestAndIndexation,
       PATHS.children.managingPayments,
+      PATHS.children.commentsAndNotes,
+      PATHS.children.checkCaseDetails,
     ];
     if (!tasks.includes(path)) throw new Error('Unsupported permission-test task route');
+    cy.intercept('POST', '**/opal-maintenance-service/draft-casefiles', cy.spy().as('permissionCreateRequest'));
     cy.visit('/' + PATHS.root + '/' + path);
   }
 
@@ -41,6 +46,8 @@ export class CasefilePermissionsActions {
   public assertDenied(): void {
     cy.location('pathname').should('eq', '/access-denied');
     cy.get(S.heading).should('be.visible').and('contain.text', 'Access Denied');
+    cy.get(S.caseTypeRadios).should('not.exist');
+    cy.get(S.caseDetails.taskNames).should('not.exist');
     cy.get(S.respondentDetails.firstNames).should('not.exist');
     cy.get(S.applicantIndividual.firstNames).should('not.exist');
     cy.get(S.applicantOrganisation.organisationName).should('not.exist');
@@ -57,5 +64,9 @@ export class CasefilePermissionsActions {
     cy.get(S.interestAndIndexation.interestGroup).should('not.exist');
     cy.get(S.interestAndIndexation.indexationGroup).should('not.exist');
     cy.get(S.managingPayments.paymentArrangementGroup).should('not.exist');
+    cy.get(S.commentsAndNotes.comment).should('not.exist');
+    cy.get(S.commentsAndNotes.note).should('not.exist');
+    cy.get(S.review.submit).should('not.exist');
+    cy.get('@permissionCreateRequest').should('not.have.been.called');
   }
 }

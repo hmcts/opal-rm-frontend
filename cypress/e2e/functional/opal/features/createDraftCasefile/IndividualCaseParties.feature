@@ -3,7 +3,7 @@ Feature: Capture individual case parties
   Background:
     Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
 
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10275
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10275 @JIRA-STORY:PO-10273
   Scenario: Capture and retain the mandatory individual parties
     Given I have the live RM casefile permission
     And I have started a live REMO In casefile with an "Individual" applicant

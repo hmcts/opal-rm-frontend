@@ -1,4 +1,15 @@
 export const CHECK_CASE_DETAILS_SUBMISSION = {
+  commentsAndNotes: {
+    comment: 'Synthetic review comment',
+    note: 'Synthetic review note',
+  },
+  failure: {
+    type: 'about:blank',
+    title: 'Submission rejected',
+    status: 400,
+    detail: 'The case was not submitted. Correct the details and try again.',
+    retriable: true,
+  },
   receipt: {
     draft_casefile_id: 123,
     business_unit_id: 44,

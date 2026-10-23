@@ -48,9 +48,9 @@ Feature: Consult live inputter casefiles accessibly
     When I visit the "next" live personal rejection page with the keyboard
     Then I check the page for accessibility
     When I follow View all rejected cases from my live dashboard
-    Then the real Business Unit rejection list contains the expected owned cases
+    Then the real Business Unit rejection list contains the expected owned cases with every visited page accessible
     And I check the page for accessibility
-    When I open the other inputter owned rejection with the keyboard
+    When I open the other inputter owned rejection with every visited sort and page accessible
     Then I check the page for accessibility
     When I return from live amendment to All rejected with the keyboard
     Then I check the page for accessibility

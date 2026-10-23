@@ -13,6 +13,7 @@ import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selecto
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { InputterDashboardActions } from '../createDraftCasefile/inputter-dashboard.actions';
 import { AllRejectedActions } from '../createDraftCasefile/all-rejected.actions';
+import { accessibilityActions } from '../accessibility/accessibility.actions';
 import { CasefilePermissionPreflightActions } from '../createDraftCasefile/casefile-permission-preflight.actions';
 import { assertUnchangedDraft, decodeDraftSnapshot, readDraftSnapshot } from './draft-casefile-evidence.actions';
 import { requireMembership } from './draft-casefile-fixture.actions';
@@ -160,8 +161,9 @@ export class InputterCasefileMonitoringActions {
   /** Verifies expected owned rows in both provider response and paginated DOM.
    * @param expected Exact owned records expected in this consultation.
    * @param absent Owned records that must not appear in this consultation.
+   * @param scanStates Whether every visited collection page needs the maintained strict Axe check.
    */
-  public expectRows(expected: IOwnedDraftCasefile[], absent: IOwnedDraftCasefile[] = []): void {
+  public expectRows(expected: IOwnedDraftCasefile[], absent: IOwnedDraftCasefile[] = [], scanStates = false): void {
     cy.then(() => {
       for (const owned of expected) {
         const rows = this.summaries.filter((row) => row.draft_casefile_id === owned.id);
@@ -172,7 +174,7 @@ export class InputterCasefileMonitoringActions {
       for (const owned of absent)
         expect(this.summaries.some((row) => row.draft_casefile_id === owned.id)).to.equal(false);
     });
-    this.collectIds(new Set(), expected).then((ids) => {
+    this.collectIds(new Set(), expected, scanStates).then((ids) => {
       for (const owned of expected) expect(ids.has(owned.id), 'owned DOM row').to.equal(true);
       for (const owned of absent) expect(ids.has(owned.id), 'excluded owned DOM row').to.equal(false);
     });
@@ -182,9 +184,14 @@ export class InputterCasefileMonitoringActions {
   /** Traverses actual client pagination with native keyboard events, without assuming shared-BU totals.
    * @param ids IDs already observed on previous pages.
    * @param expected Owned records whose visible actor labels must match on every page.
+   * @param scanStates Whether each page must be scanned before leaving it.
    * @returns All rendered IDs across this collection's pages.
    */
-  private collectIds(ids = new Set<number>(), expected: IOwnedDraftCasefile[] = []): Cypress.Chainable<Set<number>> {
+  private collectIds(
+    ids = new Set<number>(),
+    expected: IOwnedDraftCasefile[] = [],
+    scanStates = false,
+  ): Cypress.Chainable<Set<number>> {
     return cy.get('body').then((body) => {
       body.find(S.tableRows).each((_, row) => {
         ids.add(Number(row.getAttribute('data-draft-id')));
@@ -199,9 +206,10 @@ export class InputterCasefileMonitoringActions {
               .should((cell) => expect(cell.text().trim()).to.equal(owned.inputterName));
         }
       }
+      if (scanStates) accessibilityActions.checkAccessibilityOnly();
       if (!body.find(S.allRejectedNext).length) return cy.wrap(ids, { log: false });
       this.changePage('next');
-      return cy.then(() => this.collectIds(ids, expected));
+      return cy.then(() => this.collectIds(ids, expected, scanStates));
     });
   }
 
@@ -334,8 +342,9 @@ export class InputterCasefileMonitoringActions {
 
   /** Finds an owned cross-user rejection through real pagination and verifies a fresh matching detail GET.
    * @param owned The other inputter's independently persisted rejected record.
+   * @param scanStates Whether each sort/page state must receive the maintained strict Axe check.
    */
-  public openAmendment(owned: IOwnedDraftCasefile): void {
+  public openAmendment(owned: IOwnedDraftCasefile, scanStates = false): void {
     readDraftSnapshot(owned.id).then((snapshot) => {
       this.selected = snapshot;
     });
@@ -349,9 +358,7 @@ export class InputterCasefileMonitoringActions {
         assertUnchangedDraft(this.selected, snapshot);
       });
     }).as('monitoringSelectedDetail');
-    this.rejections.sortDescending('applicant');
-    this.firstPage();
-    this.findRow(owned.id);
+    this.locateRejected(owned.id, scanStates);
     cy.get(S.allRejectedPageStatus)
       .invoke('text')
       .then((text) => {
@@ -389,23 +396,43 @@ export class InputterCasefileMonitoringActions {
     cy.get(CREATE.review.history).should('be.visible').and('contain.text', 'Rejected');
   }
 
-  /** Restarts pagination before a fresh ID search, including after an exhaustive owned-row scan. */
-  private firstPage(): void {
+  /** Locates an exact rejected row, scanning every intermediate sort/page before leaving it when requested.
+   * @param id Exact selected rejected draft identity.
+   * @param scanStates Whether all visited states require strict accessibility checks.
+   */
+  public locateRejected(id: number, scanStates = false): void {
+    if (scanStates) {
+      this.sortPersonal('ascending');
+      accessibilityActions.checkAccessibilityOnly();
+      this.sortPersonal('descending');
+      accessibilityActions.checkAccessibilityOnly();
+    } else this.rejections.sortDescending('applicant');
+    this.firstPage(scanStates);
+    this.findRow(id, scanStates);
+  }
+
+  /** Restarts pagination before a fresh ID search, including after an exhaustive owned-row scan.
+   * @param scanStates Whether each returned-to page requires a strict accessibility check.
+   */
+  private firstPage(scanStates = false): void {
     cy.get('body').then((body) => {
       if (!body.find(S.allRejectedPrevious).length) return;
       this.changePage('previous');
-      this.firstPage();
+      if (scanStates) accessibilityActions.checkAccessibilityOnly();
+      this.firstPage(scanStates);
     });
   }
 
   /** Finds a specific persisted row, failing naturally if the real list omits it.
    * @param id Owned positive draft ID.
+   * @param scanStates Whether each visited search page requires a strict accessibility check.
    */
-  private findRow(id: number): void {
+  private findRow(id: number, scanStates = false): void {
     cy.get('body').then((body) => {
       if (body.find(S.row(id)).length) return;
       this.changePage('next');
-      this.findRow(id);
+      if (scanStates) accessibilityActions.checkAccessibilityOnly();
+      this.findRow(id, scanStates);
     });
   }
 

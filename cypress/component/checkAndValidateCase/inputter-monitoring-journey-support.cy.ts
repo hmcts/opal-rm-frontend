@@ -1,3 +1,5 @@
+import { InputterCasefileMonitoringActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/inputter-casefile-monitoring.actions';
+import { accessibilityActions } from '../../e2e/functional/opal/actions/accessibility/accessibility.actions';
 import { monitoringCalendar } from '../../e2e/functional/opal/actions/checkAndValidateCase/inputter-monitoring-date';
 import { assertMonitoringAccounts } from '../../e2e/functional/opal/actions/checkAndValidateCase/inputter-monitoring-publication';
 import { createPersistedCasefileDetail } from '../../../src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
@@ -198,4 +200,100 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
       cy.then(() => assertMonitoringAccounts(snapshot(true), true));
     },
   );
+
+  // Dispatch tests only: synthetic DOM exposes real native pagination/sort events; scanner calls are observed.
+  // They prove every visited state reaches the maintained strict scanner, not live UI accessibility acceptance.
+  function controlledRejectedTable(): { page: number; sort: string } {
+    const state = { page: 1, sort: 'none' };
+    cy.document().then((document) => {
+      const renderTable = () => {
+        const links = [1, 2, 3]
+          .map(
+            (page) =>
+              `<a href="#page-${page}" aria-label="Page ${page}" ${page === state.page ? 'aria-current="page"' : ''}>${page}</a>`,
+          )
+          .join('');
+        const previous = state.page > 1 ? '<a href="#previous" rel="prev">Previous</a>' : '';
+        const next = state.page < 3 ? '<a href="#next" rel="next">Next</a>' : '';
+        document.body.innerHTML = `<app-cases-draft-table><table><thead><tr><th columnKey="applicant" aria-sort="${state.sort}"><button>Applicant</button></th></tr></thead><tbody><tr data-draft-id="${100 + state.page}"><td>Owned synthetic row</td></tr></tbody></table></app-cases-draft-table><nav id="cases-draft-pagination">${previous}${links}${next}</nav>`;
+        document.querySelector('button')!.addEventListener('click', () => {
+          state.sort = state.sort === 'ascending' ? 'descending' : 'ascending';
+          state.page = 1;
+          renderTable();
+          (document.querySelector('button') as HTMLButtonElement).focus();
+        });
+        document.querySelector('[rel="next"]')?.addEventListener('click', (event) => {
+          event.preventDefault();
+          state.page++;
+          renderTable();
+        });
+        document.querySelector('[rel="prev"]')?.addEventListener('click', (event) => {
+          event.preventDefault();
+          state.page--;
+          renderTable();
+        });
+      };
+      renderTable();
+    });
+    return state;
+  }
+
+  it(
+    'AC6. should scan the initial and every intermediate All rejected page before leaving it',
+    { tags: buildTags() },
+    () => {
+      const state = controlledRejectedTable();
+      const scans: string[] = [];
+      cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+        cy.then(() => {
+          scans.push(`${state.sort}:${state.page}`);
+        });
+      });
+      new InputterCasefileMonitoringActions().expectRows([], [], true);
+      cy.then(() => {
+        expect(scans).to.deep.equal(['none:1', 'none:2', 'none:3']);
+        expect(state.page).to.equal(3);
+      });
+    },
+  );
+
+  it('AC6. should scan both sort states and every search page before amendment entry', { tags: buildTags() }, () => {
+    const state = controlledRejectedTable();
+    const scans: string[] = [];
+    cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+      cy.then(() => {
+        scans.push(`${state.sort}:${state.page}`);
+      });
+    });
+    new InputterCasefileMonitoringActions().locateRejected(103, true);
+    cy.then(() => expect(scans).to.deep.equal(['ascending:1', 'descending:1', 'descending:2', 'descending:3']));
+    cy.get('[data-draft-id="103"]').should('be.visible');
+  });
+
+  it('AC6. should keep functional-only traversal independent of accessibility scanning', { tags: buildTags() }, () => {
+    controlledRejectedTable();
+    const scanner = cy.stub(accessibilityActions, 'checkAccessibilityOnly');
+    const actions = new InputterCasefileMonitoringActions();
+    actions.expectRows([]);
+    actions.locateRejected(103);
+    cy.get('[data-draft-id="103"]').should('be.visible');
+    cy.then(() => expect(scanner).not.to.have.been.called);
+  });
+
+  it('AC6. should stop traversal immediately when the maintained scanner fails', { tags: buildTags() }, () => {
+    const state = controlledRejectedTable();
+    expectedFailure = true;
+    cy.once('fail', (error) => {
+      if (!error.message.includes('Controlled strict scanner failure')) throw error;
+      observedFailure = true;
+      expect(state.page, 'no page transition after failed scan').to.equal(1);
+      return false;
+    });
+    cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+      cy.then(() => {
+        throw new Error('Controlled strict scanner failure');
+      });
+    });
+    new InputterCasefileMonitoringActions().expectRows([], [], true);
+  });
 });

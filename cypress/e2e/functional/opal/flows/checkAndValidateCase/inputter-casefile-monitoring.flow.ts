@@ -187,8 +187,10 @@ export class InputterCasefileMonitoringFlow {
     this.actions.viewAllRejected();
   }
 
-  /** Verifies all this scenario's rejected rows and the other inputter, without assuming the shared-BU total. */
-  public expectAllRejected(): void {
+  /** Verifies all this scenario's rejected rows and the other inputter, without assuming the shared-BU total.
+   * @param scanStates Whether every visited All rejected page requires the maintained strict Axe check.
+   */
+  public expectAllRejected(scanStates = false): void {
     cy.then(() => {
       const submittedPrimary = this.requirePrimary();
       const rejected = [...this.fixtures.state.ownedByKey.entries()]
@@ -197,13 +199,16 @@ export class InputterCasefileMonitoringFlow {
       this.actions.expectRows(
         rejected,
         rejected.some((owned) => owned.id === submittedPrimary.id) ? [] : [submittedPrimary],
+        scanStates,
       );
     });
   }
 
-  /** Opens the exact other-inputter rejection for amendment, without editing or resubmitting it. */
-  public openOther(): void {
-    cy.then(() => this.actions.openAmendment(this.requireOther()));
+  /** Opens the exact other-inputter rejection for amendment, without editing or resubmitting it.
+   * @param scanStates Whether each visited sort/page state requires the maintained strict Axe check.
+   */
+  public openOther(scanStates = false): void {
+    cy.then(() => this.actions.openAmendment(this.requireOther(), scanStates));
   }
 
   /** Returns through the supported amendment Back link to All rejected. */

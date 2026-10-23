@@ -440,3 +440,55 @@ corepack yarn test:functional:leaf --browser=chrome \
 Controlled support establishes helper assertions and scanner dispatch. Discovery establishes inventory, metadata
 and bindings. Neither establishes live authorization, real publication, provider persistence or cleanup success.
 Do not report live AC1 acceptance until the full actual UI/API/publication/inputter/cleanup run succeeds.
+
+### PO-10625 checker outcome windows and empty states (AC6, AC7)
+
+The completed checker pair contains **22 expanded examples: 13 functional and 9 accessibility**, with no skipped or
+pending scenarios. Task3 adds independent Rejected and Deleted calendar-window examples plus a genuinely empty
+checker dashboard, and a separate accessibility example for each. Existing decision scenario identities remain unchanged.
+
+| Added coverage                  | Business assertions                                                                                                                                                           | Accessibility states                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Rejected calendar window        | Owned ID present in real collection and every-page DOM at D0, D3, D7 and D8; exact BU44 / checker exclusion; no date query parameters                                         | Native Cases entry, initial focused heading, selected-tab focus and every consultation/pagination page   |
+| Deleted calendar window         | Owned ID included D0/D3/D7 and excluded D8 in both actual collection and every-page DOM; exact inclusive from/to dates                                                        | Same independently owned journey and strict scans at every visited state                                 |
+| Genuine empty checker dashboard | Four actual zero-row/zero-count list preflights, separate real Rejected/Failed zero count preflights, exact empty text, no rows/badges on all four tabs, no creation/deletion | Initial entry and each To review/Rejected/Deleted/Failed tab with native keyboard/focus and strict scans |
+
+`CheckerDashboardWindowFlow` resets its Actions per Given/accessibility journey. The lifecycle safety guard
+`PO10625_LIFECYCLE_CLEANUP_VERIFIED` must be **boolean true**, externally verified before **any** Rejected/Deleted
+creation. Maintained normal API fixtures use distinct ACTIVE Maintenance BU44 permission21 inputter and permission22
+checker, fresh ETags and receipt-owned marker cleanup. The inspected runtime cleans up Submitted only: **do not run
+these window fixtures live until compatible lifecycle cleanup is verified**. The switch itself is not evidence and
+must never self-enable in live setup. Empty scenarios create no data, require the existing checker actor and fail on
+unrelated eligible work; they never delete it.
+
+The actual persisted `casefile_status_date` anchors independent `monitoringCalendar` expectations. Each D0/D3/D7/D8
+consultation installs `cy.clock(now, ['Date'])` in the AUT and restores it before the next consultation. Timers,
+server/database clocks and stored timestamps remain real. Actual list/count responses pass through unchanged;
+checker queries use `not_submitted_by` (never personal `submitted_by`). Calendar visits permit unrelated authorised
+BU work and compare only the exact scenario-owned ID across real pagination. Native same-tab activation retains
+focus without expecting a nonexistent new request; changing tabs waits for the fresh list and all outcome counts.
+Initial routed entry requires heading focus; subsequent native tab selection requires selected-tab focus.
+
+Controlled verification (no live acceptance):
+
+```bash
+corepack yarn exec cypress run --component --browser chrome \
+  --spec 'cypress/component/checkAndValidateCase/checker-dashboard-window-support.cy.ts,cypress/component/checkAndValidateCase/checker-review-fixture-support.cy.ts,cypress/component/checkAndValidateCase/checker-review-journey-support.cy.ts'
+```
+
+For discovery only, retain the existing repository hooks and explicitly disable the base URL:
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+corepack yarn exec cypress run --browser chrome --config '{"baseUrl":null}' \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisions.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisionsAccessibility.feature' \
+  --env 'dryRun=true,omitFiltered=false,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625'
+```
+
+Require 13+9 discovered cases with zero undefined/ambiguous/skipped/pending bindings. Controlled helper checks and
+dry discovery do not prove live AC6/AC7 acceptance. Parent review and authorised compatible-runtime execution remain
+outstanding. Specialist checks should traverse all four outcome tabs with screen reader and magnification, verify
+announcements and focus after native entry/tab/pagination changes, and confirm inclusive backend calendar timezone
+semantics using an owned persisted outcome; expected visibility is exactly the table above. Strict Axe scans retain
+the maintained exemption policy only and remain partial WCAG evidence.

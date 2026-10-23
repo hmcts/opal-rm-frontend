@@ -14,3 +14,18 @@ Feature: Broad checker decision accessibility journeys
       | self        |
       | denied      |
       | stale       |
+
+  @AC6 @AC7 @accessibility
+  Scenario Outline: Consult accessible checker <status> calendar windows with real outcomes
+    When the checker traverses its independent "<status>" outcome calendar accessibly
+    Then its real collection and dashboard follow the "<window>" rule
+
+    Examples:
+      | status   | window    |
+      | REJECTED | unbounded |
+      | DELETED  | seven-day |
+
+  @AC6 @AC7 @accessibility
+  Scenario: Consult accessible genuinely empty checker outcome tabs
+    When the checker traverses genuinely empty outcome tabs accessibly
+    Then all checker outcome tabs retain genuine empty states and zero counts

@@ -59,3 +59,20 @@ Feature: Independent checker decisions and decision protection
       | decision |
       | approve  |
       | reject   |
+
+  @JIRA-STORY:PO-10625 @JIRA-EPIC:PO-10817 @AC6 @retries(0)
+  Scenario Outline: Retain only the checker <status> outcomes allowed by their calendar window
+    Given my live checker outcome scenario owns a "<status>" case
+    When the checker consults its outcomes on inside boundary and outside calendar days
+    Then its real collection and dashboard follow the "<window>" rule
+
+    Examples:
+      | status   | window    |
+      | REJECTED | unbounded |
+      | DELETED  | seven-day |
+
+  @AC6
+  Scenario: Consult genuinely empty checker outcome tabs without creating cases
+    Given my live checker outcome collections are genuinely empty
+    When the checker consults every empty outcome tab
+    Then all checker outcome tabs retain genuine empty states and zero counts

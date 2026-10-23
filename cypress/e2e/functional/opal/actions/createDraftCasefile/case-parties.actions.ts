@@ -222,7 +222,7 @@ export class CasePartiesActions {
   public verifyRespondent(): void {
     cy.get(S.caseDetails.respondentLink).click();
     cy.get(S.respondentDetails.firstNames).should('have.value', 'Synthetic');
-    cy.get(S.respondentDetails.lastName).should('have.value', 'Respondent');
+    cy.get(S.respondentDetails.lastName).should('have.value', 'RESPONDENT');
     cy.get(S.respondentDetails.addressLine1).should('have.value', '1 Test Street');
     cy.get(S.respondentDetails.countryAutocomplete).should('have.value', 'United Kingdom');
     cy.get(S.respondentDetails.returnToCaseDetails).click();
@@ -232,7 +232,7 @@ export class CasePartiesActions {
   public verifyIndividual(): void {
     cy.get(S.caseDetails.applicantLink).click();
     cy.get(S.applicantIndividual.firstNames).should('have.value', 'Synthetic');
-    cy.get(S.applicantIndividual.lastName).should('have.value', 'Applicant');
+    cy.get(S.applicantIndividual.lastName).should('have.value', 'APPLICANT');
     cy.get(S.applicantIndividual.addressLine1).should('have.value', '2 Test Street');
     cy.get(S.applicantIndividual.countryAutocomplete).should('have.value', 'United Kingdom');
     cy.get(S.applicantIndividual.bankTypeRadio('none')).should('be.checked');
@@ -244,7 +244,7 @@ export class CasePartiesActions {
   public verifyOrganisation(): void {
     cy.get(S.caseDetails.applicantLink).click();
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.applicantOrganisation);
-    cy.get(S.applicantOrganisation.organisationName).should('have.value', 'Synthetic Organisation');
+    cy.get(S.applicantOrganisation.organisationName).should('have.value', 'SYNTHETIC ORGANISATION');
     cy.get(S.applicantOrganisation.foreignAuthorityReference).should('have.value', 'SYNTHETIC-ORG');
     cy.get(S.applicantOrganisation.addressLine1).should('have.value', '3 Test Street');
     cy.get(S.applicantOrganisation.countryAutocomplete).should('have.value', 'United Kingdom');

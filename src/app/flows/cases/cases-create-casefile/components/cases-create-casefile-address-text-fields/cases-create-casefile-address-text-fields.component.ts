@@ -3,11 +3,12 @@ import { FormGroup } from '@angular/forms';
 import { AbstractNestedFormBaseComponent } from '@hmcts/opal-frontend-common/components/abstract/abstract-nested-form-base';
 import type { IAbstractFormControlErrorMessage } from '@hmcts/opal-frontend-common/components/abstract/interfaces';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
+import { CapitalisationDirective } from '@hmcts/opal-frontend-common/directives/capitalisation';
 import type { ICasesCreateCasefileAddressTextFieldNames } from './interfaces/cases-create-casefile-address-text-field-names.interface';
 
 @Component({
   selector: 'app-cases-create-casefile-address-text-fields',
-  imports: [GovukTextInputComponent],
+  imports: [GovukTextInputComponent, CapitalisationDirective],
   templateUrl: './cases-create-casefile-address-text-fields.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -15,4 +16,5 @@ export class CasesCreateCasefileAddressTextFieldsComponent extends AbstractNeste
   @Input({ required: true }) public override form!: FormGroup;
   @Input({ required: true }) public override formControlErrorMessages!: IAbstractFormControlErrorMessage;
   @Input({ required: true }) public fieldNames!: ICasesCreateCasefileAddressTextFieldNames;
+  @Input() public capitalisePostalOrZipCode = false;
 }

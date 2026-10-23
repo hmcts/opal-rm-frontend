@@ -1,0 +1,10 @@
+@if (readable()) {
+  <div class="govuk-grid-column-two-thirds">
+    <h1 #heading class="govuk-heading-l" tabindex="-1">Delete casefile</h1>
+    @if (eligible()) {
+      <opal-lib-govuk-button buttonId="create_casefile_delete_return" (buttonClickEvent)="handleReturn()">
+        Return to review cases
+      </opal-lib-govuk-button>
+    }
+  </div>
+}

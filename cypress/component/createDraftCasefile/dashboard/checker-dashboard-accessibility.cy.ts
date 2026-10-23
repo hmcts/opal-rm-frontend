@@ -1,5 +1,11 @@
+import {
+  GENERIC_HTTP_ERROR_TITLE,
+  GENERIC_HTTP_ERROR_MESSAGE,
+} from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
+import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { DASHBOARD_ROUTING_PATHS } from 'src/app/pages/dashboard/constants/dashboard-routing-paths.constant';
 import { Subject } from 'rxjs';
+import type { Router } from '@angular/router';
 import type { IOpalMaintenanceDraftCasefileListResponse as List } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-list-response.interface';
 import { setupCheckerDashboard } from './setup/checker-dashboard.setup';
 import { checkerFixtures } from './mocks/checker-dashboard.mock';
@@ -7,6 +13,7 @@ import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.
 import { pressDashboardEnter } from '../../../support/utils/press-dashboard-enter';
 import { CASES_DRAFT_CHECKER_TABS as TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-checker-tabs.constant';
 import { CASES_DRAFT_CHECKER_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
+const R = CreateCasefileSelectors.review;
 const buildTags = () => ['@JIRA-STORY:PO-10606', '@JIRA-EPIC:PO-10817'];
 describe('Checker dashboard keyboard and partial accessibility', () => {
   for (const tab of ['to-review', 'rejected', 'deleted', 'failed'] as const) {
@@ -68,27 +75,52 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
     cy.checkA11y();
     cy.screenshot('po10606-checker-loading');
   });
-  for (const kind of ['review', 'view'] as const)
-    for (const valid of [true, false])
-      it(
-        'AC3. should safely render ' + kind + ' ' + (valid ? 'valid' : 'invalid') + ' placeholder',
-        { tags: buildTags() },
-        () => {
-          setupCheckerDashboard({
-            targetUrl: '/' + PATHS.root + '/' + PATHS.children[kind] + '/' + (valid ? '101' : 'invalid'),
-          });
-          cy.get(S.placeholderHeading)
-            .should('have.text', kind === 'review' ? 'Review case' : 'View case details')
-            .and('be.focused');
-          if (!valid)
-            cy.get(S.placeholder).should('contain.text', 'This case could not be opened. Return to Review cases.');
-          cy.get('@checkerListRequest').should('not.have.been.called');
-          cy.get('@checkerCountRequest').should('not.have.been.called');
-          cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
-          cy.checkA11y();
-          cy.screenshot('po10606-' + kind + '-' + (valid ? 'valid' : 'invalid'));
-        },
-      );
+  for (const kind of ['review', 'view'] as const) {
+    it('AC3. should render the saved ' + kind + ' route accessibly', { tags: buildTags() }, () => {
+      setupCheckerDashboard({ targetUrl: '/' + PATHS.root + '/' + PATHS.children[kind] + '/101' });
+      cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+      cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 101);
+      cy.get('@checkerCountriesRequest').should('have.been.calledOnceWithExactly', null);
+      cy.get('@checkerApplicationsRequest').should('have.been.calledOnceWithExactly', null);
+      cy.get('@checkerMajorCreditorsRequest').should('have.been.calledOnceWithExactly', { business_unit_id: 44 });
+      cy.get('@checkerResultRequest').should('have.been.calledOnceWithExactly', 'TEST01');
+      cy.get(R.rowValue('respondent', 'FirstNames'))
+        .invoke('text')
+        .should((value) => expect(value.trim()).to.equal('Synthetic'));
+      cy.get(R.rowValue('respondent', 'LastName'))
+        .invoke('text')
+        .should((value) => expect(value.trim()).to.equal('Respondent'));
+      cy.get(R.decisionHost).should(kind === 'review' ? 'be.visible' : 'not.exist');
+      cy.get('@checkerListRequest').should('not.have.been.called');
+      cy.get('@checkerCountRequest').should('not.have.been.called');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
+      cy.screenshot('po10606-' + kind + '-saved');
+    });
+    it(
+      'AC3. should retain the dashboard and shared error for an invalid ' + kind + ' ID',
+      { tags: buildTags() },
+      () => {
+        setupCheckerDashboard({ shell: true });
+        cy.get(S.heading).should('be.focused');
+        cy.get<Router>('@checkerRouter')
+          .then((router) => router.navigateByUrl('/' + PATHS.root + '/' + PATHS.children[kind] + '/invalid'))
+          .should('equal', false);
+        cy.get(S.heading).should('contain.text', 'Review cases');
+        cy.get(S.table).should('be.visible');
+        cy.get(R.host).should('not.exist');
+        cy.get('@checkerDetailRequest').should('not.have.been.called');
+        cy.get('@checkerBannerError').should('have.been.calledOnce');
+        cy.get(CreateCasefileSelectors.globalErrorBanner).should('be.visible');
+        cy.get(CreateCasefileSelectors.globalErrorBannerHeading).should('contain.text', GENERIC_HTTP_ERROR_TITLE);
+        cy.get(CreateCasefileSelectors.globalErrorBannerContent).should('contain.text', GENERIC_HTTP_ERROR_MESSAGE);
+        cy.get('@checkerListRequest').should('have.been.calledOnce');
+        cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+        cy.checkA11y();
+        cy.screenshot('po10606-' + kind + '-invalid');
+      },
+    );
+  }
   it('AC3. should activate queue links through native Tab and Enter', { tags: buildTags() }, () => {
     setupCheckerDashboard();
     cy.get(S.heading).should('be.focused');
@@ -125,9 +157,9 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
     for (let i = 0; i < 10; i++) cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.row(1)).find('a').should('be.focused');
     pressDashboardEnter();
-    cy.get(S.placeholderHeading).should('have.text', 'Review case').and('be.focused');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(S.placeholderBack).should('be.focused');
+    cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+    cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 1);
+    cy.get(R.back).focus().should('be.focused');
     pressDashboardEnter();
     cy.get(S.heading).should('be.focused');
     cy.get('@checkerListRequest').should('have.been.calledTwice');
@@ -151,10 +183,12 @@ describe('Checker dashboard keyboard and partial accessibility', () => {
       cy.get(S.primaryNavigation).should('be.visible');
       cy.screenshot('po10606-shell-checker-' + role);
       cy.get(S.row(1)).find('a').click();
-      cy.get(S.placeholderHeading).should('be.focused');
+      cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+      cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 1);
+      cy.get(R.decisionHost).should('be.visible');
       cy.get(S.primaryNavigation).should('not.exist');
       cy.screenshot('po10606-shell-review-' + role);
-      cy.get(S.placeholderBack).click();
+      cy.get(R.back).click();
       cy.get(S.heading).should('be.focused');
       cy.get(S.primaryNavigation).should('be.visible');
     });

@@ -1,9 +1,11 @@
+import { CreateCasefileSelectors } from '../../../shared/selectors/create-casefile.selectors';
 import { Subject, of } from 'rxjs';
 import type { IOpalMaintenanceDraftCasefileListResponse as List } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-list-response.interface';
 import { CASES_DRAFT_CHECKER_TABS as TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-checker-tabs.constant';
 import { setupCheckerDashboard } from './setup/checker-dashboard.setup';
 import { checkerFixtures, checkerEmptyMessages } from './mocks/checker-dashboard.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
+const R = CreateCasefileSelectors.review;
 const buildTags = () => ['@JIRA-STORY:PO-10606', '@JIRA-EPIC:PO-10817'];
 describe('Checker routed dashboard', () => {
   it('AC1, AC2. should show permanent queues and exclude own and out of scope work', { tags: buildTags() }, () => {
@@ -125,12 +127,15 @@ describe('Checker routed dashboard', () => {
   it('AC3. should restore metadata and fetch fresh rows with page clamp on Back', { tags: buildTags() }, () => {
     setupCheckerDashboard({ tab: 'rejected', page: 2, sort: 'respondent', direction: 'descending' });
     cy.get(S.tableRows).first().find('a').click();
-    cy.get(S.placeholderHeading).should('have.text', 'View case details').and('be.focused');
-    cy.get(S.placeholderBack).should('have.attr', 'href').and('include', '#rejected');
+    cy.get(R.heading).should('have.text', 'Synthetic Respondent').and('be.focused');
+    cy.get(R.back).should('have.attr', 'href', '#');
+    cy.get(R.decisionHost).should('not.exist');
+    cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 1);
+    cy.get(R.rowValue('respondent', 'FirstNames')).should('contain.text', 'Synthetic');
     cy.get<Cypress.Agent<sinon.SinonStub>>('@checkerListRequest').then((request) =>
       request.returns(of({ count: 1, summaries: checkerFixtures.queues.rejected.slice(0, 1) })),
     );
-    cy.get(S.placeholderBack).click();
+    cy.get(R.back).click();
     cy.get(S.tab('rejected')).should('have.attr', 'aria-current', 'page');
     cy.get(S.tableRows).should('have.length', 1);
     cy.get(S.pageStatus)
@@ -148,7 +153,9 @@ describe('Checker routed dashboard', () => {
     cy.get(S.sort('respondent')).click();
     cy.get(S.tab('rejected')).click();
     cy.get(S.row(1)).find('a').click();
-    cy.get(S.placeholderBack).click();
+    cy.get(R.heading).should('have.text', 'Synthetic Respondent');
+    cy.get('@checkerDetailRequest').should('have.been.calledOnceWithExactly', 1);
+    cy.get(R.back).click();
     cy.get(S.table).should('be.visible');
     cy.get('@localWrites').should('not.have.been.called');
     cy.get('@sessionWrites').should('not.have.been.called');

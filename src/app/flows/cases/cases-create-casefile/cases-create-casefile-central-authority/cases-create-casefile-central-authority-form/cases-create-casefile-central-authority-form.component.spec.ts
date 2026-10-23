@@ -180,4 +180,45 @@ describe('CasesCreateCasefileCentralAuthorityFormComponent', () => {
     });
     expect(cancel).toHaveBeenCalledOnce();
   });
+
+  it('submits uppercase REMO and central authority references entered through their inputs', () => {
+    createComponent();
+    const submit = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+    const values = [
+      [FIELD_NAMES.remoReference, 'remo-Ab12', 'REMO-AB12'],
+      [FIELD_NAMES.centralAuthorityReference, 'authority-Ab12', 'AUTHORITY-AB12'],
+    ] as const;
+    for (const [fieldName, typed, expected] of values) {
+      const input = fixture.nativeElement.querySelector(`#${fieldName}`) as HTMLInputElement;
+      input.value = typed;
+      input.dispatchEvent(new Event('input'));
+      expect(input.value).toBe(expected);
+    }
+    fixture.nativeElement
+      .querySelector('form')
+      .dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }));
+    expect(submit).toHaveBeenCalledWith({
+      formData: {
+        [FIELD_NAMES.remoReference]: 'REMO-AB12',
+        [FIELD_NAMES.centralAuthorityReference]: 'AUTHORITY-AB12',
+        [FIELD_NAMES.majorCreditorId]: null,
+      },
+      nestedFlow: false,
+    });
+  });
+
+  it('preserves existing mixed-case authority references until they are edited', () => {
+    createComponent({
+      [FIELD_NAMES.remoReference]: 'remo-Ab12',
+      [FIELD_NAMES.centralAuthorityReference]: 'authority-Ab12',
+      [FIELD_NAMES.majorCreditorId]: null,
+    });
+    fixture.detectChanges();
+    expect(component.form.getRawValue()).toEqual({
+      [FIELD_NAMES.remoReference]: 'remo-Ab12',
+      [FIELD_NAMES.centralAuthorityReference]: 'authority-Ab12',
+      [FIELD_NAMES.majorCreditorId]: null,
+    });
+  });
 });

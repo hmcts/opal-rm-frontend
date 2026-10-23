@@ -26,6 +26,13 @@ Feature: Create Draft Casefile Central Authority details
       | path         |
       | Organisation |
 
+    @JIRA-STORY:PO-10273
     Examples: Existing REMO Out regression
       | path     |
       | REMO Out |
+
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10273
+  Scenario: Start a REMO Out CMS Draft Casefile
+    Given I have the live RM casefile permission
+    When I start a live "REMO Out (CMS)" Draft Casefile
+    Then the outbound task list shows "REMO Out (CMS)" without an applicant type

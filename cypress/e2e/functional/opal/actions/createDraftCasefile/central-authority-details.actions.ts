@@ -1,4 +1,3 @@
-import { CASES_CREATE_CASEFILE_CASE_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-case-types.constant';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import type { IOpalMaintenanceMajorCreditorReferenceDataItem } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-item.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
@@ -6,7 +5,6 @@ import { CreateCasefileSelectors } from '../../../../../shared/selectors/create-
 
 const Page = CreateCasefileSelectors.centralAuthority;
 const root = '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/';
-const caseTypePath = root + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.caseType;
 const taskListPath = root + CASES_CREATE_CASEFILE_ROUTING_PATHS.children.taskList;
 const CENTRAL_AUTHORITY_ALIASES = {
   first: 'firstAvailableCentralAuthority',
@@ -17,14 +15,6 @@ export type CentralAuthorityChoice = keyof typeof CENTRAL_AUTHORITY_ALIASES;
 
 /** Owns Central Authority page navigation, interactions, waits, and assertions. */
 export class CentralAuthorityDetailsActions {
-  /** Opens Central Authority details from a newly selected REMO Out casefile. */
-  public openInNewRemoOutCasefile(): void {
-    cy.visit(caseTypePath);
-    cy.get(CreateCasefileSelectors.caseTypeRadio(CASES_CREATE_CASEFILE_CASE_TYPES.REMO_OUT)).check();
-    cy.get(CreateCasefileSelectors.continueButton).click();
-    this.openFromTaskList();
-  }
-
   /** Observes real draft creation requests without replacing their responses. */
   public observeDraftCreation(): void {
     const submitted = cy.spy().as('authorityDraftCreation');

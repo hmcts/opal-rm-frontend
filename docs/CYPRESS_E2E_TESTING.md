@@ -167,6 +167,9 @@ corepack yarn test:functional:rm-create-case-files-off
 corepack yarn test:smoke
 ```
 
+The live submission scenario below carries `@retries(0)`, which overrides the run configuration for that scenario:
+each execution creates one synthetic submitted record, records its ID in memory for cleanup and must never be retried automatically.
+
 Cypress maps the existing uppercase `TAGS` contract to the lowercase `tags` setting required by Cucumber v26 before
 registering the preprocessor. An explicit lowercase `tags` value takes precedence.
 
@@ -187,28 +190,30 @@ journey or deployed authentication.
 ## Live create-casefile QA prerequisites
 
 Live QA scenarios observe HTTP requests without replacing responses. Each scenario starts an independent casefile,
-uses synthetic entered data, reopens pages to prove local retention, and stops before submission. Missing accounts,
+uses synthetic entered data, reopens pages to prove local retention, and stops before submission, except for the
+single live submission scenario described below. Missing accounts,
 reference data or release configuration must fail clearly; do not skip or substitute mocks for a failed prerequisite.
 
-| Prerequisite        | Required configuration                                                                   |
-| ------------------- | ---------------------------------------------------------------------------------------- |
-| Release             | `release-1c-rm-create-case-files=true`                                                   |
-| Authorised account  | ACTIVE; Maintenance domain; permission 21 for BU 44                                      |
-| Denied account      | ACTIVE; Maintenance domain; no permission 21 for BU 44; distinct from authorised account |
-| Countries           | Active dataset containing United Kingdom and at least two other distinct Country names   |
-| Applications        | At least one active record with `application_group=Create Casefile`                      |
-| Central Authorities | At least two active BU 44 records with `central_authority=true`                          |
+| Prerequisite        | Required configuration                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| Release             | `release-1c-rm-create-case-files=true`                                                       |
+| Authorised account  | ACTIVE; Maintenance domain; `CREATE_MANAGE_DRAFT_CASEFILES` / API permission ID 21 for BU 44 |
+| Denied account      | ACTIVE; Maintenance domain; no permission 21 for BU 44; distinct from authorised account     |
+| Countries           | Active dataset containing United Kingdom and at least two other distinct Country names       |
+| Applications        | At least one active record with `application_group=Create Casefile`                          |
+| Central Authorities | At least two active BU 44 records with `central_authority=true`                              |
 
 The selected features authenticate through the shared `I am authenticated with email {string}` binding, using the
 existing provisioned synthetic usernames `opal-test@dev.platform.hmcts.net` (creator) and
 `opal-test-4@dev.platform.hmcts.net` (denied user), as the Fines suites do. Sessions are cached by the supplied username.
-Each scenario still owns a new draft. Provision these users through the existing User Service data; do not create
-users or change permissions as a test side effect.
+Both users are already provisioned by User Service. Each scenario still owns a new draft; do not create users or
+change permissions as a test side effect.
 
 Local/PR sign-in uses the passwordless stub and requires only the username supplied by the feature. No separate
 role-account environment variables are required. The live User Service must provide ACTIVE Maintenance membership
 and the BU 44 permission state above. The explicit permission preflight reads the actual `/api/user-state` response
-(`domains.maintenance`) after shared authentication; failures in authentication or domain provisioning fail setup.
+(`domains.maintenance`) after shared authentication. This preflight verifies existing access and never provisions or
+changes it; authentication or existing-access failures fail setup.
 
 | Environment variable      | Purpose                                                         |
 | ------------------------- | --------------------------------------------------------------- |
@@ -220,25 +225,106 @@ Microsoft SSO retains the existing shared password environment configuration. Fu
 by the local passwordless runs. Other suites may still require the existing global email/password mappings.
 Country and Central Authority lookups may be cached within a journey, so replay must not await another request.
 
-Run the individual capture and retention outcome with:
+### Start, navigate and live submission (PO-10273)
+
+PO-10273 reuses the maintained Individual and Organisation party, Central Authority, Order Details, Check Case Details,
+shared permission and accessibility owners. Existing scenarios prove supported starts, locally retained progress,
+ordered task unlocking and task-list accessibility. Only the REMO Out (CMS) start-only scenario and the live full
+submission scenario are new; the permission outline adds the journey-entry and task-list examples.
+
+`CheckCaseDetails.feature` contains exactly one live full submission scenario. It completes one synthetic draft using
+the existing live party, Order Details and MAT/Applicant creditor flows, then supplies the mandatory payment tasks.
+It observes the real create POST, requires HTTP 201 with a positive safe-integer ID and status `SUBMITTED`, and checks
+submission confirmation, focus and the single create request. Create a new case then proves journey clearing.
+Per the developer clarification confirmed on 21 October 2026, displaying the generated Draft Casefile ID in the
+confirmation panel belongs to future work outside PO-10273. The saved ticket export still lists that display check;
+this agreed scope change supersedes it for this branch. Backend receipt-ID validation and early capture for cleanup
+remain required. Other scenarios in that feature retain controlled submission responses.
+
+The live scenario records the observed ID before later assertions and attempts cleanup after passing and failing
+scenarios. No cleanup runs until creation has actually been observed. This QA change has no `src` delta. Keep the
+scenario-level `@retries(0)` to avoid replaying a real submission after an assertion or cleanup failure; the remaining
+scenarios use the shared retry configuration.
+
+Discovery proves binding and selection only. Live execution must verify confirmation, cleared journey state and
+successful authenticated cleanup against the actual target services.
 
 ```bash
-corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature'
+TEST_URL=http://localhost:5000 \
+TAGS='@JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10273 and not @skip' \
+corepack yarn test:functional:serial --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrganisationCaseParties.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CentralAuthorityDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature,cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCasePartiesAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature'
 ```
 
-The scenario requires live Country ordering, both party statuses Provided, reopened field values, and zero draft
-creation POSTs. Keyboard interactions and Axe scans provide partial accessibility evidence; specialist WCAG 2.2 AA
-assurance remains separate. Positive order-details scenarios must supply a valid Date order made: the QA ticket's
-required-versus-optional wording differs from current product validation, which this test work does not change.
+Cleanup uses the Maintenance contract documented in `docs/DRAFT_CASEFILE_TEST_CLEANUP.md` in
+`opal-maintenance-service`. The implementation is now merged into Maintenance `master` (merge `d3123e7`, PR 302). The live scenario creates a fresh marker matching
+`^E2E-[0-9a-f]{16}$`, enters it through Central Authority's REMO Reference field, saves/reopens it, and checks the real
+POST payload contains the same value at `casefile.respondent_account.remo_reference`. No POST response is substituted.
+The response listener records the positive safe-integer ID and exact marker synchronously before later assertions.
+Controlled receipt IDs are never registered.
+
+`cypress/support/draftCasefiles.ts` installs one `afterEach` through the shared E2E support file. It runs locally and
+in deployed CI, including after assertion failures. Before any deletion, every captured ID/marker and frontend target
+is written to `functional-output/draft-casefile-cleanup/`. Cleanup sends
+`DELETE /opal-maintenance-service/testing-support/draft-casefiles/{id}` with `Test-Run-Reference` through the existing
+authenticated frontend proxy/session. There is no new token handling, cleanup identity configuration, BU parameter,
+body, GET lookup, ETag or If-Match. The backend checks permission 21 in the stored BU and original submitter identity,
+exact persisted marker, unvalidated SUBMITTED status and absence of account links.
+
+Only 204 succeeds (including already absent), removing that receipt from the outstanding collection and ledger.
+Non-204 responses are collected across targets and fail the hook; 404 means unavailable/disabled, not successful
+cleanup. Requests have a 15-second timeout, no redirects or automatic retries, and no request logging. A transport
+failure fails the hook immediately; all receipts have already been written for a separately authorised retry.
+CNP's existing `afterAlways` hooks archive `functional-output/**` in dev and staging. Preserve local reports before
+another runner invocation resets output. Browser/process termination before teardown can still lose an in-memory
+receipt, and a lost POST response cannot be recovered through this endpoint. No automatic recovery is claimed.
+
+Enable `opal-maintenance-service.java.environment.TESTING_SUPPORT_ENDPOINTS_ENABLED=true` in frontend-owned dev and
+staging deployments used by E2E. Base values explicitly set it false; keep production false. This single shared flag
+has no application environment allowlist. Backend-owned overlays do not configure the frontend subchart. Remove
+obsolete `DRAFT_CASEFILE_CLEANUP_*` and `OPAL_DEPLOYMENT_ENVIRONMENT` overrides; no such settings are needed here.
+Standalone Maintenance Compose enables the flag, and shared Docker inherits `.env.shared`.
+
+Maintenance cleanup is merged into `master`, so the frontend PR no longer needs the temporary
+`enable_keep_helm` / `enable_opal_maintenance_service:pr-302` image selection labels. Use the normal deployment image
+and verify that the actual deployed build contains the merged implementation. A local source merge or a mutable
+`latest` tag alone does not prove the deployed image's contents. Frontend-owned dev/staging subchart enablement is
+still required; production must remain disabled.
+
+The normal CNP selection uses `cypress/e2e/functional/opal/**/*.feature` and
+`not @skip and not @R1CRmCreateCaseFilesOff`, so it includes the PO-10273 live scenario and its shared cleanup hook.
+`run_tag:` and `test_*` labels can narrow selection; inspect them before treating a green run as evidence. Backend
+Gradle CI does not execute Cypress. Confirm the scenario in the frontend functional report, along with authenticated
+permission 21, reference-data lookups and the enabled create-casefile release in the actual target environment.
+
+The receipt collection uses Cypress env because module-local state is not shared between independently bundled
+support and feature files. Cleanup leaves Accept unrestricted: success has no body, and backend errors use
+`application/problem+json`. Verify cleanup through the live submission scenario and retain its outcome in the PR's
+test evidence.
+
+Cleanup failure regressions run in the existing Cypress component suite at
+`cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts`. The spec installs the real `afterEach` hook,
+uses the real Cypress command queue and receipt files, and controls only the DELETE request boundary. It covers
+non-204 failures (400, 401, 403, 404, 409, 500 and 503) mixed with a successful deletion, plus transport failure on
+the first request and after a 204. Assertions require hook failure, preservation of every outstanding ID/marker in
+memory and on disk, and persistence of all targets before the first request. Only successful receipts may be cleared.
+An assertion after cleanup requires the expected failure to have occurred, so silently accepting a failed deletion
+fails the regression test. Synthetic fixture ledgers are reset between tests and cleared after verification.
+This is controlled helper coverage; the live submission scenario remains the authenticated integration check.
+
+```bash
+corepack yarn exec cypress run --component --browser chrome \
+  --spec cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts
+```
 
 ## Shared casefile permission coverage
 
-`CasefilePermissions.feature` runs exactly fifteen unique protected routes with the release enabled. Each example first
-checks the authorised user's live ACTIVE Maintenance state and BU 44 permission 21, then opens the released case-type
-page. It explicitly authenticates the provisioned denied username and checks live ACTIVE status, Maintenance domain and
-absence of permission 21 for BU 44 before attempting direct task navigation. Another BU permission is not required;
-an existing user with another BU membership is acceptable when BU 44 permission 21 is absent. The tests use actual
-route guards without role changes, injected store state or mocked denial responses.
+`CasefilePermissions.feature` runs exactly seventeen unique protected routes with the release enabled. Each example first
+checks the authorised user's live ACTIVE Maintenance state and BU 44 `CREATE_MANAGE_DRAFT_CASEFILES` / API permission
+ID 21, then opens the released case-type page. It explicitly authenticates the provisioned denied username and checks
+live ACTIVE status, Maintenance domain and absence of permission 21 for BU 44 before attempting direct task navigation.
+Another BU permission is not required; an existing user with another BU membership is acceptable when BU 44 permission
+21 is absent. The tests use actual route guards without role changes, injected store state or mocked denial responses.
 
 Require `release-1c-rm-create-case-files=true` for all anonymous LaunchDarkly test contexts, rather than a percentage
 rollout. The positive entry check prevents a release-off failure from masquerading as permission rejection. The
@@ -249,6 +335,7 @@ selection by either party ticket includes both shared routes. Individual and org
 the corresponding party ticket; Order Details carries `@JIRA-STORY:PO-10277`, and the four Order Term routes carry
 `@JIRA-STORY:PO-10278`. Minor Creditor details, summary and removal carry `@JIRA-STORY:PO-10280`.
 The Order Term creditor route carries `@JIRA-STORY:PO-10279`.
+Journey entry and task list carry `@JIRA-STORY:PO-10273`.
 Interest and Indexation and Managing Payments carry `@JIRA-STORY:PO-10281`.
 The outline carries epic PO-6506.
 
@@ -381,8 +468,9 @@ Repeat those specs with both tag variables set to `@R1CRmCreateCaseFiles and not
 ## Integrated Order Terms and creditor QA
 
 Select PO-10278, PO-10279 and PO-10280 together using both tag variables. This selection expands to exactly 27
-examples; the original five permission routes retain their original story tags and are outside this selection.
-The complete shared permission outline has fifteen unique routes, including the two payment routes for PO-10281.
+examples; the nine permission routes tagged to other QA stories are outside this selection. The complete shared
+permission outline has seventeen unique routes, including the two journey routes for PO-10273 and the two payment
+routes for PO-10281.
 
 | QA story | Functional | Accessibility | Permission | Total |
 | -------- | ---------: | ------------: | ---------: | ----: |
@@ -485,6 +573,7 @@ variables set to `@R1CRmCreateCaseFiles and not @skip` to include all fifteen sh
 `OrderDetails.feature`, `OrderDetailsAccessibility.feature`, `CheckCaseDetails.feature` and
 `CheckCaseDetailsAccessibility.feature` for the reused prerequisite and payment-to-review integration regressions,
 then the smoke suite and required local pre-flight. Preserve reports before the runner resets its output directory.
+
 ## Draft Casefile cancellation QA (PO-10284)
 
 `CancelCaseCreation.feature` covers returning to review with the accepted draft retained, confirming cancellation

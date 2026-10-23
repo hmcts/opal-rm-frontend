@@ -4,7 +4,7 @@ Feature: Create Draft Casefile Order Details
   Background:
     Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
 
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805 @JIRA-STORY:PO-10277
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9805 @JIRA-STORY:PO-10277 @JIRA-STORY:PO-10273
   Scenario: Complete and retain Order Details using an active Maintenance Application
     Given I have the live RM casefile permission
     And I have started live Order Details with completed mandatory parties

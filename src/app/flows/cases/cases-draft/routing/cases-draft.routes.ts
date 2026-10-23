@@ -13,7 +13,7 @@ export const routing: Routes = [
         (module) => module.CasesDraftCreateAndManageTabsComponent,
       ),
     data: { title: 'Create cases' },
-    resolve: { title: TitleResolver, draftCasefiles: casesDraftTabResolver, rejectedCount: casesDraftCountResolver },
+    resolve: { title: TitleResolver, draftCasefiles: casesDraftTabResolver, rejectedCount: casesDraftCountResolver() },
   },
   {
     path: CASES_DRAFT_ROUTING_PATHS.children.rejections,

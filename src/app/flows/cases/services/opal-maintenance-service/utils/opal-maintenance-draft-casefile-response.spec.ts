@@ -14,6 +14,19 @@ const summary = () => ({
 });
 
 describe('draft casefile response decoders', () => {
+  it.each([undefined, null, '', 'Synthetic submitter'])(
+    'accepts optional top-level submitter name %s',
+    (submitted_by_name) => {
+      const row = { ...summary(), submitted_by_name };
+      expect(decodeDraftCasefileList({ count: 1, summaries: [row] }).summaries).toEqual([row]);
+    },
+  );
+  it.each([{ name: 7 }, { name: {} }, { name: [] }])(
+    'rejects invalid top-level submitter name %j',
+    ({ name: submitted_by_name }) => {
+      expect(() => decodeDraftCasefileList({ count: 1, summaries: [{ ...summary(), submitted_by_name }] })).toThrow();
+    },
+  );
   it.each([
     null,
     [],
@@ -27,12 +40,19 @@ describe('draft casefile response decoders', () => {
   ])('rejects malformed lists: %j', (value) => {
     expect(() => decodeDraftCasefileList(value)).toThrow('Invalid draft casefile list response');
   });
-  it.each([null, [], {}, { count: -1 }, { count: 1.5 }, { count: '2' }, { count: Number.MAX_SAFE_INTEGER + 1 }])(
-    'rejects invalid counts: %j',
-    (value) => {
-      expect(() => decodeDraftCasefileCount(value)).toThrow('Invalid draft casefile count response');
-    },
-  );
+  it.each([
+    null,
+    [],
+    {},
+    { count: -1 },
+    { count: null },
+    { count: 0.5 },
+    { count: 1.5 },
+    { count: '2' },
+    { count: Number.MAX_SAFE_INTEGER + 1 },
+  ])('rejects invalid counts: %j', (value) => {
+    expect(() => decodeDraftCasefileCount(value)).toThrow('Invalid draft casefile count response');
+  });
   it.each([0, 107, Number.MAX_SAFE_INTEGER])('accepts count %s without requiring summaries', (count) => {
     expect(decodeDraftCasefileCount({ count, extra: true })).toEqual({ count });
   });

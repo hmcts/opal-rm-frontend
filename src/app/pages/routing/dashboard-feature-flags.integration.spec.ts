@@ -95,6 +95,21 @@ describe('dashboard release routing', () => {
     },
   );
 
+  it('lands on Cases for checker-only permission', async () => {
+    flags.set({ [key]: true });
+    const user = structuredClone(OPAL_USER_STATE_MOCK);
+    user.status = 'active';
+    user.business_unit_users = [
+      {
+        business_unit_id: 44,
+        business_unit_user_id: 'BUU-CHECKER',
+        permissions: [{ permission_id: 22, permission_name: 'Checker' }],
+      },
+    ];
+    getUserState.mockReturnValue(of(user));
+    await RouterTestingHarness.create('/dashboard');
+    expect(TestBed.inject(Router).url).toBe('/dashboard/cases');
+  });
   it('lands on Cases when only the create release is enabled', async () => {
     flags.set({ [key]: true });
     const harness = await RouterTestingHarness.create();

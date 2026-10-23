@@ -8,7 +8,7 @@ import { mount } from 'cypress/angular';
 import { CasesDraftCreateAndManageTabsComponent } from 'src/app/flows/cases/cases-draft/cases-draft-create-and-manage-tabs/cases-draft-create-and-manage-tabs.component';
 import { OpalMaintenanceService } from 'src/app/flows/cases/services/opal-maintenance-service/opal-maintenance.service';
 import type { IOpalMaintenanceDraftCasefileSummary } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-summary.interface';
-import type { CasesDraftTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
+import type { CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import { defaultCasesDraftNavigation } from 'src/app/flows/cases/cases-draft/utils/cases-draft-navigation';
 import { CASES_DRAFT_TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-tabs.constant';
 import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
@@ -16,7 +16,7 @@ import { routing } from 'src/app/flows/cases/cases-draft/routing/cases-draft.rou
 import { populatedReflowFixtures } from '../mocks/dashboard.mock';
 
 interface IDashboardSetupOptions {
-  tab?: CasesDraftTab;
+  tab?: CasesDraftInputterTab;
   rows?: IOpalMaintenanceDraftCasefileSummary[];
   listError?: boolean;
   countError?: boolean;
@@ -39,13 +39,13 @@ function dashboardBoundary(options: IDashboardSetupOptions) {
     },
   ];
   const identity = { userId: 100, businessUnitId: 44 as const, submittedBy: 'BUU-SYNTHETIC' };
-  const rows = structuredClone(options.rows ?? populatedReflowFixtures[selection.tab]);
+  const rows = structuredClone(options.rows ?? populatedReflowFixtures[options.tab ?? 'in-review']);
   const listRequest = cy
     .stub()
     .callsFake((params: { casefile_status: string }) =>
       defer(() => {
         if (options.listError) return throwError(() => new Error('Synthetic decoding failure'));
-        const tab = (Object.keys(CASES_DRAFT_TABS) as CasesDraftTab[]).find(
+        const tab = (Object.keys(CASES_DRAFT_TABS) as CasesDraftInputterTab[]).find(
           (value) => CASES_DRAFT_TABS[value].statuses === params.casefile_status,
         )!;
         const result = tab === selection.tab ? rows : populatedReflowFixtures[tab];

@@ -1,5 +1,6 @@
 import type { CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import { performAuthentication } from '../../../../actions/login.actions';
+import { primaryDraftInputter } from '../../actions/checkAndValidateCase/draft-casefile-fixture.actions';
 import { InputterCasefileMonitoringActions } from '../../actions/checkAndValidateCase/inputter-casefile-monitoring.actions';
 import { InputterMonitoringFixtureActions } from '../../actions/checkAndValidateCase/inputter-monitoring-fixture.actions';
 import type { IOwnedDraftCasefile } from '../../actions/checkAndValidateCase/interfaces/draft-casefile-owned.interface';
@@ -119,6 +120,7 @@ export class InputterCasefileMonitoringFlow {
   public prepareRejections(state: string): void {
     if (!['empty', 'populated'].includes(state)) throw new Error('Unknown personal rejection state');
     const second = this.fixtures.secondInputter();
+    performAuthentication(primaryDraftInputter());
     this.fixtures.requireEmptyRejected();
     // An independently submitted primary record supplies actor identity even when personal Rejected is empty.
     this.fixtures.create(state === 'empty' ? 'SUBMITTED' : 'REJECTED').then((owned) => {
@@ -141,6 +143,7 @@ export class InputterCasefileMonitoringFlow {
   /** Starts with genuinely empty personal Rejected, then creates exactly 26 own rows and one other-owned row. */
   public preparePagination(): void {
     const second = this.fixtures.secondInputter();
+    performAuthentication(primaryDraftInputter());
     this.fixtures.requireEmptyRejected();
     cy.wrap(
       Array.from({ length: 26 }, (_, index) => index),
@@ -267,6 +270,7 @@ export class InputterCasefileMonitoringFlow {
 
   /** Requires no existing personal lifecycle records; never mutates another scenario's data. */
   public prepareEmpty(): void {
+    performAuthentication(primaryDraftInputter());
     this.actions.requireEmptyDashboard();
   }
 

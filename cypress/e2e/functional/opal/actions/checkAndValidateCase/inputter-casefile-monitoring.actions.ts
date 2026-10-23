@@ -100,7 +100,10 @@ export class InputterCasefileMonitoringActions {
     if (tab !== 'rejected') {
       cy.wait('@monitoringCount').then(({ response }) => {
         const { count } = decodeDraftCasefileCount(response?.body);
-        if (count > 0) cy.get(S.rejectedCount).should((badge) => expect(badge.text().trim()).to.equal(String(count)));
+        if (count > 0)
+          cy.get(S.rejectedCount).should((badge) =>
+            expect(badge.text().trim()).to.equal(count > 99 ? '99+' : String(count)),
+          );
         else cy.get(S.rejectedCount).should('not.exist');
       });
     }

@@ -355,3 +355,10 @@ corepack yarn test:functional:leaf --browser=chrome \
 For **subset discovery only**, replace the wrapper with `corepack yarn exec cypress run --browser chrome`, add `--config-file docs/superpowers/po10628-discovery.config.ts` (created above) and add `dryRun=true,` before lowercase `tags=`;
 expect **4 dry-run examples (2 functional + 2 accessibility)**, with no live evidence. The Task3 implementation agent
 ran no live calls. A future four-example live pass cannot satisfy the remaining12 examples or complete PO-10628.
+
+The All rejected accessibility journey uses accessibility-aware owned-row and amendment-location delegates. They
+invoke the same maintained strict scanner as the shared accessibility step on the initial collection page and
+every traversed page, after each ascending/descending sort, and after every search/return pagination transition
+before leaving that state. Functional callers keep their read-only assertions without enabling these additional
+scans. Controlled support dispatch checks prove state-by-state scanner invocation and stop-on-failure behavior;
+they do not establish live Axe acceptance.

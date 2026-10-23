@@ -50,3 +50,10 @@ When('I sort my live personal rejections {string} by applicant with the keyboard
 When('I visit the {string} live personal rejection page with the keyboard', (direction: string) =>
   flow.pagePersonal(direction),
 );
+
+Then('the real Business Unit rejection list contains the expected owned cases with every visited page accessible', () =>
+  flow.expectAllRejected(true),
+);
+When('I open the other inputter owned rejection with every visited sort and page accessible', () =>
+  flow.openOther(true),
+);

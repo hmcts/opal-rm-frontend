@@ -3,7 +3,7 @@
 import groovy.transform.Field
 import uk.gov.hmcts.contino.GithubAPI
 
-@Library('Infrastructure@2.13.0')
+@Library('Infrastructure@2.13.2')
 
 // Pipeline identifiers
 String opalName = 'opal'

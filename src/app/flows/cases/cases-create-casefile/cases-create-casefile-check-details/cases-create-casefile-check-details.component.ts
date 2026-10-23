@@ -1,3 +1,9 @@
+import type { ICasesDraftDecisionAttempt } from '../../cases-draft/interfaces/cases-draft-decision-attempt.interface';
+import type { ICasesDraftDecisionNotice } from '../../cases-draft/interfaces/cases-draft-decision-notice.interface';
+import type { ICasesDraftIdentity } from '../../cases-draft/interfaces/cases-draft-identity.interface';
+import type { CasesDraftCasefileDecision } from '../../cases-draft/types/cases-draft-casefile-decision.type';
+import type { IOpalMaintenanceDraftCasefilePatchRequest } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-patch-request.interface';
+import { readCasesDraftDecisionReceipt } from '../../cases-draft/utils/cases-draft-decision-receipt';
 import type { ICasesCreateCasefileState } from '../interfaces/cases-create-casefile-state.interface';
 import type { HttpResponse } from '@angular/common/http';
 import type { ICasesCreateCasefileAmendmentCompletion } from '../interfaces/cases-create-casefile-amendment-completion.interface';
@@ -31,7 +37,7 @@ import {
 import { UtilsService } from '@hmcts/opal-frontend-common/services/utils-service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { firstValueFrom, forkJoin, take, defaultIfEmpty } from 'rxjs';
+import { firstValueFrom, forkJoin, take, defaultIfEmpty, defer } from 'rxjs';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { OPAL_MAINTENANCE_RM_BUSINESS_UNIT_ID } from '../../services/opal-maintenance-service/constants/opal-maintenance-business-unit-ids.constant';
 import { CasesCreateCasefilePayloadService } from '../services/cases-create-casefile-payload/cases-create-casefile-payload.service';
@@ -43,12 +49,21 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
+  untracked,
   ElementRef,
   inject,
   Injector,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Router, UrlTree } from '@angular/router';
+import {
+  ActivatedRoute,
+  NavigationCancel,
+  NavigationCancellationCode,
+  NavigationStart,
+  Router,
+  UrlTree,
+} from '@angular/router';
 import { getState } from '@ngrx/signals';
 import { GovukBackLinkComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-back-link';
 import type { IOpalMaintenanceCountryReferenceDataItem } from '../../services/opal-maintenance-service/interfaces/opal-maintenance-country-reference-data-item.interface';
@@ -134,7 +149,16 @@ export class CasesCreateCasefileCheckDetailsComponent {
 
   private readonly submitting = signal(false);
 
+  private decisionEntry = 0;
+  private decisionNavigationRevision = 0;
+  private decisionNavigationId = 0;
+  private activeDecision: ICasesDraftDecisionAttempt | null = null;
+  private readonly completedDecision = signal(false);
   private readonly completedAmendment = signal<ICasesCreateCasefileAmendmentCompletion | null>(null);
+
+  public readonly decisionLocked = computed(
+    () => this.busy() || this.completedDecision() || this.persistedStore.requiresReload(),
+  );
 
   public readonly persistedResult = signal<ICasesDraftCasefileResolved | null>(null);
 
@@ -242,9 +266,52 @@ export class CasesCreateCasefileCheckDetailsComponent {
   });
 
   constructor() {
+    this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
+      const expected = this.activeDecision;
+      if (event instanceof NavigationStart) {
+        this.decisionNavigationRevision++;
+        this.decisionNavigationId = event.id;
+      } else if (
+        event instanceof NavigationCancel &&
+        event.code !== undefined &&
+        [NavigationCancellationCode.GuardRejected, NavigationCancellationCode.SupersededByNewNavigation].includes(
+          event.code,
+        ) &&
+        event.id === this.decisionNavigationId &&
+        expected?.revision === this.decisionNavigationRevision - 1
+      ) {
+        // Forgive only this uncommitted start, preserving any earlier change of route context.
+        expected.revision = this.decisionNavigationRevision;
+      }
+    });
+    effect(() => {
+      const identity = this.currentCheckerIdentity();
+      const expected = this.activeDecision;
+      if (expected && !sameCasesDraftIdentity(identity, expected.identity)) {
+        expected.invalidated = true;
+        untracked(() => {
+          if (this.sameDecisionEntry(expected)) this.persistedStore.setRequiresReload(true);
+          this.draftNavigation.clearCheckerDecision();
+        });
+      }
+    });
     this.route?.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
       const resolved: ICasesDraftCasefileResolved | undefined = data['draftCasefile'];
-      if (!resolved || this.route?.snapshot.data['casefileIntent'] === 'create') return;
+      if (this.route?.snapshot.data['casefileIntent'] === 'create') return;
+      const previousDecision = this.activeDecision;
+      this.decisionEntry++;
+      this.activeDecision = null;
+      this.completedDecision.set(false);
+      if (previousDecision) {
+        this.submitting.set(false);
+        this.navigating.set(false);
+      }
+      this.draftNavigation.clearCheckerDecision();
+      if (!resolved) {
+        this.persistedResult.set(null);
+        this.persistedStore.resetStore();
+        return;
+      }
       this.store.hydratePersistedCasefile(resolved.state);
       this.persistedStore.loadResolved(resolved);
       this.persistedResult.set(resolved);
@@ -255,6 +322,104 @@ export class CasesCreateCasefileCheckDetailsComponent {
       this.focusTarget(this.reviewNavigation.focusId());
       this.reviewNavigation.clearContext();
     });
+  }
+
+  private currentCheckerIdentity(): ICasesDraftIdentity | null {
+    const released =
+      (this.globalStore.featureFlags() as Record<string, unknown>)[RELEASE_1C_RM_CREATE_CASE_FILES_FEATURE_FLAG] ===
+      true;
+    return this.globalStore.authenticated()
+      ? resolveCasesDraftIdentity(this.globalStore.userState(), released, 'checker')
+      : null;
+  }
+
+  private sameDecisionEntry(expected: ICasesDraftDecisionAttempt): boolean {
+    return (
+      !this.destroyRef.destroyed &&
+      this.decisionEntry === expected.entry &&
+      this.persistedResult() === expected.result &&
+      this.persistedStore.draft() === expected.draft &&
+      this.persistedStore.etag() === expected.etag
+    );
+  }
+
+  private currentDecisionAuthority(expected: ICasesDraftDecisionAttempt): boolean {
+    return (
+      this.sameDecisionEntry(expected) &&
+      !expected.invalidated &&
+      this.reviewable() &&
+      sameCasesDraftIdentity(this.currentCheckerIdentity(), expected.identity) &&
+      sameCasesDraftIdentity(this.persistedStore.identity(), expected.identity)
+    );
+  }
+
+  private captureDecisionAttempt(): ICasesDraftDecisionAttempt | null {
+    const result = this.persistedResult();
+    const draft = this.persistedStore.draft();
+    const etag = this.persistedStore.etag();
+    const identity = this.currentCheckerIdentity();
+    if (
+      !this.reviewable() ||
+      this.route?.snapshot.data['casefileIntent'] !== 'checker-review' ||
+      !result ||
+      !draft ||
+      !etag ||
+      !identity
+    )
+      return null;
+    if (
+      draft.draft_casefile_id !== result.draft.draft_casefile_id ||
+      draft.business_unit_id !== result.draft.business_unit_id ||
+      draft.business_unit_id !== identity.businessUnitId ||
+      !sameCasesDraftIdentity(identity, result.identity) ||
+      !sameCasesDraftIdentity(identity, this.persistedStore.identity())
+    )
+      return null;
+    const current = this.draftNavigation.selection();
+    return {
+      result,
+      draft,
+      etag,
+      identity: { ...identity },
+      entry: this.decisionEntry,
+      revision: this.decisionNavigationRevision,
+      selection: { ...(current.tab === 'to-review' ? current : defaultCasesDraftNavigation('to-review', 'checker')) },
+      invalidated: false,
+    };
+  }
+
+  private reportDecisionFailure(error: unknown): void {
+    const status = error instanceof HttpErrorResponse ? error.status : null;
+    this.persistedStore.setRequiresReload(status !== 400 && status !== 422);
+    if (!(error instanceof HttpErrorResponse) && !this.globalStore.bannerError().error) this.showError();
+    else this.utils.scrollToTop();
+  }
+
+  private async finishDecision(expected: ICasesDraftDecisionAttempt, notice: ICasesDraftDecisionNotice): Promise<void> {
+    this.completedDecision.set(true);
+    if (this.decisionNavigationRevision !== expected.revision) return;
+    this.submitting.set(false);
+    if (!this.draftNavigation.recordCheckerDecision(notice)) {
+      if (!this.globalStore.bannerError().error) this.showError();
+      else this.utils.scrollToTop();
+      return;
+    }
+    this.draftNavigation.setSelection(expected.selection);
+    this.navigating.set(true);
+    let accepted = false;
+    try {
+      accepted = await this.router.navigateByUrl(this.draftNavigation.dashboardUrl(expected.selection));
+    } catch {
+      // Preserve destination API feedback; add generic feedback only when none exists below.
+    }
+    if (accepted || !this.sameDecisionEntry(expected)) return;
+    if (!this.currentDecisionAuthority(expected)) {
+      this.draftNavigation.clearCheckerDecision();
+      return;
+    }
+    // Keep the validated notice for Back; the navigation service still invalidates scope changes and other departures.
+    if (!this.globalStore.bannerError().error) this.showError();
+    else this.utils.scrollToTop();
   }
 
   private async navigate(path: string | UrlTree): Promise<boolean> {
@@ -515,12 +680,49 @@ export class CasesCreateCasefileCheckDetailsComponent {
     target?.focus();
   }
 
-  /** Returns validated local completion to the checker queue without recording a decision. */
-  public async handleDecision(): Promise<void> {
-    if (!this.reviewable() || this.busy()) return;
-    const current = this.draftNavigation.selection();
-    const selection = current.tab === 'to-review' ? current : defaultCasesDraftNavigation('to-review', 'checker');
-    await this.navigate(this.draftNavigation.dashboardUrl(selection));
+  /** Persists one authorised checker decision and hands definite success to the checker dashboard. */
+  public async handleDecision(decision: CasesDraftCasefileDecision): Promise<void> {
+    if (this.decisionLocked()) return;
+    const expected = this.captureDecisionAttempt();
+    if (!expected) return;
+    if (decision.decision === 'reject' && (!decision.reason.trim() || decision.reason.length > 250)) return;
+    const request: IOpalMaintenanceDraftCasefilePatchRequest = {
+      business_unit_id: expected.draft.business_unit_id,
+      casefile_status: decision.targetStatus,
+      ...(decision.decision === 'reject' ? { status_message: decision.reason } : {}),
+    };
+    this.globalStore.resetBannerError();
+    this.activeDecision = expected;
+    this.submitting.set(true);
+    try {
+      const response = await firstValueFrom(
+        defer(() => this.maintenance.patchDraftCasefile(expected.draft.draft_casefile_id, request, expected.etag)).pipe(
+          take(1),
+          defaultIfEmpty(null),
+          takeUntilDestroyed(this.destroyRef),
+        ),
+      );
+      if (!this.sameDecisionEntry(expected)) return;
+      if (!this.currentDecisionAuthority(expected)) {
+        this.persistedStore.setRequiresReload(true);
+        return;
+      }
+      if (!response) throw new Error('Invalid checker decision receipt');
+      await this.finishDecision(expected, readCasesDraftDecisionReceipt(response, expected, decision));
+    } catch (error: unknown) {
+      if (!this.sameDecisionEntry(expected)) return;
+      if (!this.currentDecisionAuthority(expected) || this.decisionNavigationRevision !== expected.revision) {
+        this.persistedStore.setRequiresReload(true);
+        return;
+      }
+      this.reportDecisionFailure(error);
+    } finally {
+      if (this.activeDecision === expected) {
+        this.activeDecision = null;
+        this.submitting.set(false);
+        this.navigating.set(false);
+      }
+    }
   }
 
   public async handleSubmit(): Promise<void> {
@@ -592,7 +794,7 @@ export class CasesCreateCasefileCheckDetailsComponent {
     if (event && (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)) return;
     event?.preventDefault();
     const url = this.deleteUrl();
-    if (!url || this.busy()) return;
+    if (!url || this.decisionLocked()) return;
     await this.navigate(url);
   }
 

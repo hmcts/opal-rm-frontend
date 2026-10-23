@@ -1,4 +1,4 @@
-import type { ICasesDraftDeletionNotice } from '../interfaces/cases-draft-deletion-notice.interface';
+import type { ICasesDraftDecisionNotice } from '../interfaces/cases-draft-decision-notice.interface';
 import {
   MojAlertComponent,
   MojAlertContentComponent,
@@ -50,15 +50,15 @@ import { sameCasesDraftIdentity } from '../utils/cases-draft-identity';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboardBaseComponent {
-  private readonly deletionSuccess = signal<ICasesDraftDeletionNotice | null>(null);
+  private readonly decisionSuccess = signal<ICasesDraftDecisionNotice | null>(null);
   private readonly successInjector = inject(Injector);
   protected readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   protected readonly mode = 'checker';
   protected readonly identity = computed(() => this.data.getIdentity());
   public readonly successText = computed(() => {
-    const notice = this.deletionSuccess();
+    const notice = this.decisionSuccess();
     if (!notice || !this.isCurrentIdentity(notice.identity)) return null;
-    return 'You have deleted ' + notice.respondentName + '’s case.';
+    return 'You have ' + notice.outcome + ' ' + notice.respondentName + '’s case.';
   });
   public readonly tabs: readonly CasesDraftTab[] = ['to-review', 'rejected', 'deleted', 'failed'];
   public readonly tabData$: Observable<ICasesDraftTabData | null>;
@@ -70,17 +70,17 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
 
   constructor() {
     super();
-    this.deletionSuccess.set(this.navigation.consumeCheckerDeletion());
+    this.decisionSuccess.set(this.navigation.consumeCheckerDecision());
     effect(() => {
       const identity = this.identity();
       untracked(() => {
-        if (!sameCasesDraftIdentity(this.deletionSuccess()?.identity ?? null, identity)) this.deletionSuccess.set(null);
-        if (!identity) this.navigation.clearCheckerDeletion();
+        if (!sameCasesDraftIdentity(this.decisionSuccess()?.identity ?? null, identity)) this.decisionSuccess.set(null);
+        if (!identity) this.navigation.clearCheckerDecision();
       });
     });
     inject(DestroyRef).onDestroy(() => {
-      this.deletionSuccess.set(null);
-      this.navigation.clearCheckerDeletion();
+      this.decisionSuccess.set(null);
+      this.navigation.clearCheckerDecision();
     });
     this.tabData$ = this.initialiseDashboard().tabData$;
     const resolvedList = this.activatedRoute.snapshot.data['draftCasefiles'] as ICasesDraftResolvedList | undefined;
@@ -115,7 +115,7 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
   }
 
   public dismissSuccess(): void {
-    this.deletionSuccess.set(null);
+    this.decisionSuccess.set(null);
     afterNextRender(() => this.heading()?.nativeElement.focus(), { injector: this.successInjector });
   }
 

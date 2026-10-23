@@ -1,4 +1,5 @@
-import type { ICasesDraftDeletionNotice } from 'src/app/flows/cases/cases-draft/interfaces/cases-draft-deletion-notice.interface';
+import type { CasesDraftDecisionOutcome } from 'src/app/flows/cases/cases-draft/types/cases-draft-decision-outcome.type';
+import type { ICasesDraftDecisionNotice } from 'src/app/flows/cases/cases-draft/interfaces/cases-draft-decision-notice.interface';
 import { HttpErrorResponse } from '@angular/common/http';
 import { OPAL_USER_STATE_MOCK } from '@hmcts/opal-frontend-common/services/opal-user-service/mocks';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
@@ -57,7 +58,7 @@ export const checkerEmptyMessages = {
   failed: 'There are no failed cases.',
 };
 
-export function checkerDeletionNotice(): ICasesDraftDeletionNotice {
+export function checkerDecisionNotice(outcome: CasesDraftDecisionOutcome = 'deleted'): ICasesDraftDecisionNotice {
   const user = checkerUser('checker');
   return {
     identity: {
@@ -67,5 +68,6 @@ export function checkerDeletionNotice(): ICasesDraftDeletionNotice {
     },
     draftCasefileId: 17,
     respondentName: 'Synthetic Respondent',
+    outcome,
   };
 }

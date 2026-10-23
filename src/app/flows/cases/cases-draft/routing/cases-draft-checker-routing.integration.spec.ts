@@ -1,3 +1,5 @@
+import { CasesCreateCasefileCheckDetailsComponent } from '../../cases-create-casefile/cases-create-casefile-check-details/cases-create-casefile-check-details.component';
+import type { CasesDraftCasefileDecision } from '../types/cases-draft-casefile-decision.type';
 import { appConfig } from '../../../../app.config';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
 import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
@@ -11,7 +13,7 @@ import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-u
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter, ResolveStart, Router } from '@angular/router';
+import { NavigationCancel, NavigationCancellationCode, provideRouter, ResolveStart, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { getState } from '@ngrx/signals';
 import { filter, firstValueFrom, of, Subject, take } from 'rxjs';
@@ -224,7 +226,7 @@ describe('checker production route boundaries', () => {
       expect(harness.routeNativeElement?.querySelector('opal-lib-govuk-cancel-link a')).not.toBeNull();
       await page.handleDelete();
       http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
-      expect(navigation.consumeCheckerDeletion()).toBeNull();
+      expect(navigation.consumeCheckerDecision()).toBeNull();
 
       const cancellation = page.handleCancel();
       await flushPersisted(123, 'RESUBMITTED', undefined, '"saved-version-b"');
@@ -374,7 +376,7 @@ describe('checker production route boundaries', () => {
     expect(page.deleted()).toBe(false);
     expect(saved.requiresReload()).toBe(true);
     expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
     expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_recovery')).not.toBeNull();
     await page.handleDelete();
@@ -414,15 +416,16 @@ describe('checker production route boundaries', () => {
     const navigation = shell.injector.get(CasesDraftNavigationService);
     const saved = shell.injector.get(CasesDraftCasefileStore);
     expect(
-      navigation.recordCheckerDeletion({
+      navigation.recordCheckerDecision({
         identity: saved.identity()!,
         draftCasefileId: 123,
         respondentName: 'Synthetic Respondent',
+        outcome: 'deleted',
       }),
     ).toBe(true);
     await TestBed.inject(Router).navigateByUrl('/error/internal-server');
     await settle(harness);
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
   });
 
   it.each([401, 403, 503])('preserves shared HTTP %s feedback during verified dashboard return', async (status) => {
@@ -470,7 +473,7 @@ describe('checker production route boundaries', () => {
         operationId: 'SYNTHETIC-RETURN',
       }),
     );
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(page.deleted()).toBe(true);
     expect(page.navigating()).toBe(false);
     expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
@@ -514,7 +517,7 @@ describe('checker production route boundaries', () => {
     await settle(harness);
     expect(router.url).toBe(deleteUrl);
     expect(bannerError().message).toBe('Synthetic return detail');
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(page.deleted()).toBe(true);
     expect(page.submitting()).toBe(false);
     expect(page.navigating()).toBe(false);
@@ -558,7 +561,7 @@ describe('checker production route boundaries', () => {
     expect(harness.routeNativeElement?.querySelector('[data-draft-id="123"]')).toBeNull();
     expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))).toBeNull();
     expect(saved.draft()).toBeNull();
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
   });
 
@@ -599,7 +602,7 @@ describe('checker production route boundaries', () => {
     expect(bannerError()).toEqual(expectedBanner);
     expect(setBannerError).toHaveBeenCalledExactlyOnceWith(expectedBanner);
     expect(page.navigating()).toBe(false);
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(page.readable()).toBe(true);
     expect(page.eligible()).toBe(true);
     expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
@@ -641,7 +644,7 @@ describe('checker production route boundaries', () => {
     await operation;
     expect(router.currentNavigation()?.initialUrl.toString()).toBe('/pending-destination');
     http.expectNone((candidate) => candidate.url === '/opal-maintenance-service/draft-casefiles');
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     if (destinationCompletes) destinationReady.next(true);
     destinationReady.complete();
     expect(await departure).toBe(destinationCompletes);
@@ -994,6 +997,43 @@ describe('checker production route boundaries', () => {
     await harness.navigateByUrl(dashboard + '?page=1&sort=respondent&direction=ascending#' + tab);
     http.expectNone((request) => request.url.includes('/draft-casefiles'));
   });
+  it('ignores forged success and respondent names on direct dashboard entry without issuing a mutation', async () => {
+    const forgedName = 'Synthetic Forged Banner';
+    const url =
+      dashboard +
+      '?success=approved&outcome=approved&respondentName=' +
+      encodeURIComponent(forgedName) +
+      '&name=' +
+      encodeURIComponent(forgedName) +
+      '#to-review';
+    const arrival = RouterTestingHarness.create(url);
+    const list = await vi.waitFor(() =>
+      http.expectOne(
+        (request) =>
+          request.method === 'GET' &&
+          request.url === '/opal-maintenance-service/draft-casefiles' &&
+          request.params.get('restrict') !== 'counts',
+      ),
+    );
+    expect(list.request.params.get('business_unit_id')).toBe('44');
+    expect(list.request.params.get('casefile_status')).toBe('SUBMITTED,RESUBMITTED');
+    for (const injected of ['success', 'outcome', 'respondentName', 'name'])
+      expect(list.request.params.has(injected)).toBe(false);
+    list.flush({ count: 0, summaries: [] });
+    flushCounts();
+    const harness = await arrival;
+    await settle(harness);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftCheckAndValidateTabsComponent))
+      .componentInstance as CasesDraftCheckAndValidateTabsComponent;
+    expect(TestBed.inject(Router).url).toBe(url);
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-heading')?.textContent).toBe('Review cases');
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-empty')).not.toBeNull();
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-success')).toBeNull();
+    expect(harness.routeNativeElement?.textContent).not.toContain(forgedName);
+    expect(page.successText()).toBeNull();
+    expect(page.navigation.consumeCheckerDecision()).toBeNull();
+    http.expectNone((request) => request.method === 'PATCH' || request.method === 'PUT');
+  });
   it('ignores injected table query metadata and generates only fragment links', async () => {
     const pending = RouterTestingHarness.create(dashboard + '?page=9&sort=applicant&direction=descending#rejected');
     await vi.waitFor(() => flushList('REJECTED', 26));
@@ -1103,5 +1143,229 @@ describe('checker production route boundaries', () => {
     expect(pending.every((request) => request.cancelled)).toBe(true);
     expect(TestBed.inject(Router).url).toBe('/access-denied');
     expect(harness.routeNativeElement?.querySelector('tbody')).toBeNull();
+  });
+  const checkerDecisions: CasesDraftCasefileDecision[] = [
+    { decision: 'approve', targetStatus: 'PUBLISHING_PENDING' },
+    { decision: 'reject', targetStatus: 'REJECTED', reason: 'Synthetic rejection reason' },
+  ];
+  const cancelledCheckerDepartures = checkerDecisions.flatMap((decision) =>
+    (['sequential', 'rapid'] as const).map((departureOrder) => ({ decision, departureOrder })),
+  );
+  it.each(cancelledCheckerDepartures)(
+    'returns recorded $decision.decision to To review after $departureOrder pending departures',
+    async ({ decision, departureOrder }) => {
+      const reviewUrl = '/cases/draft/check-and-validate/review/123';
+      const harness = await openPersisted(reviewUrl);
+      await settle(harness);
+      const router = TestBed.inject(Router);
+      const page = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent))
+        .componentInstance as CasesCreateCasefileCheckDetailsComponent;
+      const radio = harness.fixture.nativeElement.querySelector(
+        '#create_casefile_review_decision-' + decision.decision,
+      ) as HTMLInputElement;
+      radio.click();
+      harness.detectChanges();
+      if (decision.decision === 'reject') {
+        const reason = harness.fixture.nativeElement.querySelector(
+          '#create_casefile_review_rejection_reason',
+        ) as HTMLTextAreaElement;
+        reason.value = decision.reason;
+        reason.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      const continueButton = harness.fixture.nativeElement.querySelector(
+        '#create_casefile_review_continue',
+      ) as HTMLButtonElement;
+      expect(continueButton.disabled).toBe(false);
+      continueButton.click();
+      const request = await vi.waitFor(() =>
+        http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+      );
+      expect(request.request.headers.get('If-Match')).toBe('"0"');
+      expect(request.request.body).toBe(
+        JSON.stringify({
+          business_unit_id: 44,
+          casefile_status: decision.targetStatus,
+          ...(decision.decision === 'reject' ? { status_message: decision.reason } : {}),
+        }),
+      );
+      const destinations = ['/dashboard/cases', dashboard + '#to-review'];
+      const cancellations = destinations.map((destination) =>
+        firstValueFrom(
+          router.events.pipe(
+            filter(
+              (event): event is NavigationCancel => event instanceof NavigationCancel && event.url === destination,
+            ),
+            take(1),
+          ),
+        ),
+      );
+      const assertPendingReview = () => {
+        expect(router.url).toBe(reviewUrl);
+        expect(page.submissionPending()).toBe(true);
+        expect(continueButton.disabled).toBe(false);
+        continueButton.click();
+        http.expectNone((candidate) => candidate.method === 'PATCH');
+        http.expectNone((candidate) => candidate.url === '/opal-maintenance-service/draft-casefiles');
+      };
+      if (departureOrder === 'rapid') {
+        const departures = destinations.map((destination) => router.navigateByUrl(destination));
+        expect(await Promise.all(departures)).toEqual([false, false]);
+        expect((await Promise.all(cancellations)).map((event) => event.code)).toEqual([
+          NavigationCancellationCode.SupersededByNewNavigation,
+          NavigationCancellationCode.GuardRejected,
+        ]);
+        assertPendingReview();
+      } else {
+        for (const [index, destination] of destinations.entries()) {
+          expect(await router.navigateByUrl(destination)).toBe(false);
+          expect((await cancellations[index]).code).toBe(NavigationCancellationCode.GuardRejected);
+          assertPendingReview();
+        }
+      }
+      const body = createPersistedCasefileDetail();
+      body.draft_casefile_id = 123;
+      body.casefile_status = decision.targetStatus;
+      request.flush(body, { headers: { ETag: '"1"' } });
+      await vi.waitFor(() => flushList('SUBMITTED', 0));
+      await settle(harness);
+      expect(router.url).toBe(dashboard + '#to-review');
+      expect(
+        harness.routeNativeElement?.querySelector('#cases-draft-to-review-tab')?.getAttribute('aria-current'),
+      ).toBe('page');
+      const outcome = decision.decision === 'approve' ? 'approved' : 'rejected';
+      expect(harness.routeNativeElement?.querySelector('#cases-draft-success')?.textContent).toContain(
+        'You have ' + outcome + ' Synthetic Respondent’s case.',
+      );
+      expect(harness.routeNativeElement?.querySelector('#cases-draft-empty')?.textContent).toBe(
+        'There are no cases to review.',
+      );
+      expect(harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent))).toBeNull();
+      await page.handleDecision(decision);
+      http.expectNone((candidate) => candidate.method === 'PATCH');
+    },
+  );
+
+  const checkerErrors = checkerDecisions.flatMap((decision) =>
+    (
+      [
+        [400, true],
+        [403, false],
+        [409, true],
+        [409, false],
+        [503, true],
+        [500, false],
+      ] as const
+    ).map(([status, retriable]) => ({ decision, status, retriable })),
+  );
+  it.each(checkerErrors)(
+    'preserves shared HTTP $status retriable=$retriable for $decision.decision',
+    async ({ decision, status, retriable }) => {
+      const reviewUrl = '/cases/draft/check-and-validate/review/123';
+      const harness = await openPersisted(reviewUrl);
+      const page = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent))
+        .componentInstance as CasesCreateCasefileCheckDetailsComponent;
+      const operation = page.handleDecision(decision);
+      const request = await vi.waitFor(() =>
+        http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+      );
+      request.flush(
+        { retriable, title: 'Synthetic failure', detail: 'Synthetic failure detail' },
+        { status, statusText: 'Synthetic failure' },
+      );
+      await operation;
+      await settle(harness);
+      if (retriable) {
+        expect(TestBed.inject(Router).url).toBe(reviewUrl);
+        expect(bannerError().message).toBe('Synthetic failure detail');
+        expect(page.submissionPending()).toBe(false);
+        expect(page.decisionLocked()).toBe(status !== 400);
+      } else {
+        const destinations: Partial<Record<number, string>> = { 403: 'permission-denied', 409: 'concurrency-failure' };
+        expect(TestBed.inject(Router).url).toBe('/error/' + (destinations[status] ?? 'internal-server'));
+      }
+      http.expectNone((candidate) => candidate.method === 'PATCH');
+      expect(harness.fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
+    },
+  );
+
+  it.each(checkerDecisions)('retains $decision confirmation for Back after dashboard failure', async (decision) => {
+    const reviewUrl = '/cases/draft/check-and-validate/review/123';
+    const harness = await openPersisted(reviewUrl);
+    const router = TestBed.inject(Router);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const navigation = shell.injector.get(CasesDraftNavigationService);
+    const page = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent))
+      .componentInstance as CasesCreateCasefileCheckDetailsComponent;
+    const setBannerError = vi.mocked(TestBed.inject(GlobalStore).setBannerError);
+    setBannerError.mockClear();
+
+    const operation = page.handleDecision(decision);
+    const patch = await vi.waitFor(() =>
+      http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+    );
+    expect(patch.request.headers.get('If-Match')).toBe('"0"');
+    const accepted = createPersistedCasefileDetail();
+    accepted.draft_casefile_id = 123;
+    accepted.casefile_status = decision.targetStatus;
+    patch.flush(accepted, { headers: { ETag: '"1"' } });
+
+    const list = await vi.waitFor(() =>
+      http.expectOne(
+        (candidate) =>
+          candidate.method === 'GET' &&
+          candidate.url === '/opal-maintenance-service/draft-casefiles' &&
+          candidate.params.get('restrict') !== 'counts',
+      ),
+    );
+    expect(list.request.params.get('casefile_status')).toBe('SUBMITTED,RESUBMITTED');
+    flushCounts();
+    list.flush(
+      {
+        retriable: true,
+        title: 'Synthetic return failure',
+        detail: 'Synthetic return detail',
+        operation_id: 'SYNTHETIC-RETURN',
+      },
+      { status: 503, statusText: 'Synthetic return failure' },
+    );
+
+    await operation;
+    await settle(harness);
+
+    const expectedBanner = {
+      ...GLOBAL_ERROR_STATE,
+      error: true,
+      title: 'Synthetic return failure',
+      message: 'Synthetic return detail',
+      operationId: 'SYNTHETIC-RETURN',
+    };
+    expect(router.url).toBe(reviewUrl);
+    expect(
+      harness.fixture.debugElement.query(By.directive(CasesCreateCasefileCheckDetailsComponent)).componentInstance,
+    ).toBe(page);
+    expect(bannerError()).toEqual(expectedBanner);
+    expect(setBannerError).toHaveBeenCalledExactlyOnceWith(expectedBanner);
+    expect(page.submissionPending()).toBe(false);
+    expect(page.decisionLocked()).toBe(true);
+    expect(harness.fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
+
+    await page.handleDecision(decision);
+    http.expectNone((candidate) => candidate.method === 'PATCH');
+
+    const back = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('opal-lib-govuk-back-link a')!;
+    back.click();
+    await vi.waitFor(() => flushList('SUBMITTED', 0));
+    await settle(harness);
+
+    expect(router.url).toBe(dashboard + '#to-review');
+    const outcome = decision.decision === 'approve' ? 'approved' : 'rejected';
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-success')?.textContent).toContain(
+      'You have ' + outcome + ' Synthetic Respondent’s case.',
+    );
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-empty')?.textContent).toBe(
+      'There are no cases to review.',
+    );
+    expect(navigation.consumeCheckerDecision()).toBeNull();
+    http.expectNone((candidate) => candidate.method === 'PATCH');
   });
 });

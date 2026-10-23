@@ -92,6 +92,16 @@ Severity reflects impact, not the category of the repository rule involved.
 
 ### Testing and delivery
 
+- Apply the [component](CYPRESS_COMPONENT_TESTING.md) and [E2E](CYPRESS_E2E_TESTING.md) guides to changed tests and their
+  helpers. Trace setup through the assertion: a default-state test must fail if production selects the wrong default,
+  and a save/transition test must distinguish the resulting state from its seed.
+- Check that E2E outcomes are explicit and that extracting actions, fixtures, or intercepts preserves every caller's
+  assertions, request contracts, and live/controlled boundaries, including accessibility callers.
+- For moved or consolidated tests, check before/after identities and assertion-level coverage, not just test counts.
+  Treat lost coverage or setup that masks a regression as a concrete testing risk; keep reuse or speed preferences
+  advisory unless a demonstrable defect or delivery impact exists.
+- Check [test-maintenance evidence](CONTRIBUTING.md#test-maintenance-evidence), including complete worker results and
+  disclosure of failed attempts. Do not infer that a parallel failure is fixed from a serial pass.
 - Report missing tests when changed behaviour is regression-prone and the existing suite would not detect a likely
   failure. State the behaviour or scenario that needs coverage.
 - Treat confirmed Sonar **Coverage on New Code** below the configured 80% Quality Gate as a delivery finding.

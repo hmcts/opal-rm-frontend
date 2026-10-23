@@ -1,84 +1,153 @@
 # PO-10626 concurrency and recovery QA
 
-The two feature files expand to eight functional and six accessibility examples. Every example creates an independent
-synthetic draft through the existing live creation journey. Scenario retries are disabled. PATCH/PUT monitors count
-all browser attempts, including attempts after the injected fault. Lost-response examples forward the request and
-interrupt only a real HTTP 200 response; fresh authenticated GETs independently verify the saved aggregate, quoted
-ETag, original ID, actor and complete timeline delta. Definite-failure examples return one controlled HTTP 400 before
-backend dispatch and require a corrected, explicit live retry. Conflict examples advance the real resource through
-an independent authenticated request while the browser retains its earlier ETag.
+The two feature files retain **14 examples: eight functional and six accessibility**. The current executable selection
+is **13: seven functional and six accessibility**. Each example creates its own synthetic submitted draft through
+the normal authenticated Maintenance API, preserving browser time for the decision/amendment and recovery journey.
+The case-creation journey regressions continue to use the real UI; this API setup does not replace their coverage.
+Scenario retries remain disabled. PATCH/PUT monitors count all browser attempts, including attempts after the injected
+fault. Lost-response examples interrupt only a real upstream HTTP 200; independent authenticated GETs verify the
+saved aggregate, quoted ETag, original ID, actor and complete timeline delta. Definite-failure examples return one
+controlled HTTP 400 before dispatch and require an explicit live retry. Conflict examples advance the real resource
+with an independent authenticated request while the browser retains its earlier ETag.
 
 ## Runtime prerequisites
 
-- FE at `TEST_URL`, with persisted checker review, deletion and rejected-case amendment foundations. The test-only
-  detail interface allows this QA branch to compile before those production deliveries are integrated; it does not
-  supply their routes or product behavior. The inspected combined foundation was FE PR #472.
-- Real Maintenance POST/GET/PATCH/PUT support and the enabled `release-1c-rm-create-case-files` release flag. See the
-  main E2E guide for creation reference-data prerequisites. HTTP errors or unavailable screens fail the test.
+- FE at `TEST_URL` with persisted checker review, deletion and rejected-case amendment foundations. The test-only
+  detail interface supplies no production routes or behavior. Missing product foundations fail the test.
+- Real Maintenance POST/GET/PATCH/PUT and testing-support publication/cleanup endpoints. Configure
+  `TESTING_SUPPORT_ENDPOINTS_ENABLED=true` in the target Maintenance runtime, including migration V1_49 and the
+  publication observation journal. The blocked draft backend PR must be verified in the actual runtime; do not assume
+  it has merged. Enable the existing `release-1c-rm-create-case-files` release separately.
 - Existing synthetic inputter `opal-test@dev.platform.hmcts.net`: ACTIVE, Maintenance BU 44 permission 21.
 - Existing synthetic checker `opal-test-10@dev.platform.hmcts.net`: ACTIVE, Maintenance BU 44 permission 22, with a
-  different BU user ID. These defaults come from User Service seed migrations, including V1_68. Each example verifies
-  actual runtime permissions and distinct IDs; it does not create users or change access. Optional Cypress variables
-  `PO10626_INPUTTER_EMAIL` and `PO10626_CHECKER_EMAIL` select other already-provisioned synthetic users.
+  distinct BU user ID. Optional `PO10626_INPUTTER_EMAIL` and `PO10626_CHECKER_EMAIL` select other already-provisioned
+  synthetic users. Setup verifies actual permissions and distinct IDs without creating users or changing access.
+- Reference data valid for the target environment. Setup uses the existing active United Kingdom Country,
+  Create Casefile Application and MAT metadata; do not copy integration-test IDs into a live environment.
 
-## Local development before lifecycle support is delivered
+## Owner-scoped publication evidence
 
-Only the newly owned PO-10626 receipts may defer cleanup. Explicit `PO10626_DEFER_CLEANUP=true` is accepted only for
-localhost, 127.0.0.1 or IPv6 loopback. It retains data and outstanding ID/marker receipts in
-`functional-output/draft-casefile-cleanup/`. When producer evidence is unavailable, the run also writes an
-`acceptance: incomplete` record under `functional-output/po10626/`. A green development run is partial evidence;
-it does not prove lifecycle cleanup or absence of duplicate publication requests.
+The fixed authenticated route is
+`/opal-maintenance-service/testing-support/draft-casefiles/{id}/publication-evidence`.
+POST registers the observation before the tested mutation; GET reads it after recovery. Both send the exact
+`Test-Run-Reference` marker and require the current inputter who owns the draft, with permission 21 in its stored BU.
+Neither takes a caller-supplied URI or request body. An unregistered GET returns 409. Registration accepts 201 or
+idempotent 200 and requires a complete zero-attempt baseline.
 
-The standard runner resets output directories. Preserve outstanding cleanup receipts and reports in an ignored
-local evidence directory before another run. Use the retained ID and exact marker with the agreed owned cleanup
-service once available; never delete shared data or reset lifecycle states to bypass ownership checks. This workflow
-does not enable deferral for existing scenarios or discard their failed cleanup receipts.
+```json
+{
+  "observation_id": "12345678-1234-4234-8234-123456789abc",
+  "registered_at": "2026-10-23T12:00:00Z",
+  "send_attempt_count": 0,
+  "acknowledged_send_count": 0,
+  "uncertain_send_count": 0,
+  "unfinished_send_count": 0,
+  "evidence_complete": true
+}
+```
+
+These seven fields describe producer sends, independently of consumer redelivery. Counts must be nonnegative safe
+integers; attempts equal acknowledged plus uncertain plus unfinished sends, and complete evidence has neither
+uncertain nor unfinished sends. Registration occurs in inputter setup, after any rejected prerequisite and before
+switching to the checker or opening the browser journey. After every UI and Axe assertion, the final shared
+`publication evidence confirms no duplicate case publication` step restores the inputter session and reads evidence.
+Restoring `cy.session` navigates away, so no UI assertion may follow it. The observation identity/time must remain
+unchanged; approval requires exactly one send attempt and acknowledgement, and all other journeys require zero.
+Missing, malformed, incomplete or discontinuous evidence fails. There is no partial-success evidence mode.
+
+Before cleanup, the final step writes only ID, exact marker and the safe before/after evidence fields to
+`functional-output/po10626/publication-{marker}-{id}.json`. No names, cookies, payloads or casefile snapshots belong
+in that file. The existing single cleanup hook restores the receipt's inputter and uses the exact marker with
+`DELETE /opal-maintenance-service/testing-support/draft-casefiles/{id}`. All receipts are persisted before any request;
+only 204 clears a receipt. Non-204 and transport failures retain receipts and fail acceptance. There is no body,
+If-Match, preceding cleanup GET or `ignore_missing` query.
+
+## Pending AC1 approval
+
+The lost-response approval row remains under `@skip @PO10626RequiresPublishedCleanup`. The runner excludes `@skip`
+by default; inventory explicitly includes it. The feature records the dependency verbatim:
+
+```gherkin
+# BE dependency: PO-10629 consumer and published-account cleanup are outstanding.
+# Current DELETE rejects PUBLISHING_PENDING and PUBLISHED with 409.
+# Retain this AC1 approval example; remove its pending tags only after the
+# delivered cleanup contract and a full live approval/recovery run are verified.
+```
+
+The approval status assertion also records:
+
+```ts
+// BE dependency: successful approval can remain PUBLISHING_PENDING until the
+// PO-10629 consumer is delivered. Producer evidence proves send attempts and
+// acknowledgments, not account creation. Published lifecycle cleanup remains
+// required before the pending approval example can satisfy full AC1 acceptance.
+```
+
+A 13-example pass does not satisfy all of AC1 or complete PO-10626. Remove those tags only after the delivered
+cleanup contract and a full owned approval, recovery, evidence and cleanup run are verified. An issue being marked
+done is insufficient. `PUBLISHING_FAILED` cleanup eligibility does not authorise deliberately forcing publication
+failure. Never broaden deletion eligibility, reset lifecycle state or clear failed receipts to obtain a pass.
+
+`PO10626_DEFER_CLEANUP` remains an existing helper capability for explicitly configured localhost-only deferred
+receipts. These new fixtures always require cleanup and do not use it. It cannot provide acceptance evidence.
+Preserve outstanding receipts and raw reports in an ignored local directory before any runner resets outputs.
+
+## Discovery and live execution
+
+Full inventory includes the pending row; discovery executes no browser actions. The installed preprocessor always
+skips `@skip`; `omitFiltered=false` exposes it as pending, giving **14 inventoried: 13 dry-run passes + 1 pending**.
+Without that inventory-only override, the default `omitFiltered=true` hides the row even when the tag expression
+includes it. The parsed Gherkin inventory retains all 14 expanded names/rows/tags:
+
+```bash
+TEST_URL=http://localhost:5000 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrency.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrencyAccessibility.feature' \
+  --env 'dryRun=true,omitFiltered=false,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626'
+```
+
+Current executable discovery selects 13 examples:
 
 ```bash
 TEST_URL=http://localhost:5000 \
 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip' \
 CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip' \
-corepack yarn test:functional:serial --browser=chrome \
+corepack yarn test:functional:leaf --browser=chrome \
   --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrency.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrencyAccessibility.feature' \
-  --env PO10626_DEFER_CLEANUP=true
+  --env 'dryRun=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip'
 ```
 
-Add `dryRun=true` to the comma-separated `--env` value for discovery only. Discovery verifies all fourteen examples
-and their bindings; it does not execute their browser actions.
+Actual browser execution uses the supported 13-case selection:
 
-## Final acceptance integration
-
-Jonathan owns lifecycle cleanup and publication evidence in Maintenance. Supply the delivered, authenticated evidence
-URI in `PO10626_PUBLICATION_EVIDENCE_PATH`, containing `{id}` under `/opal-maintenance-service/testing-support/`.
-The adapter sends the exact `Test-Run-Reference` and currently expects this **proposed consumer shape**, which must be
-reconciled with the delivered provider contract:
-
-```json
-{
-  "draft_casefile_id": 123,
-  "test_run_reference": "E2E-0123456789abcdef",
-  "accepted_publication_requests": 0,
-  "recording_started_before_approval": true,
-  "complete": true
-}
+```bash
+TEST_URL=http://localhost:5000 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrency.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrencyAccessibility.feature' \
+  --env 'PO10626_DEFER_CLEANUP=false,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip'
 ```
 
-The count represents accepted producer sends, independently of consumer redelivery. Both identity fields must match
-the receipt; counts must be nonnegative safe integers. Missing, incomplete, late or mismatched evidence fails rather
-than becoming zero. Approval requires a delta of exactly one through completed recovery; other actions require zero.
-No support URI is assumed to exist and no successful evidence response is fabricated.
+The explicit lowercase `tags` value overrides any inherited Cucumber selection. Require real registration before the
+mutation, final evidence after all UI/Axe checks, and successful owned cleanup for every executed example. Preserve
+raw outputs and compare expanded names/tags/counts. Run the unaffected live creation/cleanup regression separately;
+its real UI instructions remain in the [main guide](../../../../../../docs/CYPRESS_E2E_TESTING.md):
 
-Run the same selection with `PO10626_DEFER_CLEANUP=false` and the delivered evidence URI configured. Teardown restores
-the recorded inputter session and calls the existing ID-scoped DELETE with the marker. Only HTTP 204 clears a receipt;
-a failure retains it and fails acceptance. Final acceptance requires all fourteen executed examples, real publication
-evidence, successful owned lifecycle cleanup, and the unaffected live creation/cleanup regression. Product foundation
-defects remain failures for their owners to resolve; these tests do not replace production behavior.
+```bash
+TEST_URL=http://localhost:5000 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10273 and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10273 and not @skip' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature' \
+  --env 'tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10273 and not @skip'
+```
 
 ## Support verification
 
 ```bash
-node --test scripts/draft-casefile-cleanup.test.mjs
-corepack yarn test:component:leaf --browser=chrome --spec 'cypress/component/checkAndValidateCase/concurrency-support.cy.ts,cypress/component/checkAndValidateCase/cleanup-policy.cy.ts'
+corepack yarn test:component:leaf --browser=chrome --spec 'cypress/component/checkAndValidateCase/api-fixture-support.cy.ts,cypress/component/checkAndValidateCase/concurrency-support.cy.ts,cypress/component/checkAndValidateCase/cleanup-policy.cy.ts,cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts'
 corepack yarn exec tsc -p e2e.tsconfig.json --noEmit
 corepack yarn exec tsc -p cypress/tsconfig.json --noEmit
 corepack yarn lint:cypress
@@ -87,12 +156,14 @@ corepack yarn check:cypress:test-metadata
 corepack yarn find:duplicate:scenarios
 ```
 
-Helper regressions cover forwarding before interruption, observing later requests, refusing to call an upstream
-rejection a committed loss, explicit retry, lossless versions, evidence validation, scoped cleanup deferral, receipt
-persistence and owner restoration before deletion. They are controlled support tests, not backend acceptance proof.
+Controlled support regressions verify API fixture boundaries, registration/read contracts and failures, forwarding
+before interruption, later requests, rejection handling, explicit retry, lossless versions, evidence validation,
+receipt persistence and owner restoration before DELETE. Cleanup covers 204, 400/401/403/404/409/500/503 and transport
+failure before any deletion or after a 204. These helpers do not prove live backend behavior or browser ordering.
 
-Accessibility examples use the shared Axe binding without new exemptions and native keyboard recovery controls.
-The deletion functional example additionally uses native Tab/Enter and scans its recovery destination. These checks
-are partial accessibility evidence. Full keyboard traversal, visible focus, screen-reader announcements and
-magnification still need specialist assurance. The existing suite suppresses native beforeunload dialogs; the
-amendment test checks the actual application discard confirmation and cannot establish native browser dialog behavior.
+Accessibility examples retain shared Axe checks before and after native keyboard recovery, with no new exemptions.
+The deletion functional example also uses native Tab/Enter and scans its recovery destination. These are partial
+accessibility results. Full traversal, visible focus, screen-reader announcements and magnification need specialist
+assurance. Native beforeunload dialogs remain suppressed by the existing suite; application discard-confirmation
+coverage does not establish native browser dialog behavior. Keep CI, reviewer approval, QA, deployment and all
+unexecuted acceptance evidence pending.

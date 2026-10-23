@@ -11,6 +11,7 @@ Feature: Navigate Draft Casefile recovery accessibly
     When I use the recovery controls with the keyboard
     Then I reach the supported next state without an automatic case change
     And I check the page for accessibility
+    And publication evidence confirms no duplicate case publication
 
     Examples:
       | journey  | fault            |

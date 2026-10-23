@@ -9,6 +9,7 @@ import {
   readDraftSnapshot,
   assertUnchangedDraft,
   versionValue,
+  registerPublicationEvidence,
   readPublicationEvidence,
   assertPublicationDelta,
 } from '../../actions/checkAndValidateCase/draft-casefile-evidence.actions';
@@ -65,7 +66,11 @@ export class DraftCasefileConcurrencyFlow {
     createOwnedSubmittedDraft().then((owned) => {
       this.owned = owned;
       if (this.journey === 'resubmit') rejectOwnedDraft(owned);
-      else performAuthentication(owned.checker);
+      // API fixture creation and rejected-prerequisite setup end in the current inputter session.
+      registerPublicationEvidence(owned).then((evidence) => {
+        this.publicationBefore = evidence;
+      });
+      if (this.journey !== 'resubmit') cy.then(() => performAuthentication(owned.checker));
       readDraftSnapshot(owned.id).then((snapshot) => {
         expect(snapshot.draft.casefile_status).to.equal(this.journey === 'resubmit' ? 'REJECTED' : 'SUBMITTED');
         expect(snapshot.draft.submitted_by).to.equal(owned.inputterId);
@@ -82,34 +87,6 @@ export class DraftCasefileConcurrencyFlow {
   }
 
   /**
-   * Captures backend producer evidence or explicitly records incomplete local development evidence.
-   */
-  private capturePublicationBaseline(): void {
-    const { owned } = this.context();
-    if (Cypress.env('PO10626_PUBLICATION_EVIDENCE_PATH')) {
-      readPublicationEvidence(owned).then((evidence) => {
-        this.publicationBefore = evidence;
-      });
-      return;
-    }
-    if (Cypress.env('PO10626_DEFER_CLEANUP') !== true) {
-      throw new Error("Final PO-10626 acceptance requires Jonathan's publication-evidence URI");
-    }
-    // Fixture cleanup configuration already verifies this explicit development mode is localhost-only.
-    cy.log('PO-10626 PARTIAL DEVELOPMENT: publication evidence and lifecycle cleanup are not verified');
-    cy.writeFile(
-      `functional-output/po10626/incomplete-${owned.marker}-${owned.id}.json`,
-      {
-        id: owned.id,
-        testRunReference: owned.marker,
-        acceptance: 'incomplete',
-        unverified: ['publication requests', 'lifecycle cleanup'],
-      },
-      { log: false },
-    );
-  }
-
-  /**
    * Installs the method-and-resource-scoped transport monitor before dispatch.
    * @param fault One-shot fault or conflict selected for this example.
    */
@@ -119,7 +96,6 @@ export class DraftCasefileConcurrencyFlow {
     if (!this.owned) throw new Error('Owned fixture is missing');
     this.fault = fault as DraftCasefileFault;
     this.monitor = armDraftCasefileMutation(this.owned.id, this.journey === 'resubmit' ? 'PUT' : 'PATCH', this.fault);
-    this.capturePublicationBaseline();
   }
 
   /**
@@ -254,6 +230,10 @@ export class DraftCasefileConcurrencyFlow {
       const expectedEvent = { approve: 'Approved', reject: 'Rejected', delete: 'Deleted', resubmit: 'Resubmitted' }[
         this.journey
       ];
+      // BE dependency: successful approval can remain PUBLISHING_PENDING until the
+      // PO-10629 consumer is delivered. Producer evidence proves send attempts and
+      // acknowledgments, not account creation. Published lifecycle cleanup remains
+      // required before the pending approval example can satisfy full AC1 acceptance.
       const statuses =
         this.journey === 'approve'
           ? ['PUBLISHING_PENDING', 'PUBLISHED', 'PUBLISHING_FAILED']
@@ -303,25 +283,28 @@ export class DraftCasefileConcurrencyFlow {
         expect(monitor.attempts).to.equal(this.retried ? 2 : 1);
         expect(monitor.upstreamSuccesses).to.equal(1);
       });
-      this.assertPublication();
     });
   }
 
-  /**
-   * Verifies producer count deltas through the completed recovery boundary.
-   */
-  private assertPublication(): void {
-    const { owned } = this.context();
-    const baseline = this.publicationBefore;
-    if (baseline) {
-      readPublicationEvidence(owned).then((current) =>
-        assertPublicationDelta(baseline, current, this.journey === 'approve' ? 1 : 0),
-      );
-    } else {
-      cy.then(() => {
-        if (Cypress.env('PO10626_DEFER_CLEANUP') !== true) throw new Error('Publication verification is incomplete');
+  /** Reads owner-scoped producer evidence after the final browser and accessibility assertions. */
+  public assertPublicationEvidence(): void {
+    cy.then(() => {
+      const { owned, monitor } = this.context();
+      const baseline = this.publicationBefore;
+      if (!baseline) throw new Error('Publication observation was not registered before the mutation');
+      expect(monitor.attempts, 'browser attempts through the final UI assertion').to.equal(this.retried ? 2 : 1);
+      // Restoring cy.session navigates away. This must be the final step after all UI/Axe assertions.
+      performAuthentication(owned.inputter);
+      readPublicationEvidence(owned).then((current) => {
+        return cy
+          .writeFile(
+            `functional-output/po10626/publication-${owned.marker}-${owned.id}.json`,
+            { id: owned.id, testRunReference: owned.marker, before: baseline, after: current },
+            { log: false },
+          )
+          .then(() => assertPublicationDelta(baseline, current, this.journey === 'approve' ? 1 : 0));
       });
-    }
+    });
   }
 
   /**
@@ -352,7 +335,6 @@ export class DraftCasefileConcurrencyFlow {
       );
       if (!this.retried) expect(this.recovered, 'the UI recovery boundary completed').to.equal(true);
     });
-    this.assertPublication();
   }
 
   /**

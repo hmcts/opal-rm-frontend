@@ -4,7 +4,7 @@ import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/cr
 import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
 import { checkerUser, type CheckerRole } from '../../mocks/createDraftCasefile/checker-dashboard.mock';
 import { rejectedAmendmentDraft } from '../../mocks/createDraftCasefile/rejected-amendment.mock';
-import { stubPersistedCasefileReferences } from './check-case-details-modes.actions';
+import { stubPersistedCasefileReferences } from '../../setup/createDraftCasefile/persisted-casefile.intercept';
 import { PERSISTED_CASEFILE_REFERENCES } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
 
@@ -152,9 +152,27 @@ export class RejectedAmendmentActions {
     if (!otherInputter) cy.location('hash').should('eq', '#rejected');
     cy.get(otherInputter ? D.allRejectedSuccess : D.success)
       .should('be.visible')
-      .and('contain.text', 'Corrected')
-      .and('contain.text', 'Respondent');
+      .and('contain.text', "You have submitted Corrected Respondent's case for review.");
     cy.get(D.row(17)).should('not.exist');
+  }
+
+  /** Checks dismissal or refresh removes the inputter notice without another replacement.
+   * @param method Dismiss or refresh boundary. */
+  public clearResubmissionNotice(method: string): void {
+    if (!['dismiss', 'refresh'].includes(method)) throw new Error('Unsupported resubmission notice operation');
+    const otherInputter = this.draft.submitted_by !== 'BUU-CHECKER';
+    const notice = otherInputter ? D.allRejectedSuccess : D.success;
+    const dismiss = otherInputter ? D.allRejectedDismiss : D.successDismiss;
+    const heading = otherInputter ? D.allRejectedHeading : D.heading;
+    if (method === 'dismiss') {
+      cy.get(dismiss).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get(heading).should('be.focused');
+    } else cy.reload();
+    cy.get(heading).should('be.visible');
+    cy.get(notice).should('not.exist');
+    cy.get('@amendmentPut.all').should('have.length', 1);
+    cy.get('@amendmentPost.all').should('have.length', 0);
   }
 
   /** Uses Back and declines the shared departure confirmation. */

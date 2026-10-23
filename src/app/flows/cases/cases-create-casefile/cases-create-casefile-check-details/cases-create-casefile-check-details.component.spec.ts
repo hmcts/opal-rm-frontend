@@ -1,3 +1,13 @@
+import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
+import type { CasesDraftCasefileDecision } from '../../cases-draft/types/cases-draft-casefile-decision.type';
+import {
+  NavigationCancel,
+  NavigationCancellationCode,
+  NavigationEnd,
+  NavigationError,
+  NavigationStart,
+  type Event as RouterEvent,
+} from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { CasesDraftCasefileDecisionComponent } from '../../cases-draft/components/cases-draft-casefile-decision/cases-draft-casefile-decision.component';
 import { defaultCasesDraftNavigation } from '../../cases-draft/utils/cases-draft-navigation';
@@ -33,6 +43,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   let fixture: ComponentFixture<CasesCreateCasefileCheckDetailsComponent>;
   let store: InstanceType<typeof CasesCreateCasefileStore>;
   const maintenance = {
+    patchDraftCasefile: vi.fn(),
     createDraftCasefile: vi.fn(),
     getMajorCreditors: vi.fn(),
     replaceDraftCasefile: vi.fn(),
@@ -41,7 +52,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     getMaintenanceApplications: vi.fn(),
     getResults: vi.fn(),
   };
-  const router = { navigateByUrl: vi.fn().mockResolvedValue(true) };
+  const router = { navigateByUrl: vi.fn().mockResolvedValue(true), events: new Subject<RouterEvent>() };
   let routeData: BehaviorSubject<Data>;
   const userState = signal({
     ...structuredClone(OPAL_USER_STATE_MOCK),
@@ -62,6 +73,9 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   const featureFlags = signal<Record<string, boolean>>({ 'release-1c-rm-create-case-files': true });
   const selection = signal<ICasesDraftNavigation>(defaultCasesDraftNavigation('to-review', 'checker'));
   const draftNavigation = {
+    recordCheckerDecision: vi.fn().mockReturnValue(true),
+    clearCheckerDecision: vi.fn(),
+    setSelection: vi.fn().mockImplementation((value: ICasesDraftNavigation) => selection.set(value)),
     selection,
     amendmentReturnUrl: vi.fn().mockReturnValue('/cases/draft/create-and-manage/tabs#rejected'),
     recordAllRejectedResubmission: vi.fn().mockReturnValue(true),
@@ -83,6 +97,12 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   const persisted = createPersistedCasefileResolved;
   beforeEach(async () => {
     router.navigateByUrl.mockReset().mockResolvedValue(true);
+    router.events = new Subject<RouterEvent>();
+    maintenance.patchDraftCasefile.mockReset();
+    draftNavigation.recordCheckerDecision.mockReset().mockReturnValue(true);
+    draftNavigation.clearCheckerDecision.mockClear();
+    draftNavigation.setSelection.mockReset().mockImplementation((value: ICasesDraftNavigation) => selection.set(value));
+
     authenticated.set(true);
     featureFlags.set({ 'release-1c-rm-create-case-files': true });
     userState.set({
@@ -355,7 +375,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     );
     const pending = fixture.componentInstance.handleDelete();
     await fixture.componentInstance.handleDelete();
-    await fixture.componentInstance.handleDecision();
+    await fixture.componentInstance.handleDecision(approvalDecision);
     expect(router.navigateByUrl).toHaveBeenCalledOnce();
     finish(true);
     await pending;
@@ -385,9 +405,13 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
   );
 
   it.each(['approve', 'reject'] as const)(
-    'returns a validated %s to the checker queue without persisting it',
+    'persists a validated %s once while preserving the saved and creation presentation',
     async (decision) => {
-      loadReview();
+      const resolved = persisted();
+      loadReview(resolved);
+      maintenance.patchDraftCasefile.mockReturnValue(
+        of(decisionResponse(resolved, decision === 'approve' ? 'PUBLISHING_PENDING' : 'REJECTED')),
+      );
       const selected = {
         ...defaultCasesDraftNavigation('to-review', 'checker'),
         page: 3,
@@ -412,6 +436,15 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       expect(getState(store)).toEqual(creationBefore);
       expect(getState(TestBed.inject(CasesDraftCasefileStore))).toEqual(persistedBefore);
       expect(getState(TestBed.inject(GlobalStore))).toEqual(globalBefore);
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledExactlyOnceWith(
+        17,
+        {
+          business_unit_id: 44,
+          casefile_status: decision === 'approve' ? 'PUBLISHING_PENDING' : 'REJECTED',
+          ...(decision === 'reject' ? { status_message: 'Synthetic reason' } : {}),
+        },
+        '"0"',
+      );
       expect(completeSubmission).not.toHaveBeenCalled();
       expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
       expect(maintenance.getMajorCreditors).not.toHaveBeenCalled();
@@ -420,6 +453,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
 
   it('uses default to-review context when the current checker selection belongs to another queue', async () => {
     loadReview();
+    maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse()));
     const selected = { ...defaultCasesDraftNavigation('rejected', 'checker'), page: 4 };
     selection.set(selected);
     fixture.detectChanges();
@@ -430,7 +464,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
       defaultCasesDraftNavigation('to-review', 'checker'),
     );
     expect(router.navigateByUrl).toHaveBeenCalledExactlyOnceWith('/cases/draft/check-and-validate/tabs#to-review');
-    expect(selection()).toEqual(selected);
+    expect(selection()).toEqual(defaultCasesDraftNavigation('to-review', 'checker'));
   });
 
   it('retains invalid local input without navigating', async () => {
@@ -461,6 +495,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     'retains decision and reason on %s navigation with the safe banner',
     async (result) => {
       loadReview();
+      maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse(persisted(), 'REJECTED')));
       if (result === 'false') router.navigateByUrl.mockResolvedValueOnce(false);
       else router.navigateByUrl.mockRejectedValueOnce(new Error('Synthetic navigation failure'));
       fixture.detectChanges();
@@ -523,6 +558,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
 
   it('ignores duplicate decision completion while navigation is pending', async () => {
     loadReview();
+    maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse()));
     let finish!: (value: boolean) => void;
     router.navigateByUrl.mockReturnValueOnce(
       new Promise<boolean>((resolve) => {
@@ -534,11 +570,11 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     child.form.controls.create_casefile_review_decision.setValue('approve');
     child.handleContinue();
     child.handleContinue();
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(router.navigateByUrl).toHaveBeenCalledOnce());
     expect(fixture.componentInstance.busy()).toBe(true);
-    expect(router.navigateByUrl).toHaveBeenCalledOnce();
     finish(true);
-    await fixture.whenStable();
-    expect(fixture.componentInstance.busy()).toBe(false);
+    await vi.waitFor(() => expect(fixture.componentInstance.busy()).toBe(false));
   });
 
   it.each(['SUBMITTED', 'RESUBMITTED'] as const)(
@@ -1618,6 +1654,555 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     expect(maintenance.replaceDraftCasefile).toHaveBeenCalledOnce();
     expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
     expect(maintenance.getDraftCasefile).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+  const approvalDecision = { decision: 'approve', targetStatus: 'PUBLISHING_PENDING' } as const;
+  function decisionResponse(resolved = persisted(), status: 'PUBLISHING_PENDING' | 'REJECTED' = 'PUBLISHING_PENDING') {
+    const body = structuredClone(resolved.draft);
+    body.casefile_status = status;
+    body.casefile_snapshot.respondent_account.respondent_name = 'Persisted Respondent';
+    return new HttpResponse({ status: 200, body, headers: new HttpHeaders({ ETag: '"1"' }) });
+  }
+
+  it.each(['SUBMITTED', 'RESUBMITTED'] as const)('PATCHes an eligible %s approval once', async (status) => {
+    const resolved = persisted();
+    resolved.draft.casefile_status = status;
+    loadReview(resolved);
+    maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse(resolved)));
+    fixture.detectChanges();
+    decisionForm().form.controls.create_casefile_review_decision.setValue('approve');
+    decisionForm().handleContinue();
+    await fixture.whenStable();
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledExactlyOnceWith(
+      17,
+      { business_unit_id: 44, casefile_status: 'PUBLISHING_PENDING' },
+      '"0"',
+    );
+    expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledExactlyOnceWith({
+      identity: resolved.identity,
+      draftCasefileId: 17,
+      respondentName: 'Persisted Respondent',
+      outcome: 'approved',
+    });
+    expect(router.navigateByUrl).toHaveBeenCalledExactlyOnceWith('/cases/draft/check-and-validate/tabs#to-review');
+    expect(maintenance.createDraftCasefile).not.toHaveBeenCalled();
+    expect(maintenance.replaceDraftCasefile).not.toHaveBeenCalled();
+  });
+
+  it('PATCHes rejection with the exact accepted reason and preserves To review selection', async () => {
+    const resolved = persisted();
+    loadReview(resolved);
+    const selected = { ...defaultCasesDraftNavigation('to-review', 'checker'), page: 3 };
+    selection.set(selected);
+    maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse(resolved, 'REJECTED')));
+    await fixture.componentInstance.handleDecision({
+      decision: 'reject',
+      targetStatus: 'REJECTED',
+      reason: '  Synthetic reason\nSecond line  ',
+    });
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledExactlyOnceWith(
+      17,
+      {
+        business_unit_id: 44,
+        casefile_status: 'REJECTED',
+        status_message: '  Synthetic reason\nSecond line  ',
+      },
+      '"0"',
+    );
+    expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: 'rejected' }),
+    );
+    expect(draftNavigation.setSelection).toHaveBeenCalledWith(selected);
+  });
+
+  it.each(['accepted with cancelled navigation', 'unusable receipt'] as const)(
+    'keeps Continue enabled without replay after %s',
+    async (outcome) => {
+      loadReview();
+      const response = new Subject<HttpResponse<unknown>>();
+      maintenance.patchDraftCasefile.mockReturnValue(response);
+      router.navigateByUrl.mockResolvedValue(false);
+      fixture.detectChanges();
+      decisionForm().form.controls.create_casefile_review_decision.setValue('approve');
+      const submit: HTMLButtonElement = fixture.nativeElement.querySelector('#create_casefile_review_continue');
+      submit.click();
+      fixture.detectChanges();
+      expect(submit.disabled).toBe(false);
+      expect(decisionForm().form.enabled).toBe(true);
+      submit.click();
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+
+      response.next(outcome === 'unusable receipt' ? new HttpResponse({ status: 200 }) : decisionResponse());
+      response.complete();
+      await vi.waitFor(() => expect(fixture.componentInstance.busy()).toBe(false));
+      fixture.detectChanges();
+      expect(submit.disabled).toBe(false);
+      expect(decisionForm().form.enabled).toBe(true);
+      submit.click();
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+      expect(fixture.componentInstance.decisionLocked()).toBe(true);
+      expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(outcome === 'unusable receipt');
+      if (outcome === 'unusable receipt') {
+        expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+        expect(router.navigateByUrl).not.toHaveBeenCalled();
+      } else {
+        expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
+        expect(router.navigateByUrl).toHaveBeenCalledOnce();
+      }
+    },
+  );
+
+  it('blocks concurrent Continue, Delete and Back, then keeps completion latched', async () => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const first = fixture.componentInstance.handleDecision(approvalDecision);
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    await fixture.componentInstance.handleDelete();
+    fixture.componentInstance.handleBack();
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.submissionPending()).toBe(true);
+    response.next(decisionResponse());
+    response.complete();
+    await first;
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+  });
+
+  it.each([0, 409, 412, 503])('requires authoritative reload after HTTP %s', async (status) => {
+    loadReview();
+    maintenance.patchDraftCasefile.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(true);
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+  });
+
+  it.each([400, 422])('allows explicit correction after definite validation rejection %s', async (status) => {
+    loadReview();
+    maintenance.patchDraftCasefile.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status })));
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(false);
+    maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse()));
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([EMPTY, of(new HttpResponse({ status: 200 }))])(
+    'locks an empty/unusable receipt without success',
+    async (response) => {
+      loadReview();
+      maintenance.patchDraftCasefile.mockReturnValue(response);
+      await fixture.componentInstance.handleDecision(approvalDecision);
+      expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(true);
+      expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['cancel', 'reject'] as const)('keeps the notice for Back after navigation %s', async (failure) => {
+    loadReview();
+    draftNavigation.clearCheckerDecision.mockClear();
+    maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse()));
+    if (failure === 'cancel') router.navigateByUrl.mockResolvedValue(false);
+    else router.navigateByUrl.mockRejectedValue(new Error('Synthetic navigation failure'));
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    await fixture.componentInstance.handleDelete();
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+    expect(draftNavigation.clearCheckerDecision).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.decisionLocked()).toBe(true);
+    expect(fixture.componentInstance.busy()).toBe(false);
+    expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+  });
+
+  it.each(['accepted', 'validation rejected'] as const)(
+    'retains the %s outcome after consecutive guard-rejected departures',
+    async (outcome) => {
+      loadReview();
+      const response = new Subject<ReturnType<typeof decisionResponse>>();
+      maintenance.patchDraftCasefile.mockReturnValue(response);
+      const operation = fixture.componentInstance.handleDecision(approvalDecision);
+      for (const id of [1, 2]) {
+        router.events.next(new NavigationStart(id, '/other'));
+        router.events.next(
+          new NavigationCancel(id, '/other', 'Guard rejected', NavigationCancellationCode.GuardRejected),
+        );
+      }
+      if (outcome === 'accepted') {
+        response.next(decisionResponse());
+        response.complete();
+      } else response.error(new HttpErrorResponse({ status: 400 }));
+      await operation;
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+      expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(false);
+      if (outcome === 'accepted') {
+        expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
+        expect(router.navigateByUrl).toHaveBeenCalledOnce();
+      } else {
+        expect(fixture.componentInstance.decisionLocked()).toBe(false);
+        expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+        expect(router.navigateByUrl).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('returns confirmed success after one blocked departure supersedes another', async () => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    router.events.next(new NavigationStart(1, '/first'));
+    router.events.next(
+      new NavigationCancel(1, '/first', 'Superseded', NavigationCancellationCode.SupersededByNewNavigation),
+    );
+    router.events.next(new NavigationStart(2, '/second'));
+    router.events.next(new NavigationCancel(2, '/second', 'Guard rejected', NavigationCancellationCode.GuardRejected));
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+    expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+  });
+
+  it('does not let an older guard cancellation forgive the current unresolved departure', async () => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    router.events.next(new NavigationStart(1, '/first'));
+    router.events.next(new NavigationStart(2, '/second'));
+    router.events.next(new NavigationCancel(1, '/first', 'Guard rejected', NavigationCancellationCode.GuardRejected));
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('does not forgive an earlier committed route change after a later guard cancellation', async () => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    router.events.next(new NavigationStart(1, '/review#changed'));
+    router.events.next(new NavigationEnd(1, '/review#changed', '/review#changed'));
+    router.events.next(new NavigationStart(2, '/other'));
+    router.events.next(new NavigationCancel(2, '/other', 'Guard rejected', NavigationCancellationCode.GuardRejected));
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    NavigationCancellationCode.Redirect,
+    NavigationCancellationCode.NoDataFromResolver,
+    NavigationCancellationCode.Aborted,
+    undefined,
+  ])('does not forgive a departure cancelled for reason %s', async (code) => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    router.events.next(new NavigationStart(1, '/other'));
+    router.events.next(new NavigationCancel(1, '/other', 'Other cancellation', code));
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('retains unresolved-departure protection when navigation errors', async () => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    router.events.next(new NavigationStart(1, '/other'));
+    router.events.next(new NavigationError(1, '/other', new Error('Synthetic navigation error')));
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('does not apply a completed guard cancellation to a later decision attempt', async () => {
+    loadReview();
+    router.events.next(new NavigationStart(1, '/other'));
+    router.events.next(new NavigationCancel(1, '/other', 'Guard rejected', NavigationCancellationCode.GuardRejected));
+    maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse()));
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
+    expect(router.navigateByUrl).toHaveBeenCalledOnce();
+  });
+
+  it.each(['first departure', 'replacement pending', 'replacement complete'] as const)(
+    'suppresses the handoff after competing navigation: %s',
+    async (departure) => {
+      loadReview();
+      const response = new Subject<ReturnType<typeof decisionResponse>>();
+      maintenance.patchDraftCasefile.mockReturnValue(response);
+      const operation = fixture.componentInstance.handleDecision(approvalDecision);
+      router.events.next(new NavigationStart(1, '/other'));
+      if (departure !== 'first departure') {
+        router.events.next(
+          new NavigationCancel(1, '/other', 'Superseded', NavigationCancellationCode.SupersededByNewNavigation),
+        );
+        router.events.next(new NavigationStart(2, '/replacement'));
+        if (departure === 'replacement complete')
+          router.events.next(new NavigationEnd(2, '/replacement', '/replacement'));
+      }
+      response.next(decisionResponse());
+      response.complete();
+      await operation;
+      expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      await fixture.componentInstance.handleDecision(approvalDecision);
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('does not revive an authority-invalidated attempt when the release returns', async () => {
+    loadReview();
+    fixture.detectChanges();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    featureFlags.set({ 'release-1c-rm-create-case-files': false });
+    fixture.detectChanges();
+    featureFlags.set({ 'release-1c-rm-create-case-files': true });
+    fixture.detectChanges();
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(true);
+  });
+
+  it('leaves a newly resolved entry usable when the previous callback arrives', async () => {
+    loadReview();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    loadReview(persisted());
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.decisionLocked()).toBe(false);
+    expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(false);
+  });
+
+  const returnDecisions: CasesDraftCasefileDecision[] = [
+    { decision: 'approve', targetStatus: 'PUBLISHING_PENDING' },
+    { decision: 'reject', targetStatus: 'REJECTED', reason: 'Synthetic rejection reason' },
+  ];
+  const returnFailures = returnDecisions.flatMap((decision) =>
+    (['cancel', 'reject'] as const).map((failure) => ({ decision, failure })),
+  );
+  it.each(returnFailures)(
+    'preserves API feedback after accepted $decision.decision and navigation $failure',
+    async ({ decision, failure }) => {
+      const resolved = persisted();
+      loadReview(resolved);
+      draftNavigation.clearCheckerDecision.mockClear();
+      maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse(resolved, decision.targetStatus)));
+      const global = TestBed.inject(GlobalStore);
+      const expectedBanner = {
+        ...GLOBAL_ERROR_STATE,
+        error: true,
+        title: 'Synthetic return failure',
+        message: 'Synthetic return detail',
+        operationId: 'SYNTHETIC-RETURN',
+      };
+      router.navigateByUrl.mockImplementationOnce(async () => {
+        global.setBannerError(expectedBanner);
+        if (failure === 'reject') throw new Error('Synthetic navigation failure');
+        return false;
+      });
+
+      await fixture.componentInstance.handleDecision(decision);
+
+      expect(global.bannerError()).toEqual(expectedBanner);
+      expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
+      expect(draftNavigation.clearCheckerDecision).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.decisionLocked()).toBe(true);
+      expect(fixture.componentInstance.busy()).toBe(false);
+      await fixture.componentInstance.handleDecision(decision);
+      await fixture.componentInstance.handleDelete();
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+      expect(router.navigateByUrl).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(['draft', 'etag', 'missing result', 'destroy'] as const)(
+    'suppresses a callback after %s changes',
+    async (change) => {
+      loadReview();
+      const response = new Subject<ReturnType<typeof decisionResponse>>();
+      maintenance.patchDraftCasefile.mockReturnValue(response);
+      const operation = fixture.componentInstance.handleDecision(approvalDecision);
+      const saved = TestBed.inject(CasesDraftCasefileStore);
+      if (change === 'draft') saved.loadResolved(persisted());
+      if (change === 'etag') saved.loadResolved(persisted({ etag: '"2"' }));
+      if (change === 'missing result') routeData.next({});
+      if (change === 'destroy') fixture.destroy();
+      response.next(decisionResponse());
+      response.complete();
+      await operation;
+      expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(saved.requiresReload()).toBe(false);
+    },
+  );
+
+  it('does not release a newer decision lock when the old entry settles', async () => {
+    loadReview();
+    const firstResponse = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(firstResponse);
+    const first = fixture.componentInstance.handleDecision(approvalDecision);
+    const nextDraft = structuredClone(persisted().draft);
+    nextDraft.draft_casefile_id = 18;
+    const nextEntry = persisted({ draft: nextDraft });
+    loadReview(nextEntry);
+    const secondResponse = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(secondResponse);
+    const second = fixture.componentInstance.handleDecision(approvalDecision);
+    firstResponse.next(decisionResponse());
+    firstResponse.complete();
+    await first;
+    expect(fixture.componentInstance.submissionPending()).toBe(true);
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    secondResponse.next(decisionResponse(nextEntry));
+    secondResponse.complete();
+    await second;
+    expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledWith(
+      expect.objectContaining({ draftCasefileId: 18 }),
+    );
+    expect(fixture.componentInstance.submissionPending()).toBe(false);
+  });
+  it.each(['', '   ', 'x'.repeat(251)])('rejects an invalid raw checker reason before dispatch: %j', async (reason) => {
+    loadReview();
+    await fixture.componentInstance.handleDecision({ decision: 'reject', targetStatus: 'REJECTED', reason });
+    expect(maintenance.patchDraftCasefile).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.submissionPending()).toBe(false);
+    expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(false);
+  });
+
+  it.each(['draft ID', 'stored identity', 'empty ETag'] as const)(
+    'requires a matching %s at the checker dispatch boundary',
+    async (difference) => {
+      loadReview();
+      const replacement = persisted();
+      if (difference === 'draft ID') replacement.draft.draft_casefile_id = 18;
+      if (difference === 'stored identity') replacement.identity.submittedBy = 'BUU-OTHER-CHECKER';
+      if (difference === 'empty ETag') replacement.etag = '';
+      const saved = TestBed.inject(CasesDraftCasefileStore);
+      saved.loadResolved(replacement);
+      expect(fixture.componentInstance.reviewable()).toBe(true);
+      await fixture.componentInstance.handleDecision(approvalDecision);
+      expect(maintenance.patchDraftCasefile).not.toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(saved.requiresReload()).toBe(false);
+    },
+  );
+
+  it.each([false, true])(
+    'keeps accepted completion locked when notice recording fails with existing banner=%s',
+    async (existingBanner) => {
+      loadReview();
+      maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse()));
+      const global = TestBed.inject(GlobalStore);
+      const expectedBanner = {
+        ...GLOBAL_ERROR_STATE,
+        error: true,
+        title: 'Synthetic existing error',
+        message: 'Synthetic existing detail',
+        operationId: 'SYNTHETIC-EXISTING',
+      };
+      draftNavigation.recordCheckerDecision.mockImplementationOnce(() => {
+        if (existingBanner) global.setBannerError(expectedBanner);
+        return false;
+      });
+      await fixture.componentInstance.handleDecision(approvalDecision);
+      expect(global.bannerError().error).toBe(true);
+      if (existingBanner) expect(global.bannerError()).toEqual(expectedBanner);
+      else expect(global.bannerError().title).toBe('There was a problem');
+      expect(fixture.componentInstance.decisionLocked()).toBe(true);
+      expect(fixture.componentInstance.busy()).toBe(false);
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      await fixture.componentInstance.handleDecision(approvalDecision);
+      await fixture.componentInstance.handleDelete();
+      expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('suppresses navigation-failure feedback after checker authority is lost during dashboard resolution', async () => {
+    loadReview();
+    fixture.detectChanges();
+    maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse()));
+    let finish!: (accepted: boolean) => void;
+    router.navigateByUrl.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    await vi.waitFor(() => expect(router.navigateByUrl).toHaveBeenCalledOnce());
+    featureFlags.set({ 'release-1c-rm-create-case-files': false });
+    fixture.detectChanges();
+    finish(false);
+    await operation;
+    expect(fixture.componentInstance.readable()).toBe(false);
+    expect(TestBed.inject(GlobalStore).bannerError()).toEqual(GLOBAL_ERROR_STATE);
+    expect(draftNavigation.clearCheckerDecision).toHaveBeenCalled();
+    expect(fixture.componentInstance.decisionLocked()).toBe(true);
+    expect(fixture.componentInstance.busy()).toBe(false);
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
+  });
+
+  it('preserves a replacement saved context when an old attempt loses authentication', async () => {
+    loadReview();
+    fixture.detectChanges();
+    const response = new Subject<ReturnType<typeof decisionResponse>>();
+    maintenance.patchDraftCasefile.mockReturnValue(response);
+    const operation = fixture.componentInstance.handleDecision(approvalDecision);
+    const replacement = persisted();
+    replacement.draft.draft_casefile_id = 18;
+    const saved = TestBed.inject(CasesDraftCasefileStore);
+    saved.loadResolved(replacement);
+    authenticated.set(false);
+    fixture.detectChanges();
+    response.next(decisionResponse());
+    response.complete();
+    await operation;
+    expect(saved.draft()?.draft_casefile_id).toBe(18);
+    expect(saved.requiresReload()).toBe(false);
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it('locks a synchronous checker request failure without automatically repeating dispatch', async () => {
+    loadReview();
+    maintenance.patchDraftCasefile.mockImplementationOnce(() => {
+      throw new Error('Synthetic dispatch failure');
+    });
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+    expect(TestBed.inject(CasesDraftCasefileStore).requiresReload()).toBe(true);
+    expect(fixture.componentInstance.busy()).toBe(false);
+    expect(draftNavigation.recordCheckerDecision).not.toHaveBeenCalled();
+    await fixture.componentInstance.handleDecision(approvalDecision);
+    expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 });

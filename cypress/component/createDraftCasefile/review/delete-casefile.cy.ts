@@ -180,7 +180,7 @@ describe('Delete casefile request handling', () => {
     cy.get(D.reason).should('be.disabled');
     cy.get(D.cancel).should('not.exist');
     cy.get<CasesDraftNavigationService>('@draftNavigation').then((navigation) => {
-      expect(navigation.consumeCheckerDeletion()).to.equal(null);
+      expect(navigation.consumeCheckerDecision()).to.equal(null);
     });
     cy.get(D.returnToReviewCases).click().should('be.disabled');
     cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
@@ -189,10 +189,11 @@ describe('Delete casefile request handling', () => {
       expect(navigate.secondCall.args[0].toString()).to.equal('/cases/draft/check-and-validate/tabs#to-review');
     });
     cy.get<CasesDraftNavigationService>('@draftNavigation').then((navigation) => {
-      expect(navigation.consumeCheckerDeletion()).to.deep.equal({
+      expect(navigation.consumeCheckerDecision()).to.deep.equal({
         identity: scenario.resolved.identity,
         draftCasefileId: scenario.resolved.draft.draft_casefile_id,
         respondentName: scenario.deleted.casefile_snapshot.respondent_account.respondent_name,
+        outcome: 'deleted',
       });
     });
     cy.get('@deletePatch.all').should('have.length', 1);
@@ -300,7 +301,7 @@ describe('Delete casefile request handling', () => {
     cy.get(D.cancel).should('be.visible');
     cy.get(D.form).submit();
     cy.get<CasesDraftNavigationService>('@draftNavigation').then((navigation) => {
-      expect(navigation.consumeCheckerDeletion()).to.equal(null);
+      expect(navigation.consumeCheckerDecision()).to.equal(null);
     });
     cy.get('@routerNavigate').should('not.have.been.called');
     cy.get('@deletePatch.all').should('have.length', 1);

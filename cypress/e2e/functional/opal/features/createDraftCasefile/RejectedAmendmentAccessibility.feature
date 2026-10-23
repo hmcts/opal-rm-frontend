@@ -3,7 +3,7 @@ Feature: Accessible rejected casefile correction
   Background:
     Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
 
-  @JIRA-STORY:PO-10610 @JIRA-EPIC:PO-10817
+  @JIRA-STORY:PO-10610 @JIRA-STORY:PO-10611 @JIRA-EPIC:PO-10817
   Scenario: Correct a rejected case with keyboard and reflow checks
     Given a rejected casefile was submitted by "me" in my RM business unit
     When I amend that case from the rejected cases list
@@ -12,6 +12,11 @@ Feature: Accessible rejected casefile correction
     When I correct the respondent and check the corrected case details
     Then the rejected amendment state is accessible at 320 CSS pixels
     And the amendment review actions are reachable using the keyboard
+    When I resubmit the corrected case
+    Then one replacement request uses the same case identifier and saved version
+    And the rejected amendment state is accessible at 320 CSS pixels
+    And the resubmission confirmation clears on "dismiss" without replay
+    And the rejected amendment state is accessible at 320 CSS pixels
 
   @JIRA-STORY:PO-10610 @JIRA-EPIC:PO-10817
   Scenario: Malformed amendment entry shows an accessible error

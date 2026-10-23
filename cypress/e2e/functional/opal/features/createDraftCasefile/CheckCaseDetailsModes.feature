@@ -48,18 +48,20 @@ Feature: Check persisted case details
       | inputter | review        | inputter  |
       | checker  | inputter-view | checker   |
 
-  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-EPIC:PO-10817
-  Scenario Outline: Approve and valid Reject return locally without changing the review queue
+  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-STORY:PO-10611 @JIRA-EPIC:PO-10817
+  Scenario Outline: Checker receives confirmation after the recorded decision
     Given my persisted casefile session has role "checker", status "<status>" and submitter "other"
-    When I open saved casefile "17" through "review"
+    And saved checker decision has the "success" API outcome
+    When I open saved details from the checker To review list
     And I continue with saved decision "<decision>" and reason "<reason>"
-    Then the saved case stays unchanged when the "checker" dashboard is shown
-    And no saved casefile mutation has been requested
+    Then the checker sees the confirmed "<outcome>" decision return
     Examples:
-      | status      | decision | reason |
-      | SUBMITTED   | approve  | empty  |
-      | RESUBMITTED | reject   | valid  |
-      | SUBMITTED   | reject   | 250    |
+      | status      | decision | reason | outcome  |
+      | SUBMITTED   | approve  | empty  | approved |
+      | RESUBMITTED | approve  | empty  | approved |
+      | SUBMITTED   | reject   | valid  | rejected |
+      | RESUBMITTED | reject   | valid  | rejected |
+      | SUBMITTED   | reject   | 250    | rejected |
 
   @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-EPIC:PO-10817
   Scenario Outline: Decision validation identifies and focuses the missing or invalid field
@@ -74,14 +76,15 @@ Feature: Check persisted case details
       | reject   | whitespace | Enter reason for rejection                           |
       | reject   | 251        | Reason for rejection must be 250 characters or fewer |
 
-  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-EPIC:PO-10817
+  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-STORY:PO-10611 @JIRA-EPIC:PO-10817
   Scenario: Switching to Approve clears the conditional rejection error
     Given my persisted casefile session has role "checker", status "SUBMITTED" and submitter "other"
+    And saved checker decision has the "success" API outcome
     When I open saved casefile "17" through "review"
     And I continue with saved decision "reject" and reason "empty"
     Then the saved decision error "Enter reason for rejection" is linked from the focused summary
     When I change the saved review decision to Approve and continue
-    Then the saved case stays unchanged when the "checker" dashboard is shown
+    Then the checker sees the confirmed "approved" decision return
 
   @R1CRmCreateCaseFiles @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
   Scenario: Checker cancels deletion and returns to the selected review
@@ -205,3 +208,35 @@ Feature: Check persisted case details
       | view          |
       | review        |
       | delete        |
+
+  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10611 @JIRA-EPIC:PO-10817
+  Scenario Outline: Checker confirmation is transient and cannot replay its mutation
+    Given my persisted casefile session has role "checker", status "SUBMITTED" and submitter "other"
+    And saved checker decision has the "success" API outcome
+    When I open saved details from the checker To review list
+    And I continue with saved decision "<decision>" and reason "<reason>"
+    Then the checker sees the confirmed "<outcome>" decision return
+    And the checker decision confirmation clears on "<departure>" without replay
+    Examples:
+      | decision | reason | outcome  | departure |
+      | approve  | empty  | approved | dismiss   |
+      | approve  | empty  | approved | refresh   |
+      | approve  | empty  | approved | history   |
+      | approve  | empty  | approved | departure |
+      | reject   | valid  | rejected | dismiss   |
+      | reject   | valid  | rejected | refresh   |
+      | reject   | valid  | rejected | history   |
+      | reject   | valid  | rejected | departure |
+
+  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10611 @JIRA-EPIC:PO-10817
+  Scenario Outline: Uncertain checker completion cannot show success or replay
+    Given my persisted casefile session has role "checker", status "SUBMITTED" and submitter "other"
+    And saved checker decision has the "<receipt>" API outcome
+    When I open saved details from the checker To review list
+    And I continue with saved decision "approve" and reason "empty"
+    Then the saved checker decision fails without success or replay
+    And I check the page for accessibility
+    Examples:
+      | receipt   |
+      | error     |
+      | malformed |

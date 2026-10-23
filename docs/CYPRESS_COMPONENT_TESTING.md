@@ -15,9 +15,13 @@ Use this guide when writing or updating Cypress component specs in `opal-rm-fron
 - Keep specs under `cypress/component/**`, grouped by feature area.
 - Keep functional, keyboard, accessibility, and reflow tests for a component together in its owning `.cy.ts` spec.
   Use logical `describe(...)` groups within that file instead of a separate accessibility component spec.
+  When consolidating existing specs, preserve suite/test names, per-test tags, assertions, and independent setup.
+  Move each group to the component it exercises; confirmation coverage belongs with the confirmation component.
 - Reuse the nearest maintained setup helper when it accurately represents the feature boundary.
 - For a new feature area without a suitable helper, create one targeted helper under the feature's `setup/` folder rather than repeating `mount(...)` in specs.
 - Mount the smallest real parent component that coordinates the behaviour under test. Use the real feature store when store interaction is part of the component contract.
+  For a routed component mount, include only the production routes needed by that boundary. Keep full-shell mounts
+  for scenarios that exercise cross-page navigation or shell behaviour, retaining the relevant guards and resolvers.
 - Allow the helper to seed valid initial state when rehydration is in scope, and expose repeatedly asserted fixtures, stores, or spies through named Cypress aliases.
 - Stub only boundaries that are intentionally outside the component test. A router spy is appropriate when asserting a navigation request; use a real router-outlet setup when route rendering, guards, resolvers, or destination rendering are the behaviour under test.
 - Do not add a production destination placeholder merely to make a component test navigate.
@@ -77,6 +81,10 @@ it('AC1. should render the approved choices', { tags: buildTags('@JIRA-TEST-KEY:
 
 ## Routing and store assertions
 
+- Default-arrival tests must observe the state produced by the real component and route activation. A setup helper
+  must not call sort, pagination, tab-selection, or similar handlers to establish the default being asserted.
+  Apply such overrides only when the scenario explicitly supplies them. For example, an oldest-first arrival test
+  should assert row order, sort indication, and initial page without first calling `changeSort(...)` or `changePage(...)`.
 - Import route segments from the production routing constants under `src/app/**`; do not duplicate route fragments in Cypress-only constants.
 - Compose an expected full path locally when the component contract is the complete URL. A small reusable path helper is appropriate when several scenarios use the same composition.
 - Keep router creation or stubbing in the setup helper and navigation assertions in the spec.
@@ -104,6 +112,9 @@ it('AC1. should render the approved choices', { tags: buildTags('@JIRA-TEST-KEY:
 
 - Prefer mounting the component with representative form or store state already populated when the scenario is concerned with rendering, submission, clearing conditional data, network boundaries, accessibility, or reflow.
 - Allow the feature setup helper to accept small, typed state overrides instead of populating a large form through the DOM in every scenario.
+  If a child owns the form, seed its actual controls after it renders and fail clearly when the requested child is
+  unavailable. Keep the transition under test as a real interaction: a seeded rejection reason can prepare a test
+  that switches to Approve, but cannot replace typing coverage for the character counter or input validation.
 - Do not populate large forms with repeated `.type()` commands when typing is not the behaviour under test. Do not apply `{ delay: 0 }` as the default workaround; seed the component through its setup helper instead.
 - Retain `.type()` only when the scenario needs to prove text entry, input transformation, autocomplete behaviour, validation caused by typing, or a deliberate keyboard interaction.
 - Use direct control interactions such as `.check()` and `.select()` only when that interaction or its resulting state is relevant to the scenario.
@@ -188,6 +199,9 @@ Run the repository's current Jira metadata policy for new or changed component t
 
 Before handoff:
 
+- confirm default-arrival tests do not have their expected state imposed by the setup helper;
+- after moving or consolidating specs, compare full suite/test names and metadata before and after, and execute all
+  affected owners; map any intentional removal to retained assertions as described above;
 - inspect each changed spec for reusable inline objects, repeated validation or warning text, broad request matchers, and mutable fixtures that are seeded without cloning;
 - inspect every `.type()` call and be able to name the input, transformation, validation, or keyboard behaviour it proves; replace setup-only typing with seeded state;
 - search explicitly for `{ delay: 0 }` and remove it unless timing itself is the documented behaviour under test;
@@ -198,6 +212,9 @@ Before handoff:
 - distinguish component evidence from unit, E2E, manual, and external verification;
 - report warnings, blocked dependencies, and checks not run; and
 - apply `docs/FRONTEND_DEFINITION_OF_DONE.md` without claiming human review, QA, CI, deployment, or WCAG completion unless verified.
+
+Use [test-maintenance evidence](CONTRIBUTING.md#test-maintenance-evidence) when changing shared helpers, moving
+coverage, or reporting runtime improvements. A passing serial rerun does not establish that a parallel failure is fixed.
 
 ## Real product defects
 

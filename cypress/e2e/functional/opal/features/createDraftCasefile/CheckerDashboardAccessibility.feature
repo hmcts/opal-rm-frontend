@@ -28,6 +28,7 @@ Feature: Checker dashboard accessibility
   Scenario Outline: Review and view shells remain accessible with valid or invalid identifiers
     Given my checker dashboard session has role "checker"
     When I open the safe checker "<kind>" shell with identifier "<id>"
+    Then the saved checker "<kind>" destination safely handles identifier "<id>"
     Then I check the page for accessibility
     And I capture the "<capture>" checker shell
     Examples:
@@ -60,3 +61,21 @@ Feature: Checker dashboard accessibility
     And I confirm the saved case deletion
     Then the saved deletion reason remains editable without replay
     And I check the page for accessibility
+
+  @JIRA-STORY:PO-10611 @JIRA-EPIC:PO-10817 @accessibility
+  Scenario Outline: Recorded checker decisions announce success and dismiss with the keyboard
+    Given my persisted casefile session has role "checker", status "SUBMITTED" and submitter "other"
+    And saved checker decision has the "success" API outcome
+    When I open saved details from the checker To review list
+    Then I check the page for accessibility
+    When I continue with saved decision "<decision>" and reason "<reason>"
+    Then the checker sees the confirmed "<outcome>" decision return
+    And I check the page for accessibility
+    And the checker decision confirmation reflows at 320 CSS pixels
+    And I check the page for accessibility
+    And the checker decision confirmation clears on "dismiss" without replay
+    And I check the page for accessibility
+    Examples:
+      | decision | reason | outcome  |
+      | approve  | empty  | approved |
+      | reject   | valid  | rejected |

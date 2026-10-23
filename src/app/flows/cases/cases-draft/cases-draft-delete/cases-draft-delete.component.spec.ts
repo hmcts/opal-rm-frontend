@@ -438,7 +438,7 @@ describe('CasesDraftDeleteComponent', () => {
     expect(store.requiresReload()).toBe(true);
     expect(component.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
     expect(router.navigateByUrl).not.toHaveBeenCalled();
-    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDecision()).toBeNull();
     expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
     expect(api.getDraftCasefile).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#create_casefile_delete_return')).toBeNull();
@@ -470,7 +470,7 @@ describe('CasesDraftDeleteComponent', () => {
 
   it('handles EMPTY completion without recording success or fetching latest status', async () => {
     api.patchDraftCasefile.mockReturnValue(EMPTY);
-    const record = vi.spyOn(TestBed.inject(CasesDraftNavigationService), 'recordCheckerDeletion');
+    const record = vi.spyOn(TestBed.inject(CasesDraftNavigationService), 'recordCheckerDecision');
     const component = create();
     fixture.detectChanges();
     component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
@@ -493,7 +493,7 @@ describe('CasesDraftDeleteComponent', () => {
 
     expect(api.patchDraftCasefile).not.toHaveBeenCalled();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
-    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDecision()).toBeNull();
     expect(getState(store)).toEqual(before);
     expect(component.form.controls.create_casefile_delete_reason.value).toBe('Synthetic reason');
     expect(component.form.controls.create_casefile_delete_reason.enabled).toBe(true);
@@ -516,14 +516,14 @@ describe('CasesDraftDeleteComponent', () => {
       direction: 'descending' as const,
     };
     navigation.setSelection(selection);
-    const record = vi.spyOn(navigation, 'recordCheckerDeletion');
+    const record = vi.spyOn(navigation, 'recordCheckerDecision');
     const before = structuredClone(getState(store));
 
     await component.handleDelete();
     await component.handleDelete();
 
     expect(record).toHaveReturnedWith(false);
-    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(navigation.selection()).toEqual(selection);
     expect(router.navigateByUrl).not.toHaveBeenCalled();
     expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
@@ -536,7 +536,7 @@ describe('CasesDraftDeleteComponent', () => {
   it('records a confirmed deletion and returns to the selected To review queue', async () => {
     api.patchDraftCasefile.mockReturnValue(of(deletedResponse()));
     const navigation = TestBed.inject(CasesDraftNavigationService);
-    const record = vi.spyOn(navigation, 'recordCheckerDeletion');
+    const record = vi.spyOn(navigation, 'recordCheckerDecision');
     const selection = {
       tab: 'to-review' as const,
       page: 3,
@@ -555,6 +555,7 @@ describe('CasesDraftDeleteComponent', () => {
       identity: deleteResult().identity,
       draftCasefileId: 17,
       respondentName: deletedResponse().body!.casefile_snapshot.respondent_account.respondent_name,
+      outcome: 'deleted',
     });
   });
 
@@ -576,7 +577,7 @@ describe('CasesDraftDeleteComponent', () => {
       api.patchDraftCasefile.mockReturnValue(pending);
       const events = new Subject<NavigationStart>();
       vi.spyOn(router, 'events', 'get').mockReturnValue(events);
-      const record = vi.spyOn(TestBed.inject(CasesDraftNavigationService), 'recordCheckerDeletion');
+      const record = vi.spyOn(TestBed.inject(CasesDraftNavigationService), 'recordCheckerDecision');
       const component = create();
       fixture.detectChanges();
       component.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
@@ -610,7 +611,7 @@ describe('CasesDraftDeleteComponent', () => {
       await component.handleDelete();
       await component.handleDelete();
       expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
-      expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+      expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDecision()).toBeNull();
     },
   );
 
@@ -635,10 +636,11 @@ describe('CasesDraftDeleteComponent', () => {
       await fixture.whenStable();
       expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
       expect(api.patchDraftCasefile).toHaveBeenCalledOnce();
-      expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toEqual({
+      expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDecision()).toEqual({
         identity: deleteResult().identity,
         draftCasefileId: 17,
         respondentName: deletedResponse().body!.casefile_snapshot.respondent_account.respondent_name,
+        outcome: 'deleted',
       });
     },
   );
@@ -675,7 +677,7 @@ describe('CasesDraftDeleteComponent', () => {
     fixture.detectChanges();
     await component.handleReturnToReviewCases();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
-    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDecision()).toBeNull();
   });
 
   it('blocks return after the checker identity changes', async () => {
@@ -690,7 +692,7 @@ describe('CasesDraftDeleteComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#create_casefile_delete_return')).toBeNull();
     expect(router.navigateByUrl).toHaveBeenCalledOnce();
-    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDecision()).toBeNull();
   });
 
   it('does not clear a newer case notice when an old return fails after route reuse', async () => {
@@ -716,7 +718,7 @@ describe('CasesDraftDeleteComponent', () => {
     await component.handleDelete();
     rejectNavigation(new Error('Synthetic stale return failure'));
     await oldDeletion;
-    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()?.draftCasefileId).toBe(18);
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDecision()?.draftCasefileId).toBe(18);
     expect(scrollToTop).not.toHaveBeenCalled();
     expect(router.navigateByUrl).toHaveBeenCalledTimes(2);
     expect(api.patchDraftCasefile).toHaveBeenCalledTimes(2);

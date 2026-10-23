@@ -148,7 +148,7 @@ export class CheckCaseDetailsActions {
 
   /** Checks confirmation after the live receipt has passed its backend assertions. */
   public assertLiveConfirmation(): void {
-    // Per developer clarification, displaying the generated Draft Casefile ID is future work outside PO-10273.
+    // Generated Draft Casefile ID display is deferred to a future UI functional-test ticket.
     this.assertConfirmationPanel();
   }
 

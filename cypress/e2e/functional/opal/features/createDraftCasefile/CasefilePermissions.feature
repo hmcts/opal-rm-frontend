@@ -64,3 +64,9 @@ Feature: Draft Casefile task permissions
       | path                    |
       | interest-and-indexation |
       | managing-payments       |
+
+    @JIRA-STORY:PO-10283
+    Examples: Review and submission tasks
+      | path               |
+      | comments-and-notes |
+      | check-case-details |

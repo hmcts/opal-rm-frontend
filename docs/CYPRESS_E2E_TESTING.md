@@ -317,9 +317,20 @@ corepack yarn exec cypress run --component --browser chrome \
   --spec cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts
 ```
 
+Run the individual capture and retention outcome with:
+
+```bash
+corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/IndividualCaseParties.feature'
+```
+
+The scenario requires live Country ordering, both party statuses Provided, reopened field values, and zero draft
+creation POSTs. Keyboard interactions and Axe scans provide partial accessibility evidence; specialist WCAG 2.2 AA
+assurance remains separate. Positive order-details scenarios must supply a valid Date order made: the QA ticket's
+required-versus-optional wording differs from current product validation, which this test work does not change.
+
 ## Shared casefile permission coverage
 
-`CasefilePermissions.feature` runs exactly seventeen unique protected routes with the release enabled. Each example first
+`CasefilePermissions.feature` runs exactly nineteen unique protected routes with the release enabled. Each example first
 checks the authorised user's live ACTIVE Maintenance state and BU 44 `CREATE_MANAGE_DRAFT_CASEFILES` / API permission
 ID 21, then opens the released case-type page. It explicitly authenticates the provisioned denied username and checks
 live ACTIVE status, Maintenance domain and absence of permission 21 for BU 44 before attempting direct task navigation.
@@ -342,6 +353,79 @@ The outline carries epic PO-6506.
 ```bash
 corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
 ```
+
+## Review and submission QA (PO-10283)
+
+The PO-10283 selection extends the existing live scenario and adds controlled comments, optional omission and
+rejection/retry coverage. Each scenario owns an independent browser-created local draft.
+The rejection is an intercepted HTTP 400, followed by an explicitly requested controlled success; it does not prove a
+live service failure or persistence rollback.
+
+The existing live scenario observes the real HTTP 201 receipt, requires a positive generated ID and `SUBMITTED` status,
+and proves state clearing and blocked re-entry to submitted forms. It retains
+PO-10273 ownership and disables automatic scenario retries. Cleanup records only observed live IDs and their saved
+test-run markers, then uses the Maintenance contract described above. Before running it, verify the selected backend
+image contains that implementation, test support is enabled in the target environment and the release is enabled.
+A client 204 alone does not establish the backend's transactional semantics.
+
+The user has deferred generated-ID display and cases-in-review onward navigation to future work. These are outside
+this branch's agreed QA scope. The backend receipt ID is still validated and captured before assertions for cleanup.
+When the onward route is agreed, add native keyboard activation and assert an independently specified page outcome.
+Automated Axe and keyboard checks are partial accessibility evidence.
+
+Use the configured `TEST_URL`; the examples below use the local frontend on port 5000.
+Discover the four selected review scenarios (the retained live scenario plus three controlled scenarios) without
+browser execution:
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature' --env dryRun=true
+```
+
+Run only the three controlled scenarios by excluding the live scenario's PO-10273 tag. Record actual results rather
+than claiming browser acceptance from discovery:
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @JIRA-STORY:PO-10273 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature'
+```
+
+Run the sole live submission scenario only after the runtime prerequisites above are evidenced. Expect one live create
+POST, a valid backend receipt, blocked re-entry and a 204 cleanup for its ID and exact marker:
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and @JIRA-STORY:PO-10273 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and @JIRA-STORY:PO-10273 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature'
+```
+
+The final focused selection combines functional review, accessibility and permission coverage. It includes the live
+scenario, so keep this as discovery until the runtime prerequisites are met:
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10283 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature' --env dryRun=true
+```
+
+### Local verification, 21 October 2026
+
+After merging the latest PO-10273, focused discovery selected all eight PO-10283 examples. Actual Chrome execution
+using the normal CNP tag expression passed all 30 affected examples: nine review/submission, two accessibility and
+nineteen permission examples, with no retries, pending or skipped cases. The accessibility examples completed ten Axe
+scans. The live scenario received HTTP 201 and its authenticated cleanup completed with HTTP 204; the receipt ledger
+was empty afterwards, and a read-only database query confirmed draft 15 was absent and no draft casefiles remained.
+
+```bash
+TEST_URL=http://localhost:5000 TAGS='not @skip and not @R1CRmCreateCaseFilesOff' CYPRESS_TAGS='not @skip and not @R1CRmCreateCaseFilesOff' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetails.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CheckCaseDetailsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
+```
+
+Also passed: `corepack yarn prettier`, `corepack yarn lint:cypress`, `corepack yarn lint:ng`,
+`corepack yarn tsc -p e2e.tsconfig.json --noEmit`, `corepack yarn check:cypress:test-metadata`,
+`corepack yarn find:duplicate:scenarios`, and `corepack yarn test` (1,854 tests).
+The merge preserved the child branch's scenario names, tags and Examples rows. The default CNP functional glob and tag
+expression select these features and the shared support hook. Deployed CI execution and QA sign-off remain unverified.
+For a deployed run, enable the create-casefile release, provision the documented accounts/reference data and enable
+Maintenance test support in dev/staging; expect the same submission, permission denial and cleanup outcomes.
+
+Production build, component tests, new-code coverage and UI screenshots were not repeated: this QA change alters no
+application source, UI or dependencies, and Sonar measures `src/`. No coverage exclusions were added. Automated Axe
+and keyboard results do not replace human assistive-technology verification of the comments, review, error and
+confirmation pages. The intercepted rejection proves frontend retention/retry, not a live backend rejection.
 
 ## Integrated live QA selection and evidence
 
@@ -468,8 +552,8 @@ Repeat those specs with both tag variables set to `@R1CRmCreateCaseFiles and not
 ## Integrated Order Terms and creditor QA
 
 Select PO-10278, PO-10279 and PO-10280 together using both tag variables. This selection expands to exactly 27
-examples; the nine permission routes tagged to other QA stories are outside this selection. The complete shared
-permission outline has seventeen unique routes, including the two journey routes for PO-10273 and the two payment
+examples; the eleven permission routes tagged to other QA stories are outside this selection. The complete shared
+permission outline has nineteen unique routes, including the two journey routes for PO-10273 and the two payment
 routes for PO-10281.
 
 | QA story | Functional | Accessibility | Permission | Total |

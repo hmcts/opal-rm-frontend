@@ -328,10 +328,11 @@ describe('inputter all-rejected HTTP through production interceptors and applica
     await vi.waitFor(() => {
       request = http.expectOne(exclusive);
     });
-    expect(request.request.params.keys().sort()).toEqual(['business_unit_id', 'casefile_status', 'not_submitted_by']);
+    expect(request.request.params.keys().sort()).toEqual(['business_unit_id', 'casefile_status']);
     expect(request.request.params.get('business_unit_id')).toBe('44');
     expect(request.request.params.get('casefile_status')).toBe('REJECTED');
-    expect(request.request.params.get('not_submitted_by')).toBe(identity.submittedBy);
+    expect(request.request.params.has('submitted_by')).toBe(false);
+    expect(request.request.params.has('not_submitted_by')).toBe(false);
     return request;
   }
   it('keeps recoverable HTTP failure in the common banner without activating the rejected screen', async () => {

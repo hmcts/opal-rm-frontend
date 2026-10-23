@@ -25,6 +25,13 @@ export function requireMembership(permission: number): Cypress.Chainable<{ id: s
     });
 }
 
+/** Resolves the configured primary consistently for fixture creation and personal baseline checks.
+ * @returns The existing primary provisioned-account identity.
+ */
+export function primaryDraftInputter(): string {
+  return String(Cypress.env('PO10626_INPUTTER_EMAIL') || 'opal-test@dev.platform.hmcts.net');
+}
+
 /**
  * Uses existing provisioned users only; the checker default is evidenced by User Service migration V1_68.
  * @param options Provisioned actor overrides and optional synthetic payload variations.
@@ -33,7 +40,7 @@ export function requireMembership(permission: number): Cypress.Chainable<{ id: s
 export function createOwnedSubmittedDraft(
   options: IDraftCasefileFixtureOptions = {},
 ): Cypress.Chainable<IOwnedDraftCasefile> {
-  const primaryInputter = String(Cypress.env('PO10626_INPUTTER_EMAIL') || 'opal-test@dev.platform.hmcts.net');
+  const primaryInputter = primaryDraftInputter();
   const inputter = options.inputter ?? primaryInputter;
   const checker =
     options.checker ?? String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net');

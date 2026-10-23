@@ -31,7 +31,7 @@ export class CreditorSelectionActions {
   /** Requires the synthetic applicant name on the scenario-owned first term. */
   public assertApplicant(): void {
     cy.get<number>('@firstTerm').then((id) =>
-      cy.get(S.orderTermsSummary.card(id)).should('contain.text', 'Synthetic Applicant'),
+      cy.get(S.orderTermsSummary.card(id)).should('contain.text', 'Synthetic APPLICANT'),
     );
   }
   /** Requires the saved Applicant choice before replay acceptance can change any creditor selection. */

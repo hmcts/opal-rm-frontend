@@ -1,4 +1,8 @@
-import { installDraftCasefileCleanup, recordCreatedId } from '../../support/draftCasefiles';
+import {
+  createDraftCasefileTestRunReference,
+  installDraftCasefileCleanup,
+  recordCreatedId,
+} from '../../support/draftCasefiles';
 import { DRAFT_CASEFILE_CLEANUP_RECEIPTS } from './mocks/draft-casefile-cleanup-receipts.mock';
 
 const STORY_TAG = '@JIRA-STORY:PO-10273';
@@ -110,6 +114,18 @@ describe('Draft Casefile cleanup recovery receipts', { retries: 0 }, () => {
 
   it('AC cleanup. should send no deletion without a captured receipt', { tags: buildTags() }, () => {
     // The installed hook must leave the empty receipt collection alone.
+  });
+
+  it('AC cleanup. should record a generated marker unchanged by REMO uppercasing', { tags: buildTags() }, () => {
+    cy.stub(globalThis.crypto, 'getRandomValues').callsFake((bytes: Uint8Array) => bytes.fill(0xab));
+    const testRunReference = createDraftCasefileTestRunReference();
+    expect(testRunReference).to.have.length(20);
+    expect(testRunReference).to.match(/^E2E-[0-9a-f]{16}$/);
+    expect(testRunReference.toUpperCase()).to.equal(testRunReference);
+    const receipt = { id: DRAFT_CASEFILE_CLEANUP_RECEIPTS[0].id, testRunReference };
+    recordCreatedId(receipt.id, testRunReference);
+    expect(Cypress.env('draftCasefileCleanupReceipts')).to.deep.equal([receipt]);
+    Cypress.env('draftCasefileCleanupReceipts', []);
   });
 
   it('AC cleanup. should clear every receipt and ledger only after HTTP 204', { tags: buildTags() }, () => {

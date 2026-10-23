@@ -7,10 +7,10 @@ function createdReceipts(): IDraftCasefileCleanupReceipt[] {
   return Cypress.env('draftCasefileCleanupReceipts') ?? [];
 }
 
-/** Creates the exact 20-character marker accepted by Maintenance and the REMO Reference field. */
+/** Uses digits so REMO uppercasing preserves the exact 20-character Maintenance cleanup marker. */
 export function createDraftCasefileTestRunReference(): string {
-  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(8));
-  return `E2E-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+  return `E2E-${Array.from(bytes, (byte) => String(byte % 10)).join('')}`;
 }
 
 /** Builds the agreed cleanup route, rejecting invalid or coerced receipt IDs. */

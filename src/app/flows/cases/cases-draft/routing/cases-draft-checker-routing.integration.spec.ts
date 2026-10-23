@@ -1288,7 +1288,7 @@ describe('checker production route boundaries', () => {
     },
   );
 
-  it.each(checkerDecisions)('preserves dashboard resolver feedback after accepted $decision', async (decision) => {
+  it.each(checkerDecisions)('retains $decision confirmation for Back after dashboard failure', async (decision) => {
     const reviewUrl = '/cases/draft/check-and-validate/review/123';
     const harness = await openPersisted(reviewUrl);
     const router = TestBed.inject(Router);
@@ -1345,12 +1345,27 @@ describe('checker production route boundaries', () => {
     ).toBe(page);
     expect(bannerError()).toEqual(expectedBanner);
     expect(setBannerError).toHaveBeenCalledExactlyOnceWith(expectedBanner);
-    expect(navigation.consumeCheckerDecision()).toBeNull();
     expect(page.submissionPending()).toBe(false);
     expect(page.decisionLocked()).toBe(true);
     expect(harness.fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
 
     await page.handleDecision(decision);
+    http.expectNone((candidate) => candidate.method === 'PATCH');
+
+    const back = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('opal-lib-govuk-back-link a')!;
+    back.click();
+    await vi.waitFor(() => flushList('SUBMITTED', 0));
+    await settle(harness);
+
+    expect(router.url).toBe(dashboard + '#to-review');
+    const outcome = decision.decision === 'approve' ? 'approved' : 'rejected';
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-success')?.textContent).toContain(
+      'You have ' + outcome + ' Synthetic Respondent’s case.',
+    );
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-empty')?.textContent).toBe(
+      'There are no cases to review.',
+    );
+    expect(navigation.consumeCheckerDecision()).toBeNull();
     http.expectNone((candidate) => candidate.method === 'PATCH');
   });
 });

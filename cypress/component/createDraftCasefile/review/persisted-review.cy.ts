@@ -410,41 +410,70 @@ describe('Persisted case details', () => {
     });
   }
 
-  for (const failure of ['false', 'rejected'] as const) {
-    it(
-      'AC1, AC2. should keep an accepted decision locked when navigation is ' + failure,
-      { tags: buildDecisionTags() },
-      () => {
-        const { resolved, accepted } = createDecisionScenario();
-        cy.intercept('PATCH', '/opal-maintenance-service/draft-casefiles/17', {
-          statusCode: 200,
-          body: accepted,
-          headers: { ETag: '"1"' },
-        }).as('decisionPatch');
-        setupReview({ resolved, failNavigation: true });
-        spyCompletion();
-        if (failure === 'rejected')
+  for (const decision of ['approve', 'reject'] as const) {
+    for (const failure of ['false', 'rejected'] as const) {
+      it(
+        'AC1, AC2. should recover accepted ' + decision + ' after ' + failure + ' navigation without replay',
+        { tags: buildDecisionTags() },
+        () => {
+          const { resolved, accepted, reason } = createDecisionScenario(decision);
+          cy.intercept('PATCH', '/opal-maintenance-service/draft-casefiles/17', {
+            statusCode: 200,
+            body: accepted,
+            headers: { ETag: '"1"' },
+          }).as('decisionPatch');
+          setupReview({ resolved, failNavigation: true });
+          spyCompletion();
+          if (failure === 'rejected')
+            cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
+              navigate.rejects(new Error('Synthetic navigation rejection')),
+            );
+          cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
+          if (decision === 'reject') cy.get(S.rejectionReason).type(reason);
+          cy.get(S.decisionContinue).click();
+          cy.wait('@decisionPatch').then(({ request }) => {
+            expect(request.headers['if-match']).to.equal('"0"');
+            expect(request.body).to.deep.equal({
+              business_unit_id: 44,
+              casefile_status: accepted.casefile_status,
+              ...(decision === 'reject' ? { status_message: reason } : {}),
+            });
+          });
+          cy.get(S.decisionContinue).should('be.enabled').click();
+          cy.get(S.decisionContinue).click();
+          cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).should('be.checked');
+          cy.get(S.decisionReject).should('be.enabled').check();
+          cy.get(S.rejectionReason).should('be.enabled').clear().type('Synthetic later rejection reason');
+          cy.get(S.decisionContinue).click();
+          cy.get(S.decisionApprove).should('be.enabled').check();
+          cy.get(S.decisionContinue).click();
+          cy.get(S.delete).should('not.exist');
+          cy.get('@decisionPatch.all').should('have.length', 1);
+          cy.get('@routerNavigate').should('have.been.calledOnce');
           cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
-            navigate.rejects(new Error('Synthetic navigation rejection')),
+            navigate.onSecondCall().resolves(true),
           );
-        cy.get(S.decisionApprove).check();
-        cy.get(S.decisionContinue).click();
-        cy.wait('@decisionPatch');
-        cy.get(S.decisionContinue).should('be.enabled').click();
-        cy.get(S.decisionContinue).click();
-        cy.get(S.decisionApprove).should('be.checked').and('be.enabled');
-        cy.get(S.decisionReject).should('be.enabled').check();
-        cy.get(S.rejectionReason).should('be.enabled').type('Synthetic later rejection reason');
-        cy.get(S.decisionContinue).click();
-        cy.get(S.delete).should('not.exist');
-        cy.get('@decisionPatch.all').should('have.length', 1);
-        cy.get('@routerNavigate').should('have.been.calledOnce');
-        cy.get<InstanceType<typeof CasesDraftNavigationService>>('@draftNavigation').then((navigation) => {
-          expect(navigation.consumeCheckerDecision()).to.equal(null);
-        });
-        cy.get('@completeSubmission').should('not.have.been.called');
-      },
-    );
+          cy.get('@reviewHost').find(S.backLink).click();
+          cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').should((navigate) => {
+            expect(navigate).to.have.been.calledTwice;
+            expect(navigate.firstCall.args[0].toString()).to.equal(checkerReturn);
+            expect(navigate.secondCall.args[0].toString()).to.equal(checkerReturn);
+          });
+          cy.get<InstanceType<typeof CasesDraftNavigationService>>('@draftNavigation').then((navigation) => {
+            expect(navigation.consumeCheckerDecision()).to.deep.equal({
+              outcome: decision === 'approve' ? 'approved' : 'rejected',
+              identity: resolved.identity,
+              draftCasefileId: resolved.draft.draft_casefile_id,
+              respondentName: accepted.casefile_snapshot.respondent_account.respondent_name,
+            });
+            expect(navigation.consumeCheckerDecision()).to.equal(null);
+          });
+          cy.get('@decisionPatch.all').should('have.length', 1);
+          cy.get<ReviewStore>('@reviewStore').should((store) => expect(store.submissionSucceeded()).to.equal(false));
+          cy.get('@completeSubmission').should('not.have.been.called');
+        },
+      );
+    }
   }
 
   it(

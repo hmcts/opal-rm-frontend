@@ -412,13 +412,14 @@ export class CasesCreateCasefileCheckDetailsComponent {
     } catch {
       // Preserve destination API feedback; add generic feedback only when none exists below.
     }
-    if (!accepted && this.sameDecisionEntry(expected)) {
+    if (accepted || !this.sameDecisionEntry(expected)) return;
+    if (!this.currentDecisionAuthority(expected)) {
       this.draftNavigation.clearCheckerDecision();
-      if (this.currentDecisionAuthority(expected)) {
-        if (!this.globalStore.bannerError().error) this.showError();
-        else this.utils.scrollToTop();
-      }
+      return;
     }
+    // Keep the validated notice for Back; the navigation service still invalidates scope changes and other departures.
+    if (!this.globalStore.bannerError().error) this.showError();
+    else this.utils.scrollToTop();
   }
 
   private async navigate(path: string | UrlTree): Promise<boolean> {

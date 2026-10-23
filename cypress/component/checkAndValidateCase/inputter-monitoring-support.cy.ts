@@ -63,6 +63,7 @@ describe('PO-10628 owned monitoring fixture support', () => {
       accountStatus?: string;
       permission?: number;
     } = {},
+    events: string[] = [],
   ): Cypress.RequestOptions[] {
     const calls: Cypress.RequestOptions[] = [];
     let actor = 'synthetic-inputter';
@@ -78,6 +79,7 @@ describe('PO-10628 owned monitoring fixture support', () => {
     cy.stub(cy, 'session').callsFake((identity: string) =>
       cy.then(() => {
         actor = identity;
+        events.push(`session:${identity}`);
       }),
     );
     cy.stub(cy, 'visit').callsFake(() => cy.wrap(null, { log: false }));
@@ -109,6 +111,7 @@ describe('PO-10628 owned monitoring fixture support', () => {
           };
         }
         if (request.method === 'POST') {
+          events.push(`POST:${actor}`);
           expect(request.url).to.equal('/opal-maintenance-service/draft-casefiles');
           const payload = request.body as IOpalMaintenanceDraftCasefileRequest;
           detail.casefile = structuredClone(payload.casefile);
@@ -128,13 +131,12 @@ describe('PO-10628 owned monitoring fixture support', () => {
           };
         }
         if (request.method === 'PATCH') {
+          events.push(`PATCH:${actor}:${(request.headers as Record<string, unknown> | undefined)?.['If-Match']}`);
           expect(request.url).to.equal('/opal-maintenance-service/draft-casefiles/101');
           expect(request.headers).to.have.property('If-Match', `"${version}"`);
           if (options.patchStatus) return { status: options.patchStatus, body: {}, headers: {} };
           const body = request.body as { casefile_status: typeof detail.casefile_status; status_message?: string };
-          expect(actor, 'lifecycle actor').to.equal(
-            body.casefile_status === 'DELETED' ? 'synthetic-inputter' : 'synthetic-checker',
-          );
+          expect(actor, 'independent checker for every lifecycle decision').to.equal('synthetic-checker');
           detail.casefile_status = options.publicationFailure
             ? 'PUBLISHING_FAILED'
             : options.published
@@ -156,6 +158,7 @@ describe('PO-10628 owned monitoring fixture support', () => {
         }
         expect(request.method ?? 'GET').to.equal('GET');
         if (request.url === '/opal-maintenance-service/draft-casefiles/101') {
+          events.push(`GET:${actor}:"${version}"`);
           if (version > 1) expect(actor, 'restored fixture inputter').to.equal('synthetic-inputter');
           if (options.revokePublication) Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED', false);
           if (version > 1 && pendingReads-- > 0) {
@@ -348,6 +351,32 @@ describe('PO-10628 owned monitoring fixture support', () => {
       });
     });
   }
+
+  it(
+    'AC1. should authenticate the independent checker before the deletion read/decision and restore the inputter',
+    { tags: buildTags() },
+    () => {
+      const events: string[] = [];
+      controlledRuntime({}, events);
+      new InputterMonitoringFixtureActions().create('DELETED').then((owned) => {
+        expect(owned.inputterId).not.to.equal(owned.checkerId);
+        expect(events).to.deep.equal([
+          'session:synthetic-checker',
+          'session:synthetic-inputter',
+          'POST:synthetic-inputter',
+          'GET:synthetic-inputter:"1"',
+          'session:synthetic-checker',
+          'GET:synthetic-checker:"1"',
+          'PATCH:synthetic-checker:"1"',
+          'session:synthetic-inputter',
+          'GET:synthetic-inputter:"2"',
+        ]);
+        expect(Cypress.env('draftCasefileCleanupReceipts')).to.deep.equal([
+          { id: owned.id, testRunReference: owned.marker, cleanupActor: owned.inputter, cleanupPolicy: 'required' },
+        ]);
+      });
+    },
+  );
 
   it(
     'AC1. should retain exact marker and owner receipts when a lifecycle setup mutation fails',

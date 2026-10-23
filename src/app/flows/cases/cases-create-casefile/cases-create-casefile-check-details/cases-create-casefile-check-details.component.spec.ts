@@ -1803,8 +1803,9 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     },
   );
 
-  it.each(['cancel', 'reject'] as const)('does not replay accepted mutation after navigation %s', async (failure) => {
+  it.each(['cancel', 'reject'] as const)('keeps the notice for Back after navigation %s', async (failure) => {
     loadReview();
+    draftNavigation.clearCheckerDecision.mockClear();
     maintenance.patchDraftCasefile.mockReturnValue(of(decisionResponse()));
     if (failure === 'cancel') router.navigateByUrl.mockResolvedValue(false);
     else router.navigateByUrl.mockRejectedValue(new Error('Synthetic navigation failure'));
@@ -1812,7 +1813,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
     await fixture.componentInstance.handleDecision(approvalDecision);
     await fixture.componentInstance.handleDelete();
     expect(maintenance.patchDraftCasefile).toHaveBeenCalledOnce();
-    expect(draftNavigation.clearCheckerDecision).toHaveBeenCalled();
+    expect(draftNavigation.clearCheckerDecision).not.toHaveBeenCalled();
     expect(fixture.componentInstance.decisionLocked()).toBe(true);
     expect(fixture.componentInstance.busy()).toBe(false);
     expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
@@ -2031,7 +2032,7 @@ describe('CasesCreateCasefileCheckDetailsComponent', () => {
 
       expect(global.bannerError()).toEqual(expectedBanner);
       expect(draftNavigation.recordCheckerDecision).toHaveBeenCalledOnce();
-      expect(draftNavigation.clearCheckerDecision).toHaveBeenCalledOnce();
+      expect(draftNavigation.clearCheckerDecision).not.toHaveBeenCalled();
       expect(fixture.componentInstance.decisionLocked()).toBe(true);
       expect(fixture.componentInstance.busy()).toBe(false);
       await fixture.componentInstance.handleDecision(decision);

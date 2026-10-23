@@ -216,8 +216,13 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
 
   // Controlled command boundaries: the real action validates observed queries/counts and synthetic DOM.
   // No HTTP request, authentication callback or live dashboard is executed by this harness.
-  function controlledDashboard(countBody: unknown, badge: string | null): void {
+  function controlledDashboard(
+    countBody: unknown,
+    badge: string | null,
+    focus: { entry?: 'heading' | 'tab'; consultation?: 'tab' | 'heading' } = {},
+  ): void {
     const dashboardPath = '/' + PATHS.root + '/' + PATHS.children.tabs;
+    let selectedTab = 'in-review';
     type ObservedRequest = {
       query: Record<string, string>;
       continue: (callback: (response: { statusCode: number; body: unknown }) => void) => void;
@@ -230,15 +235,25 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
     cy.stub(cy, 'visit').callsFake((url: string) => {
       expect(url).to.equal(dashboardPath + '#in-review');
       return cy.document().then((document) => {
-        document.body.innerHTML = `<h1 id="cases-draft-heading" tabindex="-1">Create cases</h1><a id="cases-draft-in-review-tab" aria-current="page">In review</a><p id="cases-draft-empty">No cases</p>${badge === null ? '' : `<span id="cases-draft-rejected-count">${badge}</span>`}`;
-        document.querySelector<HTMLElement>(S.heading)!.focus();
+        document.body.innerHTML = `<h1 id="cases-draft-heading" tabindex="-1">Create cases</h1><a href="#in-review" id="cases-draft-in-review-tab" aria-current="page">In review</a><a href="#rejected" id="cases-draft-rejected-tab">Rejected</a><p id="cases-draft-empty">No cases</p>${badge === null ? '' : `<span id="cases-draft-rejected-count">${badge}</span>`}`;
+        const initialFocus = focus.entry === 'tab' ? S.tab('in-review') : S.heading;
+        document.querySelector<HTMLElement>(initialFocus)!.focus();
+        document.querySelector(S.tab('rejected'))!.addEventListener('click', (event) => {
+          event.preventDefault();
+          selectedTab = 'rejected';
+          document.querySelector(S.tab('in-review'))!.removeAttribute('aria-current');
+          document.querySelector(S.tab('rejected'))!.setAttribute('aria-current', 'page');
+          if (focus.consultation === 'heading') document.querySelector<HTMLElement>(S.heading)!.focus();
+        });
       });
     });
-    cy.stub(cy, 'location').callsFake((property: string) => {
-      const location: Record<string, string> = { pathname: dashboardPath, hash: '#in-review', search: '' };
-      expect(location).to.have.property(property);
-      return cy.wrap(location[property], { log: false });
-    });
+    cy.stub(cy, 'location').callsFake((property: string) =>
+      cy.then(() => {
+        const location: Record<string, string> = { pathname: dashboardPath, hash: '#' + selectedTab, search: '' };
+        expect(location).to.have.property(property);
+        return location[property];
+      }),
+    );
     cy.stub(cy, 'wait').callsFake((alias: string) =>
       cy.then(() => {
         expect(alias).to.be.oneOf(['@monitoringList', '@monitoringCount']);
@@ -248,7 +263,7 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
           query: {
             business_unit_id: '44',
             submitted_by: 'synthetic-selected-id',
-            casefile_status: count ? 'REJECTED' : 'SUBMITTED,RESUBMITTED',
+            casefile_status: count || selectedTab === 'rejected' ? 'REJECTED' : 'SUBMITTED,RESUBMITTED',
             ...(count ? { restrict: 'counts' } : {}),
           },
           continue: (callback) => callback({ statusCode: 200, body }),
@@ -257,6 +272,50 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
       }),
     );
   }
+
+  it('AC1, AC6. should require heading focus after initial routed monitoring entry', { tags: buildTags() }, () => {
+    controlledDashboard({ count: 0 }, null);
+    const actions = new InputterCasefileMonitoringActions();
+    actions.observe('synthetic-selected-id');
+    actions.open('in-review');
+    cy.get(S.heading).should('be.focused');
+    cy.get(S.tab('in-review')).should('not.be.focused');
+  });
+
+  it(
+    'AC1, AC6. should reject tab focus instead of heading focus on initial entry',
+    { tags: buildTags(), defaultCommandTimeout: 100 },
+    () => {
+      controlledDashboard({ count: 0 }, null, { entry: 'tab' });
+      expectDomFailure('focused');
+      const actions = new InputterCasefileMonitoringActions();
+      actions.observe('synthetic-selected-id');
+      actions.open('in-review');
+    },
+  );
+
+  it('AC1, AC6. should retain selected tab focus after native keyboard consultation', { tags: buildTags() }, () => {
+    controlledDashboard({ count: 0 }, null);
+    const actions = new InputterCasefileMonitoringActions();
+    actions.observe('synthetic-selected-id');
+    actions.open('in-review');
+    actions.consult('rejected');
+    cy.get(S.tab('rejected')).should('be.focused').and('have.attr', 'aria-current', 'page');
+    cy.get(S.heading).should('not.be.focused');
+  });
+
+  it(
+    'AC1, AC6. should reject heading focus stolen from the consulted keyboard tab',
+    { tags: buildTags(), defaultCommandTimeout: 100 },
+    () => {
+      controlledDashboard({ count: 0 }, null, { consultation: 'heading' });
+      expectDomFailure('focused');
+      const actions = new InputterCasefileMonitoringActions();
+      actions.observe('synthetic-selected-id');
+      actions.open('in-review');
+      actions.consult('rejected');
+    },
+  );
 
   for (const sample of [
     { count: 0, badge: null, wrong: '0', failure: 'not to exist' },

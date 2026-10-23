@@ -97,6 +97,7 @@ export class InputterCasefileMonitoringActions {
   public open(tab: CasesDraftInputterTab): void {
     this.dashboard.open(tab);
     this.waitPersonal(tab);
+    cy.get(S.heading).should('be.focused');
     if (tab !== 'rejected') {
       cy.wait('@monitoringCount').then(({ response }) => {
         const { count } = decodeDraftCasefileCount(response?.body);
@@ -116,6 +117,7 @@ export class InputterCasefileMonitoringActions {
     cy.get(S.tab(tab)).focus().should('be.focused');
     this.dashboard.selectTab(tab);
     this.waitPersonal(tab);
+    cy.get(S.tab(tab)).should('be.focused');
   }
 
   /** Checks personal filter identity and keeps unbounded tabs free from date fields.
@@ -133,7 +135,6 @@ export class InputterCasefileMonitoringActions {
     cy.location('hash').should('eq', '#' + tab);
     cy.location('search').should('eq', '');
     cy.get(S.tab(tab)).should('have.attr', 'aria-current', 'page');
-    cy.get(S.heading).should('be.focused');
     cy.then(() => {
       if (this.summaries.length) cy.get(S.tableRows).should('have.length.greaterThan', 0);
       else cy.get(S.empty).should('be.visible');
@@ -463,6 +464,7 @@ export class InputterCasefileMonitoringActions {
     cy.get(S.allRejectedBack).focus().should('be.focused');
     this.rejections.returnDashboard();
     this.waitPersonal('rejected');
+    cy.get(S.heading).should('be.focused');
   }
 
   /** Checks the exact retained page, sort and owned visible identities after fresh consultation. */

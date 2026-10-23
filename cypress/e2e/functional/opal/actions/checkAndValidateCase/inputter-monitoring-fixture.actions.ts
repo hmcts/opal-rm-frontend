@@ -88,7 +88,7 @@ export class InputterMonitoringFixtureActions {
       if (status === 'REJECTED') {
         rejectOwnedDraft(owned);
       } else {
-        if (approval) performAuthentication(owned.checker);
+        performAuthentication(owned.checker);
         readDraftSnapshot(owned.id).then((snapshot) => {
           if (approval) this.requirePublication();
           if (status === 'PUBLISHING_PENDING') this.requireStablePending();

@@ -1,3 +1,4 @@
+import { CheckAndValidateCaseSelectors as S } from '../../shared/selectors/check-and-validate-case.selectors';
 import { CreateCasefileSelectors as C } from '../../shared/selectors/create-casefile.selectors';
 import { DraftCasefileRecoveryActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-recovery.actions';
 import { InputterCasefileMonitoringActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/inputter-casefile-monitoring.actions';
@@ -8,6 +9,7 @@ import {
   assertCheckerAttempt,
   assertCheckerWinner,
   assertCheckerNoPatch,
+  assertCheckerHistory,
 } from '../../e2e/functional/opal/actions/checkAndValidateCase/checker-review-decisions.actions';
 import { createPersistedCasefileDetail } from '../../../src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import type { IDraftCasefileMonitor } from '../../e2e/functional/opal/actions/checkAndValidateCase/interfaces/draft-casefile-monitor.interface';
@@ -311,4 +313,78 @@ describe('PO-10625 checker lifecycle and accessible validation dispatch support'
       cy.then(() => expect(events).to.deep.equal(['strict scan', 'native validation submit']));
     },
   );
+});
+
+describe('PO-10625 exact decision history support', () => {
+  for (const status of ['SUBMITTED', 'RESUBMITTED'] as const) {
+    for (const decision of ['approve', 'reject'] as const) {
+      it(`AC1. should reject duplicated prior ${status} history after ${decision}`, { tags: buildTags() }, () => {
+        const before = snapshot();
+        before.draft.casefile_status = status;
+        if (status === 'RESUBMITTED')
+          before.draft.timeline_data.push(
+            {
+              status: 'Rejected',
+              username: 'Earlier checker',
+              status_date: '2026-10-23T10:00:00Z',
+              reason_text: 'Earlier correction',
+            },
+            { status: 'Resubmitted', username: owned.inputterName, status_date: '2026-10-23T11:00:00Z' },
+          );
+        const saved = structuredClone(before);
+        saved.draft.timeline_data.push({
+          status: decision === 'approve' ? 'Approved' : 'Rejected',
+          username: owned.checkerName,
+          status_date: '2026-10-23T12:00:00Z',
+          reason_text: decision === 'reject' ? 'Exact rejection reason' : undefined,
+        });
+        assertCheckerHistory(before, saved, owned, decision, 'Exact rejection reason');
+        const wrongActor = structuredClone(saved);
+        wrongActor.draft.timeline_data[wrongActor.draft.timeline_data.length - 1].username = 'Unrelated checker';
+        expect(() => assertCheckerHistory(before, wrongActor, owned, decision, 'Exact rejection reason')).to.throw();
+        if (decision === 'reject') {
+          const wrongReason = structuredClone(saved);
+          wrongReason.draft.timeline_data[wrongReason.draft.timeline_data.length - 1].reason_text = 'Other reason';
+          expect(() => assertCheckerHistory(before, wrongReason, owned, decision, 'Exact rejection reason')).to.throw();
+        }
+        const duplicated = structuredClone(saved);
+        duplicated.draft.timeline_data.unshift(structuredClone(before.draft.timeline_data[0]));
+        expect(() => assertCheckerHistory(before, duplicated, owned, decision, 'Exact rejection reason')).to.throw();
+      });
+    }
+  }
+});
+
+describe('PO-10625 real recovery form activation support', () => {
+  for (const [journey, selector] of [
+    ['approve', S.continue],
+    ['reject', S.continue],
+    ['resubmit', S.amendmentSubmit],
+    ['delete', S.deleteSubmit],
+  ] as const) {
+    for (const keyboard of [true, false]) {
+      it(
+        `AC1. should submit the real ${journey} form exactly once with keyboard boolean ${keyboard}`,
+        { tags: buildTags(), defaultCommandTimeout: 500 },
+        () => {
+          let submissions = 0;
+          cy.document().then((document) => {
+            const conditionalReason =
+              journey === 'reject'
+                ? '<label for="create_casefile_review_rejection_reason">Reason</label><textarea id="create_casefile_review_rejection_reason">Synthetic reason</textarea>'
+                : '';
+            document.body.innerHTML = `<form>${conditionalReason}<button type="submit" id="${selector.slice(1)}">Continue</button></form>`;
+            document.querySelector('form')!.addEventListener('submit', (event) => {
+              event.preventDefault();
+              submissions++;
+            });
+          });
+          // The maintained delegate and native events are real; only the form's business handler is controlled.
+          new DraftCasefileRecoveryActions().submit(journey, keyboard);
+          cy.then(() => expect(submissions, 'exactly one actual form submission').to.equal(1));
+          cy.get(selector).should('be.focused');
+        },
+      );
+    }
+  }
 });

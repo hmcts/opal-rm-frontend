@@ -106,6 +106,34 @@ export function assertCheckerWinner(
   assertUnchangedDraft(winner, after);
 }
 
+/** Requires all prior lifecycle events plus the exact checker decision event.
+ * @param baseline Original persisted aggregate.
+ * @param saved Decision receipt or independent saved result.
+ * @param owned Scenario identity.
+ * @param decision Expected decision.
+ * @param reason Exact entered rejection reason.
+ */
+export function assertCheckerHistory(
+  baseline: IDraftCasefileSnapshot,
+  saved: IDraftCasefileSnapshot,
+  owned: IOwnedDraftCasefile,
+  decision: 'approve' | 'reject',
+  reason: string,
+): void {
+  const before = baseline.draft.timeline_data;
+  expect(saved.draft.timeline_data, 'exactly one additional decision history event').to.have.length(before.length + 1);
+  for (const old of before)
+    expect(
+      saved.draft.timeline_data.some((event) => Cypress._.isEqual(old, event)),
+      'prior lifecycle retained',
+    ).to.equal(true);
+  const additions = saved.draft.timeline_data.filter((event) => !before.some((old) => Cypress._.isEqual(old, event)));
+  expect(additions).to.have.length(1);
+  expect(additions[0].status).to.equal(decision === 'approve' ? 'Approved' : 'Rejected');
+  expect(additions[0].username).to.equal(owned.checkerName);
+  if (decision === 'reject') expect(additions[0].reason_text).to.equal(reason);
+}
+
 /** Owns actual navigation and pass-through observation. Each new Given creates a fresh instance. */
 export class CheckerReviewActions {
   private readonly fixture = new CheckerReviewFixtureActions();
@@ -365,17 +393,7 @@ export class CheckerReviewActions {
    * @param decision Decision to verify.
    */
   private assertAddedEvent(saved: IDraftCasefileSnapshot, decision: 'approve' | 'reject'): void {
-    const before = this.baseline().draft.timeline_data;
-    for (const old of before)
-      expect(
-        saved.draft.timeline_data.some((event) => Cypress._.isEqual(old, event)),
-        'prior lifecycle retained',
-      ).to.equal(true);
-    const additions = saved.draft.timeline_data.filter((event) => !before.some((old) => Cypress._.isEqual(old, event)));
-    expect(additions).to.have.length(1);
-    expect(additions[0].status).to.equal(decision === 'approve' ? 'Approved' : 'Rejected');
-    expect(additions[0].username).to.equal(this.requireOwned().checkerName);
-    if (decision === 'reject') expect(additions[0].reason_text).to.equal(this.recovery.expectedReason());
+    assertCheckerHistory(this.baseline(), saved, this.requireOwned(), decision, this.recovery.expectedReason());
   }
 
   /** Returns through actual pagination so absence is checked over the whole collection. */

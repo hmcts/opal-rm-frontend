@@ -1,3 +1,4 @@
+import { createCasesDraftSummary } from '../mocks/cases-draft-summary.mock';
 import { Component, PLATFORM_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
@@ -107,6 +108,41 @@ describe('checker HTTP boundary through production interceptors and application 
     expect(router.url).toBe(destination);
     expect(destinations).not.toContain('/access-denied');
   });
+  it.each([401, 403])(
+    'uses the shared banner for retriable HTTP %s badge failure without changing loaded content',
+    async (status) => {
+      await router.navigateByUrl('/access-denied');
+      await settle();
+      const navigation = TestBed.inject(CasesDraftNavigationService);
+      const user = TestBed.inject(GlobalStore).userState()!;
+      expect(
+        navigation.recordCheckerDeletion({
+          identity: { ...identity, userId: user.user_id },
+          draftCasefileId: 17,
+          respondentName: 'Synthetic Respondent',
+        }),
+      ).toBe(true);
+      await router.navigateByUrl(dashboard + '#to-review');
+      await settle();
+      http
+        .expectOne((request) => request.url.includes('/draft-casefiles') && !request.params.has('restrict'))
+        .flush({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] });
+      await settle();
+      const counts = http.match((request) => request.params.has('restrict'));
+      expect(counts).toHaveLength(2);
+      counts[0].flush({ count: 3 });
+      await settle();
+      expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
+      counts[1].flush({ retriable: true }, { status, statusText: 'Denied' });
+      await settle();
+      expect(router.url).toBe(dashboard + '#to-review');
+      expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
+      expect(TestBed.inject(GlobalStore).bannerError().error).toBe(true);
+      expect(navigation.consumeCheckerDeletion()).toBeNull();
+    },
+  );
   it('uses the common banner for checker list failures', async () => {
     await router.navigateByUrl(dashboard + '#deleted');
     await settle();

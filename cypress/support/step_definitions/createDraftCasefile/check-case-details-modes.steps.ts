@@ -26,8 +26,6 @@ Then('the saved case stays unchanged when the {string} dashboard is shown', (das
   flow.expectReturn(dashboard),
 );
 When('I choose Delete casefile from saved review', () => flow.chooseDelete());
-Then('the interim Delete casefile walkthrough is shown', () => flow.expectDelete());
-When('I return from the interim Delete walkthrough', () => flow.returnFromDelete());
 Then('saved case access is denied after {int} selected GET requests', (count: number) => flow.expectDenied(count));
 When('I attempt saved casefile {string} through {string} from the Cases page', (id: string, destination: string) =>
   flow.attempt(destination, id),
@@ -37,3 +35,16 @@ Then('switching to another saved draft and starting creation clears the previous
   flow.switchThenCreate(),
 );
 Then('no saved casefile mutation has been requested', () => flow.expectNoWrites());
+
+When('I open saved details from the checker To review list', () => flow.openFromChecker());
+Given('saved deletion has the {string} API outcome', (outcome: string) => flow.enableDeletion(outcome));
+When('I enter saved deletion reason {string}', (reason: string) => flow.enterDeletionReason(reason));
+When('I confirm the saved case deletion', () => flow.confirmDeletion());
+When('I submit the saved deletion without a reason', () => flow.submitEmptyDeletion());
+When('I cancel the saved case deletion', () => flow.cancelDeletion());
+Then('the saved deletion reason remains editable without replay', () => flow.expectDeletionError());
+Then('the checker sees the confirmed deleted return', () => flow.expectDeletedReturn());
+Then('the saved deletion reason screen is shown', () => flow.expectDelete());
+Then('the selected review is restored after {int} selected GET requests without mutation', (count: number) =>
+  flow.expectReviewAfterCancel(count),
+);

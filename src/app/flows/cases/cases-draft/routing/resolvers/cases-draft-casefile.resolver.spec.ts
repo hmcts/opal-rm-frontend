@@ -482,4 +482,16 @@ describe('casesDraftCasefileResolver', () => {
     expect(resolve()).toEqual([]);
     expect(setBannerError).toHaveBeenCalled();
   });
+  it.each(['checker-review', 'checker-delete', 'inputter-amend'] as const)(
+    'leaves selected-case HTTP denial handling with the interceptor for %s',
+    (intent) => {
+      user = userWith([21, 22]);
+      for (const status of [401, 403]) {
+        maintenance.getDraftCasefile.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
+        expect(resolve(route('17', intent))).toEqual([]);
+      }
+      expect(setBannerError).not.toHaveBeenCalled();
+      expectNoHydration();
+    },
+  );
 });

@@ -1,3 +1,5 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { CustomDeferredLiveRegionAnnouncement } from '@hmcts/opal-frontend-common/components/custom/custom-deferred-live-region-announcement';
 import { CASES_DRAFT_DASHBOARD_MODE } from '../constants/cases-draft-dashboard-mode.token';
 import { CasesDraftDashboardService } from '../services/cases-draft-dashboard.service';
 import { CASES_DRAFT_CHECKER_TABS } from '../constants/cases-draft-checker-tabs.constant';
@@ -78,6 +80,81 @@ describe('checker dashboard presentation', () => {
     fixture.detectChanges();
     return fixture;
   }
+  function seedDeletion() {
+    const user = userState();
+    return TestBed.inject(CasesDraftNavigationService).recordCheckerDeletion({
+      identity: {
+        userId: user.user_id,
+        businessUnitId: 44,
+        submittedBy: user.business_unit_users[0].business_unit_user_id,
+      },
+      draftCasefileId: 17,
+      respondentName: 'Synthetic Respondent',
+    });
+  }
+  it('shows a confirmed deletion exactly once', async () => {
+    const navigation = TestBed.inject(CasesDraftNavigationService);
+    expect(seedDeletion()).toBe(true);
+    const fixture = await render();
+    const text = 'You have deleted Synthetic Respondent’s case.';
+    const alert: HTMLElement = fixture.nativeElement.querySelector('#cases-draft-success');
+    expect(alert.textContent).toContain(text);
+    const announcement = fixture.debugElement.query(By.directive(CustomDeferredLiveRegionAnnouncement));
+    expect(announcement).not.toBeNull();
+    expect(announcement.componentInstance.message).toBe('success: ' + text);
+    expect(announcement.componentInstance.role).toBe('status');
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      const output = alert.querySelector<HTMLOutputElement>('output[role="status"]');
+      expect(output?.getAttribute('aria-atomic')).toBe('true');
+      expect(output?.textContent?.trim()).toBe('success: ' + text);
+    });
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    fixture.componentInstance.dismissSuccess();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#cases-draft-heading'));
+  });
+  it.each([400, 401, 403, 500])('leaves HTTP %s list failure handling with the shared interceptor', async (status) => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
+    expect(seedDeletion()).toBe(true);
+    api.getDraftCasefiles.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
+    const fixture = await render();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')?.textContent).toContain(
+      'You have deleted Synthetic Respondent’s case.',
+    );
+  });
+  it.each([401, 403, 500])('preserves loaded content after an HTTP %s badge failure', async (status) => {
+    const counts = new Subject<{ count: number }>();
+    api.getDraftCasefiles.mockReturnValue(
+      of({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] }),
+    );
+    api.getDraftCasefileCount.mockReturnValueOnce(of({ count: 3 })).mockReturnValueOnce(counts);
+    expect(seedDeletion()).toBe(true);
+    const fixture = await render();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(false);
+    counts.error(new HttpErrorResponse({ status }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('tbody')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cases-draft-rejected-count')?.textContent).toContain('3');
+    expect(fixture.nativeElement.querySelector('#cases-draft-failed-count')).toBeNull();
+    expect(navigate).not.toHaveBeenCalled();
+    await fixture.componentInstance.openRow(123);
+    expect(navigate).toHaveBeenCalledOnce();
+  });
+  it('clears displayed and queued deletion notices when the dashboard is destroyed', async () => {
+    expect(seedDeletion()).toBe(true);
+    const fixture = await render();
+    expect(seedDeletion()).toBe(true);
+    fixture.destroy();
+    expect(fixture.componentInstance.successText()).toBeNull();
+    expect(TestBed.inject(CasesDraftNavigationService).consumeCheckerDeletion()).toBeNull();
+    const replacement = await render();
+    expect(replacement.nativeElement.querySelector('#cases-draft-success')).toBeNull();
+  });
   it.each(['to-review', 'rejected', 'deleted', 'failed'] as const)(
     'renders Review cases and exact %s empty copy without creation controls',
     async (tab) => {
@@ -110,13 +187,16 @@ describe('checker dashboard presentation', () => {
       of({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] }),
     );
     api.getDraftCasefileCount.mockReturnValue(of({ count: 3 }));
+    expect(seedDeletion()).toBe(true);
     const fixture = await render();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')).not.toBeNull();
     const replacement = structuredClone(userState());
     replacement.business_unit_users[0].business_unit_user_id = 'BUU-NEW';
     api.getDraftCasefiles.mockReturnValue(new Subject());
     api.getDraftCasefileCount.mockReturnValue(new Subject());
     userState.set(replacement);
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
     expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
     expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
     await fixture.whenStable();
@@ -143,12 +223,14 @@ describe('checker dashboard presentation', () => {
         of({ count: 1, summaries: [createCasesDraftSummary({ submitted_by: 'BUU-OTHER' })] }),
       );
       api.getDraftCasefileCount.mockReturnValue(of({ count: 3 }));
+      expect(seedDeletion()).toBe(true);
       const fixture = await render();
       const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
       if (reason === 'authentication') authenticated.set(false);
       if (reason === 'flag') featureFlags.set({ 'release-1c-rm-create-case-files': false });
       if (reason === 'permission') userState.set({ ...userState(), business_unit_users: [] });
       fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#cases-draft-success')).toBeNull();
       expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
       expect(fixture.nativeElement.querySelector('opal-lib-moj-notification-badge')).toBeNull();
       await fixture.whenStable();

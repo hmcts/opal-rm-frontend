@@ -1,4 +1,5 @@
 import type { IOpalMaintenanceDraftCasefileReplaceRequest } from './interfaces/opal-maintenance-draft-casefile-replace-request.interface';
+import type { IOpalMaintenanceDraftCasefilePatchRequest } from './interfaces/opal-maintenance-draft-casefile-patch-request.interface';
 import { decodeDraftCasefileDetail } from './utils/opal-maintenance-draft-casefile-detail';
 import type { IOpalMaintenanceDraftCasefileDetail } from './interfaces/opal-maintenance-draft-casefile-detail.interface';
 import type { ICasesDraftIdentity } from '../../cases-draft/interfaces/cases-draft-identity.interface';
@@ -30,6 +31,13 @@ export class OpalMaintenanceService {
     string,
     Observable<IOpalMaintenanceMajorCreditorReferenceDataResponse>
   >();
+
+  /** Preserves the provider's opaque version for subsequent If-Match requests. */
+  private extractEtagVersion(headers: HttpResponse<unknown>['headers']): string | null {
+    const etag = headers.get('ETag') ?? headers.get('Etag');
+    if (!etag) return null;
+    return etag;
+  }
 
   private draftQuery(params: IOpalMaintenanceDraftCasefileListParams): HttpParams {
     let query = new HttpParams()
@@ -73,15 +81,30 @@ export class OpalMaintenanceService {
     return request;
   }
 
-  /** Replaces the saved aggregate once using its opaque GET version; callers own explicit recovery. */
+  /** Replaces the saved aggregate once using its opaque GET version. */
   public replaceDraftCasefile(
     id: number,
     request: IOpalMaintenanceDraftCasefileReplaceRequest,
     etag: string,
   ): Observable<HttpResponse<IOpalMaintenanceDraftCasefileDetail>> {
     if (!Number.isSafeInteger(id) || id < 1) throw new Error('Invalid draft casefile identifier');
-    if (!/^"[^"\r\n]+"$/.test(etag)) throw new Error('Unusable saved casefile version');
+    if (!etag) throw new Error('Unusable saved casefile version');
     return this.http.put<IOpalMaintenanceDraftCasefileDetail>(
+      '/opal-maintenance-service/draft-casefiles/' + id,
+      request,
+      { observe: 'response', headers: { 'If-Match': etag }, context: withoutHttpRetry() },
+    );
+  }
+
+  /** Applies a checker decision once using the opaque saved version. */
+  public patchDraftCasefile(
+    id: number,
+    request: IOpalMaintenanceDraftCasefilePatchRequest,
+    etag: string,
+  ): Observable<HttpResponse<IOpalMaintenanceDraftCasefileDetail>> {
+    if (!Number.isSafeInteger(id) || id < 1) throw new Error('Invalid draft casefile identifier');
+    if (!etag) throw new Error('Unusable saved casefile version');
+    return this.http.patch<IOpalMaintenanceDraftCasefileDetail>(
       '/opal-maintenance-service/draft-casefiles/' + id,
       request,
       { observe: 'response', headers: { 'If-Match': etag }, context: withoutHttpRetry() },
@@ -97,7 +120,7 @@ export class OpalMaintenanceService {
         context: withoutHttpRetry(),
         transferCache: false,
       })
-      .pipe(map((response) => decodeDraftCasefileDetail(response.body, response.headers.get('ETag'), id)));
+      .pipe(map((response) => decodeDraftCasefileDetail(response.body, this.extractEtagVersion(response.headers), id)));
   }
 
   public createDraftCasefile(

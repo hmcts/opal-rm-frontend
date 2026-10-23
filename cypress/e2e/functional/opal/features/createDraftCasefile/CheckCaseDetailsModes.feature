@@ -83,17 +83,49 @@ Feature: Check persisted case details
     When I change the saved review decision to Approve and continue
     Then the saved case stays unchanged when the "checker" dashboard is shown
 
-  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-EPIC:PO-10817
-  Scenario: Interim Delete returns without changing the saved case
+  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
+  Scenario: Checker cancels deletion and returns to the selected review
     Given my persisted casefile session has role "checker", status "SUBMITTED" and submitter "other"
     When I open saved casefile "17" through "review"
-    And I choose Delete casefile from saved review
-    Then the interim Delete casefile walkthrough is shown
-    When I return from the interim Delete walkthrough
-    Then the saved case stays unchanged when the "checker" dashboard is shown
-    And no saved casefile mutation has been requested
+    Then the saved case is in "review" mode without summary editing
+    When I choose Delete casefile from saved review
+    Then the saved deletion reason screen is shown
+    When I cancel the saved case deletion
+    Then the selected review is restored after 3 selected GET requests without mutation
 
-  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-EPIC:PO-10817
+  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
+  Scenario: An eligible checker cancels direct deletion to the selected review
+    Given my persisted casefile session has role "checker", status "RESUBMITTED" and submitter "other"
+    When I open saved casefile "17" through "delete"
+    Then the saved deletion reason screen is shown
+    When I cancel the saved case deletion
+    Then the selected review is restored after 2 selected GET requests without mutation
+
+  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
+  Scenario Outline: Checker deletes submitted work from the review queue
+    Given my persisted casefile session has role "checker", status "<status>" and submitter "other"
+    And saved deletion has the "success" API outcome
+    When I open saved details from the checker To review list
+    And I choose Delete casefile from saved review
+    And I enter saved deletion reason "Synthetic deletion reason"
+    And I confirm the saved case deletion
+    Then the checker sees the confirmed deleted return
+    Examples:
+      | status      |
+      | SUBMITTED   |
+      | RESUBMITTED |
+
+  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
+  Scenario: Checker retains the reason after a shared request error
+    Given my persisted casefile session has role "checker", status "SUBMITTED" and submitter "other"
+    And saved deletion has the "error" API outcome
+    When I open saved details from the checker To review list
+    And I choose Delete casefile from saved review
+    And I enter saved deletion reason "Synthetic deletion reason"
+    And I confirm the saved case deletion
+    Then the saved deletion reason remains editable without replay
+
+  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
   Scenario Outline: Direct Delete is limited to eligible checker work
     Given my persisted casefile session has role "<role>", status "<status>" and submitter "<submitter>"
     When I open saved casefile "17" through "delete"
@@ -103,14 +135,6 @@ Feature: Check persisted case details
       | inputter | SUBMITTED | other     |
       | checker  | SUBMITTED | self      |
       | checker  | REJECTED  | other     |
-
-  @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-EPIC:PO-10817
-  Scenario: An eligible checker opens Delete directly
-    Given my persisted casefile session has role "checker", status "RESUBMITTED" and submitter "other"
-    When I open saved casefile "17" through "delete"
-    Then the interim Delete casefile walkthrough is shown
-    When I return from the interim Delete walkthrough
-    Then the saved case stays unchanged when the "checker" dashboard is shown
 
   @R1CRmCreateCaseFiles @JIRA-STORY:PO-10608 @JIRA-EPIC:PO-10817
   Scenario Outline: Other business unit permission denies saved URLs before GET
@@ -170,7 +194,7 @@ Feature: Check persisted case details
     When I open saved casefile "17" through "review"
     Then switching to another saved draft and starting creation clears the previous saved state
 
-  @R1CRmCreateCaseFilesOff @JIRA-STORY:PO-10608 @JIRA-EPIC:PO-10817
+  @R1CRmCreateCaseFilesOff @JIRA-STORY:PO-10608 @JIRA-STORY:PO-10609 @JIRA-EPIC:PO-10817
   Scenario Outline: Disabled release denies saved destinations before GET
     Given my persisted casefile session has role "dual", status "SUBMITTED" and submitter "other"
     When I open saved casefile "17" through "<destination>"

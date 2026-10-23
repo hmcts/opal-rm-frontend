@@ -3,7 +3,7 @@ import { CASES_DRAFT_DASHBOARD_MODE } from 'src/app/flows/cases/cases-draft/cons
 import { BehaviorSubject } from 'rxjs';
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import type { ICasesDraftCasefileResolved } from 'src/app/flows/cases/cases-draft/interfaces/cases-draft-casefile-resolved.interface';
-import { CasesDraftDeletePlaceholderComponent } from 'src/app/flows/cases/cases-draft/cases-draft-delete-placeholder/cases-draft-delete-placeholder.component';
+import { CasesDraftDeleteComponent } from 'src/app/flows/cases/cases-draft/cases-draft-delete/cases-draft-delete.component';
 import {
   checkerUser,
   type CheckerRole,
@@ -38,6 +38,7 @@ interface ReviewSetupOptions {
   amendment?: ICasesDraftCasefileResolved;
   user?: IOpalUserState;
   deleteScreen?: boolean;
+  deleteReason?: string;
 }
 
 /** Mirrors the user-service response mapping while retaining the shared synthetic role fixture. */
@@ -85,7 +86,7 @@ export function setupReview(options: ReviewSetupOptions = {}) {
   const reviewComponent = options.confirmation
     ? CasesCreateCasefileSubmissionConfirmationComponent
     : CasesCreateCasefileCheckDetailsComponent;
-  const component = options.deleteScreen ? CasesDraftDeletePlaceholderComponent : reviewComponent;
+  const component = options.deleteScreen ? CasesDraftDeleteComponent : reviewComponent;
   return cy.document().then((document) => {
     document.documentElement.lang = 'en';
     document.body.classList.add('govuk-template__body');
@@ -93,7 +94,7 @@ export function setupReview(options: ReviewSetupOptions = {}) {
     return mount<
       | CasesCreateCasefileSubmissionConfirmationComponent
       | CasesCreateCasefileCheckDetailsComponent
-      | CasesDraftDeletePlaceholderComponent
+      | CasesDraftDeleteComponent
     >(component, {
       providers: [
         provideRouter([]),
@@ -124,11 +125,15 @@ export function setupReview(options: ReviewSetupOptions = {}) {
       cy.stub(TestBed.inject(Router), 'navigateByUrl').as('routerNavigate').resolves(!options.failNavigation);
       cy.wrap(store, { log: false }).as('reviewStore');
       cy.wrap(persistedStore, { log: false }).as('persistedCasefileStore');
+      if (options.resolved) cy.wrap(TestBed.inject(CasesDraftNavigationService), { log: false }).as('draftNavigation');
       cy.wrap(routeData, { log: false }).as('reviewRouteData');
       cy.wrap(fixture, { log: false }).as('reviewFixture');
       cy.wrap(fixture.nativeElement, { log: false }).as('reviewHost');
       cy.wrap(TestBed.inject(GlobalStore), { log: false }).as('globalStore');
       cy.wrap(TestBed.inject(CasesCreateCasefileReviewNavigationService), { log: false }).as('reviewNavigation');
+      if (fixture.componentInstance instanceof CasesDraftDeleteComponent && options.deleteReason !== undefined) {
+        fixture.componentInstance.form.controls.create_casefile_delete_reason.setValue(options.deleteReason);
+      }
       fixture.detectChanges();
     });
   });

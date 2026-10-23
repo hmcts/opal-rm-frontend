@@ -1,3 +1,7 @@
+import { appConfig } from '../../../../app.config';
+import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
+import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
+import { CasesDraftDeleteComponent } from '../cases-draft-delete/cases-draft-delete.component';
 import {
   createPersistedCasefileDetail,
   PERSISTED_CASEFILE_REFERENCES,
@@ -6,12 +10,11 @@ import {
 import type { IOpalUserState } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter, ResolveStart, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { getState } from '@ngrx/signals';
-import { of } from 'rxjs';
+import { filter, firstValueFrom, of, Subject, take } from 'rxjs';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '@hmcts/opal-frontend-common/services/auth-service';
 import { OpalUserService } from '@hmcts/opal-frontend-common/services/opal-user-service';
@@ -47,12 +50,14 @@ const permittedUser = (): IOpalUserState => ({
 });
 
 describe('checker production route boundaries', () => {
+  const bannerError = signal({ ...GLOBAL_ERROR_STATE });
   const userState = signal(permittedUser());
   const featureFlags = signal<Record<string, boolean>>({ [key]: true });
   const authenticated = signal(true);
   const initializeFlags = vi.fn().mockResolvedValue(undefined);
   let http: HttpTestingController;
   beforeEach(() => {
+    bannerError.set({ ...GLOBAL_ERROR_STATE });
     userState.set(permittedUser());
     featureFlags.set({ [key]: true });
     authenticated.set(true);
@@ -63,15 +68,24 @@ describe('checker production route boundaries', () => {
           ...routing,
           { path: 'access-denied', component: DeniedComponent },
           { path: 'error/permission-denied', component: DeniedComponent },
+          { path: 'error/:kind', component: DeniedComponent },
           { path: 'account-created', component: DeniedComponent },
         ]),
-        provideHttpClient(),
+        appConfig.providers[2],
+        { provide: AppInsightsService, useValue: { logException: vi.fn() } },
         provideHttpClientTesting(),
         { provide: AuthService, useValue: { checkAuthenticated: () => of(authenticated()) } },
         { provide: OpalUserService, useValue: { getLoggedInUserState: () => of(userState()) } },
         {
           provide: GlobalStore,
-          useValue: { userState, featureFlags, authenticated, setBannerError: vi.fn(), resetBannerError: vi.fn() },
+          useValue: {
+            userState,
+            featureFlags,
+            authenticated,
+            bannerError,
+            setBannerError: vi.fn((value: Parameters<typeof bannerError.set>[0]) => bannerError.set(value)),
+            resetBannerError: vi.fn(() => bannerError.set({ ...GLOBAL_ERROR_STATE })),
+          },
         },
         { provide: LaunchDarklyService, useValue: { initializeLaunchDarklyFlags: initializeFlags } },
       ],
@@ -79,13 +93,18 @@ describe('checker production route boundaries', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
-  async function flushPersisted(id = 123, status: 'SUBMITTED' | 'RESUBMITTED' = 'SUBMITTED', reason?: string | null) {
+  async function flushPersisted(
+    id = 123,
+    status: 'SUBMITTED' | 'RESUBMITTED' | 'DELETED' = 'SUBMITTED',
+    reason?: string | null,
+    etag = '"0"',
+  ) {
     await vi.waitFor(() => {
       const draft = createPersistedCasefileDetail();
       draft.draft_casefile_id = id;
       draft.casefile_status = status;
       if (reason !== undefined) draft.timeline_data[0].reason_text = reason;
-      http.expectOne('/opal-maintenance-service/draft-casefiles/' + id).flush(draft, { headers: { ETag: '"0"' } });
+      http.expectOne('/opal-maintenance-service/draft-casefiles/' + id).flush(draft, { headers: { ETag: etag } });
     });
     await vi.waitFor(() =>
       http
@@ -105,6 +124,598 @@ describe('checker production route boundaries', () => {
   }
 
   const deleteUrl = '/cases/draft/check-and-validate/delete/123';
+
+  it.each([
+    [400, true],
+    [401, true],
+    [403, true],
+    [409, true],
+    [412, true],
+    [422, true],
+    [500, true],
+    [502, true],
+    [503, true],
+    [504, true],
+    [400, false],
+    [401, false],
+    [403, false],
+    [404, false],
+    [409, false],
+    [500, false],
+  ] as const)('honors shared PATCH %s retriable=%s', async (status, retriable) => {
+    const harness = await openPersisted(deleteUrl);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const saved = shell.injector.get(CasesDraftCasefileStore);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    const operation = page.handleDelete();
+    const request = await vi.waitFor(() =>
+      http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+    );
+    request.flush(
+      { retriable, title: 'Synthetic failure', detail: 'Synthetic failure detail' },
+      { status, statusText: 'Synthetic failure' },
+    );
+    await operation;
+    await settle(harness);
+    if (!retriable) {
+      const destinations: Partial<Record<number, string>> = { 409: 'concurrency-failure', 403: 'permission-denied' };
+      const destination = destinations[status] ?? 'internal-server';
+      expect(TestBed.inject(Router).url).toBe('/error/' + destination);
+      expect(saved.draft()).toBeNull();
+      expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))).toBeNull();
+    } else {
+      expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
+      expect(bannerError().message).toBe('Synthetic failure detail');
+      expect(page.submitting()).toBe(false);
+      expect(page.form.controls.create_casefile_delete_reason.enabled).toBe(true);
+      const requiresReload = status !== 400 && status !== 422;
+      expect(saved.requiresReload()).toBe(requiresReload);
+      expect(
+        harness.routeNativeElement?.querySelector<HTMLButtonElement>('#create_casefile_delete_submit')?.disabled,
+      ).toBe(requiresReload);
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_recovery') !== null).toBe(
+        requiresReload,
+      );
+      if (requiresReload) await page.handleDelete();
+    }
+    http.expectNone((candidate) => candidate.method === 'PATCH');
+  });
+
+  it.each(['network', 'conflict'] as const)(
+    'requires authoritative re-entry after an uncertain %s deletion before an explicit retry',
+    async (failure) => {
+      const harness = await openPersisted(deleteUrl);
+      const router = TestBed.inject(Router);
+      const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+      const saved = shell.injector.get(CasesDraftCasefileStore);
+      const navigation = shell.injector.get(CasesDraftNavigationService);
+      const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+        .componentInstance as CasesDraftDeleteComponent;
+      const reason = 'Synthetic retained reason';
+      page.form.controls.create_casefile_delete_reason.setValue(reason);
+      const deletion = page.handleDelete();
+      const originalPatch = await vi.waitFor(() =>
+        http.expectOne((request) => request.method === 'PATCH' && request.url.endsWith('/draft-casefiles/123')),
+      );
+      expect(originalPatch.request.headers.get('If-Match')).toBe('"0"');
+      if (failure === 'network') originalPatch.error(new ProgressEvent('error'));
+      else
+        originalPatch.flush(
+          { retriable: true, title: 'Synthetic conflict', detail: 'Synthetic conflict detail' },
+          { status: 409, statusText: 'Synthetic conflict' },
+        );
+      await deletion;
+      await settle(harness);
+      expect(router.url).toBe(deleteUrl);
+      expect(saved.requiresReload()).toBe(true);
+      expect(page.deleted()).toBe(false);
+      expect(page.form.controls.create_casefile_delete_reason.value).toBe(reason);
+      expect(page.form.controls.create_casefile_delete_reason.enabled).toBe(true);
+      expect(bannerError().error).toBe(true);
+      if (failure === 'conflict') expect(bannerError().message).toBe('Synthetic conflict detail');
+      expect(
+        harness.routeNativeElement?.querySelector<HTMLButtonElement>('#create_casefile_delete_submit')?.disabled,
+      ).toBe(true);
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_recovery')?.textContent).toContain(
+        'Select No - cancel to reload the saved case before trying again.',
+      );
+      expect(harness.routeNativeElement?.querySelector('opal-lib-govuk-cancel-link a')).not.toBeNull();
+      await page.handleDelete();
+      http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+      expect(navigation.consumeCheckerDeletion()).toBeNull();
+
+      const cancellation = page.handleCancel();
+      await flushPersisted(123, 'RESUBMITTED', undefined, '"saved-version-b"');
+      await cancellation;
+      await settle(harness);
+      expect(router.url).toBe('/cases/draft/check-and-validate/review/123#to-review');
+      expect(saved.requiresReload()).toBe(false);
+      expect(saved.etag()).toBe('"saved-version-b"');
+      const reentry = router.navigateByUrl(deleteUrl);
+      await flushPersisted(123, 'RESUBMITTED', undefined, '"saved-version-c"');
+      await reentry;
+      await settle(harness);
+      const retryPage = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+        .componentInstance as CasesDraftDeleteComponent;
+      expect(retryPage).not.toBe(page);
+      expect(retryPage.form.controls.create_casefile_delete_reason.value).toBe('');
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_recovery')).toBeNull();
+      expect(
+        harness.routeNativeElement?.querySelector<HTMLButtonElement>('#create_casefile_delete_submit')?.disabled,
+      ).toBe(false);
+      http.expectNone((request) => request.method === 'PATCH');
+      retryPage.form.controls.create_casefile_delete_reason.setValue(reason);
+      const retry = retryPage.handleDelete();
+      const retryPatch = await vi.waitFor(() =>
+        http.expectOne((request) => request.method === 'PATCH' && request.url.endsWith('/draft-casefiles/123')),
+      );
+      expect(retryPatch.request.headers.get('If-Match')).toBe('"saved-version-c"');
+      expect(JSON.parse(retryPatch.request.body).status_message).toBe(reason);
+      const deleted = createPersistedCasefileDetail();
+      deleted.draft_casefile_id = 123;
+      deleted.casefile_status = 'DELETED';
+      retryPatch.flush(deleted, { headers: { ETag: '"deleted-version-d"' } });
+      await vi.waitFor(() => flushList('SUBMITTED', 0));
+      flushCounts();
+      await retry;
+      await settle(harness);
+      expect(router.url).toBe(dashboard + '#to-review');
+      expect(harness.routeNativeElement?.querySelector('#cases-draft-success')?.textContent).toContain(
+        'You have deleted Synthetic Respondent’s case.',
+      );
+      http.expectNone((request) => request.method === 'PATCH');
+    },
+  );
+
+  it('keeps uncertain deletion locked when the authoritative Cancel reload fails', async () => {
+    const harness = await openPersisted(deleteUrl);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const saved = shell.injector.get(CasesDraftCasefileStore);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    const deletion = page.handleDelete();
+    const patch = await vi.waitFor(() =>
+      http.expectOne((request) => request.method === 'PATCH' && request.url.endsWith('/draft-casefiles/123')),
+    );
+    patch.error(new ProgressEvent('error'));
+    await deletion;
+    const cancellation = page.handleCancel();
+    const reload = await vi.waitFor(() =>
+      http.expectOne((request) => request.method === 'GET' && request.url.endsWith('/draft-casefiles/123')),
+    );
+    reload.flush(
+      { retriable: true, title: 'Synthetic reload failure', detail: 'Synthetic reload detail' },
+      { status: 503, statusText: 'Synthetic reload failure' },
+    );
+    await cancellation;
+    await settle(harness);
+    expect(TestBed.inject(Router).url).toBe(deleteUrl);
+    expect(saved.requiresReload()).toBe(true);
+    expect(page.navigating()).toBe(false);
+    expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
+    expect(bannerError().message).toBe('Synthetic reload detail');
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_recovery')).not.toBeNull();
+    expect(
+      harness.routeNativeElement?.querySelector<HTMLButtonElement>('#create_casefile_delete_submit')?.disabled,
+    ).toBe(true);
+    await page.handleDelete();
+    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+  });
+
+  it('cannot replay an uncertain deletion when authoritative re-entry finds the case already deleted', async () => {
+    const harness = await openPersisted(deleteUrl);
+    const router = TestBed.inject(Router);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    const deletion = page.handleDelete();
+    const patch = await vi.waitFor(() =>
+      http.expectOne((request) => request.method === 'PATCH' && request.url.endsWith('/draft-casefiles/123')),
+    );
+    patch.error(new ProgressEvent('error'));
+    await deletion;
+    const cancellation = page.handleCancel();
+    await flushPersisted(123, 'DELETED', undefined, '"committed-version-b"');
+    await cancellation;
+    await settle(harness);
+    expect(router.url).toBe('/cases/draft/check-and-validate/review/123#to-review');
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_review_delete')).toBeNull();
+    const attemptedReentry = router.navigateByUrl(deleteUrl);
+    await vi.waitFor(() => {
+      const deleted = createPersistedCasefileDetail();
+      deleted.draft_casefile_id = 123;
+      deleted.casefile_status = 'DELETED';
+      http.expectOne('/opal-maintenance-service/draft-casefiles/123').flush(deleted, {
+        headers: { ETag: '"committed-version-b"' },
+      });
+    });
+    await attemptedReentry;
+    await settle(harness);
+    expect(router.url).toBe('/error/permission-denied');
+    expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))).toBeNull();
+    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+  });
+
+  it.each([
+    'unconfirmed HTTP status',
+    'empty body',
+    'unconfirmed lifecycle',
+    'different case',
+    'different business unit',
+    'missing ETag',
+    'unchanged ETag',
+  ] as const)('requires recovery instead of announcing a deletion with %s', async (receipt) => {
+    const harness = await openPersisted(deleteUrl);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const saved = shell.injector.get(CasesDraftCasefileStore);
+    const navigation = shell.injector.get(CasesDraftNavigationService);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    const deletion = page.handleDelete();
+    const request = await vi.waitFor(() =>
+      http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+    );
+    const deleted = createPersistedCasefileDetail();
+    deleted.draft_casefile_id = receipt === 'different case' ? 456 : 123;
+    deleted.business_unit_id = receipt === 'different business unit' ? 45 : 44;
+    deleted.casefile_status = receipt === 'unconfirmed lifecycle' ? 'SUBMITTED' : 'DELETED';
+    request.flush(receipt === 'empty body' ? null : deleted, {
+      status: receipt === 'unconfirmed HTTP status' ? 202 : 200,
+      statusText: receipt === 'unconfirmed HTTP status' ? 'Accepted' : 'OK',
+      headers: receipt === 'missing ETag' ? {} : { ETag: receipt === 'unchanged ETag' ? '"0"' : '"1"' },
+    });
+    await deletion;
+    await settle(harness);
+    expect(TestBed.inject(Router).url).toBe(deleteUrl);
+    expect(page.deleted()).toBe(false);
+    expect(saved.requiresReload()).toBe(true);
+    expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_recovery')).not.toBeNull();
+    await page.handleDelete();
+    http.expectNone((candidate) => candidate.url.startsWith('/opal-maintenance-service/'));
+  });
+
+  it('returns verified deletion to a fresh To review list and clears the old shell', async () => {
+    const harness = await openPersisted(deleteUrl);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const saved = shell.injector.get(CasesDraftCasefileStore);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+    const operation = page.handleDelete();
+    const request = await vi.waitFor(() =>
+      http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+    );
+    const deleted = createPersistedCasefileDetail();
+    deleted.draft_casefile_id = 123;
+    deleted.casefile_status = 'DELETED';
+    request.flush(deleted, { headers: { ETag: '"1"' } });
+    await vi.waitFor(() => flushList('SUBMITTED', 0));
+    flushCounts();
+    await operation;
+    await settle(harness);
+    expect(TestBed.inject(Router).url).toBe(dashboard + '#to-review');
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-success')?.textContent).toContain(
+      'You have deleted Synthetic Respondent’s case.',
+    );
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-empty')).not.toBeNull();
+    expect(saved.draft()).toBeNull();
+    http.expectNone((candidate) => candidate.method === 'PATCH');
+  });
+  it('clears a staged notice when a different destination supersedes its return', async () => {
+    const harness = await openPersisted(deleteUrl);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const navigation = shell.injector.get(CasesDraftNavigationService);
+    const saved = shell.injector.get(CasesDraftCasefileStore);
+    expect(
+      navigation.recordCheckerDeletion({
+        identity: saved.identity()!,
+        draftCasefileId: 123,
+        respondentName: 'Synthetic Respondent',
+      }),
+    ).toBe(true);
+    await TestBed.inject(Router).navigateByUrl('/error/internal-server');
+    await settle(harness);
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+  });
+
+  it.each([401, 403, 503])('preserves shared HTTP %s feedback during verified dashboard return', async (status) => {
+    const harness = await openPersisted(deleteUrl);
+    const router = TestBed.inject(Router);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const navigation = shell.injector.get(CasesDraftNavigationService);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    const operation = page.handleDelete();
+    const patch = await vi.waitFor(() =>
+      http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+    );
+    const deleted = createPersistedCasefileDetail();
+    deleted.draft_casefile_id = 123;
+    deleted.casefile_status = 'DELETED';
+    patch.flush(deleted, { headers: { ETag: '"1"' } });
+    const list = await vi.waitFor(() =>
+      http.expectOne(
+        (candidate) =>
+          candidate.method === 'GET' &&
+          candidate.url === '/opal-maintenance-service/draft-casefiles' &&
+          candidate.params.get('restrict') !== 'counts',
+      ),
+    );
+    flushCounts();
+    list.flush(
+      {
+        retriable: true,
+        title: 'Synthetic return failure',
+        detail: 'Synthetic return detail',
+        operation_id: 'SYNTHETIC-RETURN',
+      },
+      { status, statusText: 'Synthetic return failure' },
+    );
+    await operation;
+    await settle(harness);
+    expect(router.url).toBe(deleteUrl);
+    expect(bannerError()).toEqual(
+      expect.objectContaining({
+        error: true,
+        title: 'Synthetic return failure',
+        message: 'Synthetic return detail',
+        operationId: 'SYNTHETIC-RETURN',
+      }),
+    );
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(page.deleted()).toBe(true);
+    expect(page.navigating()).toBe(false);
+    expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_review_cases')).toBeNull();
+    await page.handleDelete();
+    http.expectNone((candidate) => candidate.method === 'PATCH');
+  });
+
+  it('retries the dashboard return after deletion succeeds without issuing another PATCH', async () => {
+    const harness = await openPersisted(deleteUrl);
+    const router = TestBed.inject(Router);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const saved = shell.injector.get(CasesDraftCasefileStore);
+    const navigation = shell.injector.get(CasesDraftNavigationService);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic reason');
+    const deletion = page.handleDelete();
+    const patch = await vi.waitFor(() =>
+      http.expectOne((request) => request.method === 'PATCH' && request.url.endsWith('/draft-casefiles/123')),
+    );
+    const deleted = createPersistedCasefileDetail();
+    deleted.draft_casefile_id = 123;
+    deleted.casefile_status = 'DELETED';
+    patch.flush(deleted, { headers: { ETag: '"1"' } });
+    const firstList = await vi.waitFor(() =>
+      http.expectOne(
+        (request) => request.url === '/opal-maintenance-service/draft-casefiles' && !request.params.has('restrict'),
+      ),
+    );
+    expect(firstList.request.params.get('casefile_status')).toBe('SUBMITTED,RESUBMITTED');
+    const firstCounts = http.match((request) => request.params.get('restrict') === 'counts');
+    expect(firstCounts).toHaveLength(2);
+    for (const request of firstCounts) request.flush({ count: 0 });
+    firstList.flush(
+      { retriable: true, title: 'Synthetic return failure', detail: 'Synthetic return detail' },
+      { status: 503, statusText: 'Synthetic return failure' },
+    );
+    await deletion;
+    await settle(harness);
+    expect(router.url).toBe(deleteUrl);
+    expect(bannerError().message).toBe('Synthetic return detail');
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(page.deleted()).toBe(true);
+    expect(page.submitting()).toBe(false);
+    expect(page.navigating()).toBe(false);
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_submit')).toBeNull();
+    expect(harness.routeNativeElement?.querySelector('opal-lib-govuk-cancel-link')).toBeNull();
+    const retry = harness.routeNativeElement?.querySelector<HTMLButtonElement>('#create_casefile_delete_return');
+    expect(retry).not.toBeNull();
+    expect(retry?.type).toBe('button');
+    expect(retry?.textContent?.trim()).toBe('Return to Review cases');
+    expect(document.activeElement).toBe(retry);
+    retry!.click();
+    retry!.click();
+    const secondList = await vi.waitFor(() =>
+      http.expectOne(
+        (request) => request.url === '/opal-maintenance-service/draft-casefiles' && !request.params.has('restrict'),
+      ),
+    );
+    expect(secondList.request.params.get('casefile_status')).toBe('SUBMITTED,RESUBMITTED');
+    expect(page.navigating()).toBe(true);
+    http.expectNone((request) => request.method === 'PATCH');
+    const secondCounts = http.match((request) => request.params.get('restrict') === 'counts');
+    expect(secondCounts).toHaveLength(2);
+    for (const request of secondCounts) request.flush({ count: 0 });
+    secondList.flush({
+      count: 1,
+      summaries: [
+        createCasesDraftSummary({
+          draft_casefile_id: 456,
+          casefile_status: 'SUBMITTED',
+          submitted_by: 'BUU-OTHER',
+        }),
+      ],
+    });
+    await vi.waitFor(() => expect(router.url).toBe(dashboard + '#to-review'));
+    await settle(harness);
+    expect(harness.routeNativeElement?.querySelector('#cases-draft-success')?.textContent).toContain(
+      'You have deleted Synthetic Respondent’s case.',
+    );
+    expect(harness.routeNativeElement?.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(harness.routeNativeElement?.querySelector('tbody tr')?.getAttribute('data-draft-id')).toBe('456');
+    expect(harness.routeNativeElement?.querySelector('[data-draft-id="123"]')).toBeNull();
+    expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))).toBeNull();
+    expect(saved.draft()).toBeNull();
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
+  });
+
+  it.each([401, 403, 503])('handles Cancel resolver HTTP %s without replacing shared feedback', async (status) => {
+    const harness = await openPersisted(deleteUrl);
+    const router = TestBed.inject(Router);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const navigation = shell.injector.get(CasesDraftNavigationService);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    const setBannerError = vi.mocked(TestBed.inject(GlobalStore).setBannerError);
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    setBannerError.mockClear();
+    const cancellation = page.handleCancel();
+    const request = await vi.waitFor(() =>
+      http.expectOne((candidate) => candidate.method === 'GET' && candidate.url.endsWith('/draft-casefiles/123')),
+    );
+    expect(router.currentNavigation()?.extras.info).toBeUndefined();
+    request.flush(
+      {
+        retriable: true,
+        title: 'Synthetic selected failure',
+        detail: 'Synthetic selected detail',
+        operation_id: 'SYNTHETIC-SELECTED',
+      },
+      { status, statusText: 'Synthetic selected failure' },
+    );
+    await cancellation;
+    await settle(harness);
+    expect(router.url).toBe(deleteUrl);
+    expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent)).componentInstance).toBe(page);
+    const expectedBanner = expect.objectContaining({
+      error: true,
+      title: 'Synthetic selected failure',
+      message: 'Synthetic selected detail',
+      operationId: 'SYNTHETIC-SELECTED',
+    });
+    expect(bannerError()).toEqual(expectedBanner);
+    expect(setBannerError).toHaveBeenCalledExactlyOnceWith(expectedBanner);
+    expect(page.navigating()).toBe(false);
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    expect(page.readable()).toBe(true);
+    expect(page.eligible()).toBe(true);
+    expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
+    expect(page.form.controls.create_casefile_delete_reason.enabled).toBe(true);
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_submit')).not.toBeNull();
+    http.expectNone((candidate) => candidate.method === 'PATCH');
+  });
+
+  it.each([true, false])('preserves a competing departure when its resolver emits=%s', async (destinationCompletes) => {
+    const harness = await openPersisted(deleteUrl);
+    const router = TestBed.inject(Router);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const saved = shell.injector.get(CasesDraftCasefileStore);
+    const navigation = shell.injector.get(CasesDraftNavigationService);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    const destinationReady = new Subject<boolean>();
+    router.resetConfig([
+      ...router.config,
+      { path: 'pending-destination', component: DeniedComponent, resolve: { ready: () => destinationReady } },
+    ]);
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    const operation = page.handleDelete();
+    const responseRequest = await vi.waitFor(() =>
+      http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+    );
+    const resolving = firstValueFrom(
+      router.events.pipe(
+        filter((event): event is ResolveStart => event instanceof ResolveStart && event.url === '/pending-destination'),
+        take(1),
+      ),
+    );
+    const departure = router.navigateByUrl('/pending-destination');
+    await resolving;
+    const deleted = createPersistedCasefileDetail();
+    deleted.draft_casefile_id = 123;
+    deleted.casefile_status = 'DELETED';
+    responseRequest.flush(deleted, { headers: { ETag: '"1"' } });
+    await operation;
+    expect(router.currentNavigation()?.initialUrl.toString()).toBe('/pending-destination');
+    http.expectNone((candidate) => candidate.url === '/opal-maintenance-service/draft-casefiles');
+    expect(navigation.consumeCheckerDeletion()).toBeNull();
+    if (destinationCompletes) destinationReady.next(true);
+    destinationReady.complete();
+    expect(await departure).toBe(destinationCompletes);
+    await settle(harness);
+    expect(router.url).toBe(destinationCompletes ? '/pending-destination' : deleteUrl);
+    if (destinationCompletes) expect(saved.draft()).toBeNull();
+    else {
+      expect(page.deleted()).toBe(true);
+      await page.handleDelete();
+    }
+    http.expectNone((candidate) => candidate.method === 'PATCH');
+    http.expectNone((candidate) => candidate.url === '/opal-maintenance-service/draft-casefiles');
+  });
+
+  it.each(['missing retriable', 'network'] as const)(
+    'retains the editable reason after PATCH %s failure without replay',
+    async (failure) => {
+      const harness = await openPersisted(deleteUrl);
+      const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+        .componentInstance as CasesDraftDeleteComponent;
+      page.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+      const operation = page.handleDelete();
+      const request = await vi.waitFor(() =>
+        http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+      );
+      if (failure === 'network') request.error(new ProgressEvent('error'));
+      else
+        request.flush(
+          { title: 'Synthetic failure', detail: 'Synthetic failure detail' },
+          { status: 503, statusText: 'Synthetic failure' },
+        );
+      await operation;
+      await settle(harness);
+      expect(TestBed.inject(Router).url).toBe(deleteUrl);
+      expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent)).componentInstance).toBe(page);
+      expect(page.submitting()).toBe(false);
+      expect(page.form.controls.create_casefile_delete_reason.enabled).toBe(true);
+      expect(page.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
+      http.expectNone((candidate) => candidate.url.startsWith('/opal-maintenance-service/'));
+    },
+  );
+  it('starts fresh on re-entry after a non-retriable PATCH 500 without replaying the deletion', async () => {
+    const harness = await openPersisted(deleteUrl);
+    const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
+    const saved = shell.injector.get(CasesDraftCasefileStore);
+    const page = harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))
+      .componentInstance as CasesDraftDeleteComponent;
+    page.form.controls.create_casefile_delete_reason.setValue('Synthetic retained reason');
+    const operation = page.handleDelete();
+    const request = await vi.waitFor(() =>
+      http.expectOne((candidate) => candidate.method === 'PATCH' && candidate.url.endsWith('/draft-casefiles/123')),
+    );
+    request.flush(
+      { retriable: false, title: 'Synthetic failure', detail: 'Synthetic failure detail' },
+      { status: 500, statusText: 'Synthetic failure' },
+    );
+    await operation;
+    await settle(harness);
+    const router = TestBed.inject(Router);
+    expect(router.url).toBe('/error/internal-server');
+    expect(saved.draft()).toBeNull();
+    expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent))).toBeNull();
+    const returning = router.navigateByUrl(deleteUrl);
+    await flushPersisted();
+    await returning;
+    await settle(harness);
+    expect(router.url).toBe(deleteUrl);
+    expect(harness.routeNativeElement?.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('');
+    expect(harness.fixture.debugElement.query(By.directive(CasesDraftDeleteComponent)).componentInstance).not.toBe(
+      page,
+    );
+    http.expectNone((candidate) => candidate.method === 'PATCH');
+  });
+
   it.each(['SUBMITTED', 'RESUBMITTED'] as const)(
     'loads an eligible %s Delete deep link with its complete saved envelope',
     async (status) => {
@@ -113,21 +724,24 @@ describe('checker production route boundaries', () => {
       const harness = await arrival;
       const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
       const store = shell.injector.get(CasesDraftCasefileStore);
-      expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe('Delete casefile');
-      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).not.toBeNull();
+      expect(harness.routeNativeElement?.querySelector('h1')?.textContent?.trim()).toBe(
+        'Are you sure you want to delete this case?',
+      );
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_submit')).not.toBeNull();
       expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
       expect(store.draft()?.casefile_status).toBe(status);
       expect(store.etag()).toBe('"0"');
-      expect(harness.routeNativeElement?.querySelector('form, input, textarea, select')).toBeNull();
+      expect(harness.routeNativeElement?.querySelector('textarea')?.getAttribute('maxlength')).toBe('250');
       http.expectNone((request) => request.method !== 'GET');
     },
   );
-  it('keeps review and Delete in the same persisted shell and returns to fresh review cases', async () => {
+  it('keeps review and Delete in the same persisted shell and cancels to fresh selected review', async () => {
     const harness = await openPersisted('/cases/draft/check-and-validate/review/123');
     const shell = harness.fixture.debugElement.query(By.directive(CasesCreateCasefileComponent));
     const owner = shell.componentInstance;
     const store = shell.injector.get(CasesDraftCasefileStore);
     const before = structuredClone(getState(store));
+    const creationBefore = structuredClone(getState(TestBed.inject(CasesCreateCasefileStore)));
     const deleteLink = harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a#create_casefile_review_delete')!;
     expect(deleteLink.getAttribute('href')).toBe(deleteUrl);
     deleteLink.click();
@@ -138,12 +752,12 @@ describe('checker production route boundaries', () => {
       owner,
     );
     expect(getState(store)).toEqual(before);
-    harness.routeNativeElement!.querySelector<HTMLButtonElement>('#create_casefile_delete_return')!.click();
-    await vi.waitFor(() => flushList('SUBMITTED', 1));
+    harness.routeNativeElement!.querySelector<HTMLAnchorElement>('opal-lib-govuk-cancel-link a')!.click();
+    await flushPersisted();
     await settle(harness);
-    expect(TestBed.inject(Router).url).toBe(dashboard + '#to-review');
-    expect(store.draft()).toBeNull();
-    expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
+    expect(TestBed.inject(Router).url).toBe('/cases/draft/check-and-validate/review/123#to-review');
+    expect(store.draft()?.draft_casefile_id).toBe(123);
+    expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(creationBefore);
     http.expectNone((request) => request.method !== 'GET');
   });
   it.each(['own submission', '21-only', 'published', 'loaded other BU'])(
@@ -169,7 +783,7 @@ describe('checker production route boundaries', () => {
       const harness = await arrival;
       await settle(harness);
       expect(TestBed.inject(Router).url).toBe('/error/permission-denied');
-      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
+      expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_submit')).toBeNull();
       http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));
     },
   );
@@ -194,7 +808,7 @@ describe('checker production route boundaries', () => {
     userState.set(user);
     await settle(harness);
     expect(harness.routeNativeElement?.textContent).toContain('Denied');
-    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_return')).toBeNull();
+    expect(harness.routeNativeElement?.querySelector('#create_casefile_delete_submit')).toBeNull();
     expect(TestBed.inject(Router).url).toBe('/error/permission-denied');
     expect(getState(TestBed.inject(CasesCreateCasefileStore))).toEqual(CASES_CREATE_CASEFILE_STATE);
     http.expectNone((request) => request.url.startsWith('/opal-maintenance-service/'));

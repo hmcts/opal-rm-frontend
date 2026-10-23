@@ -1,0 +1,52 @@
+@if (readable()) {
+  <div class="govuk-grid-column-two-thirds">
+    <h1 #heading id="create_casefile_delete_heading" tabindex="-1" class="govuk-heading-l">
+      Are you sure you want to delete this case?
+    </h1>
+    <p id="create_casefile_delete_identity" class="govuk-body">{{ respondentName() }}</p>
+    <opal-lib-govuk-error-summary [errors]="formErrorSummaryMessage" (errorClick)="scrollTo($event)" />
+    <form (submit)="handleFormSubmit($event)" [formGroup]="form">
+      <opal-lib-govuk-text-area
+        id="create_casefile_delete_reason_field"
+        labelText="Reason"
+        inputId="create_casefile_delete_reason"
+        inputName="create_casefile_delete_reason"
+        [control]="form.controls.create_casefile_delete_reason"
+        [errors]="formControlErrorMessages['create_casefile_delete_reason']"
+        [characterCountEnabled]="true"
+        [maxCharacterLimit]="250"
+      />
+      @if (requiresReload()) {
+        <p id="create_casefile_delete_recovery" class="govuk-body" role="status">
+          The deletion outcome is not confirmed. Select No - cancel to reload the saved case before trying again.
+        </p>
+      }
+      <div class="govuk-button-group">
+        @if (deleted()) {
+          <button
+            #returnButton
+            id="create_casefile_delete_return"
+            type="button"
+            class="govuk-button"
+            [disabled]="!eligible() || navigating()"
+            (click)="handleReturnToReviewCases()"
+          >
+            Return to Review cases
+          </button>
+        } @else {
+          <button
+            id="create_casefile_delete_submit"
+            type="submit"
+            class="govuk-button govuk-button--warning"
+            [disabled]="!eligible() || submitting() || navigating() || requiresReload()"
+          >
+            Yes - delete case
+          </button>
+          @if (eligible() && !submitting() && !navigating()) {
+            <opal-lib-govuk-cancel-link cancelLinkText="No - cancel" (linkClickEvent)="handleCancel()" />
+          }
+        }
+      </div>
+    </form>
+  </div>
+}

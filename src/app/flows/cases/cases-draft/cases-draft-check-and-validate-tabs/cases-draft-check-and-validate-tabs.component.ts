@@ -1,5 +1,25 @@
+import type { ICasesDraftDeletionNotice } from '../interfaces/cases-draft-deletion-notice.interface';
+import {
+  MojAlertComponent,
+  MojAlertContentComponent,
+  MojAlertIconComponent,
+  MojAlertTextComponent,
+} from '@hmcts/opal-frontend-common/components/moj/moj-alert';
 import { AsyncPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, ElementRef, viewChild } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, combineLatest, map, Observable, of, shareReplay, startWith, switchMap } from 'rxjs';
 import { CustomPageHeaderComponent } from '@hmcts/opal-frontend-common/components/custom/custom-page-header';
@@ -17,6 +37,10 @@ import { sameCasesDraftIdentity } from '../utils/cases-draft-identity';
   selector: 'app-cases-draft-check-and-validate-tabs',
   imports: [
     AsyncPipe,
+    MojAlertComponent,
+    MojAlertContentComponent,
+    MojAlertIconComponent,
+    MojAlertTextComponent,
     CustomPageHeaderComponent,
     MojSubNavigationComponent,
     MojNotificationBadgeComponent,
@@ -26,9 +50,16 @@ import { sameCasesDraftIdentity } from '../utils/cases-draft-identity';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboardBaseComponent {
+  private readonly deletionSuccess = signal<ICasesDraftDeletionNotice | null>(null);
+  private readonly successInjector = inject(Injector);
   protected readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   protected readonly mode = 'checker';
   protected readonly identity = computed(() => this.data.getIdentity());
+  public readonly successText = computed(() => {
+    const notice = this.deletionSuccess();
+    if (!notice || !this.isCurrentIdentity(notice.identity)) return null;
+    return 'You have deleted ' + notice.respondentName + '’s case.';
+  });
   public readonly tabs: readonly CasesDraftTab[] = ['to-review', 'rejected', 'deleted', 'failed'];
   public readonly tabData$: Observable<ICasesDraftTabData | null>;
   public readonly outcomeCounts$: Observable<{
@@ -39,6 +70,18 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
 
   constructor() {
     super();
+    this.deletionSuccess.set(this.navigation.consumeCheckerDeletion());
+    effect(() => {
+      const identity = this.identity();
+      untracked(() => {
+        if (!sameCasesDraftIdentity(this.deletionSuccess()?.identity ?? null, identity)) this.deletionSuccess.set(null);
+        if (!identity) this.navigation.clearCheckerDeletion();
+      });
+    });
+    inject(DestroyRef).onDestroy(() => {
+      this.deletionSuccess.set(null);
+      this.navigation.clearCheckerDeletion();
+    });
     this.tabData$ = this.initialiseDashboard().tabData$;
     const resolvedList = this.activatedRoute.snapshot.data['draftCasefiles'] as ICasesDraftResolvedList | undefined;
     const resolvedIdentity = resolvedList?.identity ?? null;
@@ -69,6 +112,11 @@ export class CasesDraftCheckAndValidateTabsComponent extends CasesDraftDashboard
       takeUntilDestroyed(),
       shareReplay({ bufferSize: 1, refCount: true }),
     );
+  }
+
+  public dismissSuccess(): void {
+    this.deletionSuccess.set(null);
+    afterNextRender(() => this.heading()?.nativeElement.focus(), { injector: this.successInjector });
   }
 
   public async openRow(id: number): Promise<void> {

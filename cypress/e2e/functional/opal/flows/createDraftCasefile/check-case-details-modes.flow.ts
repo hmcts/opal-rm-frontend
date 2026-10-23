@@ -77,21 +77,56 @@ export class CheckCaseDetailsModesFlow {
   public expectReturn(dashboard: string): void {
     this.actions.expectReturn(dashboard);
   }
-  /** Opens the interim Delete walkthrough from review.
+  /** Opens the deletion reason screen from review.
    */
   public chooseDelete(): void {
     this.actions.chooseDelete();
   }
-  /** Checks the interim screen has only local return controls.
+  /** Checks the deletion reason screen has visible controls.
    */
   public expectDelete(): void {
     this.actions.expectDelete();
   }
-  /** Returns locally from the interim Delete walkthrough.
-   */
-  public returnFromDelete(): void {
-    this.actions.returnFromDelete();
+  /** Opens the selected case from the checker review queue. */
+  public openFromChecker(): void {
+    this.actions.openFromChecker();
   }
+  /** Enables the explicit synthetic deletion contract.
+   * @param outcome Success or a shared request error. */
+  public enableDeletion(outcome: string): void {
+    this.actions.enableDeletion(outcome);
+  }
+  /** Enters the accepted deletion reason.
+   * @param reason Synthetic reason sent unchanged. */
+  public enterDeletionReason(reason: string): void {
+    this.actions.enterDeletionReason(reason);
+  }
+  /** Confirms deletion through the rendered form. */
+  public confirmDeletion(): void {
+    this.actions.confirmDeletion();
+  }
+  /** Submits an empty reason to exercise validation. */
+  public submitEmptyDeletion(): void {
+    this.actions.submitEmptyDeletion();
+  }
+  /** Cancels deletion back to the selected review. */
+  public cancelDeletion(): void {
+    this.actions.cancelDeletion();
+  }
+  /** Checks shared feedback leaves the reason editable without another request. */
+  public expectDeletionError(): void {
+    this.actions.expectDeletionError();
+  }
+  /** Checks the confirmed deletion notice and refreshed queue. */
+  public expectDeletedReturn(): void {
+    this.actions.expectDeletedReturn();
+  }
+  /** Checks cancellation performs fresh selected loading without mutation.
+   * @param expectedGets Total selected requests for this journey. */
+  public expectReviewAfterCancel(expectedGets: number): void {
+    this.actions.expectReviewAfterCancel(expectedGets);
+  }
+
   /** Checks denial and the selected GET boundary.
    * @param count Expected selected GET count.
    */

@@ -1,5 +1,6 @@
 export interface IDraftCasefileMonitor {
   attempts: number;
+  applicationAttempts: number;
   upstreamSuccesses: number;
   droppedResponses: number;
   interceptedFailures: number;

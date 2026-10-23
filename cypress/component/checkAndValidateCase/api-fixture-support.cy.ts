@@ -36,6 +36,12 @@ describe('PO-10626 owned API fixture support', () => {
       expect(payload.casefile.respondent_account.respondent.party_details.address.cjs_code).to.equal(101);
       expect(payload.casefile.applicant.party_details.address.cjs_code).to.equal(101);
       expect(payload.casefile.respondent_account.order_details.order_terms[0].creditor_type).to.equal('Applicant');
+      expect(
+        payload.casefile.respondent_account.respondent.party_details.individual_details?.restrict_personal_information,
+      ).to.equal(false);
+      expect(payload.casefile.applicant.party_details.individual_details?.restrict_personal_information).to.equal(
+        false,
+      );
       const second = buildSyntheticDraftRequest('E2E-fedcba9876543210', 'LIVE02', 102);
       second.casefile.respondent_account.respondent.party_details.individual_details!.forenames = 'Changed';
       expect(payload.casefile.respondent_account.respondent.party_details.individual_details!.forenames).to.equal(

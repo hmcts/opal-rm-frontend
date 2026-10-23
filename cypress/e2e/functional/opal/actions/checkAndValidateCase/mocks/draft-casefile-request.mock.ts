@@ -14,7 +14,7 @@ export const DRAFT_CASEFILE_RECOVERY_REQUEST: IOpalMaintenanceDraftCasefileReque
       respondent: {
         party_details: {
           organisation: false,
-          individual_details: { forenames: 'Synthetic', surname: 'Respondent' },
+          individual_details: { forenames: 'Synthetic', surname: 'Respondent', restrict_personal_information: false },
           address: { address_line_1: '1 Test Street', cjs_code: 1 },
         },
       },
@@ -44,7 +44,7 @@ export const DRAFT_CASEFILE_RECOVERY_REQUEST: IOpalMaintenanceDraftCasefileReque
     applicant: {
       party_details: {
         organisation: false,
-        individual_details: { forenames: 'Synthetic', surname: 'Applicant' },
+        individual_details: { forenames: 'Synthetic', surname: 'Applicant', restrict_personal_information: false },
         address: { address_line_1: '2 Test Street', cjs_code: 1 },
       },
       bank_account_details: { bank_account_type: 'None or not applicable' },

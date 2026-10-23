@@ -1,4 +1,5 @@
 export const CheckAndValidateCaseSelectors = {
+  conflictPage: 'opal-lib-concurrency-failure',
   reviewHeading: '#review-heading',
   reviewSections: 'app-cases-create-casefile-review-section, section#review-orderTerms',
   history: 'app-cases-draft-casefile-history',
@@ -9,6 +10,7 @@ export const CheckAndValidateCaseSelectors = {
   reason: '#create_casefile_review_rejection_reason',
   continue: '#create_casefile_review_continue',
   deleteLink: '#create_casefile_review_delete',
+  deleteHeading: '#create_casefile_delete_heading',
   deleteIdentity: '#create_casefile_delete_identity',
   deleteReason: '#create_casefile_delete_reason',
   deleteSubmit: '#create_casefile_delete_submit',

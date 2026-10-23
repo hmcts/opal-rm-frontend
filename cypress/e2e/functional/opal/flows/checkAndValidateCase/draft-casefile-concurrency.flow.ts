@@ -104,6 +104,14 @@ export class DraftCasefileConcurrencyFlow {
   public submit(): void {
     this.ui.submit(this.journey);
     this.waitForMutation();
+    cy.then(() => {
+      const { owned, monitor } = this.context();
+      cy.writeFile(
+        `functional-output/po10626/mutation-${owned.marker}-${owned.id}.json`,
+        { id: owned.id, testRunReference: owned.marker, journey: this.journey, fault: this.fault, ...monitor },
+        { log: false },
+      );
+    });
   }
 
   /**
@@ -112,7 +120,13 @@ export class DraftCasefileConcurrencyFlow {
   private waitForMutation(): void {
     cy.wait('@draftMutation').then((call) => {
       if (this.fault === 'lost-response' && !this.retried) {
-        expect(Boolean(call.error), 'browser received a transport failure after real success').to.equal(true);
+        expect(call.response?.statusCode, 'wire response proves the real commit before Fetch delivery loss').to.equal(
+          200,
+        );
+        cy.wrap(this.monitor, { log: false }).its('droppedResponses').should('equal', 1);
+        cy.then(() =>
+          expect(this.monitor?.applicationAttempts, 'one application dispatch before recovery').to.equal(1),
+        );
       } else {
         let expected = 200;
         if (!this.retried && this.fault === 'definite-failure') expected = 400;
@@ -197,8 +211,7 @@ export class DraftCasefileConcurrencyFlow {
    * Proves the stale browser request cannot overwrite the authoritative winner.
    */
   public assertConflict(): void {
-    this.ui.assertFailure(this.journey);
-    this.ui.assertReloadRequired(this.journey);
+    this.ui.assertSafeConflict();
     const { owned, before, monitor } = this.context();
     readDraftSnapshot(owned.id).then((current) => {
       if (!this.winner) throw new Error('Competing mutation has no authoritative result');
@@ -214,9 +227,26 @@ export class DraftCasefileConcurrencyFlow {
    */
   public recover(keyboard = false): void {
     const { owned } = this.context();
-    this.ui.recover(owned.id, this.journey, keyboard || this.journey === 'delete');
+    if (this.fault === 'conflict') this.ui.recoverConflict(owned.id, this.journey, keyboard);
+    else this.ui.recover(owned.id, this.journey, keyboard || this.journey === 'delete');
     this.recovered = true;
     if (this.journey === 'delete') accessibilityActions.checkAccessibilityOnly();
+  }
+
+  /**
+   * Reports differing field paths only; never include values or aggregate snapshots in failure output.
+   * @param expected Complete aggregate expected after the explicit correction.
+   * @param actual Saved aggregate returned by the authoritative API.
+   * @param path Current field path without any values.
+   * @returns Only the paths whose values differ.
+   */
+  private changedFields(expected: unknown, actual: unknown, path = 'casefile'): string[] {
+    if (Cypress._.isEqual(expected, actual)) return [];
+    if (typeof expected !== 'object' || !expected || typeof actual !== 'object' || !actual) return [path];
+    const keys = new Set([...Object.keys(expected), ...Object.keys(actual)]);
+    return [...keys].flatMap((key) =>
+      this.changedFields(Reflect.get(expected, key), Reflect.get(actual, key), `${path}.${key}`),
+    );
   }
 
   /**
@@ -256,9 +286,10 @@ export class DraftCasefileConcurrencyFlow {
         const individual = expected.respondent_account.respondent.party_details.individual_details;
         if (!individual) throw new Error('Synthetic recovery fixture requires an individual respondent');
         individual.forenames = this.correction;
-        expect(Cypress._.isEqual(current.draft.casefile, expected), 'complete corrected aggregate saved').to.equal(
-          true,
-        );
+        expect(
+          Cypress._.isEqual(current.draft.casefile, expected),
+          `complete corrected aggregate saved; differing fields: ${this.changedFields(expected, current.draft.casefile).join(', ')}`,
+        ).to.equal(true);
         expect(current.draft.casefile.respondent_account.remo_reference).to.equal(owned.marker);
         expect(String(Cypress._.get(current.draft.casefile_snapshot, 'respondent_account.respondent_name'))).to.contain(
           this.correction,
@@ -292,6 +323,9 @@ export class DraftCasefileConcurrencyFlow {
       const { owned, monitor } = this.context();
       const baseline = this.publicationBefore;
       if (!baseline) throw new Error('Publication observation was not registered before the mutation');
+      expect(monitor.applicationAttempts, 'application dispatches through the final UI assertion').to.equal(
+        this.retried ? 2 : 1,
+      );
       expect(monitor.attempts, 'browser attempts through the final UI assertion').to.equal(this.retried ? 2 : 1);
       // Restoring cy.session navigates away. This must be the final step after all UI/Axe assertions.
       performAuthentication(owned.inputter);
@@ -330,6 +364,9 @@ export class DraftCasefileConcurrencyFlow {
   public assertFinalState(): void {
     cy.then(() => {
       const { monitor } = this.context();
+      expect(monitor.applicationAttempts, 'all application dispatches through completed recovery').to.equal(
+        this.retried ? 2 : 1,
+      );
       expect(monitor.attempts, 'all browser mutation attempts through completed recovery').to.equal(
         this.retried ? 2 : 1,
       );

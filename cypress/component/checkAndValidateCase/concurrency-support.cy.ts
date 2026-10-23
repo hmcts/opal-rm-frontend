@@ -1,6 +1,9 @@
 import type { CyHttpMessages } from 'cypress/types/net-stubbing';
 import { CheckAndValidateCaseSelectors as S } from '../../shared/selectors/check-and-validate-case.selectors';
-import { createMutationControl } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-transport.actions';
+import {
+  createMutationControl,
+  installDraftCasefileFetchMonitor,
+} from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-transport.actions';
 import {
   assertRecoveredReviewSections,
   assertRetainedCheckerDecision,
@@ -123,7 +126,92 @@ describe('PO-10626 concurrency test support', () => {
     },
   );
   it(
-    'forwards a request before dropping its real successful response and counts later attempts',
+    'AC1. should lose only the first scoped real successful fetch response and restore the wrapper',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
+    () => {
+      const control = createMutationControl('lost-response');
+      control.monitor.upstreamSuccesses = 1;
+      control.monitor.upstreamEtag = '"5"';
+      const success = new Response('{}', { status: 200, headers: { etag: '"5"' } });
+      const original = Cypress.sinon.stub().resolves(success);
+      const host = { fetch: original, location: window.location };
+      const restore = installDraftCasefileFetchMonitor(host, 101, 'PATCH', 'lost-response', control.monitor);
+      return host.fetch('/opal-maintenance-service/draft-casefiles/101', { method: 'PATCH' }).then(
+        () => {
+          throw new Error('Committed response was delivered to the caller');
+        },
+        async (error: unknown) => {
+          expect(error).to.be.instanceOf(TypeError);
+          expect(control.monitor.droppedResponses).to.equal(1);
+          expect(await host.fetch('/opal-maintenance-service/draft-casefiles/101', { method: 'PATCH' })).to.equal(
+            success,
+          );
+          expect(control.monitor.applicationAttempts).to.equal(2);
+          expect(original).to.have.been.calledTwice;
+          restore();
+          expect(host.fetch).to.equal(original);
+        },
+      );
+    },
+  );
+  it(
+    'AC1. should preserve unrelated requests, rejected responses and original fetch errors',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
+    async () => {
+      const control = createMutationControl('lost-response');
+      const rejected = new Response('{}', { status: 409 });
+      const failure = new TypeError('Original transport error');
+      const original = Cypress.sinon.stub().resolves(rejected);
+      const host = { fetch: original, location: window.location };
+      const restore = installDraftCasefileFetchMonitor(host, 101, 'PATCH', 'lost-response', control.monitor);
+      expect(await host.fetch('/opal-maintenance-service/draft-casefiles/102', { method: 'PATCH' })).to.equal(rejected);
+      expect(await host.fetch('/opal-maintenance-service/draft-casefiles/101', { method: 'PUT' })).to.equal(rejected);
+      expect(await host.fetch('/opal-maintenance-service/draft-casefiles/101', { method: 'PATCH' })).to.equal(rejected);
+      original.rejects(failure);
+      await host
+        .fetch('/opal-maintenance-service/draft-casefiles/101', { method: 'PATCH' })
+        .catch((error: unknown) => expect(error).to.equal(failure));
+      expect(control.monitor.applicationAttempts).to.equal(2);
+      expect(control.monitor.droppedResponses).to.equal(0);
+      restore();
+      expect(host.fetch).to.equal(original);
+    },
+  );
+  it(
+    'AC1. should refuse a fabricated successful response without independent wire proof',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
+    async () => {
+      const control = createMutationControl('lost-response');
+      const original = Cypress.sinon.stub().resolves(new Response('{}', { status: 200 }));
+      const host = { fetch: original, location: window.location };
+      const restore = installDraftCasefileFetchMonitor(host, 101, 'PATCH', 'lost-response', control.monitor);
+      let error: unknown;
+      try {
+        await host.fetch('/opal-maintenance-service/draft-casefiles/101', { method: 'PATCH' });
+      } catch (caught: unknown) {
+        error = caught;
+      }
+      expect(String(error)).to.contain('independently observed upstream HTTP 200 and ETag');
+      expect(control.monitor.droppedResponses).to.equal(0);
+      restore();
+    },
+  );
+  it(
+    'AC1. should preserve a newer fetch owner when restoring an older monitor',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
+    () => {
+      const control = createMutationControl('none');
+      const original = Cypress.sinon.stub();
+      const host = { fetch: original, location: window.location };
+      const restore = installDraftCasefileFetchMonitor(host, 101, 'PATCH', 'none', control.monitor);
+      const replacement = Cypress.sinon.stub();
+      host.fetch = replacement;
+      restore();
+      expect(host.fetch).to.equal(replacement);
+    },
+  );
+  it(
+    'forwards and records real success without destroying the connection, then counts later attempts',
     { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
     () => {
       const control = createMutationControl('lost-response');
@@ -144,7 +232,7 @@ describe('PO-10626 concurrency test support', () => {
       } as unknown as CyHttpMessages.IncomingHttpRequest;
       control.handleRequest(request);
       expect(forwarded).to.equal(1);
-      expect(sent).to.deep.equal([{ forceNetworkError: true }]);
+      expect(sent).to.have.length(0);
       expect(control.monitor.upstreamSuccesses).to.equal(1);
       expect(control.monitor.upstreamEtag).to.equal('"5"');
       control.handleRequest({
@@ -152,8 +240,8 @@ describe('PO-10626 concurrency test support', () => {
         continue: (callback: (value: CyHttpMessages.IncomingHttpResponse) => void) => callback(response),
       } as unknown as CyHttpMessages.IncomingHttpRequest);
       expect(control.monitor.attempts).to.equal(2);
-      expect(control.monitor.droppedResponses).to.equal(1);
-      expect(sent).to.have.length(1);
+      expect(control.monitor.droppedResponses).to.equal(0);
+      expect(sent).to.have.length(0);
       expect(control.monitor.requestVersions).to.deep.equal(['"4"', '"4"']);
     },
   );
@@ -168,9 +256,8 @@ describe('PO-10626 concurrency test support', () => {
         headers: {},
         continue: (callback: (value: unknown) => void) => callback({ statusCode: 409, headers: {}, send }),
       } as unknown as CyHttpMessages.IncomingHttpRequest;
-      expect(() => control.handleRequest(request)).to.throw(
-        'Expected a real upstream HTTP 200 before losing its response',
-      );
+      control.handleRequest(request);
+      expect(control.monitor.lastStatus).to.equal(409);
       expect(send).not.to.have.been.called;
       expect(control.monitor.droppedResponses).to.equal(0);
     },

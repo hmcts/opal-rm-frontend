@@ -1,3 +1,7 @@
+import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
+import { PrimaryNavigationLocators as P } from '../../../../../shared/selectors/primary-navigation.locators';
+import { CASES_DRAFT_CHECKER_ROUTING_PATHS as CHECKER } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
+import { CASES_CREATE_CASEFILE_ROUTING_PATHS as CREATE } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CheckAndValidateCaseSelectors as S } from '../../../../../shared/selectors/check-and-validate-case.selectors';
 import { CreateCasefileSelectors as C } from '../../../../../shared/selectors/create-casefile.selectors';
 import type { DraftCasefileJourney } from './types/draft-casefile-journey.type';
@@ -102,12 +106,20 @@ export class DraftCasefileRecoveryActions {
     this.savedReview = [];
     this.originalReview = [];
     if (journey === 'resubmit') {
-      cy.visit(`/cases/create-casefile/task-list/${id}`);
+      cy.visit(`/${CREATE.root}/${CREATE.children.taskList}/${id}`);
       cy.get(C.caseDetails.checkCaseButton).should('be.enabled').click();
     } else {
-      cy.visit(`/cases/draft/check-and-validate/review/${id}`);
+      cy.visit(`/${CHECKER.root}/${CHECKER.children.review}/${id}`);
     }
     cy.get(S.reviewHeading).should('be.visible');
+    if (journey === 'resubmit') {
+      cy.location('pathname').should('equal', `/${CREATE.root}/${CREATE.children.checkCaseDetails}`);
+      cy.get(S.reviewHeading).should('have.text', 'Check case details');
+      cy.get(S.amendmentSubmit).should('contain.text', 'Submit for review');
+    } else {
+      cy.location('pathname').should('equal', `/${CHECKER.root}/${CHECKER.children.review}/${id}`);
+      cy.get(S.continue).should('have.text', 'Continue');
+    }
   }
 
   /**
@@ -117,7 +129,8 @@ export class DraftCasefileRecoveryActions {
   public choose(journey: DraftCasefileJourney): void {
     this.reason = 'Synthetic concurrency decision';
     if (journey === 'delete') {
-      cy.get(S.deleteLink).click();
+      cy.get(S.deleteLink).should('have.text', 'Delete case').click();
+      cy.get(S.deleteHeading).should('contain.text', 'Are you sure you want to delete this case?');
       cy.get(S.deleteReason).should('be.visible').type(this.reason);
     } else if (journey === 'approve') {
       cy.get(S.approve).check();
@@ -259,6 +272,47 @@ export class DraftCasefileRecoveryActions {
     this.assertRetained(journey);
   }
 
+  /** Requires the actual shared safe-conflict outcome without claiming that an editor remains rendered. */
+  public assertSafeConflict(): void {
+    cy.location('pathname').should('equal', '/error/concurrency-failure');
+    cy.get(S.conflictPage)
+      .should('be.visible')
+      .and('contain.text', 'Something else was changed while you were doing this.')
+      .and('contain.text', 'Your changes have not been saved. You will need to start again.');
+    cy.get(S.continue).should('not.exist');
+    cy.get(S.amendmentSubmit).should('not.exist');
+  }
+
+  /**
+   * Re-enters the owned saved case through actual Cases, dashboard, tab and row controls.
+   * @param id Identifier of the independently owned saved case.
+   * @param journey Actor journey determining the dashboard and saved-status tab.
+   * @param keyboard Whether recovery uses native keyboard activation.
+   */
+  public recoverConflict(id: number, journey: DraftCasefileJourney, keyboard: boolean): void {
+    cy.intercept('GET', `/opal-maintenance-service/draft-casefiles/${id}`).as('recoveredDraft');
+    const cases = cy.contains(P.items, P.labels.cases).should('be.visible');
+    if (keyboard) {
+      cases.focus().should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+    } else cases.click();
+    cy.location('pathname').should('equal', '/dashboard/cases');
+    this.activate(journey === 'resubmit' ? D.inputterEntry : D.checkerEntry, keyboard);
+    cy.get(D.heading).should('have.text', journey === 'resubmit' ? 'Create cases' : 'Review cases');
+    this.activate(D.tab(journey === 'resubmit' ? 'in-review' : 'rejected'), keyboard);
+    cy.get(D.row(id)).within(() => {
+      const link = cy.get(D.column('respondent')).find('a').should('be.visible');
+      if (keyboard) {
+        link.focus().should('be.focused');
+        cy.press(Cypress.Keyboard.Keys.ENTER);
+      } else link.click();
+    });
+    cy.wait('@recoveredDraft').its('response.statusCode').should('equal', 200);
+    cy.get(S.reviewHeading).should('be.visible');
+    cy.get(S.continue).should('not.exist');
+    cy.get(S.amendmentSubmit).should('not.exist');
+  }
+
   /**
    * Requires the recovered page to present the saved case and history, rather than an empty or denied route.
    * @param snapshot Independently read authoritative state after recovery.
@@ -384,7 +438,7 @@ export class DraftCasefileRecoveryActions {
       this.activate(S.back, keyboard);
       // Back returns to the queue; reopen the owned persisted resource rather than submitting again.
       cy.location('pathname').should('not.contain', `/review/${id}`);
-      cy.visit(`/cases/draft/check-and-validate/view/${id}`);
+      cy.visit(`/${CHECKER.root}/${CHECKER.children.view}/${id}`);
     }
     cy.wait('@recoveredDraft').then(({ response }) =>
       expect(response?.statusCode, 'recovery reloaded persisted state').to.equal(200),

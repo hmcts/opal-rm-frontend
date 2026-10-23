@@ -5,10 +5,25 @@ is **13: seven functional and six accessibility**. Each example creates its own 
 the normal authenticated Maintenance API, preserving browser time for the decision/amendment and recovery journey.
 The case-creation journey regressions continue to use the real UI; this API setup does not replace their coverage.
 Scenario retries remain disabled. PATCH/PUT monitors count all browser attempts, including attempts after the injected
-fault. Lost-response examples interrupt only a real upstream HTTP 200; independent authenticated GETs verify the
+fault. Lost-response examples withhold Fetch delivery only after a real upstream HTTP 200; independent authenticated GETs verify the
 saved aggregate, quoted ETag, original ID, actor and complete timeline delta. Definite-failure examples return one
 controlled HTTP 400 before dispatch and require an explicit live retry. Conflict examples advance the real resource
 with an independent authenticated request while the browser retains its earlier ETag.
+
+## PO-10611 frontend integration
+
+Run this pack on the `codex/PO-10611` frontend foundation (integration base `275011b2`), including its inherited
+common UI `0.0.114`. Recovery actions use the maintained checker and create-casefile route constants and assert
+the rendered Continue, Delete case, deletion heading and Submit for review controls. Keep retained-context,
+no-replay and recovery assertions intact when the actual runtime fails them. Definite-failure and ambiguous examples still require retained editing context. Conflict examples assert the
+actual shared concurrency-failure page and recover through Cases, the actor dashboard, the saved-status tab and
+the owned respondent row. Only a fresh GET and full rendered winning aggregate/history satisfy recovery.
+
+Use an isolated build from this checkout for local integration, for example `http://localhost:5100`. Verify its
+process working directory and build SHA before execution. Install with `corepack yarn install --immutable` using
+the inherited lockfile; a `node_modules` symlink to another checkout can load the wrong common UI contract.
+Keep other local frontend instances running on their existing ports. Local passwordless configuration, approved
+private AAD values and release overrides belong in the isolated process environment, never tracked files.
 
 ## Runtime prerequisites
 
@@ -24,6 +39,20 @@ with an independent authenticated request while the browser retains its earlier 
   synthetic users. Setup verifies actual permissions and distinct IDs without creating users or changing access.
 - Reference data valid for the target environment. Setup uses the existing active United Kingdom Country,
   Create Casefile Application and MAT metadata; do not copy integration-test IDs into a live environment.
+
+The API seed explicitly supplies `restrict_personal_information: false` for both synthetic individuals, matching
+the ordinary UI creation/amendment payload. Full aggregate equality remains required after the one forename
+correction; the fixture is canonical before mutation rather than normalizing the saved result.
+
+## Lost-response fault boundary
+
+The fault forwards the real PATCH/PUT and records its HTTP 200 and ETag at the network boundary. A scoped,
+one-shot Fetch wrapper then rejects that successful response before Angular receives it. It matches the exact
+origin, resource ID and method, preserves other responses and errors, counts application dispatches separately
+from network attempts, and restores its original Fetch owner at test end. This proves loss at Fetch response
+delivery, not every possible socket failure. Closing the Chromium socket with `forceNetworkError` caused a wire
+retry despite exactly one application Fetch call in the isolated live diagnostic, so socket destruction is not
+used for this fault. No 503 or fabricated success substitutes for a committed upstream response.
 
 ## Owner-scoped publication evidence
 
@@ -100,7 +129,7 @@ Without that inventory-only override, the default `omitFiltered=true` hides the 
 includes it. The parsed Gherkin inventory retains all 14 expanded names/rows/tags:
 
 ```bash
-TEST_URL=http://localhost:5000 \
+TEST_URL=http://localhost:5100 \
 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626' \
 CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626' \
 corepack yarn test:functional:leaf --browser=chrome \
@@ -111,7 +140,7 @@ corepack yarn test:functional:leaf --browser=chrome \
 Current executable discovery selects 13 examples:
 
 ```bash
-TEST_URL=http://localhost:5000 \
+TEST_URL=http://localhost:5100 \
 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip' \
 CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip' \
 corepack yarn test:functional:leaf --browser=chrome \
@@ -122,7 +151,7 @@ corepack yarn test:functional:leaf --browser=chrome \
 Actual browser execution uses the supported 13-case selection:
 
 ```bash
-TEST_URL=http://localhost:5000 \
+TEST_URL=http://localhost:5100 \
 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip' \
 CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip' \
 corepack yarn test:functional:leaf --browser=chrome \
@@ -136,7 +165,7 @@ raw outputs and compare expanded names/tags/counts. Run the unaffected live crea
 its real UI instructions remain in the [main guide](../../../../../../docs/CYPRESS_E2E_TESTING.md):
 
 ```bash
-TEST_URL=http://localhost:5000 \
+TEST_URL=http://localhost:5100 \
 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10273 and not @skip' \
 CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10273 and not @skip' \
 corepack yarn test:functional:leaf --browser=chrome \

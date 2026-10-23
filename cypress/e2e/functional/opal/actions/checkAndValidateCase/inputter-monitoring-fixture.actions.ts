@@ -104,6 +104,15 @@ export class InputterMonitoringFixtureActions {
     });
   }
 
+  /**
+   * Reads publication without creating or approving a draft.
+   * @param owned Exact created draft identity and marker.
+   * @returns The independently read complete Published snapshot.
+   */
+  public readPublished(owned: IOwnedDraftCasefile): Cypress.Chainable<IDraftCasefileSnapshot> {
+    return this.readLifecycle(owned, 'PUBLISHED');
+  }
+
   /** Reads persisted setup results with bounded polling only for asynchronous publication.
    * @param owned Exact created draft identity and marker.
    * @param status Required lifecycle state.

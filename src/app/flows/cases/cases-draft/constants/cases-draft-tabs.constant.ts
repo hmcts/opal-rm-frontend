@@ -18,7 +18,7 @@ export const CASES_DRAFT_TABS: Record<CasesDraftInputterTab, CasesDraftTabMetada
   },
   approved: {
     label: 'Approved',
-    statuses: 'PUBLISHED',
+    statuses: 'PUBLISHING_PENDING,PUBLISHED',
     defaultSort: 'approved',
     columns: ['respondentAccount', 'applicantAccount', 'minorCreditorAccounts', 'caseType', 'approved'],
     empty: 'No cases have been approved in the past 7 days.',

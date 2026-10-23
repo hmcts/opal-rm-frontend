@@ -82,13 +82,12 @@ export class CasesDraftDashboardService {
     );
   }
 
-  /** Consults the complete other-inputter rejection collection afresh, without dates or counts. */
+  /** Consults the complete business-unit rejection collection afresh, without dates or counts. */
   public getAllRejectedList(identity: ICasesDraftIdentity): Observable<IOpalMaintenanceDraftCasefileListResponse> {
     return this.consultList(identity, () =>
       this.api.getDraftCasefiles({
         business_unit_id: identity.businessUnitId,
         casefile_status: 'REJECTED',
-        not_submitted_by: identity.submittedBy,
       }),
     );
   }

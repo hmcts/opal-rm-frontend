@@ -18,6 +18,7 @@ export function mapCasesDraftRows(
     .filter(({ casefile_status }) => statuses.has(casefile_status))
     .map((summary) => {
       const snapshot = summary.casefile_snapshot;
+      const published = summary.casefile_status === 'PUBLISHED';
       return {
         id: summary.draft_casefile_id,
         respondent: populated(snapshot.respondent_account?.respondent_name),
@@ -27,11 +28,13 @@ export function mapCasesDraftRows(
         created: summary.created_date,
         statusDate: summary.casefile_status_date,
         approved: summary.validated_date ?? null,
-        respondentAccount: populated(snapshot.respondent_account?.account_number),
-        applicantAccount: populated(snapshot.applicant_account?.account_number),
-        minorCreditorAccounts: (snapshot.minor_creditor_accounts ?? [])
-          .map(({ account_number }) => populated(account_number))
-          .filter((value): value is string => value !== null),
+        respondentAccount: published ? populated(snapshot.respondent_account?.account_number) : null,
+        applicantAccount: published ? populated(snapshot.applicant_account?.account_number) : null,
+        minorCreditorAccounts: published
+          ? (snapshot.minor_creditor_accounts ?? [])
+              .map(({ account_number }) => populated(account_number))
+              .filter((value): value is string => value !== null)
+          : [],
       };
     });
 }

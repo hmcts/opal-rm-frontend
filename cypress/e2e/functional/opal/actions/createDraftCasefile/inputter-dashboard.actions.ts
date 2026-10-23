@@ -51,11 +51,10 @@ export class InputterDashboardActions {
     );
     cy.intercept('GET', COLLECTION, (request) => {
       this.requests.push({ ...request.query });
-      if (request.query['not_submitted_by'] !== undefined) {
+      if (request.query['submitted_by'] === undefined && request.query['casefile_status'] === 'REJECTED') {
         expect(request.query).to.deep.equal({
           business_unit_id: '44',
           casefile_status: 'REJECTED',
-          not_submitted_by: 'BUU-SYNTHETIC',
         });
         const summaries = allRejectedRows();
         request.reply({ body: { count: summaries.length, summaries } });
@@ -238,14 +237,13 @@ export class InputterDashboardActions {
     cy.then(() =>
       expect(this.requests).to.deep.include({
         business_unit_id: '44',
-        not_submitted_by: 'BUU-SYNTHETIC',
         casefile_status: 'REJECTED',
       }),
     );
     this.assertNoPersistence();
   }
 
-  /** Supplies published multi-account rows plus a defensive unexpected pending result. */
+  /** Supplies published multi-account rows plus a pending result. */
   public approved(): void {
     this.available();
     this.stubCollection('approved', PUBLISHED_ROWS);
@@ -257,7 +255,7 @@ export class InputterDashboardActions {
     pressDashboardEnter();
     cy.get(S.table).should('be.visible');
   }
-  /** Checks read-only account sequence, missing-value fallback and pending exclusion. */
+  /** Checks read-only account sequence, missing-value fallback and pending account suppression. */
   public expectPublished(): void {
     this.expectDashboard('approved');
     cy.get(S.row(1)).should('contain.text', '000123A').and('contain.text', 'A010');
@@ -268,14 +266,16 @@ export class InputterDashboardActions {
     cy.get(S.row(200)).find(S.column('respondentAccount')).should('contain.text', '—');
     cy.get(S.row(200)).find(S.column('applicantAccount')).should('contain.text', '—');
     cy.get(S.row(200)).find(S.column('minorCreditorAccounts')).should('contain.text', '—');
-    cy.get(S.row(201)).should('not.exist');
+    cy.get(S.row(201)).should('be.visible');
+    for (const column of ['respondentAccount', 'applicantAccount', 'minorCreditorAccounts'])
+      cy.get(S.row(201)).find(S.column(column)).should('contain.text', '—');
     cy.get(S.table).find('td a, td button').should('not.exist');
     this.assertNoPersistence();
   }
   /** Checks exact BU/user/status parameters and the seven-day status-date boundary. */
   public expectDateBoundary(): void {
     cy.then(() => {
-      const approved = this.requests.find((request) => request['casefile_status'] === 'PUBLISHED');
+      const approved = this.requests.find((request) => request['casefile_status'] === 'PUBLISHING_PENDING,PUBLISHED');
       expect(approved).to.have.all.keys(
         'business_unit_id',
         'submitted_by',
@@ -286,7 +286,7 @@ export class InputterDashboardActions {
       expect(approved).to.include({
         business_unit_id: '44',
         submitted_by: 'BUU-SYNTHETIC',
-        casefile_status: 'PUBLISHED',
+        casefile_status: 'PUBLISHING_PENDING,PUBLISHED',
       });
       const now = new Date();
       const date = (days: number) =>

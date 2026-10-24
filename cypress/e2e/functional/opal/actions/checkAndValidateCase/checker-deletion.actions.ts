@@ -243,8 +243,14 @@ export class CheckerDeletionActions {
     cy.location('pathname').should('equal', `/${PATHS.root}/${PATHS.children.review}/${session.owned.id}`);
     session.recovery.assertSavedPresentation(session.before);
     cy.get(S.continue).should('be.enabled');
-    cy.get(S.approve).should('be.visible');
-    cy.get(S.reject).should('be.visible');
+    for (const selector of [S.approve, S.reject]) {
+      cy.get(selector)
+        .should('have.attr', 'type', 'radio')
+        .and('be.enabled')
+        .then(($input) => {
+          cy.get(`label[for="${$input.attr('id')}"]`).should('be.visible');
+        });
+    }
     cy.get(S.deleteLink).should('be.visible');
     if (this.scanning) cy.get(S.reviewHeading).should('be.focused');
     this.scan();

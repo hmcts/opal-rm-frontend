@@ -806,51 +806,51 @@ describe('PO-10624 native accessible warning activation', () => {
   });
 });
 
+/** Keeps native warning cancellation real while supplying the authoritative returned-review boundary. */
+function nativeCancellation() {
+  const { session } = nativeWarning();
+  const activated = cy.stub();
+  cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
+  cy.stub(session.recovery, 'assertSavedPresentation');
+  cy.stub(cy, 'intercept').returns(cy.wrap({}, { log: false }));
+  cy.stub(cy, 'wait').returns(
+    cy.wrap(
+      { response: { statusCode: 200, body: session.before.draft, headers: { etag: session.before.etag } } },
+      { log: false },
+    ),
+  );
+  cy.stub(cy, 'location').returns(cy.wrap(`/cases/draft/check-and-validate/review/${owned.id}`, { log: false }));
+  cy.document().then((document) => {
+    const controls = document.createElement('div');
+    controls.innerHTML =
+      '<input id="create_casefile_review_decision-approve" class="govuk-radios__input" type="radio" style="opacity:0"><label for="create_casefile_review_decision-approve" class="govuk-radios__label">Approve</label><input id="create_casefile_review_decision-reject" class="govuk-radios__input" type="radio" style="opacity:0"><label for="create_casefile_review_decision-reject" class="govuk-radios__label">Reject</label><button id="create_casefile_review_continue">Continue</button>';
+    document.body.prepend(controls);
+    document.querySelector(`${C.deletion.host} a.govuk-link`)!.addEventListener('click', (event) => {
+      event.preventDefault();
+      expect(document.activeElement).to.equal(event.currentTarget);
+      activated();
+      (document.querySelector(C.deletion.host) as HTMLElement).hidden = true;
+      (document.querySelector(S.reviewHeading) as HTMLElement).focus();
+    });
+  });
+  return { session, activated };
+}
+
 // These documents isolate native activation while retained-receipt decoding and mutation accounting stay real.
 describe('PO-10624 native accessible cancellation and retry', () => {
   it(
     'AC4. should Tab through the warning controls and cancel to focused unchanged review',
     { tags: buildTags() },
     () => {
-      const { session } = nativeWarning();
+      const { session, activated } = nativeCancellation();
       const scans: string[] = [];
-      const activated = cy.stub();
       const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
-      cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
-      cy.stub(session.recovery, 'assertSavedPresentation');
-      cy.stub(cy, 'intercept').returns(cy.wrap({}, { log: false }));
-      cy.stub(cy, 'wait').returns(
-        cy.wrap(
-          {
-            response: {
-              statusCode: 200,
-              body: session.before.draft,
-              headers: { etag: session.before.etag },
-            },
-          },
-          { log: false },
-        ),
-      );
-      cy.stub(cy, 'location').returns(cy.wrap(`/cases/draft/check-and-validate/review/${owned.id}`, { log: false }));
       cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
         cy.document().then((document) => {
           const warning = document.querySelector(C.deletion.host) as HTMLElement;
           scans.push(
             warning.hidden ? 'returned review' : (document.querySelector(S.deleteReason) as HTMLTextAreaElement).value,
           );
-        });
-      });
-      cy.document().then((document) => {
-        const controls = document.createElement('div');
-        controls.innerHTML =
-          '<input id="create_casefile_review_decision-approve" type="radio"><input id="create_casefile_review_decision-reject" type="radio"><button id="create_casefile_review_continue">Continue</button>';
-        document.body.prepend(controls);
-        document.querySelector(`${C.deletion.host} a.govuk-link`)!.addEventListener('click', (event) => {
-          event.preventDefault();
-          expect(document.activeElement).to.equal(event.currentTarget);
-          activated();
-          (document.querySelector(C.deletion.host) as HTMLElement).hidden = true;
-          (document.querySelector(S.reviewHeading) as HTMLElement).focus();
         });
       });
       new CheckerDeletionActions().accessible('cancel');
@@ -923,4 +923,52 @@ describe('PO-10624 native accessible cancellation and retry', () => {
       });
     },
   );
+});
+
+describe('PO-10624 returned review decision availability', () => {
+  beforeEach(() => {
+    observedBoundaryFailure = false;
+  });
+  afterEach(() => expect(observedBoundaryFailure, 'required unavailable decision failure observed').to.equal(true));
+  for (const choice of ['approve', 'reject'] as const) {
+    for (const fault of ['missing label', 'hidden label', 'disabled input'] as const) {
+      it(
+        `AC2. should reject returned ${choice} with ${fault}`,
+        { tags: buildTags(), defaultCommandTimeout: 100 },
+        () => {
+          const { session, activated } = nativeCancellation();
+          cy.stub(accessibilityActions, 'checkAccessibilityOnly');
+          const selector = S[choice];
+          const id = selector.slice(1);
+          cy.document().then((document) => {
+            const input = document.querySelector(selector) as HTMLInputElement;
+            const label = document.querySelector(`label[for="${id}"]`) as HTMLLabelElement;
+            expect(input.style.opacity, 'representative GOV.UK native control').to.equal('0');
+            if (fault === 'missing label') label.remove();
+            else if (fault === 'hidden label') label.hidden = true;
+            else input.disabled = true;
+          });
+          cy.once('fail', (error) => {
+            const expected =
+              fault === 'disabled input' ? 'enabled' : fault === 'hidden label' ? 'visible' : 'label[for=';
+            const target = fault === 'hidden label' ? '<label.govuk-radios__label>' : id;
+            if (!error.message.includes(target) || !error.message.includes(expected)) throw error;
+            if (fault === 'hidden label')
+              expect(Cypress.$(`label[for="${id}"]`).prop('hidden'), 'the actual associated label is hidden').to.equal(
+                true,
+              );
+            if (fault === 'disabled input')
+              expect(Cypress.$(selector).prop('disabled'), 'the actual native control is disabled').to.equal(true);
+            expect(activated, 'native cancellation reached actual returned review').to.have.been.calledOnce;
+            expect(session.recovery.assertSavedPresentation).to.have.been.calledOnceWithExactly(session.before);
+            expect(session.monitor.applicationAttempts).to.equal(0);
+            expect(session.monitor.attempts).to.equal(0);
+            observedBoundaryFailure = true;
+            return false;
+          });
+          new CheckerDeletionActions().accessible('cancel');
+        },
+      );
+    }
+  }
 });

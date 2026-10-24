@@ -1,3 +1,4 @@
+import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
 import { PrimaryNavigationLocators as P } from '../../../../../shared/selectors/primary-navigation.locators';
 import { CASES_DRAFT_CHECKER_ROUTING_PATHS as CHECKER } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
@@ -244,7 +245,7 @@ export class DraftCasefileRecoveryActions {
         cy.press(Cypress.Keyboard.Keys.TAB);
       } else cy.get(selector).should('be.enabled').focus();
       cy.get(selector).should('be.enabled').and('be.focused');
-      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pressDashboardEnter();
     } else {
       cy.get(selector).should('be.enabled').click();
     }

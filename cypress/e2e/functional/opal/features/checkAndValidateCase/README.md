@@ -362,3 +362,185 @@ every traversed page, after each ascending/descending sort, and after every sear
 before leaving that state. Functional callers keep their read-only assertions without enabling these additional
 scans. Controlled support dispatch checks prove state-by-state scanner invocation and stop-on-failure behavior;
 they do not establish live Axe acceptance.
+
+## PO-10625 independent checker decisions
+
+The completed feature pair contains 22 examples: 13 functional and 9 accessibility. Its core decision coverage
+comprises 10 functional examples: Submitted publication with two minor
+creditors, Resubmitted approval, Submitted/Resubmitted rejection, Submitted/Resubmitted blank-reason validation,
+self-review, permission denial, and stale approve/reject. `CheckerReviewDecisionsAccessibility.feature` contains
+six independent broad journeys: publication, rejection, blank validation, self-review, denied permission, and
+stale approval. These core decision examples carry `@R1CRmCreateCaseFiles`, `@JIRA-STORY:PO-10625`, `@JIRA-EPIC:PO-10817`,
+`@JIRA-LABEL:create-draft-casefile`, `@AC1`, and `@retries(0)`; the accessibility examples also carry
+`@accessibility`. The six checker outcome-window/empty examples below complete the 22-example inventory.
+No example is skipped or pending.
+
+Every Given creates fresh data with the exact E2E marker and required cleanup receipt. Positive fixtures require
+independent ACTIVE BU 44 inputter permission 21 and checker permission 22 identities. The self-review negative
+alone uses the same dual-role identity. Denied tests authenticate `PO10625_DENIED_EMAIL` (default provisioned
+`opal-test-4@dev.platform.hmcts.net`), verify its actual user-state lacks BU 44 permission 22, require the actual
+access-denied route and absence of case data, then restore the owner before independent GET and cleanup.
+
+Before any rejection, approval or resubmission fixture creation, the operator must verify compatible lifecycle
+cleanup and set **boolean** `PO10625_LIFECYCLE_CLEANUP_VERIFIED=true` in the live runner. This is a safety guard,
+not evidence of delivered cleanup. Approval additionally requires the maintained
+`PO10628_PUBLICATION_CLEANUP_VERIFIED=true` publication preflight. Never enable either switch automatically for
+live execution. Current Submitted-only cleanup cannot support these transitions; a missing prerequisite is an
+unrun or failed journey, never a passing acceptance result. Preserve required cleanup receipts on failure.
+
+Queue list/count/detail and UI PATCH observations pass through real provider responses. Queue scope requires
+BU 44, `not_submitted_by` the checker and exactly `SUBMITTED,RESUBMITTED`, without date filtering. The actual
+owned row is found through real pagination, and its matching detail GET establishes the original opaque ETag.
+A successful decision requires one UI dispatch, one PATCH, HTTP 200, an advanced ETag, exact additional checker
+history and the maintained dashboard notice; the owned row must disappear from the provider collection and all
+rendered To review pages. Rejection follows the owning inputter's real rejected row into its saved history.
+
+Publication requires actual GET polling to **PUBLISHED**, complete respondent/applicant accounts and both minor
+creditors. Every account ID and number must exist; all four numbers must match the exact inputter Approved row,
+in persisted creditor sequence, as read-only text without links, inputs or buttons. `PUBLISHING_PENDING` is only
+a receipt state, `PUBLISHING_FAILED` and polling timeout fail full acceptance. No publication observation endpoint
+or manufactured completion is used. A stale UI decision competes with an actual API rejection bearing
+`Synthetic winning concurrent decision`, then requires one original-ETag UI attempt, HTTP 409, the shared safe
+conflict page and a fresh GET exactly equal to the winner.
+
+Blank-reason validation requires `Enter reason for rejection`, the maintained native summary-link activation
+focusing the reason textarea, its inline ARIA association, zero PATCH and a fresh unchanged aggregate/ETag/history.
+The maintained shared summary uses an emitted field identity; its literal href is not an acceptance contract.
+Accessibility validation corrects the reason without submitting. Accessibility journeys use the shared strict Axe
+scanner with native Enter/Tab, heading and tab focus checks, scans for every meaningful visited state including
+pagination, success notices, inputter outcomes, conflict, read-only and denied states. These scans provide partial
+automated accessibility evidence.
+
+Controlled support (synthetic boundaries, no live journey):
+
+```bash
+corepack yarn exec cypress run --component --browser chrome \
+  --spec 'cypress/component/checkAndValidateCase/checker-review-journey-support.cy.ts,cypress/component/checkAndValidateCase/inputter-monitoring-journey-support.cy.ts'
+```
+
+Discovery only (22 examples: 13 functional + 9 accessibility; no browser actions or live fixtures):
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+corepack yarn exec cypress run --browser chrome --config '{"baseUrl":null}' \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisions.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisionsAccessibility.feature' \
+  --env 'dryRun=true,omitFiltered=false,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625'
+```
+
+Live, only after external runtime/cleanup preflight and parent-coordinated reviews, using the same exact selection:
+
+```bash
+TEST_URL=http://localhost:5100 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisions.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisionsAccessibility.feature' \
+  --env 'tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625'
+```
+
+Controlled support establishes helper assertions and scanner dispatch. Discovery establishes inventory, metadata
+and bindings. Neither establishes live authorization, real publication, provider persistence or cleanup success.
+Do not report live AC1 acceptance until the full actual UI/API/publication/inputter/cleanup run succeeds.
+
+### PO-10625 checker outcome windows and empty states (AC6, AC7)
+
+The completed checker pair contains **22 expanded examples: 13 functional and 9 accessibility**, with no skipped or
+pending scenarios. Task3 adds independent Rejected and Deleted calendar-window examples plus a genuinely empty
+checker dashboard, and a separate accessibility example for each. Existing decision scenario identities remain unchanged.
+
+| Added coverage                  | Business assertions                                                                                                                                                           | Accessibility states                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Rejected calendar window        | Owned ID present in real collection and every-page DOM at D0, D3, D7 and D8; exact BU44 / checker exclusion; no date query parameters                                         | Native Cases entry, initial focused heading, selected-tab focus and every consultation/pagination page   |
+| Deleted calendar window         | Owned ID included D0/D3/D7 and excluded D8 in both actual collection and every-page DOM; exact inclusive from/to dates                                                        | Same independently owned journey and strict scans at every visited state                                 |
+| Genuine empty checker dashboard | Four actual zero-row/zero-count list preflights, separate real Rejected/Failed zero count preflights, exact empty text, no rows/badges on all four tabs, no creation/deletion | Initial entry and each To review/Rejected/Deleted/Failed tab with native keyboard/focus and strict scans |
+
+`CheckerDashboardWindowFlow` resets its Actions per Given/accessibility journey. The lifecycle safety guard
+`PO10625_LIFECYCLE_CLEANUP_VERIFIED` must be **boolean true**, externally verified before **any** Rejected/Deleted
+creation. Maintained normal API fixtures use distinct ACTIVE Maintenance BU44 permission21 inputter and permission22
+checker, fresh ETags and receipt-owned marker cleanup. The inspected runtime cleans up Submitted only: **do not run
+these window fixtures live until compatible lifecycle cleanup is verified**. The switch itself is not evidence and
+must never self-enable in live setup. Empty scenarios create no data, require the existing checker actor and fail on
+unrelated eligible work; they never delete it.
+
+The actual persisted `casefile_status_date` anchors independent `monitoringCalendar` expectations. Each D0/D3/D7/D8
+consultation installs `cy.clock(now, ['Date'])` in the AUT and restores it before the next consultation. Timers,
+server/database clocks and stored timestamps remain real. Actual list/count responses pass through unchanged;
+checker queries use `not_submitted_by` (never personal `submitted_by`). Calendar visits permit unrelated authorised
+BU work and compare only the exact scenario-owned ID across real pagination. Native same-tab activation retains
+focus without expecting a nonexistent new request; changing tabs waits for the fresh list and all outcome counts.
+Initial routed entry requires heading focus; subsequent native tab selection requires selected-tab focus.
+
+Controlled verification (no live acceptance):
+
+```bash
+corepack yarn exec cypress run --component --browser chrome \
+  --spec 'cypress/component/checkAndValidateCase/checker-dashboard-window-support.cy.ts,cypress/component/checkAndValidateCase/checker-review-fixture-support.cy.ts,cypress/component/checkAndValidateCase/checker-review-journey-support.cy.ts'
+```
+
+For discovery only, retain the existing repository hooks and explicitly disable the base URL:
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
+corepack yarn exec cypress run --browser chrome --config '{"baseUrl":null}' \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisions.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisionsAccessibility.feature' \
+  --env 'dryRun=true,omitFiltered=false,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625'
+```
+
+Require 13+9 discovered cases with zero undefined/ambiguous/skipped/pending bindings. Controlled helper checks and
+dry discovery do not prove live AC6/AC7 acceptance. Parent review and authorised compatible-runtime execution remain
+outstanding. Specialist checks should traverse all four outcome tabs with screen reader and magnification, verify
+announcements and focus after native entry/tab/pagination changes, and confirm inclusive backend calendar timezone
+semantics using an owned persisted outcome; expected visibility is exactly the table above. Strict Axe scans retain
+the maintained exemption policy only and remain partial WCAG evidence.
+
+### PO-10625 Submitted-only and self-review selections
+
+The `@PO10625SubmittedOnly` selector covers exactly eight examples whose fixture setup creates at most
+Submitted records or creates no data. Functional selections are Submitted blank-reason validation, self-review,
+denied permission and genuine empty outcomes. Accessibility selections are validation, self-review, denied
+permission and genuine empty outcomes. Resubmitted validation and every transition/publication/window fixture
+remain outside this selector. `@PO10625Self` tags only the two self-review examples and is a subset of the eight.
+All 22 examples remain enabled with their existing names, order, native example indices, business steps and guards.
+
+| Selection                       | Exact tag expression                                                                            | Expanded examples                    |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Full inventory                  | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625`                                                | 22 (13 functional + 9 accessibility) |
+| Submitted-only compatible setup | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly`                      | 8 (4 + 4)                            |
+| Self-review diagnosis           | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625Self`                               | 2 (1 + 1)                            |
+| Submitted-only excluding self   | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self` | 6 (3 + 3)                            |
+
+Use matching `TAGS`, `CYPRESS_TAGS` and lowercase `tags` for every selection. For discovery only, use the same
+feature pair, a null E2E base URL and `dryRun=true,omitFiltered=true`; the last setting omits unselected examples
+without reporting them as skipped or pending. For example, the six-example selection is:
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self' \
+corepack yarn exec cypress run --browser chrome --config '{"baseUrl":null}' \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisions.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisionsAccessibility.feature' \
+  --env 'dryRun=true,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self,PO10625_LIFECYCLE_CLEANUP_VERIFIED=false,PO10628_PUBLICATION_CLEANUP_VERIFIED=false'
+```
+
+Live selections require parent-coordinated execution using the maintained live runner and real base URL, with
+`dryRun` disabled. Retain **boolean false** for both `PO10625_LIFECYCLE_CLEANUP_VERIFIED` and
+`PO10628_PUBLICATION_CLEANUP_VERIFIED` on the current Submitted-only-cleanup runtime. Neither selector grants
+cleanup compatibility or authorises a transition. The full selection therefore has 14 unavailable guarded
+examples on that runtime; the narrower selections separate prerequisite failures from runner diagnosis.
+
+Compatible setup does not mean every selected example currently passes. Real empty-checker preflight found two
+unrelated eligible cases: both no-create empty examples legitimately fail their zero-count requirement. Preserve
+that unrelated work; do not delete it, filter it away, change the assertion or manufacture empty responses.
+The parent-owned six-example AC6 run recorded six failures: four intended pre-create guard failures and the two
+actual nonempty preflight failures. Those results are not successful AC6/AC7 acceptance.
+
+Two all-22 live attempts stopped at self-review after its business assertions were green, when the maintained
+Cucumber `test-step-finished` task timed out and subsequent step/teardown completion failed. Exact owner/marker
+cleanup of the affected records 25 and 27 each returned 204; all owned receipts were resolved. These are failed
+live runs, not passing self-review evidence. No application assertion defect was established. A same-actor
+session/navigation interaction is an unproven hypothesis; retain the runner diagnosis and raw failure logs.
+Run the six-example selection separately before any parent-authorised self-only diagnosis, and use
+`DEBUG=cypress-cucumber-preprocessor` for that narrow diagnostic run. Do not alter authentication, observations,
+assertions, guards, Cucumber hooks, cleanup or timeouts to turn the failure into a pass. Selector discovery proves
+only metadata and bindings; real publication, lifecycle cleanup and full live acceptance remain outstanding.

@@ -10,10 +10,25 @@ Feature: Broad checker decision accessibility journeys
       | kind        |
       | publication |
       | rejection   |
-      | validation  |
-      | self        |
-      | denied      |
-      | stale       |
+
+    @PO10625SubmittedOnly
+    Examples:
+      | kind       |
+      | validation |
+
+    @PO10625SubmittedOnly @PO10625Self
+    Examples:
+      | kind |
+      | self |
+
+    @PO10625SubmittedOnly
+    Examples:
+      | kind   |
+      | denied |
+
+    Examples:
+      | kind  |
+      | stale |
 
   @AC6 @AC7 @accessibility
   Scenario Outline: Consult accessible checker <status> calendar windows with real outcomes
@@ -25,7 +40,7 @@ Feature: Broad checker decision accessibility journeys
       | REJECTED | unbounded |
       | DELETED  | seven-day |
 
-  @AC6 @AC7 @accessibility
+  @AC6 @AC7 @accessibility @PO10625SubmittedOnly
   Scenario: Consult accessible genuinely empty checker outcome tabs
     When the checker traverses genuinely empty outcome tabs accessibly
     Then all checker outcome tabs retain genuine empty states and zero counts

@@ -33,20 +33,28 @@ Feature: Independent checker decisions and decision protection
     When its checker submits a blank rejection reason
     Then linked rejection validation prevents every change to the saved case
 
+    @PO10625SubmittedOnly
+    Examples:
+      | status    |
+      | SUBMITTED |
+
     Examples:
       | status      |
-      | SUBMITTED   |
       | RESUBMITTED |
 
-  @AC1
+  @AC1 @PO10625SubmittedOnly
   Scenario Outline: Protect the checker decision from a <kind> actor
     Given my live checker scenario owns a "<kind>" protected case
     When its checker attempts the protected review route
     Then checker protection exposes no decision and leaves the saved case unchanged
 
+    @PO10625Self
+    Examples:
+      | kind |
+      | self |
+
     Examples:
       | kind   |
-      | self   |
       | denied |
 
   @AC1
@@ -71,7 +79,7 @@ Feature: Independent checker decisions and decision protection
       | REJECTED | unbounded |
       | DELETED  | seven-day |
 
-  @AC6
+  @AC6 @PO10625SubmittedOnly
   Scenario: Consult genuinely empty checker outcome tabs without creating cases
     Given my live checker outcome collections are genuinely empty
     When the checker consults every empty outcome tab

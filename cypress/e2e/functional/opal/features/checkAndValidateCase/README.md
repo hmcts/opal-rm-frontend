@@ -365,13 +365,15 @@ they do not establish live Axe acceptance.
 
 ## PO-10625 independent checker decisions
 
-`CheckerReviewDecisions.feature` contains 10 live functional examples: Submitted publication with two minor
+The completed feature pair contains 22 examples: 13 functional and 9 accessibility. Its core decision coverage
+comprises 10 functional examples: Submitted publication with two minor
 creditors, Resubmitted approval, Submitted/Resubmitted rejection, Submitted/Resubmitted blank-reason validation,
 self-review, permission denial, and stale approve/reject. `CheckerReviewDecisionsAccessibility.feature` contains
 six independent broad journeys: publication, rejection, blank validation, self-review, denied permission, and
-stale approval. All carry `@R1CRmCreateCaseFiles`, `@JIRA-STORY:PO-10625`, `@JIRA-EPIC:PO-10817`,
+stale approval. These core decision examples carry `@R1CRmCreateCaseFiles`, `@JIRA-STORY:PO-10625`, `@JIRA-EPIC:PO-10817`,
 `@JIRA-LABEL:create-draft-casefile`, `@AC1`, and `@retries(0)`; the accessibility examples also carry
-`@accessibility`. No example is skipped or pending. Later queue-window/empty additions are separate coverage.
+`@accessibility`. The six checker outcome-window/empty examples below complete the 22-example inventory.
+No example is skipped or pending.
 
 Every Given creates fresh data with the exact E2E marker and required cleanup receipt. Positive fixtures require
 independent ACTIVE BU 44 inputter permission 21 and checker permission 22 identities. The self-review negative
@@ -416,7 +418,7 @@ corepack yarn exec cypress run --component --browser chrome \
   --spec 'cypress/component/checkAndValidateCase/checker-review-journey-support.cy.ts,cypress/component/checkAndValidateCase/inputter-monitoring-journey-support.cy.ts'
 ```
 
-Discovery only (16 examples; no browser actions or live fixtures):
+Discovery only (22 examples: 13 functional + 9 accessibility; no browser actions or live fixtures):
 
 ```bash
 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
@@ -492,3 +494,53 @@ outstanding. Specialist checks should traverse all four outcome tabs with screen
 announcements and focus after native entry/tab/pagination changes, and confirm inclusive backend calendar timezone
 semantics using an owned persisted outcome; expected visibility is exactly the table above. Strict Axe scans retain
 the maintained exemption policy only and remain partial WCAG evidence.
+
+### PO-10625 Submitted-only and self-review selections
+
+The `@PO10625SubmittedOnly` selector covers exactly eight examples whose fixture setup creates at most
+Submitted records or creates no data. Functional selections are Submitted blank-reason validation, self-review,
+denied permission and genuine empty outcomes. Accessibility selections are validation, self-review, denied
+permission and genuine empty outcomes. Resubmitted validation and every transition/publication/window fixture
+remain outside this selector. `@PO10625Self` tags only the two self-review examples and is a subset of the eight.
+All 22 examples remain enabled with their existing names, order, native example indices, business steps and guards.
+
+| Selection                       | Exact tag expression                                                                            | Expanded examples                    |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Full inventory                  | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625`                                                | 22 (13 functional + 9 accessibility) |
+| Submitted-only compatible setup | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly`                      | 8 (4 + 4)                            |
+| Self-review diagnosis           | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625Self`                               | 2 (1 + 1)                            |
+| Submitted-only excluding self   | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self` | 6 (3 + 3)                            |
+
+Use matching `TAGS`, `CYPRESS_TAGS` and lowercase `tags` for every selection. For discovery only, use the same
+feature pair, a null E2E base URL and `dryRun=true,omitFiltered=true`; the last setting omits unselected examples
+without reporting them as skipped or pending. For example, the six-example selection is:
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self' \
+corepack yarn exec cypress run --browser chrome --config '{"baseUrl":null}' \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisions.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisionsAccessibility.feature' \
+  --env 'dryRun=true,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self,PO10625_LIFECYCLE_CLEANUP_VERIFIED=false,PO10628_PUBLICATION_CLEANUP_VERIFIED=false'
+```
+
+Live selections require parent-coordinated execution using the maintained live runner and real base URL, with
+`dryRun` disabled. Retain **boolean false** for both `PO10625_LIFECYCLE_CLEANUP_VERIFIED` and
+`PO10628_PUBLICATION_CLEANUP_VERIFIED` on the current Submitted-only-cleanup runtime. Neither selector grants
+cleanup compatibility or authorises a transition. The full selection therefore has 14 unavailable guarded
+examples on that runtime; the narrower selections separate prerequisite failures from runner diagnosis.
+
+Compatible setup does not mean every selected example currently passes. Real empty-checker preflight found two
+unrelated eligible cases: both no-create empty examples legitimately fail their zero-count requirement. Preserve
+that unrelated work; do not delete it, filter it away, change the assertion or manufacture empty responses.
+The parent-owned six-example AC6 run recorded six failures: four intended pre-create guard failures and the two
+actual nonempty preflight failures. Those results are not successful AC6/AC7 acceptance.
+
+Two all-22 live attempts stopped at self-review after its business assertions were green, when the maintained
+Cucumber `test-step-finished` task timed out and subsequent step/teardown completion failed. Exact owner/marker
+cleanup of the affected records 25 and 27 each returned 204; all owned receipts were resolved. These are failed
+live runs, not passing self-review evidence. No application assertion defect was established. A same-actor
+session/navigation interaction is an unproven hypothesis; retain the runner diagnosis and raw failure logs.
+Run the six-example selection separately before any parent-authorised self-only diagnosis, and use
+`DEBUG=cypress-cucumber-preprocessor` for that narrow diagnostic run. Do not alter authentication, observations,
+assertions, guards, Cucumber hooks, cleanup or timeouts to turn the failure into a pass. Selector discovery proves
+only metadata and bindings; real publication, lifecycle cleanup and full live acceptance remain outstanding.

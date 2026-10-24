@@ -20,35 +20,39 @@ import {
 import { recordCreatedId, configureDraftCasefileCleanup } from '../../support/draftCasefiles';
 
 describe('PO-10624 owned deletion destination support', () => {
-  const tags = [
+  const buildTags = (): string[] => [
     '@R1CRmCreateCaseFiles',
     '@JIRA-STORY:PO-10624',
     '@JIRA-EPIC:PO-10817',
     '@JIRA-LABEL:create-draft-casefile',
     '@retries(0)',
   ];
-  it('AC1. should require the exact owned Deleted notice on the real checker destination', { tags }, () => {
-    const destination = '/cases/draft/check-and-validate/tabs';
-    assertRetryDestination(destination, 'You have deleted Synthetic’s case.', 'delete', 'Synthetic');
-    assertRetryDestination(destination, 'You have rejected Synthetic’s case.', 'reject', 'Synthetic');
-    for (const notice of [
-      'You have rejected Synthetic’s case.',
-      'You have deleted Other’s case.',
-      'You have deleted Synthetic’s case. Extra text',
-    ]) {
-      expect(() => assertRetryDestination(destination, notice, 'delete', 'Synthetic')).to.throw(
-        'owned checker decision notice',
-      );
-    }
-    expect(() =>
-      assertRetryDestination(
-        '/cases/draft/check-and-validate/review/101',
-        'You have deleted Synthetic’s case.',
-        'delete',
-        'Synthetic',
-      ),
-    ).to.throw('checker decision destination');
-  });
+  it(
+    'AC1. should require the exact owned Deleted notice on the real checker destination',
+    { tags: buildTags() },
+    () => {
+      const destination = '/cases/draft/check-and-validate/tabs';
+      assertRetryDestination(destination, 'You have deleted Synthetic’s case.', 'delete', 'Synthetic');
+      assertRetryDestination(destination, 'You have rejected Synthetic’s case.', 'reject', 'Synthetic');
+      for (const notice of [
+        'You have rejected Synthetic’s case.',
+        'You have deleted Other’s case.',
+        'You have deleted Synthetic’s case. Extra text',
+      ]) {
+        expect(() => assertRetryDestination(destination, notice, 'delete', 'Synthetic')).to.throw(
+          'owned checker decision notice',
+        );
+      }
+      expect(() =>
+        assertRetryDestination(
+          '/cases/draft/check-and-validate/review/101',
+          'You have deleted Synthetic’s case.',
+          'delete',
+          'Synthetic',
+        ),
+      ).to.throw('checker decision destination');
+    },
+  );
 });
 
 describe('PO-10626 concurrency test support', () => {

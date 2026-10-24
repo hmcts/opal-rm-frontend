@@ -69,9 +69,8 @@ export function assertRetryDestination(
     expect(notice.trim(), 'owned resubmission notice').to.equal(`You have submitted ${respondent}'s case for review.`);
   } else {
     expect(pathname, 'checker decision destination').to.equal('/cases/draft/check-and-validate/tabs');
-    expect(notice.trim(), 'owned checker decision notice').to.equal(
-      `You have ${journey === 'approve' ? 'approved' : 'rejected'} ${respondent}’s case.`,
-    );
+    const outcome = { approve: 'approved', reject: 'rejected', delete: 'deleted' }[journey];
+    expect(notice.trim(), 'owned checker decision notice').to.equal(`You have ${outcome} ${respondent}’s case.`);
   }
 }
 

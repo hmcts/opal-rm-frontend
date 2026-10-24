@@ -5,6 +5,7 @@ import {
 } from '../../e2e/functional/opal/actions/checkAndValidateCase/checker-deletion-evidence.actions';
 import type { IDraftCasefileSnapshot } from '../../e2e/functional/opal/actions/checkAndValidateCase/interfaces/draft-casefile-snapshot.interface';
 import type { IDraftCasefileMonitor } from '../../e2e/functional/opal/actions/checkAndValidateCase/interfaces/draft-casefile-monitor.interface';
+import { accessibilityActions } from '../../e2e/functional/opal/actions/accessibility/accessibility.actions';
 import { CheckerDeletionActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/checker-deletion.actions';
 import { CheckerDeletionFlow } from '../../e2e/functional/opal/flows/checkAndValidateCase/checker-deletion.flow';
 import { CheckerReviewActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/checker-review-decisions.actions';
@@ -587,4 +588,339 @@ describe('PO-10624 linked validation evidence', () => {
       },
     );
   }
+});
+
+describe('PO-10624 independent accessibility composition', () => {
+  it('AC4. should reject an unsupported accessibility kind before fixture setup', { tags: buildTags() }, () => {
+    const prepare = cy.stub(CheckerDeletionActions.prototype, 'prepare');
+    expect(() => new CheckerDeletionActions().accessible('blank')).to.throw('Unsupported deletion accessibility kind');
+    expect(prepare).not.to.have.been.called;
+  });
+
+  it('AC4. should replace mutable actions for every broad accessibility journey', { tags: buildTags() }, () => {
+    const instances: CheckerDeletionActions[] = [];
+    cy.stub(CheckerDeletionActions.prototype, 'accessible').callsFake(function (this: CheckerDeletionActions) {
+      instances.push(this);
+    });
+    const flow = new CheckerDeletionFlow();
+    for (const kind of ['success', 'validation', 'cancel', 'retry']) flow.accessible(kind);
+    expect(new Set(instances).size).to.equal(4);
+  });
+
+  for (const kind of ['success', 'validation', 'cancel', 'retry']) {
+    it(`AC4. should compose fresh ${kind} preparation and the persisted outcome`, { tags: buildTags() }, () => {
+      const events: string[] = [];
+      cy.stub(CheckerReviewActions.prototype, 'enableAccessibility').callsFake(() => events.push('enable'));
+      cy.stub(CheckerDeletionActions.prototype, 'prepare').callsFake((chosen) => events.push(`prepare ${chosen}`));
+      cy.stub(CheckerDeletionActions.prototype, 'act').callsFake(() => events.push('act'));
+      cy.stub(CheckerDeletionActions.prototype, 'assertOutcome').callsFake(() => {
+        cy.then(() => events.push('outcome'));
+      });
+      // Validation's exact native states are exercised independently below.
+      if (kind === 'validation')
+        cy.stub(
+          CheckerDeletionActions.prototype as unknown as { validateAccessibly(): void },
+          'validateAccessibly',
+        ).callsFake(() => events.push('validation'));
+      new CheckerDeletionActions().accessible(kind);
+      cy.then(() =>
+        expect(events).to.deep.equal([
+          'enable',
+          `prepare ${kind === 'validation' ? 'blank' : kind}`,
+          kind === 'validation' ? 'validation' : 'act',
+          'outcome',
+        ]),
+      );
+    });
+  }
+});
+
+function nativeWarning() {
+  const context = controlledReview();
+  cy.document().then((document) => {
+    document.body.innerHTML = `<h1 id="review-heading" tabindex="-1">Check case details</h1><a id="create_casefile_review_delete" href="#warning">Delete case</a><div id="create_casefile_delete_page" hidden><h1 id="create_casefile_delete_heading" tabindex="-1">Are you sure you want to delete this case?</h1><div id="create_casefile_delete_identity">Synthetic Respondent</div><label for="create_casefile_delete_reason">Reason</label><textarea id="create_casefile_delete_reason"></textarea><button id="create_casefile_delete_submit" class="govuk-button--warning">Yes - delete</button><a class="govuk-link" href="#cancel">No - cancel</a></div>`;
+    (document.querySelector(S.reviewHeading) as HTMLElement).focus();
+    document.querySelector(S.deleteLink)!.addEventListener('click', (event) => {
+      event.preventDefault();
+      (document.querySelector(C.deletion.host) as HTMLElement).hidden = false;
+      (document.querySelector(S.deleteHeading) as HTMLElement).focus();
+    });
+  });
+  return context;
+}
+
+describe('PO-10624 strict warning scans and native accessibility controls', () => {
+  beforeEach(() => {
+    observedBoundaryFailure = false;
+  });
+  afterEach(() => expect(observedBoundaryFailure, 'required scan failure observed').to.equal(true));
+
+  for (const filled of [false, true]) {
+    it(
+      `AC4. should stop at a strict ${filled ? 'filled' : 'empty'} warning scan before dispatch`,
+      { tags: buildTags() },
+      () => {
+        const { session } = nativeWarning();
+        const submit = cy.stub(session.recovery, 'submit');
+        const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
+        const scans: string[] = [];
+        cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+          cy.get(S.deleteReason)
+            .invoke('val')
+            .then((value) => {
+              scans.push(String(value));
+              if (Boolean(value) === filled) throw new Error('Controlled strict warning violation');
+            });
+        });
+        expectBoundaryFailure('Controlled strict warning violation', () => {
+          expect(submit).not.to.have.been.called;
+          expect(guard).not.to.have.been.called;
+          expect(scans).to.deep.equal(filled ? ['', boundaryReason] : ['']);
+          expect(session.monitor.attempts).to.equal(0);
+        });
+        new CheckerDeletionActions().accessible('success');
+      },
+    );
+  }
+});
+
+describe('PO-10624 native accessible warning activation', () => {
+  for (const kind of ['success', 'retry']) {
+    it(`AC4. should guard before creating an accessible ${kind} fixture`, { tags: buildTags() }, () => {
+      const create = cy.stub(CheckerReviewFixtureActions.prototype, 'create');
+      cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').throws(
+        new Error('Accessible pre-create guard'),
+      );
+      expect(() => new CheckerDeletionActions().accessible(kind)).to.throw('Accessible pre-create guard');
+      expect(create).not.to.have.been.called;
+    });
+  }
+
+  it(
+    'AC4. should reach the warning and submit using native Enter and Tab with strict scans',
+    { tags: buildTags() },
+    () => {
+      const { session } = nativeWarning();
+      const scans: string[] = [];
+      const submit = cy.stub(session.recovery, 'submit');
+      cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+        cy.get(S.deleteReason)
+          .invoke('val')
+          .then((value) => {
+            scans.push(String(value));
+          });
+      });
+      const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
+      const activated = cy.stub();
+      cy.document().then((document) => {
+        document.querySelector(S.deleteSubmit)!.addEventListener('click', () => {
+          expect(document.activeElement).to.equal(document.querySelector(S.deleteSubmit));
+          expect(guard).to.have.been.calledOnce;
+          activated();
+        });
+      });
+      // Keep the native control path real; the persisted receipt is outside this controlled document.
+      cy.stub(cy, 'wait').returns(
+        cy.wrap(
+          { response: { statusCode: 200, body: deletedSnapshot().draft, headers: { etag: '"2"' } } },
+          { log: false },
+        ),
+      );
+      cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
+      new CheckerDeletionActions().accessible('success');
+      cy.then(() => {
+        expect(scans).to.deep.equal(['', boundaryReason]);
+        expect(activated).to.have.been.calledOnce;
+        expect(submit, 'no pointer-oriented recovery submit').not.to.have.been.called;
+      });
+    },
+  );
+
+  it('AC4. should scan blank and visible 251 errors then corrected 250 with zero PATCH', { tags: buildTags() }, () => {
+    const { session } = nativeWarning();
+    const scans: string[] = [];
+    const submit = cy.stub(session.recovery, 'submit');
+    const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
+    const cancelled = cy.stub(
+      CheckerDeletionActions.prototype as unknown as { cancelToReview(): void },
+      'cancelToReview',
+    );
+    cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
+    cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+      cy.get(S.deleteReason)
+        .invoke('val')
+        .then((value) => {
+          const error = Cypress.$(C.deletion.reasonError).text().replace('Error:', '').trim();
+          scans.push(`${String(value).length}:${error}`);
+        });
+    });
+    cy.document().then((document) => {
+      const field = document.querySelector(S.deleteReason) as HTMLTextAreaElement;
+      const host = document.querySelector(C.deletion.host)!;
+      const counter = document.createElement('div');
+      counter.id = 'create_casefile_delete_reason_field';
+      counter.innerHTML = '<span class="govuk-character-count__status">You have 250 characters remaining</span>';
+      host.append(counter);
+      field.addEventListener('input', () => {
+        document.querySelector(C.deletion.counter)!.textContent =
+          field.value.length > 250
+            ? `You have ${field.value.length - 250} character too many`
+            : `You have ${250 - field.value.length} characters remaining`;
+      });
+      document.querySelector(S.deleteSubmit)!.addEventListener('click', () => {
+        const message = field.value.length ? 'Reason must be 250 characters or fewer' : 'Enter reason';
+        document.querySelector(C.deletion.summary)?.remove();
+        document.querySelector(C.deletion.reasonError)?.remove();
+        const summary = document.createElement('div');
+        summary.className = 'govuk-error-summary';
+        summary.tabIndex = -1;
+        summary.innerHTML = `<a href="#create_casefile_delete_reason">${message}</a>`;
+        summary.querySelector('a')!.addEventListener('click', (event) => {
+          event.preventDefault();
+          field.focus();
+        });
+        host.prepend(summary);
+        const error = document.createElement('div');
+        error.id = 'create_casefile_delete_reason-error-message';
+        error.textContent = `Error: ${message}`;
+        host.append(error);
+        field.setAttribute('aria-describedby', error.id);
+        summary.focus();
+      });
+    });
+    new CheckerDeletionActions().accessible('validation');
+    cy.then(() => {
+      expect(scans).to.deep.equal([
+        '0:',
+        '0:',
+        '0:Enter reason',
+        '251:Reason must be 250 characters or fewer',
+        '250:Reason must be 250 characters or fewer',
+      ]);
+      expect(session.monitor.applicationAttempts).to.equal(0);
+      expect(session.monitor.attempts).to.equal(0);
+      expect(submit).not.to.have.been.called;
+      expect(guard).not.to.have.been.called;
+      expect(cancelled).to.have.been.calledOnce;
+    });
+  });
+});
+
+// These documents isolate native activation while retained-receipt decoding and mutation accounting stay real.
+describe('PO-10624 native accessible cancellation and retry', () => {
+  it(
+    'AC4. should Tab through the warning controls and cancel to focused unchanged review',
+    { tags: buildTags() },
+    () => {
+      const { session } = nativeWarning();
+      const scans: string[] = [];
+      const activated = cy.stub();
+      const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
+      cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
+      cy.stub(session.recovery, 'assertSavedPresentation');
+      cy.stub(cy, 'intercept').returns(cy.wrap({}, { log: false }));
+      cy.stub(cy, 'wait').returns(
+        cy.wrap(
+          {
+            response: {
+              statusCode: 200,
+              body: session.before.draft,
+              headers: { etag: session.before.etag },
+            },
+          },
+          { log: false },
+        ),
+      );
+      cy.stub(cy, 'location').returns(cy.wrap(`/cases/draft/check-and-validate/review/${owned.id}`, { log: false }));
+      cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+        cy.document().then((document) => {
+          const warning = document.querySelector(C.deletion.host) as HTMLElement;
+          scans.push(
+            warning.hidden ? 'returned review' : (document.querySelector(S.deleteReason) as HTMLTextAreaElement).value,
+          );
+        });
+      });
+      cy.document().then((document) => {
+        const controls = document.createElement('div');
+        controls.innerHTML =
+          '<input id="create_casefile_review_decision-approve" type="radio"><input id="create_casefile_review_decision-reject" type="radio"><button id="create_casefile_review_continue">Continue</button>';
+        document.body.prepend(controls);
+        document.querySelector(`${C.deletion.host} a.govuk-link`)!.addEventListener('click', (event) => {
+          event.preventDefault();
+          expect(document.activeElement).to.equal(event.currentTarget);
+          activated();
+          (document.querySelector(C.deletion.host) as HTMLElement).hidden = true;
+          (document.querySelector(S.reviewHeading) as HTMLElement).focus();
+        });
+      });
+      new CheckerDeletionActions().accessible('cancel');
+      cy.then(() => {
+        expect(activated).to.have.been.calledOnce;
+        expect(scans).to.deep.equal(['', 'Synthetic concurrency decision', 'returned review']);
+        expect(guard).not.to.have.been.called;
+        expect(session.monitor.applicationAttempts).to.equal(0);
+        expect(session.monitor.attempts).to.equal(0);
+      });
+    },
+  );
+
+  it(
+    'AC4. should scan the retained definite error then explicitly retry through native controls',
+    { tags: buildTags() },
+    () => {
+      const { session } = nativeWarning();
+      const events: string[] = [];
+      const transport = controlledRetry(session, events);
+      const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').callsFake(() => {
+        events.push('guard');
+      });
+      const scans: string[] = [];
+      cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+        cy.get(S.deleteReason).then((field) => {
+          expect(field.val()).to.equal(scans.length ? 'Synthetic concurrency decision' : '');
+          scans.push(Cypress.$(C.globalErrorBanner).length ? 'retained error' : 'warning');
+        });
+      });
+      cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
+      const actions = new CheckerDeletionActions();
+      const seam = actions as unknown as { assertFailure(): void };
+      const retainedFailure = seam.assertFailure.bind(actions);
+      cy.stub(seam, 'assertFailure').callsFake(() => {
+        retainedFailure();
+        // Reuse the controlled transport's monitor-identity observation after the real retention/scan assertions.
+        session.recovery.assertFailure('delete');
+      });
+      cy.document().then((document) => {
+        document.querySelector(S.deleteSubmit)!.addEventListener('click', () => {
+          expect(document.activeElement).to.equal(document.querySelector(S.deleteSubmit));
+          void document
+            .defaultView!.fetch(`/opal-maintenance-service/draft-casefiles/${owned.id}`, { method: 'PATCH' })
+            .then((response) => {
+              if (response.status === 400) {
+                const banner = document.createElement('div');
+                banner.className = 'moj-alert--error';
+                banner.textContent = 'The deletion was rejected. Try again.';
+                document.body.prepend(banner);
+              }
+            });
+        });
+      });
+      actions.accessible('retry');
+      cy.then(() => {
+        expect(scans).to.deep.equal(['warning', 'warning', 'retained error']);
+        expect(guard).to.have.been.calledTwice;
+        expect(transport.submit, 'no pointer-oriented recovery submission').not.to.have.been.called;
+        expect(session.monitor).to.equal(transport.firstMonitor());
+        assertDeletionRetry(session.monitor, '"1"');
+        expect(events).to.deep.equal([
+          'guard',
+          'activation 1',
+          'failure',
+          'independent unchanged GET',
+          'guard',
+          'activation 2',
+        ]);
+      });
+    },
+  );
 });

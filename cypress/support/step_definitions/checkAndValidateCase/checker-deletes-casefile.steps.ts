@@ -8,3 +8,8 @@ When('its independent checker completes the deletion interaction', () => flow.ac
 Then('the deletion outcome preserves the owned case and records only its intended decision', () =>
   flow.assertOutcome(),
 );
+
+Then(
+  'my independent live checker deletion {string} journey is accessible with its business outcome verified',
+  (kind: string) => flow.accessible(kind),
+);

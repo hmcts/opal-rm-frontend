@@ -544,3 +544,104 @@ Run the six-example selection separately before any parent-authorised self-only 
 `DEBUG=cypress-cucumber-preprocessor` for that narrow diagnostic run. Do not alter authentication, observations,
 assertions, guards, Cucumber hooks, cleanup or timeouts to turn the failure into a pass. Selector discovery proves
 only metadata and bindings; real publication, lifecycle cleanup and full live acceptance remain outstanding.
+
+## PO-10624 independent checker deletion
+
+`CheckerDeletesCasefile.feature` retains five functional examples and
+`CheckerDeletesCasefileAccessibility.feature` adds four independent broad accessibility journeys: successful
+retained deletion, blank/over-limit correction, cancellation, and definite failure with explicit retry. Exactly
+**nine examples** remain enabled, with no skipped or pending scenarios and no scenario retries. Every example
+creates its own synthetic SUBMITTED case through the maintained normal API fixture. The checker must differ from
+the owning inputter and have actual Maintenance BU 44 permission 22; the ACTIVE inputter needs permission 21 in
+BU 44. The maintained fixture defaults to `opal-test@dev.platform.hmcts.net` and
+`opal-test-10@dev.platform.hmcts.net`; `PO10626_INPUTTER_EMAIL` and `PO10626_CHECKER_EMAIL` select other already
+provisioned independent users. Setup verifies real permissions and environment-valid reference data. It does not
+grant access or manufacture saved outcomes.
+
+Enable `release-1c-rm-create-case-files` in the frontend and
+`TESTING_SUPPORT_ENDPOINTS_ENABLED=true` in the actual Maintenance runtime. Before execution, verify the frontend
+process/build belongs to this checkout and record the actual compiled backend revision and running services.
+Require compatible real POST/GET/PATCH/list/detail routes, opaque ETags, permission enforcement, retained deletion,
+exact Deleted history and marker-owned cleanup; a source checkout or an issue's status does not establish the
+compiled runtime contract. Deletion does **not** require publication, a publication consumer or publication
+evidence registration.
+
+Current maintained cleanup supports SUBMITTED only. The four transition-capable examples (functional success and
+retry, accessibility success and retry) must stay unrun until DELETED lifecycle cleanup is externally verified.
+`PO10625_LIFECYCLE_CLEANUP_VERIFIED` must be **boolean true** only after that verification. The maintained guard
+runs before any transition-capable fixture creation and immediately before each DELETED dispatch, including the
+explicit retry. Never self-enable the switch, reset lifecycle state, delete unrelated cases, or treat a switch as
+evidence of cleanup. Retain failed owned receipts; every executed example requires actual successful marker-owned
+cleanup. The five `@PO10624SubmittedOnly` examples create only SUBMITTED records: three functional
+(cancel, blank, over-limit) and two accessibility (validation, cancel). This selection is a cleanup-compatible
+subset, not an acceptance waiver or a claim that those journeys pass.
+
+Success requires the exact owned `You have deleted {respondentName}’s case.` banner and To review destination,
+a fresh actual GET proving retained DELETED state, advanced ETag, all saved casefile/snapshot/validation fields and
+prior history, and exactly one new Deleted event with the exact independent checker and typed reason. It also
+requires absence from the actual To review provider collection and every DOM page, inclusion in both actual
+Deleted provider and paginated DOM results, and retained read-only detail without decision controls. Cancellation
+and validation require zero application/wire PATCH and a fresh unchanged aggregate/ETag/history, plus the same
+saved review and actual To review inclusion. Definite failure uses the maintained **one-shot HTTP 400 before
+provider dispatch**. It proves that definite-rejection boundary only; the explicit real UI retry retains the same
+monitor, reason and original opaque ETag and requires one acknowledged provider success. It does not model an
+uncertain outcome or claim that every HTTP 400 originates from the provider.
+
+Accessibility journeys use native focused Cases/queue/owned-row/delete navigation, normal keyboard text entry,
+native Tab from the reason through the real decision/cancel controls, native Enter and linked error-summary focus.
+The shared strict `accessibilityActions.checkAccessibilityOnly()` scanner has no added exemptions. Scans cover
+entry/review, empty and filled warning, exact blank and 251-character validation errors, corrected 250-character
+input, cancelled review, definite error with retained retry form, success confirmation, every visited outcome
+pagination page and retained read-only detail. Scanner failure stops subsequent interaction; the same persisted
+business assertions remain required. Automated Axe and keyboard checks provide partial accessibility evidence;
+screen-reader and magnification assessment remains a separate human/specialist check.
+
+The required errors are exactly `Enter reason` and `Reason must be 250 characters or fewer`. The strict over-limit
+journeys type **251 visible characters** and require the complete readback before checking the error and correcting
+to 250. The inspected frontend's native textarea currently has `maxlength=250`, preventing that 251-character
+input through normal typing. This is a **frontend baseline limitation (GAP008)**, not evidence of backend failure
+and not an automatically accepted waiver. Preserve the strict test and report the actual failure; do not force
+input, seed the value, bypass maxlength, accept truncation, patch the product, or silently remove the example.
+
+Full live selection, only after actual runtime, independent-user and DELETED-cleanup preflight:
+
+```bash
+TAGS='@JIRA-STORY:PO-10624 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10624 and not @skip' \
+yarn test:functional:leaf --browser=chrome --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerDeletesCasefile*.feature' \
+--env 'tags=@JIRA-STORY:PO-10624 and not @skip'
+```
+
+Set `TEST_URL` to the verified live frontend URL. For the safe SUBMITTED-only selection, add
+`and @PO10624SubmittedOnly` to **all three selectors**; expect exactly **five examples**:
+
+```bash
+TAGS='@JIRA-STORY:PO-10624 and not @skip and @PO10624SubmittedOnly' \
+CYPRESS_TAGS='@JIRA-STORY:PO-10624 and not @skip and @PO10624SubmittedOnly' \
+yarn test:functional:leaf --browser=chrome --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerDeletesCasefile*.feature' \
+--env 'tags=@JIRA-STORY:PO-10624 and not @skip and @PO10624SubmittedOnly'
+```
+
+Discovery uses the installed v26 preprocessor's actual `dryRun=true` setting, a null base URL and matching
+selectors. It runs no live fixture or browser actions; `cucumberOnlyMissingSteps` is not an effective discovery
+control in this version:
+
+```bash
+TAGS='@JIRA-STORY:PO-10624 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10624 and not @skip' \
+yarn test:functional:leaf --browser=chrome --config '{"baseUrl":null}' \
+--spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerDeletesCasefile*.feature' \
+--env 'dryRun=true,omitFiltered=true,tags=@JIRA-STORY:PO-10624 and not @skip'
+```
+
+Repeat discovery with `and @PO10624SubmittedOnly` in all three selectors for five examples; full discovery requires
+nine, with zero undefined/ambiguous/skipped/pending cases. Controlled support is:
+
+```bash
+yarn test:component:leaf --browser=chrome \
+--spec 'cypress/component/checkAndValidateCase/checker-deletion-journey-support.cy.ts'
+```
+
+Controlled support verifies helper contracts and failure propagation. Discovery verifies names, tags, counts and
+bindings. Neither is passing live deletion evidence. Preserve measured native execution counts, failures,
+interruptions, unrun examples and exact owned cleanup receipts in parent-owned ignored evidence and the delivery
+report/PR; keep these instructions reusable. Do not claim full acceptance or Agent Complete when an applicable
+required check fails. Draft production and handoff do not require publication or a separate approval-state gate.

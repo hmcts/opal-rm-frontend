@@ -12,6 +12,14 @@ export class CheckerDeletionFlow {
     this.actions.prepare(kind);
   }
 
+  /** Replaces mutable state for every independent broad accessibility journey.
+   * @param kind Explicit accessible deletion outcome.
+   */
+  public accessible(kind: string): void {
+    this.actions = new CheckerDeletionActions();
+    this.actions.accessible(kind);
+  }
+
   /** Completes the selected UI interaction. */
   public act(): void {
     this.actions.act();

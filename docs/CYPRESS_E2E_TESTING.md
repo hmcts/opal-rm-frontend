@@ -842,3 +842,45 @@ Use the suite guide's exact three matching tag selectors and command after final
 reference-data/submitted-cleanup preflight and explicit live authorisation. Add `dryRun=true` and baseUrl null for
 discovery only. A four-example pass cannot complete the other12 examples; no REJECTED/DELETED/RESUBMITTED or
 approval fixtures may be created until their own real cleanup capabilities are verified.
+
+## PO-10624 independent checker deletion QA
+
+The [deletion suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#po-10624-independent-checker-deletion)
+records the runtime prerequisites and evidence contract for **nine independent examples: five functional and four
+broad accessibility**. All remain enabled with scenario retries disabled. Each creates a fresh normal-API
+SUBMITTED fixture using distinct ACTIVE inputter permission 21 and checker permission 22 identities in
+Maintenance BU 44. Require `release-1c-rm-create-case-files`, Maintenance testing-support enablement, the actual
+compiled backend revision/running services and compatible persisted deletion/list/detail/cleanup contracts.
+Publication and its consumer are not deletion prerequisites.
+
+Current owned cleanup supports SUBMITTED only. The four successful/retry transition examples remain blocked until
+DELETED cleanup is externally verified. Never self-enable the maintained **boolean**
+`PO10625_LIFECYCLE_CLEANUP_VERIFIED` guard; it runs before transition-capable creation and immediately before each
+DELETED dispatch, including retry. Exactly five nontransition examples carry `@PO10624SubmittedOnly`.
+
+Full live selection after runtime and cleanup preflight:
+
+```bash
+TAGS='@JIRA-STORY:PO-10624 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10624 and not @skip' \
+yarn test:functional:leaf --browser=chrome --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerDeletesCasefile*.feature' \
+--env 'tags=@JIRA-STORY:PO-10624 and not @skip'
+```
+
+Use the verified frontend `TEST_URL`. Add `and @PO10624SubmittedOnly` to **TAGS, CYPRESS_TAGS and lowercase tags**
+for the five-example safe selection. For discovery only, use the same command with `--config '{"baseUrl":null}'`
+and prepend `dryRun=true,omitFiltered=true,` to the `--env` value. The installed v26 preprocessor supports
+`dryRun=true`; `cucumberOnlyMissingSteps` does not provide this evidence. Require full **9 (5+4)** and subset
+**5 (3+2)** discovery, with no undefined/ambiguous/skipped/pending examples.
+
+Strict shared Axe scans and native Enter/Tab cover all meaningful visited states and actual pagination pages;
+scan failure must propagate. Persisted GET, provider/DOM collections and retained read-only detail remain mandatory
+business outcomes. The one-shot definite failure is an HTTP 400 before provider dispatch followed by an explicit
+real UI retry using the same monitor and original ETag; it does not prove uncertain-delivery recovery. The visible
+251-character validation contract remains strict. The inspected native frontend textarea's `maxlength=250`
+currently prevents that input: record **frontend GAP008**, preserve the normal typing/readback failure, and do not
+force/seed/bypass the control, accept truncation or assume a backend cause or accepted waiver.
+
+Controlled support and discovery are not passing live deletion. Parent-owned evidence and the delivery report/PR
+must record measured results, interruptions, unrun guarded examples and actual marker-owned cleanup receipts.
+These reusable instructions make no live-pass claim. Draft handoff does not require publication or an approval-state
+check; failed applicable checks still mean Not Agent Complete.

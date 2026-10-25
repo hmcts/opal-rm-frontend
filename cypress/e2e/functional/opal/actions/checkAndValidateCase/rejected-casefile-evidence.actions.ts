@@ -1,4 +1,4 @@
-import type { IOpalMaintenanceDraftCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-detail.interface';
+import type { IOpalMaintenanceDraftCasefileDetail } from '../../../../../../src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-detail.interface';
 import { versionValue } from './draft-casefile-evidence.actions';
 import type { IDraftCasefileDetail } from './interfaces/draft-casefile-detail.interface';
 import type { IDraftCasefileSnapshot } from './interfaces/draft-casefile-snapshot.interface';

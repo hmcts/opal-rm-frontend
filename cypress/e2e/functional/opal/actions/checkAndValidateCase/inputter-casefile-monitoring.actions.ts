@@ -48,12 +48,18 @@ export class InputterCasefileMonitoringActions {
   private rejectionIds: number[] = [];
   private selected?: IDraftCasefileSnapshot;
   private deniedActor = '';
+  private observing = false;
 
   /** Installs pass-through list, count and write monitors after all fixture lifecycle changes.
    * @param actor Actual primary inputter BU identity used by personal queries.
    */
   public observe(actor: string): void {
+    this.observing = true;
     cy.intercept('GET', /\/opal-maintenance-service\/draft-casefiles(?:\?|$)/, (request) => {
+      if (!this.observing) {
+        request.continue();
+        return;
+      }
       this.collectionRequests++;
       const query = { ...request.query };
       expect(query['business_unit_id']).to.equal('44');
@@ -72,6 +78,7 @@ export class InputterCasefileMonitoringActions {
         });
       }
       request.continue((response) => {
+        if (!this.observing) return;
         expect(response.statusCode, 'real dashboard provider status').to.equal(200);
         if (count) {
           decodeDraftCasefileCount(response.body);
@@ -85,10 +92,17 @@ export class InputterCasefileMonitoringActions {
     cy.intercept(
       { method: '+(POST|PUT|PATCH|DELETE)', url: /\/opal-maintenance-service\/draft-casefiles(?:[/?]|$)/ },
       (request) => {
-        this.writes++;
+        if (this.observing) this.writes++;
         request.continue();
       },
     );
+  }
+
+  /** Hands subsequent traffic to scoped completion/checker observers without clearing intercepts. */
+  public releaseObservation(): void {
+    cy.then(() => {
+      this.observing = false;
+    });
   }
 
   /** Opens a fresh released personal dashboard and validates its independent count.

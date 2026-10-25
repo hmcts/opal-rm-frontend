@@ -639,3 +639,58 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
     new InputterCasefileMonitoringActions().expectRows([], [], true);
   });
 });
+
+describe('PO-10623 monitoring observation handoff (controlled support only)', () => {
+  const buildTags = (): string[] => ['@JIRA-STORY:PO-10623', '@JIRA-EPIC:PO-10817'];
+  it('AC3. should retain active predecessor assertions before handoff', { tags: buildTags() }, () => {
+    let list!: (request: unknown) => void;
+    cy.stub(cy, 'intercept').callsFake((...args: unknown[]) => {
+      if (args[0] === 'GET') list = args[2] as typeof list;
+      return cy.wrap(null, { log: false });
+    });
+    const actions = new InputterCasefileMonitoringActions();
+    actions.observe('original-inputter');
+    expect(() => list({ query: { business_unit_id: '44', submitted_by: 'wrong-actor' } })).to.throw();
+  });
+  it('AC3. should release pending response assertions when completion takes over', { tags: buildTags() }, () => {
+    let list!: (request: unknown) => void;
+    let response!: (value: unknown) => void;
+    cy.stub(cy, 'intercept').callsFake((...args: unknown[]) => {
+      if (args[0] === 'GET') list = args[2] as typeof list;
+      return cy.wrap(null, { log: false });
+    });
+    const actions = new InputterCasefileMonitoringActions();
+    actions.observe('original-inputter');
+    list({
+      query: { business_unit_id: '44', submitted_by: 'original-inputter', casefile_status: 'REJECTED' },
+      continue: (callback: typeof response) => {
+        response = callback;
+      },
+    });
+    actions.releaseObservation();
+    cy.then(() => expect(() => response({ statusCode: 403, body: {} })).not.to.throw());
+  });
+  it('AC3. should release list and write observation before later checker traffic', { tags: buildTags() }, () => {
+    const handlers: ((request: unknown) => void)[] = [];
+    cy.stub(cy, 'intercept').callsFake((...args: unknown[]) => {
+      handlers.push(args[args.length - 1] as (typeof handlers)[number]);
+      return cy.wrap(null, { log: false });
+    });
+    const actions = new InputterCasefileMonitoringActions();
+    actions.observe('original-inputter');
+    actions.releaseObservation();
+    const forward = cy.stub();
+    cy.then(() => {
+      handlers[0]({
+        query: { business_unit_id: '44', submitted_by: 'later-checker', casefile_status: 'SUBMITTED,RESUBMITTED' },
+        continue: forward,
+      });
+      handlers[1]({ continue: forward });
+      expect(forward).to.have.been.calledTwice;
+    });
+    cy.document().then((document) => {
+      document.body.innerHTML = '<p id="cases-draft-empty">No cases</p>';
+    });
+    actions.expectEmpty();
+  });
+});

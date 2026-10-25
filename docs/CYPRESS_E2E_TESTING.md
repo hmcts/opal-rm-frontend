@@ -884,3 +884,101 @@ Controlled support and discovery are not passing live deletion. Parent-owned evi
 must record measured results, interruptions, unrun guarded examples and actual marker-owned cleanup receipts.
 These reusable instructions make no live-pass claim. Draft handoff does not require publication or an approval-state
 check; failed applicable checks still mean Not Agent Complete.
+
+## PO-10623 owned rejected amendment
+
+The `RejectedAmendment.feature` and `RejectedAmendmentAccessibility.feature` pair preserves its inherited
+controlled examples and appends **12 independent live examples: six functional and six accessibility**. The
+PO-10623 tag selects exactly those 12, with zero skips, pending cases or scenario retries. The six outcomes are
+same-user correction/resubmission (AC1), cross-user resubmission/self-review prevention (AC1/AC3), definite failure
+and explicit retry (AC2), stale correction/departure protection, foreign-BU denial and no-longer-Rejected denial
+(AC4). Every accessibility counterpart adds AC5 and retains the same complete business outcome assertions.
+
+Each example creates fresh data through normal POST, uses two minor creditors and unique synthetic names, and
+requires an actual REJECTED prerequisite with the exact rejection marker/history. A is the immutable original
+inputter (ACTIVE Maintenance BU44 permission21). Independent B rejects with actual permission22 in BU44; the
+cross-user amender B also needs permission21 there. The original `owned` record and current `amender` remain
+separate. Cleanup authority changes only after an independent saved GET establishes the actual latest submitter,
+and the maintained cleanup receipt is persisted immediately before later outcome assertions. Do not create roles,
+reuse ambient cases, relabel A, share fixtures between functional/accessibility examples, or mock live user,
+reference, collection, detail or successful lifecycle responses.
+
+Foreign-BU denial additionally requires an existing `PO10623_FOREIGN_BU_INPUTTER_EMAIL`: ACTIVE permission21 in
+another Maintenance BU and no permission21 in BU44. Missing or incompatible users are fixture failures. A global
+role denial does not prove this Business Unit boundary.
+
+Before live work, verify the frontend checkout/build/process, enabled `release-1c-rm-create-case-files`, running
+services and **actual compiled Maintenance backend artifact/revision**, normal POST/GET/list/detail/PUT routes,
+lossless opaque ETags, real rejection/resubmission/409/permission behavior and marker-owned lifecycle cleanup.
+A source checkout or ticket status does not establish these contracts. Testing support must be enabled in that
+runtime. PO-10623 has no publication, publication-evidence registration, observation migration or publication
+consumer dependency.
+
+The currently inspected cleanup runtime supports SUBMITTED only. **Both boolean guards stay false until their
+capabilities are independently verified**: `PO10625_LIFECYCLE_CLEANUP_VERIFIED` covers REJECTED/RESUBMITTED lifecycle
+cleanup and is checked before creation and immediately before every transition; additionally
+`PO10623_TRANSFER_CLEANUP_VERIFIED` covers latest-submitter transfer cleanup and is checked before cross-user
+creation and transition. Tests never self-enable either guard. A false guard is an expected unavailable-prerequisite
+failure, never a passing live journey. Preserve any failed owned cleanup receipt and report unresolved ownership or
+unreadable cleanup as outstanding evidence.
+
+Success requires real UI PUT200, a matching complete independent GET, full aggregate preservation except respondent
+forenames `Corrected`, preserved applicant/minor snapshots and null account identifiers, advanced ETag and exactly
+one Resubmitted event with the actual amender/time. Both actual provider results and every DOM page must omit the
+owned ID from its original Rejected collection and include it in inputter In review with corrected name/latest
+actor. Require the exact owned `You have submitted {corrected respondent name}'s case for review.` banner at the
+original personal `#rejected` or All rejected destination, dismissal focus and no replay. Cross-user B must be
+excluded by the actual checker To review provider and every DOM page, and direct self-review must be read-only
+without decision controls or PATCH. The saved aggregate remains unchanged.
+
+Retry uses one **HTTP400 before provider dispatch**, followed by one explicit real PUT200 using the same monitor
+and original ETag. This proves that definite failure boundary; it does not claim every400 is provider-generated.
+Stale uses an actual competing complete PUT200 and actual UI PUT409; native Cancel retains the unsaved correction,
+OK/Back reloads the unchanged winner without replay. The no-longer-Rejected denial first actually resubmits its own
+REJECTED case. Both canonical denial entries expose no case/editor/task data, dispatch no POST/PUT/PATCH and retain
+an independently authorised unchanged saved read.
+
+Strict `accessibilityActions.checkAccessibilityOnly()` scans have **no exemptions** and run before departure from
+every meaningful visited collection/page/sort, task/history, actual corrected respondent editor, review, definite
+failure/409, Cancel return, confirmation/dismissal, In review, read-only self-review and denial state. Material
+pages also assert horizontal reflow at1280 and320 CSS pixels and restore desktop width. Keyboard paths retain
+native Tab and maintained native Enter on semantic focused controls; native GOV.UK opacity-zero inputs need enabled
+controls and visible associated labels, not a CSS-visibility requirement. These scans and keyboard checks provide
+partial WCAG2.2AA evidence. Screen-reader, zoom/magnification, focus appearance and native browser modal rendering
+remain separate manual/specialist checks with the same verified services/users/cleanup setup.
+
+Exact 12-example discovery, with no application actions or fixture creation:
+
+```bash
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendment*.feature' \
+  --config '{"baseUrl":null}' \
+  --env 'dryRun=true,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip,PO10625_LIFECYCLE_CLEANUP_VERIFIED=false,PO10623_TRANSFER_CLEANUP_VERIFIED=false'
+```
+
+Exact live/guard selection (all12 are blocked before creation while lifecycle cleanup remains unverified):
+
+```bash
+TEST_URL=http://localhost:5100 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendment*.feature' \
+  --env 'dryRun=false,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip,PO10625_LIFECYCLE_CLEANUP_VERIFIED=false,PO10623_TRANSFER_CLEANUP_VERIFIED=false'
+```
+
+After independent external verification, configure only the genuinely supported boolean capabilities and existing
+actor addresses in the runner; do not copy a true flag from a controlled test as evidence. Retain exact commands,
+compiled revisions, selected counts, guards, actual failures, cleanup outcomes and safe marker/ID-only evidence.
+Never store names, case bodies, cookies, credentials or tokens in evidence. Controlled orchestration verification:
+
+```bash
+corepack yarn test:component:leaf --browser=chrome \
+  --spec 'cypress/component/checkAndValidateCase/rejected-casefile-journey-support.cy.ts'
+```
+
+Discovery proves selection/bindings only. Controlled support proves scanner/keyboard/reflow/orchestration failure
+sensitivity against synthetic boundaries. Neither is passing live acceptance or proof of deployed permissions,
+cleanup compatibility or complete WCAG conformance. Run the preserved inherited caller regression separately.

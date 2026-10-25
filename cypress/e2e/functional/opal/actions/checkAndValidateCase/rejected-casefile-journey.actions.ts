@@ -8,6 +8,7 @@ import { CreateCasefileSelectors as C } from '../../../../../shared/selectors/cr
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { performAuthentication } from '../../../../actions/login.actions';
 import { InputterDashboardActions } from '../createDraftCasefile/inputter-dashboard.actions';
+import { accessibilityActions } from '../accessibility/accessibility.actions';
 import { AllRejectedActions } from '../createDraftCasefile/all-rejected.actions';
 import { InputterCasefileMonitoringActions } from './inputter-casefile-monitoring.actions';
 import { CheckerDashboardWindowActions } from './checker-dashboard-window.actions';
@@ -107,25 +108,50 @@ export class RejectedCasefileJourneyActions {
       if (kind === 'denied' || kind === 'non-rejected') return;
       this.entry.observe(context.amender.id);
       this.entry.open('rejected');
-      if (kind === 'cross-user') this.entry.viewAllRejected();
-      this.entry.expectRows([context.owned]);
+      this.scan();
+      if (kind === 'cross-user') {
+        this.entry.viewAllRejected();
+        this.scan();
+      }
+      this.entry.expectRows([context.owned], [], accessible);
       this.entry.openAmendment(context.owned, accessible);
       this.entry.releaseObservation();
       cy.get(C.caseDetails.checkCaseButton).should('be.enabled');
+      this.scan();
       this.activate(C.caseDetails.checkCaseButton);
       cy.get(S.reviewHeading).should('have.text', 'Check case details');
       this.recovery.capture('resubmit');
       this.recovery.captureOriginalReview();
       cy.then(() => this.recovery.assertSavedPresentation(context.before, true, true));
+      this.scan();
       // The separate winner rendering is captured through the same real edit controls before the stale edit.
       if (kind === 'stale') {
-        this.winnerReview.correctRespondent('Winning');
+        this.winnerReview.correctRespondent('Winning', accessible, () => this.scan());
         this.winnerReview.capture('resubmit');
+        this.scan();
       }
-      this.recovery.correctRespondent('Corrected');
+      this.recovery.correctRespondent('Corrected', accessible, () => this.scan());
       this.recovery.capture('resubmit');
+      this.scan();
       cy.then(() => this.observeCompletion());
     });
+  }
+
+  /** Strictly scans material states at desktop and narrow widths before any departure. */
+  private scan(): void {
+    if (!this.keyboard) return;
+    for (const width of [1280, 320]) {
+      cy.viewport(width, 900);
+      cy.document().should((document) => {
+        expect(document.defaultView!.innerWidth, 'actual CSS viewport width').to.equal(width);
+        expect(
+          Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+          'horizontal overflow',
+        ).to.be.at.most(document.documentElement.clientWidth);
+      });
+      accessibilityActions.checkAccessibilityOnly();
+    }
+    cy.viewport(1280, 900);
   }
 
   /** Captures raw completion responses; validation waits until observed cleanup authority is persisted. */
@@ -158,7 +184,16 @@ export class RejectedCasefileJourneyActions {
    */
   private activate(selector: string): void {
     if (this.keyboard) {
-      cy.get(selector).should('be.visible').focus().should('be.focused');
+      cy.get(selector)
+        .should('be.visible')
+        .and('not.be.disabled')
+        .should((control) => {
+          expect(control[0].matches('a[href], button, input, select, textarea'), 'semantic keyboard control').to.equal(
+            true,
+          );
+        })
+        .focus()
+        .should('be.focused');
       pressDashboardEnter();
     } else cy.get(selector).should('be.visible').click();
   }
@@ -235,6 +270,7 @@ export class RejectedCasefileJourneyActions {
         cy.wait('@draftMutation').its('response.statusCode').should('equal', 400);
         this.recovery.assertFailure('resubmit');
         cy.get(S.amendmentSubmit).should('be.enabled');
+        this.scan();
         readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(context.before, saved));
         cy.then(() => {
           expect(this.monitor?.attempts, 'one failed activation without automatic replay').to.equal(1);
@@ -278,6 +314,7 @@ export class RejectedCasefileJourneyActions {
       S.amendmentSubmit,
     ])
       cy.get(selector).should('not.exist');
+    this.scan();
   }
 
   /** Requires every observed write to be the same complete amendment with the original opaque ETag.
@@ -340,7 +377,9 @@ export class RejectedCasefileJourneyActions {
    * @param included Whether the exact owned identity must be rendered.
    */
   private collect(included: boolean): void {
-    new CheckerDashboardWindowActions().collectIds().then((ids) => {
+    const collector = new CheckerDashboardWindowActions();
+    if (this.keyboard) collector.enableAccessibility();
+    collector.collectIds().then((ids) => {
       expect(ids.has(this.current().owned.id), 'owned case across every real DOM page').to.equal(included);
     });
   }
@@ -349,8 +388,10 @@ export class RejectedCasefileJourneyActions {
   private firstPage(): void {
     cy.get('body').then((body) => {
       if (body.find(D.pagination).length) {
+        this.scan();
         this.activate(D.allRejectedPage(1));
         cy.get(D.allRejectedPage(1)).should('have.attr', 'aria-current', 'page');
+        this.scan();
       }
     });
   }
@@ -383,6 +424,7 @@ export class RejectedCasefileJourneyActions {
       );
     cy.then(() => (winning ? this.winnerReview : this.recovery).assertSavedPresentation(this.saved!, false, !checker));
     if (!checker) cy.get(S.amendmentSubmit).should('not.exist');
+    this.scan();
   }
 
   /** Proves origin notice, complete rejected removal, and actual inputter In review inclusion. */
@@ -396,20 +438,28 @@ export class RejectedCasefileJourneyActions {
     cy.location('pathname').should('equal', cross ? REJECTIONS : DASHBOARD);
     if (!cross) cy.location('hash').should('equal', '#rejected');
     cy.then(() => this.assertProvider('REJECTED', false));
+    this.scan();
     this.firstPage();
     this.collect(false);
+    this.scan();
     this.activate(cross ? D.allRejectedDismiss : D.successDismiss);
     cy.get(cross ? D.allRejectedHeading : D.heading).should('be.focused');
     cy.get(cross ? D.allRejectedSuccess : D.success).should('not.exist');
-    if (cross) new AllRejectedActions().returnDashboard();
+    this.scan();
+    if (cross) {
+      new AllRejectedActions().returnDashboard();
+      this.scan();
+    }
     cy.then(() => {
       this.collections = [];
     });
-    new InputterDashboardActions().selectTab('in-review');
+    if (this.keyboard) this.activate(D.tab('in-review'));
+    else new InputterDashboardActions().selectTab('in-review');
     cy.wait('@amendmentInReview');
     cy.get(D.tab('in-review')).should('have.attr', 'aria-current', 'page');
     cy.get(D.heading).should('be.visible');
     cy.then(() => this.assertProvider('SUBMITTED,RESUBMITTED', true));
+    this.scan();
     this.firstPage();
     this.collect(true);
     this.openSaved(false);
@@ -426,8 +476,11 @@ export class RejectedCasefileJourneyActions {
     const checker = new CheckerDashboardWindowActions();
     checker.observe(context.owned.checkerId);
     cy.then(() => this.observeCompletion());
+    if (this.keyboard) checker.enableAccessibility();
     checker.open();
+    this.scan();
     checker.select('to-review');
+    this.scan();
     cy.then(() => this.assertProvider('SUBMITTED,RESUBMITTED', !cross, true));
     checker
       .collectIds()
@@ -439,6 +492,7 @@ export class RejectedCasefileJourneyActions {
       cy.then(() => this.recovery.assertSavedPresentation(this.saved!));
       for (const selector of [S.approve, S.reject, S.continue, S.deleteLink, S.deleteReason, S.deleteSubmit])
         cy.get(selector).should('not.exist');
+      this.scan();
     } else this.openSaved(true);
     readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.saved!, saved));
     cy.then(() => this.assertWrites(this.kind === 'retry' ? 2 : 1));
@@ -450,7 +504,13 @@ export class RejectedCasefileJourneyActions {
   private staleOutcome(): void {
     const context = this.current();
     this.recovery.assertFailure('resubmit');
-    this.recovery.assertReloadRequired('resubmit');
+    this.scan();
+    if (this.keyboard) {
+      this.submit();
+      cy.get(C.globalErrorBanner).should('contain.text', 'Select Back to reload the saved case');
+      this.recovery.assertRetained('resubmit');
+    } else this.recovery.assertReloadRequired('resubmit');
+    this.scan();
     cy.then(() => {
       this.assertWrites(1);
       expect(this.monitor?.attempts).to.equal(1);
@@ -483,6 +543,7 @@ export class RejectedCasefileJourneyActions {
       cy.then(() => expect(confirmed, 'native departure warning presented').to.equal(true));
       if (!discard) {
         this.recovery.assertRetained('resubmit');
+        this.scan();
         cy.then(() => expect(reads, 'Cancel does not reload').to.equal(0));
       }
     }
@@ -492,6 +553,7 @@ export class RejectedCasefileJourneyActions {
     cy.wait('@amendmentInReview');
     cy.get(D.heading).should('be.visible');
     cy.then(() => this.assertProvider('SUBMITTED,RESUBMITTED', true));
+    this.scan();
     this.firstPage();
     this.collect(true);
     this.openSaved(false, true);

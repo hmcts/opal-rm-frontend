@@ -1,3 +1,6 @@
+import { pressDashboardEnter } from '../../support/utils/press-dashboard-enter';
+import { accessibilityActions } from '../../e2e/functional/opal/actions/accessibility/accessibility.actions';
+import { DraftCasefileRecoveryActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-recovery.actions';
 import type { IOpalMaintenanceDraftCasefileDetail } from '../../../src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-detail.interface';
 import { RejectedCasefileAmendmentFlow } from '../../e2e/functional/opal/flows/checkAndValidateCase/rejected-casefile-amendment.flow';
 import { RejectedCasefileJourneyActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/rejected-casefile-journey.actions';
@@ -113,6 +116,9 @@ interface Faults {
   missingWarning?: boolean;
   originStatus?: number;
   malformedOrigin?: boolean;
+  overflow?: boolean;
+  unreachableReturn?: boolean;
+  lostFocus?: boolean;
 }
 
 /** Controlled route/HTTP boundary; native rendered controls still drive every edit, submit and departure. */
@@ -135,6 +141,10 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
     events: [] as string[],
     submissions: 0,
     providerCallbacks: 0,
+    scans: [] as string[],
+    native: [] as string[],
+    pointer: [] as string[],
+    listScans: [] as string[],
   };
   const handlers: {
     method: string;
@@ -236,7 +246,8 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
     });
   };
   const renderEditor = () => {
-    document.body.innerHTML = `<label for="${C.respondentDetails.firstNames.slice(1)}">First names</label><input id="${C.respondentDetails.firstNames.slice(1)}" value="${state.field}"><button id="${C.respondentDetails.returnToCaseDetails.slice(1)}">Return to case details</button>`;
+    document.body.innerHTML = `<label for="${C.respondentDetails.firstNames.slice(1)}">First names</label><input id="${C.respondentDetails.firstNames.slice(1)}" value="${state.field}"><label for="editor-other-field">Other retained field</label><input id="editor-other-field" value="Unchanged"><label for="editor-native-checkbox">Native checkbox</label><input type="checkbox" id="editor-native-checkbox" style="opacity:0"><button ${faults.unreachableReturn ? 'tabindex="-1"' : ''} id="${C.respondentDetails.returnToCaseDetails.slice(1)}">Return to case details</button>`;
+    if (faults.overflow) document.body.insertAdjacentHTML('beforeend', '<div style="width:1400px">Overflow</div>');
     bind(C.respondentDetails.returnToCaseDetails, () => {
       state.field = (document.querySelector(C.respondentDetails.firstNames) as HTMLInputElement).value;
       renderReview(true);
@@ -393,6 +404,17 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
   };
   cy.document().then((doc) => {
     document = doc;
+    document.documentElement.style.overflowWrap = 'anywhere';
+    document.addEventListener('click', (event) => {
+      if (event.detail) state.pointer.push((event.target as HTMLElement).id);
+    });
+    document.addEventListener('keydown', (event) => {
+      state.native.push(`${event.key}:${(event.target as HTMLElement).id}`);
+    });
+    if (faults.lostFocus)
+      document.addEventListener('focusin', (event) => {
+        if ((event.target as HTMLElement).id === 'checkCaseButton') (event.target as HTMLElement).blur();
+      });
     cy.stub(document.defaultView!, 'fetch').callsFake(async () => submit());
     table('rejected');
   });
@@ -428,8 +450,13 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
       table('rejected');
     });
   });
-  cy.stub(InputterCasefileMonitoringActions.prototype, 'openAmendment').callsFake(() => {
-    cy.get(`${D.row(context.owned.id)} a`).click();
+  cy.stub(InputterCasefileMonitoringActions.prototype, 'openAmendment').callsFake((_owned, accessible) => {
+    if (accessible) {
+      cy.get(`${D.row(context.owned.id)} a`)
+        .focus()
+        .should('be.focused');
+      pressDashboardEnter();
+    } else cy.get(`${D.row(context.owned.id)} a`).click();
   });
   cy.stub(InputterDashboardActions.prototype, 'open').callsFake(() => {
     cy.then(() => {
@@ -524,6 +551,30 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
     }),
   );
   return state;
+}
+
+/** Controls only the scanner dependency; records the real DOM before navigation can remove it. */
+function recordScans(state: ReturnType<typeof harness>, removed = false): void {
+  cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+    cy.document().then((doc) => {
+      if (removed) return;
+      const body = doc.body;
+      let label = 'list';
+      if (body.querySelector(C.respondentDetails.firstNames)) label = 'editor';
+      else if (body.querySelector('.moj-alert--error')) label = 'failure';
+      else if (body.querySelector(D.success) || body.querySelector(D.allRejectedSuccess)) label = 'confirmation';
+      else if (body.querySelector(C.caseDetails.checkCaseButton)) label = 'tasks';
+      else if (body.querySelector('app-cases-create-casefile-review-section')) {
+        label = body.querySelector('#create_casefile_review_submit') ? 'review' : 'read-only';
+      } else if (body.textContent?.includes('Permission denied')) label = 'denial';
+      state.scans.push(`${label}:${doc.defaultView!.innerWidth}`);
+      if (['list', 'confirmation'].includes(label)) {
+        const sort = body.querySelector('th')?.getAttribute('aria-sort');
+        const page = body.querySelector('[aria-current="page"][aria-label]')?.getAttribute('aria-label') ?? 'Page 1';
+        state.listScans.push(`${sort}:${page}`);
+      }
+    });
+  });
 }
 
 describe('PO-10623 real journey orchestration (controlled support only)', { retries: 0 }, () => {
@@ -745,6 +796,145 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
     );
     expect(prepare).not.to.have.been.called;
   });
+
+  for (const kind of [
+    'same-user',
+    'cross-user',
+    'retry',
+    'stale',
+    'denied',
+    'non-rejected',
+  ] as RejectedAmendmentKind[]) {
+    it(
+      `AC5. should scan every material ${kind} state before leaving and retain real business proof`,
+      { tags: tags() },
+      () => {
+        const state = harness(kind);
+        recordScans(state);
+        const flow = new RejectedCasefileAmendmentFlow();
+        flow.prepare(kind, true);
+        flow.complete(kind);
+        flow.assertOutcome(kind);
+        cy.then(() => {
+          const required = ['denied', 'non-rejected'].includes(kind)
+            ? ['denial']
+            : [
+                'list',
+                'tasks',
+                'editor',
+                'review',
+                'read-only',
+                ...(kind === 'stale' ? ['failure', 'denial'] : ['confirmation']),
+                ...(kind === 'retry' ? ['failure'] : []),
+              ];
+          for (const page of required)
+            for (const width of [1280, 320])
+              expect(state.scans, `strict scan coverage ${page} at ${width}`).to.include(`${page}:${width}`);
+          if (required.includes('editor')) {
+            expect(
+              state.native.some((event) => event === `Enter:${C.respondentDetails.returnToCaseDetails.slice(1)}`),
+              'native Return activation',
+            ).to.equal(true);
+            expect(
+              state.native.some((event) => event.startsWith('Tab:')),
+              'native Tab traversal',
+            ).to.equal(true);
+            expect(state.native).to.include('Tab:editor-other-field');
+            expect(state.native).to.include('Tab:editor-native-checkbox');
+          }
+          expect(state.pointer, 'no pointer substitution in accessible controls').to.have.length(0);
+          if (!['denied', 'non-rejected'].includes(kind)) {
+            expect(state.listScans).to.include('ascending:Page 1');
+            expect(state.listScans).to.include('descending:Page 1');
+          }
+        });
+      },
+    );
+  }
+  it(
+    'AC5. should scan each real later pagination state before rejected residual failure',
+    { tags: tags(), defaultCommandTimeout: 100 },
+    () => {
+      const state = harness('same-user', { residual: true });
+      recordScans(state);
+      mustFail('owned case across every real DOM page', () => {
+        expect(state.listScans).to.include('none:Page 1');
+        expect(state.listScans).to.include('none:Page 2');
+      });
+      const flow = new RejectedCasefileAmendmentFlow();
+      flow.prepare('same-user', true);
+      flow.complete('same-user');
+      flow.assertOutcome('same-user');
+      requireFailure();
+    },
+  );
+  it('AC5. should reject removed scanner coverage', { tags: tags() }, () => {
+    const state = harness('denied');
+    recordScans(state, true);
+    mustFail('strict scan coverage');
+    const flow = new RejectedCasefileAmendmentFlow();
+    flow.prepare('denied', true);
+    flow.complete('denied');
+    flow.assertOutcome('denied');
+    cy.then(() => expect(state.scans, 'strict scan coverage').to.include('denial:320'));
+    requireFailure();
+  });
+  for (const fault of [
+    { label: 'overflow', faults: { overflow: true }, message: 'horizontal overflow' },
+    { label: 'unreachable Return', faults: { unreachableReturn: true }, message: 'focused' },
+    { label: 'lost task focus', faults: { lostFocus: true }, message: 'focused' },
+  ]) {
+    it(`AC5. should reject ${fault.label}`, { tags: tags(), defaultCommandTimeout: 100 }, () => {
+      const state = harness('same-user', fault.faults);
+      recordScans(state);
+      mustFail(fault.message);
+      new RejectedCasefileAmendmentFlow().prepare('same-user', true);
+      requireFailure();
+    });
+  }
+  it('AC5. should propagate strict Axe failures without exemptions', { tags: tags() }, () => {
+    const state = harness('denied');
+    const inject = cy.stub(cy, 'injectAxe');
+    const scan = cy.stub(cy, 'checkA11y').callsFake(() => {
+      throw new Error('strict Axe failure');
+    });
+    mustFail('strict Axe failure', () => {
+      expect(inject).to.have.been.called;
+      expect(scan.firstCall.args, 'no Axe exemptions or exclusions').to.deep.equal([]);
+      expect(state.submissions).to.equal(0);
+    });
+    const flow = new RejectedCasefileAmendmentFlow();
+    flow.prepare('denied', true);
+    flow.complete('denied');
+    flow.assertOutcome('denied');
+    requireFailure();
+  });
+  it('AC5. should preserve pointer correction defaults', { tags: tags() }, () => {
+    const state = harness('same-user');
+    new RejectedCasefileAmendmentFlow().prepare('same-user');
+    cy.then(() => expect(state.native.filter((event) => event.startsWith('Enter:'))).to.have.length(0));
+  });
+  it('AC5. should scan corrected editor before native Return and propagate callback errors', { tags: tags() }, () => {
+    const state = harness('same-user');
+    new RejectedCasefileAmendmentFlow().prepare('same-user');
+    mustFail('editor callback failure', () => {
+      expect(
+        state.native.some((event) => event === `Enter:${C.respondentDetails.returnToCaseDetails.slice(1)}`),
+      ).to.equal(false);
+    });
+    cy.then(() => {
+      // The additive callback contract must run with the corrected field still rendered.
+      const recovery = new DraftCasefileRecoveryActions();
+      recovery.correctRespondent('Callback', true, () => {
+        cy.get(C.respondentDetails.firstNames).should('have.value', 'Callback');
+        cy.then(() => {
+          throw new Error('editor callback failure');
+        });
+      });
+    });
+    requireFailure();
+  });
+
   it('AC4. should validate all string choices immediately before scheduling work', { tags: tags() }, () => {
     const flow = new RejectedCasefileAmendmentFlow();
     for (const method of ['prepare', 'complete', 'assertOutcome'] as const)

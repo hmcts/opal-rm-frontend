@@ -31,3 +31,39 @@ Feature: Accessible rejected casefile correction
     When I go Back and choose to keep my corrections
     Then my corrections remain and no replacement request is replayed
     And the rejected amendment state is accessible at 320 CSS pixels
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC1 @AC5 @retries(0)
+  Scenario: Accessibly correct and resubmit my rejected case
+    Given an owned rejected case is ready for the accessible "same-user" amendment outcome
+    When I complete the real "same-user" rejected amendment journey
+    Then the real "same-user" rejected amendment outcome is retained
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC1 @AC3 @AC5 @retries(0)
+  Scenario: Accessibly resubmit another inputter's case and inspect self-review prevention
+    Given an owned rejected case is ready for the accessible "cross-user" amendment outcome
+    When I complete the real "cross-user" rejected amendment journey
+    Then the real "cross-user" rejected amendment outcome is retained
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC2 @AC5 @retries(0)
+  Scenario: Accessibly retain a definite failure and explicitly retry resubmission
+    Given an owned rejected case is ready for the accessible "retry" amendment outcome
+    When I complete the real "retry" rejected amendment journey
+    Then the real "retry" rejected amendment outcome is retained
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @AC5 @retries(0)
+  Scenario: Accessibly recover a stale amendment without replay
+    Given an owned rejected case is ready for the accessible "stale" amendment outcome
+    When I complete the real "stale" rejected amendment journey
+    Then the real "stale" rejected amendment outcome is retained
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @AC5 @retries(0)
+  Scenario: Accessibly deny amendment from another Business Unit
+    Given an owned rejected case is ready for the accessible "denied" amendment outcome
+    When I complete the real "denied" rejected amendment journey
+    Then the real "denied" rejected amendment outcome is retained
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @AC5 @retries(0)
+  Scenario: Accessibly deny amendment after a real resubmission
+    Given an owned rejected case is ready for the accessible "non-rejected" amendment outcome
+    When I complete the real "non-rejected" rejected amendment journey
+    Then the real "non-rejected" rejected amendment outcome is retained

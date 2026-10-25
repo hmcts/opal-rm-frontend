@@ -159,11 +159,37 @@ export class DraftCasefileRecoveryActions {
   /**
    * Saves a respondent correction through its contextual review action.
    * @param value Explicit synthetic correction or validated journey value.
+   * @param keyboard Use native activation and Tab from the corrected field.
+   * @param onEditor Optional strict scan while the corrected editor remains rendered.
    */
-  public correctRespondent(value: string): void {
-    cy.get(C.review.change('respondent')).click();
-    cy.get(C.respondentDetails.firstNames).clear().type(value);
-    cy.get(C.respondentDetails.returnToCaseDetails).click();
+  public correctRespondent(value: string, keyboard = false, onEditor?: () => void): void {
+    this.activate(C.review.change('respondent'), keyboard);
+    if (keyboard) cy.get(C.respondentDetails.firstNames).focus().should('be.focused');
+    cy.get(C.respondentDetails.firstNames).should('be.enabled').clear().type(value);
+    if (onEditor) cy.then(() => onEditor());
+    if (keyboard) {
+      cy.get(C.respondentDetails.firstNames).should('be.focused');
+      // The actual editor includes other fields before Return; traverse them without pointer/focus shortcuts.
+      const tabToReturn = (remaining: number): void => {
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.focused().then((focused) => {
+          expect(focused[0].matches('a[href], button, input, select, textarea'), 'semantic editor focus').to.equal(
+            true,
+          );
+          cy.wrap(focused).should('not.be.disabled');
+          if (focused.is('input[type="checkbox"], input[type="radio"]'))
+            cy.get(`label[for="${focused[0].id}"]`).should('be.visible');
+          if (focused.is(C.respondentDetails.returnToCaseDetails)) return;
+          expect(remaining, 'Return is reachable in native tab order').to.be.greaterThan(0);
+          tabToReturn(remaining - 1);
+        });
+      };
+      cy.document().then((document) =>
+        tabToReturn(document.querySelectorAll('a[href], button, input, select, textarea').length),
+      );
+      cy.get(C.respondentDetails.returnToCaseDetails).should('be.enabled').and('be.focused');
+      pressDashboardEnter();
+    } else this.activate(C.respondentDetails.returnToCaseDetails, false);
     cy.get(S.reviewHeading).should('be.visible');
     cy.get(C.review.section('respondent')).should('contain.text', value);
   }
@@ -406,7 +432,7 @@ export class DraftCasefileRecoveryActions {
   private activate(selector: string, keyboard: boolean): void {
     if (keyboard) {
       cy.get(selector).should('be.visible').focus().should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pressDashboardEnter();
     } else {
       cy.get(selector).should('be.visible').click();
     }

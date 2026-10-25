@@ -648,7 +648,7 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
   ]) {
     it(
       `AC1, AC3. should persist observed B cleanup authority before rejecting an early ${origin.label} origin collection`,
-      { tags: tags(), defaultCommandTimeout: 100 },
+      { tags: tags() },
       () => {
         const state = harness('cross-user', origin.faults);
         mustFail(origin.message, () => {
@@ -711,7 +711,7 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       message: 'saved submitted_by unchanged',
     },
   ]) {
-    it(`AC1, AC3. should reject ${fault.name}`, { tags: tags(), defaultCommandTimeout: 100 }, () => {
+    it(`AC1, AC3. should reject ${fault.name}`, { tags: tags() }, () => {
       const state = harness('same-user', fault.faults);
       mustFail(fault.message, () =>
         expect(state.receiptRecorded, 'cleanup authority persisted before assertions').to.equal(true),
@@ -728,7 +728,7 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
   }
   it(
     'AC4. should require the actual winner in the fresh inputter provider after stale reload',
-    { tags: tags(), defaultCommandTimeout: 100 },
+    { tags: tags() },
     () => {
       harness('stale', { missingProvider: true });
       mustFail('owned case in actual provider');
@@ -739,19 +739,15 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       requireFailure();
     },
   );
-  it(
-    'AC4. should require the native stale departure warning before reload',
-    { tags: tags(), defaultCommandTimeout: 100 },
-    () => {
-      harness('stale', { missingWarning: true });
-      mustFail('native departure warning presented');
-      const flow = new RejectedCasefileAmendmentFlow();
-      flow.prepare('stale');
-      flow.complete('stale');
-      flow.assertOutcome('stale');
-      requireFailure();
-    },
-  );
+  it('AC4. should require the native stale departure warning before reload', { tags: tags() }, () => {
+    harness('stale', { missingWarning: true });
+    mustFail('native departure warning presented');
+    const flow = new RejectedCasefileAmendmentFlow();
+    flow.prepare('stale');
+    flow.complete('stale');
+    flow.assertOutcome('stale');
+    requireFailure();
+  });
   for (const guard of [undefined, false, 'true']) {
     it(`AC4. should block fixture creation for lifecycle guard ${String(guard)}`, { tags: tags() }, () => {
       const prepare = cy.spy(RejectedCasefileFixtureActions.prototype, 'prepare');
@@ -851,23 +847,19 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       },
     );
   }
-  it(
-    'AC5. should scan each real later pagination state before rejected residual failure',
-    { tags: tags(), defaultCommandTimeout: 100 },
-    () => {
-      const state = harness('same-user', { residual: true });
-      recordScans(state);
-      mustFail('owned case across every real DOM page', () => {
-        expect(state.listScans).to.include('none:Page 1');
-        expect(state.listScans).to.include('none:Page 2');
-      });
-      const flow = new RejectedCasefileAmendmentFlow();
-      flow.prepare('same-user', true);
-      flow.complete('same-user');
-      flow.assertOutcome('same-user');
-      requireFailure();
-    },
-  );
+  it('AC5. should scan each real later pagination state before rejected residual failure', { tags: tags() }, () => {
+    const state = harness('same-user', { residual: true });
+    recordScans(state);
+    mustFail('owned case across every real DOM page', () => {
+      expect(state.listScans).to.include('none:Page 1');
+      expect(state.listScans).to.include('none:Page 2');
+    });
+    const flow = new RejectedCasefileAmendmentFlow();
+    flow.prepare('same-user', true);
+    flow.complete('same-user');
+    flow.assertOutcome('same-user');
+    requireFailure();
+  });
   it('AC5. should reject removed scanner coverage', { tags: tags() }, () => {
     const state = harness('denied');
     recordScans(state, true);
@@ -884,7 +876,7 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
     { label: 'unreachable Return', faults: { unreachableReturn: true }, message: 'focused' },
     { label: 'lost task focus', faults: { lostFocus: true }, message: 'focused' },
   ]) {
-    it(`AC5. should reject ${fault.label}`, { tags: tags(), defaultCommandTimeout: 100 }, () => {
+    it(`AC5. should reject ${fault.label}`, { tags: tags() }, () => {
       const state = harness('same-user', fault.faults);
       recordScans(state);
       mustFail(fault.message);

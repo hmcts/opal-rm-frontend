@@ -367,7 +367,13 @@ export class InputterCasefileMonitoringActions {
       this.selected = snapshot;
     });
     cy.intercept('GET', `**/opal-maintenance-service/draft-casefiles/${owned.id}`, (request) => {
+      if (!this.observing) {
+        request.continue();
+        return;
+      }
+      request.alias = 'monitoringSelectedDetail';
       request.continue((response) => {
+        if (!this.observing) return;
         expect(response.statusCode, 'fresh selected detail GET').to.equal(200);
         const snapshot = decodeDraftSnapshot(owned.id, response.body, response.headers['etag']);
         expect(snapshot.draft.submitted_by).to.equal(owned.inputterId);
@@ -375,7 +381,7 @@ export class InputterCasefileMonitoringActions {
         if (!this.selected) throw new Error('Independent selected snapshot missing');
         assertUnchangedDraft(this.selected, snapshot);
       });
-    }).as('monitoringSelectedDetail');
+    });
     this.locateRejected(owned.id, scanStates);
     cy.get(S.allRejectedPageStatus)
       .invoke('text')
@@ -391,12 +397,8 @@ export class InputterCasefileMonitoringActions {
     cy.get(S.tableRows).then((rows) => {
       this.rejectionIds = [...rows].map((row) => Number(row.getAttribute('data-draft-id')));
     });
-    cy.get(S.row(owned.id))
-      .find('a')
-      .should('have.length', 1)
-      .and('not.have.attr', 'target')
-      .focus()
-      .should('be.focused');
+    cy.get(S.row(owned.id)).find('a').should('have.length', 1).and('not.have.attr', 'target');
+    cy.get(S.row(owned.id)).find('a').focus().should('be.focused');
     pressDashboardEnter();
     cy.wait('@monitoringSelectedDetail');
     cy.location('pathname').should(

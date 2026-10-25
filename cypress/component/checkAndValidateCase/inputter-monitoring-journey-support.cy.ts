@@ -694,3 +694,136 @@ describe('PO-10623 monitoring observation handoff (controlled support only)', ()
     actions.expectEmpty();
   });
 });
+
+describe('PO-10623 selected detail observation handoff (controlled support only)', () => {
+  const buildTags = (): string[] => ['@JIRA-STORY:PO-10623', '@JIRA-EPIC:PO-10817'];
+
+  // Exercise the public amendment entry and its actual detail decoder/assertions. Navigation/read boundaries are
+  // controlled; no application route, authentication, HTTP provider or lifecycle mutation is executed here.
+  function controlledAmendment() {
+    const draft = createPersistedCasefileDetail();
+    draft.casefile_status = 'REJECTED';
+    draft.casefile.respondent_account.remo_reference = 'E2E-0123456789012345';
+    const owned = {
+      id: draft.draft_casefile_id,
+      marker: draft.casefile.respondent_account.remo_reference,
+      inputter: 'synthetic-original',
+      checker: 'synthetic-checker',
+      inputterId: draft.submitted_by,
+      checkerId: 'synthetic-checker-id',
+      inputterName: draft.submitted_by_name,
+      checkerName: 'Synthetic Checker',
+    };
+    type DetailResponse = { statusCode: number; body: unknown; headers: Record<string, string> };
+    type DetailRequest = { alias?: string; continue: (callback?: (response: DetailResponse) => void) => void };
+    let detail!: (request: DetailRequest) => void;
+    const actions = new InputterCasefileMonitoringActions();
+    cy.stub(actions, 'locateRejected');
+    cy.stub(cy, 'request').callsFake(() =>
+      cy.wrap({ status: 200, body: structuredClone(draft), headers: { etag: '"2"' } }, { log: false }),
+    );
+    cy.stub(cy, 'intercept').callsFake((...args: unknown[]) => {
+      if (args[1] === '**/opal-maintenance-service/draft-casefiles/17') detail = args[2] as typeof detail;
+      return cy.wrap(null, { log: false });
+    });
+    cy.stub(cy, 'wait').callsFake((alias: string) => {
+      expect(alias, 'active amendment detail wait retained').to.equal('@monitoringSelectedDetail');
+      return cy.then(() => {
+        detail({
+          continue: (callback) =>
+            callback?.({ statusCode: 200, body: structuredClone(draft), headers: { etag: '"2"' } }),
+        });
+        return null;
+      });
+    });
+    cy.stub(cy, 'location').callsFake((property: string) => {
+      expect(property).to.equal('pathname');
+      return cy.wrap('/cases/create-casefile/task-list/17', { log: false });
+    });
+    cy.document().then((document) => {
+      document.body.innerHTML = `<app-cases-draft-table><opal-lib-moj-sortable-table><output>Page 1 of 1</output><table><thead><tr><th columnKey="applicant" aria-sort="descending"><button>Applicant</button></th></tr></thead><tbody><tr data-draft-id="17"><td><a href="#amend">Amend</a></td></tr></tbody></table></opal-lib-moj-sortable-table></app-cases-draft-table><h1 tabindex="-1">Synthetic Respondent</h1><span id="respondentStatus">Provided</span><app-cases-draft-casefile-history><div class="moj-timeline">Rejected</div></app-cases-draft-casefile-history>`;
+      document.querySelector('a')!.addEventListener('click', (event) => {
+        event.preventDefault();
+        document.querySelector('h1')!.focus();
+      });
+    });
+    actions.observe(owned.inputterId);
+    actions.openAmendment(owned);
+    const original = (): DetailResponse => ({
+      statusCode: 200,
+      body: structuredClone(draft),
+      headers: { etag: '"2"' },
+    });
+    const advanced = (): DetailResponse => {
+      const saved = structuredClone(draft);
+      saved.casefile_status = 'RESUBMITTED';
+      saved.submitted_by = owned.checkerId;
+      saved.submitted_by_name = owned.checkerName;
+      saved.casefile.respondent_account.respondent.party_details.individual_details!.forenames = 'Corrected';
+      return { statusCode: 200, body: saved, headers: { etag: '"3"' } };
+    };
+    return { actions, original, advanced, detail: (request: DetailRequest) => detail(request) };
+  }
+
+  it('AC3. should retain exact active detail baseline and wait validation', { tags: buildTags() }, () => {
+    const runtime = controlledAmendment();
+    cy.then(() => {
+      const forward = cy.stub().callsFake((callback) => callback(runtime.original()));
+      const request = { continue: forward };
+      expect(() => runtime.detail(request)).not.to.throw();
+      expect(forward).to.have.been.calledOnce;
+      expect(request).to.have.property('alias', 'monitoringSelectedDetail');
+    });
+  });
+
+  for (const fault of ['status', 'ID', 'creator', 'marker', 'aggregate', 'version'] as const) {
+    it(`AC3. should reject active selected detail with changed ${fault}`, { tags: buildTags() }, () => {
+      const runtime = controlledAmendment();
+      cy.then(() => {
+        const response = runtime.original();
+        const body = response.body as ReturnType<typeof createPersistedCasefileDetail>;
+        if (fault === 'status') response.statusCode = 403;
+        if (fault === 'ID') body.draft_casefile_id++;
+        if (fault === 'creator') body.submitted_by = 'different-actor';
+        if (fault === 'marker') body.casefile.respondent_account.remo_reference = 'E2E-9999999999999999';
+        if (fault === 'aggregate') body.casefile.respondent_account.originator_name = 'Changed';
+        if (fault === 'version') response.headers['etag'] = '"3"';
+        expect(() => runtime.detail({ continue: (callback) => callback?.(response) })).to.throw();
+      });
+    });
+  }
+
+  it(
+    'AC3. should pass through the same ID with advanced resubmission and owner after release',
+    { tags: buildTags() },
+    () => {
+      const runtime = controlledAmendment();
+      runtime.actions.releaseObservation();
+      cy.then(() => {
+        const forward = cy.stub().callsFake((callback) => callback?.(runtime.advanced()));
+        const request = { continue: forward };
+        expect(() => runtime.detail(request)).not.to.throw();
+        expect(forward).to.have.been.calledOnce.and.calledWithExactly();
+        expect(request).not.to.have.property('alias');
+      });
+    },
+  );
+
+  it(
+    'AC3. should release an already registered detail callback before the changed response arrives',
+    { tags: buildTags() },
+    () => {
+      const runtime = controlledAmendment();
+      let response!: (value: ReturnType<typeof runtime.original>) => void;
+      cy.then(() =>
+        runtime.detail({
+          continue: (callback) => {
+            response = callback!;
+          },
+        }),
+      );
+      runtime.actions.releaseObservation();
+      cy.then(() => expect(() => response(runtime.advanced())).not.to.throw());
+    },
+  );
+});

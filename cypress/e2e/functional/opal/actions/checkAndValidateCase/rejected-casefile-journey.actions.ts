@@ -2,7 +2,6 @@ import { CASES_CREATE_CASEFILE_ROUTING_PATHS as CREATE } from '../../../../../..
 import { CASES_DRAFT_ROUTING_PATHS as INPUTTER } from '../../../../../../src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { CASES_DRAFT_CHECKER_ROUTING_PATHS as CHECKER } from '../../../../../../src/app/flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
 import { decodeDraftCasefileList } from '../../../../../../src/app/flows/cases/services/opal-maintenance-service/utils/opal-maintenance-draft-casefile-response';
-import type { IOpalMaintenanceDraftCasefileSummary } from '../../../../../../src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-summary.interface';
 import { CheckAndValidateCaseSelectors as S } from '../../../../../shared/selectors/check-and-validate-case.selectors';
 import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
 import { CreateCasefileSelectors as C } from '../../../../../shared/selectors/create-casefile.selectors';
@@ -56,7 +55,7 @@ export class RejectedCasefileJourneyActions {
   private monitor?: IDraftCasefileMonitor;
   private receipt?: IDraftCasefileSnapshot;
   private saved?: IDraftCasefileSnapshot;
-  private collections: { query: Record<string, unknown>; rows: IOpalMaintenanceDraftCasefileSummary[] }[] = [];
+  private collections: { query: Record<string, unknown>; statusCode: number; body: unknown }[] = [];
   private writes: { method: string; body: unknown; version: unknown }[] = [];
   private keyboard = false;
   private outcome = false;
@@ -129,7 +128,7 @@ export class RejectedCasefileJourneyActions {
     });
   }
 
-  /** Observes request bodies and collection responses without intercepting maintained response callbacks. */
+  /** Captures raw completion responses; validation waits until observed cleanup authority is persisted. */
   private observeCompletion(): void {
     const observation = ++this.observation;
     cy.intercept('GET', COLLECTION, (request) => {
@@ -140,9 +139,8 @@ export class RejectedCasefileJourneyActions {
         request.alias =
           query['casefile_status'] === 'SUBMITTED,RESUBMITTED' ? 'amendmentInReview' : 'amendmentRejected';
       request.on('response', (response) => {
-        expect(response.statusCode, 'actual amendment collection status').to.equal(200);
         if (observation === this.observation)
-          this.collections.push({ query, rows: decodeDraftCasefileList(response.body).summaries });
+          this.collections.push({ query, statusCode: response.statusCode, body: response.body });
       });
     });
     cy.intercept({ method: '+(POST|PUT|PATCH)', url: MUTATIONS }, (request) => {
@@ -319,7 +317,9 @@ export class RejectedCasefileJourneyActions {
               : query['submitted_by'] === context.amender.id)),
     );
     expect(matches.length, 'actual matching provider consultation observed').to.be.greaterThan(0);
-    for (const { query, rows } of matches) {
+    for (const { query, statusCode, body } of matches) {
+      expect(statusCode, 'actual amendment collection status').to.equal(200);
+      const rows = decodeDraftCasefileList(body).summaries;
       const owned = rows.filter((row) => row.draft_casefile_id === context.owned.id);
       expect(query['business_unit_id'], 'provider owning BU').to.equal('44');
       if (included) {

@@ -111,6 +111,8 @@ interface Faults {
   wrongOrigin?: boolean;
   badReceipt?: boolean;
   missingWarning?: boolean;
+  originStatus?: number;
+  malformedOrigin?: boolean;
 }
 
 /** Controlled route/HTTP boundary; native rendered controls still drive every edit, submit and departure. */
@@ -140,6 +142,7 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
     callback: (request: CyHttpMessages.IncomingHttpRequest) => void;
   }[] = [];
   const receipts: Record<string, unknown>[] = [];
+  const earlyOriginResponses: (() => void)[] = [];
   const collectionReceipts = new Map<string, Record<string, unknown>[]>();
   let document!: Document;
   let detailResponse: Record<string, unknown>;
@@ -253,22 +256,34 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
       include && !(faults.missingProvider && tab === 'in-review') && !(faults.missingCheckerProvider && checker)
         ? [summary]
         : [];
-    emit(
-      'GET',
-      '/opal-maintenance-service/draft-casefiles',
-      {
-        business_unit_id: '44',
-        casefile_status: tab === 'rejected' ? 'REJECTED' : 'SUBMITTED,RESUBMITTED',
-        ...(checker
-          ? { not_submitted_by: 'B-id' }
-          : state.path === REJECTIONS
-            ? {}
-            : { submitted_by: context.amender.id }),
-      },
-      undefined,
-      { statusCode: 200, body: { count: rows.length, summaries: rows } },
-    );
-    state.providerCallbacks++;
+    const origin = !checker && tab === 'rejected' && state.saved.draft.casefile_status === 'RESUBMITTED';
+    const deliver = () => {
+      if (origin) state.events.push('origin-response');
+      emit(
+        'GET',
+        '/opal-maintenance-service/draft-casefiles',
+        {
+          business_unit_id: '44',
+          casefile_status: tab === 'rejected' ? 'REJECTED' : 'SUBMITTED,RESUBMITTED',
+          ...(checker
+            ? { not_submitted_by: 'B-id' }
+            : state.path === REJECTIONS
+              ? {}
+              : { submitted_by: context.amender.id }),
+        },
+        undefined,
+        {
+          statusCode: origin ? (faults.originStatus ?? 200) : 200,
+          body:
+            origin && faults.malformedOrigin ? { count: -1, summaries: [] } : { count: rows.length, summaries: rows },
+        },
+      );
+      state.providerCallbacks++;
+    };
+    // Deliver fault callbacks at the controlled PUT receipt boundary, before its saved GET is scheduled.
+    // This keeps callback assertions in Cypress command execution instead of a rejected native Fetch promise.
+    if (origin && (faults.originStatus !== undefined || faults.malformedOrigin)) earlyOriginResponses.push(deliver);
+    else deliver();
   };
   const table = (tab: string, checker = false, notice = false) => {
     const included =
@@ -461,6 +476,7 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
       if (alias === '@draftMutation') {
         const receipt = receipts.shift();
         if (!receipt) throw new Error('Controlled native submission missing');
+        earlyOriginResponses.splice(0).forEach((deliver) => deliver());
         return receipt;
       }
       if (alias === '@amendmentSavedDetail') return { response: detailResponse };
@@ -487,6 +503,7 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
         state.saved = resubmitted(context, 'Winning');
         return { status: 200, body: structuredClone(state.saved.draft), headers: { etag: state.saved.etag } };
       }
+      state.events.push(`saved-get:${state.saved.draft.submitted_by}`);
       return { status: 200, body: structuredClone(state.saved.draft), headers: { etag: state.saved.etag } };
     }),
   );
@@ -571,6 +588,32 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
             ).to.equal('Winning');
           }
         });
+      },
+    );
+  }
+  for (const origin of [
+    { label: 'non-200', faults: { originStatus: 503 }, message: 'actual amendment collection status' },
+    { label: 'malformed', faults: { malformedOrigin: true }, message: 'Invalid draft casefile list response' },
+  ]) {
+    it(
+      `AC1, AC3. should persist observed B cleanup authority before rejecting an early ${origin.label} origin collection`,
+      { tags: tags(), defaultCommandTimeout: 100 },
+      () => {
+        const state = harness('cross-user', origin.faults);
+        mustFail(origin.message, () => {
+          expect(state.receiptRecorded, 'B cleanup receipt persisted before provider failure').to.equal(true);
+          expect(state.saved.draft.submitted_by).to.equal('B-id');
+          const response = state.events.indexOf('origin-response');
+          const savedGet = state.events.indexOf('saved-get:B-id');
+          const persisted = state.events.indexOf('cleanup:B-id');
+          expect(response, 'origin arrived before independent saved GET').to.be.greaterThan(-1).and.lessThan(savedGet);
+          expect(savedGet, 'independent B authority read before persistence').to.be.lessThan(persisted);
+        });
+        const flow = new RejectedCasefileAmendmentFlow();
+        flow.prepare('cross-user');
+        flow.complete('cross-user');
+        flow.assertOutcome('cross-user');
+        requireFailure();
       },
     );
   }

@@ -1,4 +1,5 @@
 export const CheckAndValidateCaseSelectors = {
+  amendmentTasks: 'app-cases-create-casefile-task-list',
   conflictPage: 'opal-lib-concurrency-failure',
   reviewHeading: '#review-heading',
   reviewSections: 'app-cases-create-casefile-review-section, section#review-orderTerms',

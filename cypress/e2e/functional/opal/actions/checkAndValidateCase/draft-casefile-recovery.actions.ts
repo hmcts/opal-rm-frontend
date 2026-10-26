@@ -1,3 +1,5 @@
+import { locateDraftCasefileRow } from './draft-casefile-table.actions';
+import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
 import { PrimaryNavigationLocators as P } from '../../../../../shared/selectors/primary-navigation.locators';
 import { CASES_DRAFT_CHECKER_ROUTING_PATHS as CHECKER } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
@@ -291,6 +293,11 @@ export class DraftCasefileRecoveryActions {
    */
   public recoverConflict(id: number, journey: DraftCasefileJourney, keyboard: boolean): void {
     cy.intercept('GET', `/opal-maintenance-service/draft-casefiles/${id}`).as('recoveredDraft');
+    const targetStatus = journey === 'resubmit' ? 'SUBMITTED,RESUBMITTED' : 'REJECTED';
+    cy.intercept('GET', /\/opal-maintenance-service\/draft-casefiles(?:\?|$)/, (request) => {
+      if (!request.query['restrict'] && request.query['casefile_status'] === targetStatus)
+        request.alias = 'recoveryCollection';
+    });
     const cases = cy.contains(P.items, P.labels.cases).should('be.visible');
     if (keyboard) {
       cases.focus().should('be.focused');
@@ -300,11 +307,13 @@ export class DraftCasefileRecoveryActions {
     this.activate(journey === 'resubmit' ? D.inputterEntry : D.checkerEntry, keyboard);
     cy.get(D.heading).should('have.text', journey === 'resubmit' ? 'Create cases' : 'Review cases');
     this.activate(D.tab(journey === 'resubmit' ? 'in-review' : 'rejected'), keyboard);
-    cy.get(D.row(id)).within(() => {
+    cy.wait('@recoveryCollection').its('response.statusCode').should('equal', 200);
+    cy.get(`${D.table}, ${D.empty}`).should('be.visible');
+    locateDraftCasefileRow(id, keyboard).within(() => {
       const link = cy.get(D.column('respondent')).find('a').should('be.visible');
       if (keyboard) {
         link.focus().should('be.focused');
-        cy.press(Cypress.Keyboard.Keys.ENTER);
+        pressDashboardEnter();
       } else link.click();
     });
     cy.wait('@recoveredDraft').its('response.statusCode').should('equal', 200);

@@ -5,8 +5,7 @@ import { decodeDraftCasefileList } from '../../../../../../src/app/flows/cases/s
 import { CheckAndValidateCaseSelectors as S } from '../../../../../shared/selectors/check-and-validate-case.selectors';
 import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
 import { CreateCasefileSelectors as C } from '../../../../../shared/selectors/create-casefile.selectors';
-import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
-import { performAuthentication } from '../../../../actions/login.actions';
+import { activateCasefileControl } from '../createDraftCasefile/casefile-review-controls.actions';
 import { InputterDashboardActions } from '../createDraftCasefile/inputter-dashboard.actions';
 import { accessibilityActions } from '../accessibility/accessibility.actions';
 import { AllRejectedActions } from '../createDraftCasefile/all-rejected.actions';
@@ -20,14 +19,8 @@ import {
   correctedRejectedCasefile,
 } from './rejected-casefile-evidence.actions';
 import { assertUnchangedDraft, decodeDraftSnapshot, readDraftSnapshot } from './draft-casefile-evidence.actions';
-import { armDraftCasefileMutation } from './draft-casefile-transport.actions';
-import type {
-  RejectedAmendmentKind,
-  IRejectedCasefileActor,
-  IRejectedCasefileContext,
-} from './interfaces/rejected-casefile-context.interface';
-import type { IDraftCasefileSnapshot } from './interfaces/draft-casefile-snapshot.interface';
-import type { IDraftCasefileMonitor } from './interfaces/draft-casefile-monitor.interface';
+import type { RejectedAmendmentKind, IRejectedCasefileContext } from './interfaces/rejected-casefile-context.interface';
+import type { IRejectedAmendmentSession } from './interfaces/rejected-amendment-session.interface';
 
 const COLLECTION = /\/opal-maintenance-service\/draft-casefiles(?:\?|$)/;
 const MUTATIONS = /\/opal-maintenance-service\/draft-casefiles(?:[/?]|$)/;
@@ -44,102 +37,61 @@ export function rejectedAmendmentKind(kind: string): RejectedAmendmentKind {
   return kind as RejectedAmendmentKind;
 }
 
-/** Real amendment orchestration; all observed business responses pass through unchanged. */
+/** Page and network evidence for one Flow-owned rejected amendment session. */
 export class RejectedCasefileJourneyActions {
   private fixture = new RejectedCasefileFixtureActions();
   private entry = new InputterCasefileMonitoringActions();
   private recovery = new DraftCasefileRecoveryActions();
   private winnerReview = new DraftCasefileRecoveryActions();
-  private context?: IRejectedCasefileContext;
-  private foreign?: IRejectedCasefileActor;
-  private kind?: RejectedAmendmentKind;
-  private monitor?: IDraftCasefileMonitor;
-  private receipt?: IDraftCasefileSnapshot;
-  private saved?: IDraftCasefileSnapshot;
-  private collections: { query: Record<string, unknown>; statusCode: number; body: unknown }[] = [];
-  private writes: { method: string; body: unknown; version: unknown }[] = [];
-  private keyboard = false;
-  private outcome = false;
-  private observation = 0;
+
+  /** Shares only this example's evidence with the owning Flow.
+   * @param session Fresh feature-local scenario state.
+   */
+  constructor(private readonly session: IRejectedAmendmentSession) {}
 
   /** Requires the original owned context, never relabeling creator A as amender B.
    * @returns Scenario-local rejected fixture.
    */
   private current(): IRejectedCasefileContext {
-    if (!this.context || !this.kind) throw new Error('Rejected amendment context missing');
-    return this.context;
+    if (!this.session.context) throw new Error('Rejected amendment context missing');
+    return this.session.context;
   }
 
-  /** Validates exact sequencing without silently changing an already prepared scenario.
-   * @param kind Business choice used by the current step.
-   */
-  private requireKind(kind: RejectedAmendmentKind): void {
-    rejectedAmendmentKind(kind);
-    if (kind !== this.kind) throw new Error('Rejected amendment kind differs from prepared scenario');
-    this.current();
-  }
-
-  /** Creates one guarded real rejection, then enters its actual originating collection.
-   * @param kind Exact supported outcome.
-   * @param accessible Native keyboard activation for the accessibility caller.
-   */
-  public prepare(kind: RejectedAmendmentKind, accessible = false): void {
-    rejectedAmendmentKind(kind);
-    this.context = undefined;
-    this.foreign = undefined;
-    this.monitor = undefined;
-    this.receipt = undefined;
-    this.saved = undefined;
-    this.collections = [];
-    this.writes = [];
-    this.outcome = false;
-    this.keyboard = accessible;
-    this.kind = kind;
-    this.entry = new InputterCasefileMonitoringActions();
-    this.recovery = new DraftCasefileRecoveryActions();
-    this.winnerReview = new DraftCasefileRecoveryActions();
-    this.fixture.requireCleanup(kind === 'cross-user');
-    if (kind === 'denied')
-      this.fixture.foreignActor().then((foreign) => {
-        this.foreign = foreign;
-      });
-    cy.then(() => this.fixture.prepare(kind === 'cross-user')).then((context) => {
-      this.context = context;
-      if (kind === 'denied' || kind === 'non-rejected') return;
-      this.entry.observe(context.amender.id);
-      this.entry.open('rejected');
+  /** Opens and edits the actual originating rejection using maintained controls. */
+  public openRejectedForCorrection(): void {
+    const context = this.current();
+    this.entry.observe(context.amender.id);
+    this.entry.open('rejected');
+    this.scan();
+    if (this.session.kind === 'cross-user') {
+      this.entry.viewAllRejected();
       this.scan();
-      if (kind === 'cross-user') {
-        this.entry.viewAllRejected();
-        this.scan();
-      }
-      this.entry.expectRows([context.owned], [], accessible);
-      this.entry.openAmendment(context.owned, accessible);
-      this.entry.releaseObservation();
-      cy.get(C.caseDetails.checkCaseButton).should('be.enabled');
+    }
+    this.entry.expectRows([context.owned], [], this.session.keyboard);
+    this.entry.openAmendment(context.owned, this.session.keyboard);
+    this.entry.releaseObservation();
+    cy.get(C.caseDetails.checkCaseButton).should('be.enabled');
+    this.scan();
+    this.activate(C.caseDetails.checkCaseButton);
+    cy.get(C.review.heading).should('have.text', 'Check case details');
+    this.recovery.capture('resubmit');
+    this.recovery.captureOriginalReview();
+    cy.then(() => this.recovery.assertSavedPresentation(context.before, true, true));
+    this.scan();
+    // The separate winner rendering is captured through the same real edit controls before the stale edit.
+    if (this.session.kind === 'stale') {
+      this.winnerReview.correctRespondent('Winning', this.session.keyboard, () => this.scan());
+      this.winnerReview.capture('resubmit');
       this.scan();
-      this.activate(C.caseDetails.checkCaseButton);
-      cy.get(S.reviewHeading).should('have.text', 'Check case details');
-      this.recovery.capture('resubmit');
-      this.recovery.captureOriginalReview();
-      cy.then(() => this.recovery.assertSavedPresentation(context.before, true, true));
-      this.scan();
-      // The separate winner rendering is captured through the same real edit controls before the stale edit.
-      if (kind === 'stale') {
-        this.winnerReview.correctRespondent('Winning', accessible, () => this.scan());
-        this.winnerReview.capture('resubmit');
-        this.scan();
-      }
-      this.recovery.correctRespondent('Corrected', accessible, () => this.scan());
-      this.recovery.capture('resubmit');
-      this.scan();
-      cy.then(() => this.observeCompletion());
-    });
+    }
+    this.recovery.correctRespondent('Corrected', this.session.keyboard, () => this.scan());
+    this.recovery.capture('resubmit');
+    this.scan();
   }
 
   /** Strictly scans material states at desktop and narrow widths before any departure. */
   private scan(): void {
-    if (!this.keyboard) return;
+    if (!this.session.keyboard) return;
     for (const width of [1280, 320]) {
       cy.viewport(width, 900);
       cy.document().should((document) => {
@@ -155,26 +107,28 @@ export class RejectedCasefileJourneyActions {
   }
 
   /** Captures raw completion responses; validation waits until observed cleanup authority is persisted. */
-  private observeCompletion(): void {
-    const observation = ++this.observation;
-    cy.intercept('GET', COLLECTION, (request) => {
-      if (observation !== this.observation) return;
-      const query = { ...request.query };
-      if (query['restrict']) return;
-      if (query['not_submitted_by'] === undefined)
-        request.alias =
-          query['casefile_status'] === 'SUBMITTED,RESUBMITTED' ? 'amendmentInReview' : 'amendmentRejected';
-      request.on('response', (response) => {
-        if (observation === this.observation)
-          this.collections.push({ query, statusCode: response.statusCode, body: response.body });
+  public observeCompletion(): void {
+    cy.then(() => {
+      const observation = ++this.session.observation;
+      cy.intercept('GET', COLLECTION, (request) => {
+        if (observation !== this.session.observation) return;
+        const query = { ...request.query };
+        if (query['restrict']) return;
+        if (query['not_submitted_by'] === undefined)
+          request.alias =
+            query['casefile_status'] === 'SUBMITTED,RESUBMITTED' ? 'amendmentInReview' : 'amendmentRejected';
+        request.on('response', (response) => {
+          if (observation === this.session.observation)
+            this.session.collections.push({ query, statusCode: response.statusCode, body: response.body });
+        });
       });
-    });
-    cy.intercept({ method: '+(POST|PUT|PATCH)', url: MUTATIONS }, (request) => {
-      if (observation !== this.observation) return;
-      this.writes.push({
-        method: request.method,
-        body: structuredClone(request.body),
-        version: request.headers['if-match'],
+      cy.intercept({ method: '+(POST|PUT|PATCH)', url: MUTATIONS }, (request) => {
+        if (observation !== this.session.observation) return;
+        this.session.writes.push({
+          method: request.method,
+          body: structuredClone(request.body),
+          version: request.headers['if-match'],
+        });
       });
     });
   }
@@ -183,33 +137,27 @@ export class RejectedCasefileJourneyActions {
    * @param selector Central maintained control selector.
    */
   private activate(selector: string): void {
-    if (this.keyboard) {
-      cy.get(selector)
-        .should('be.visible')
-        .and('not.be.disabled')
-        .should((control) => {
-          expect(control[0].matches('a[href], button, input, select, textarea'), 'semantic keyboard control').to.equal(
-            true,
-          );
-        })
-        .focus()
-        .should('be.focused');
-      pressDashboardEnter();
-    } else cy.get(selector).should('be.visible').click();
+    if (this.session.keyboard)
+      cy.get(selector).should((control) => {
+        expect(control[0].matches('a[href], button, input, select, textarea'), 'semantic keyboard control').to.equal(
+          true,
+        );
+      });
+    activateCasefileControl(selector, this.session.keyboard);
   }
 
   /** Checks current cleanup capability immediately before the UI dispatch. */
-  private submit(): void {
+  public submitReplacement(): void {
     cy.then(() => {
-      this.fixture.requireCleanup(this.kind === 'cross-user');
-      this.recovery.submit('resubmit', this.keyboard);
+      this.fixture.requireCleanup(this.session.kind === 'cross-user');
+      this.recovery.submit('resubmit', this.session.keyboard);
     });
   }
 
   /** Sends one explicit complete competing PUT under the current authorised A session, leaving the SPA untouched.
    * @returns Chain completed only after observed cleanup authority is persisted.
    */
-  private compete(): Cypress.Chainable<unknown> {
+  public commitCompetingReplacement(): Cypress.Chainable<unknown> {
     const context = this.current();
     this.fixture.requireCleanup(false);
     return cy
@@ -226,7 +174,7 @@ export class RejectedCasefileJourneyActions {
       .then((response) =>
         readDraftSnapshot(context.owned.id).then((saved) =>
           this.fixture.recordCleanupActor(context, saved).then(() => {
-            this.saved = saved;
+            this.session.saved = saved;
             expect(response.status, 'real competing PUT').to.equal(200);
             const receipt = decodeDraftSnapshot(context.owned.id, response.body, response.headers['etag']);
             assertResubmittedCasefile(context, saved, 'Winning');
@@ -236,82 +184,56 @@ export class RejectedCasefileJourneyActions {
       );
   }
 
-  /** Completes the real outcome without folding the explicit Then into a click-only step.
-   * @param kind Exact prepared choice.
-   */
-  public complete(kind: RejectedAmendmentKind): void {
+  /** Requires the definite failure and unchanged authoritative original before an explicit retry. */
+  public assertDefiniteFailure(): void {
+    cy.wait('@draftMutation').its('response.statusCode').should('equal', 400);
+    this.recovery.assertFailure('resubmit');
+    cy.get(C.review.submit).should('be.enabled');
+    this.scan();
+    cy.then(() =>
+      readDraftSnapshot(this.current().owned.id).then((saved) => assertUnchangedDraft(this.current().before, saved)),
+    );
     cy.then(() => {
-      this.requireKind(kind);
+      expect(this.session.monitor?.attempts, 'one failed activation without automatic replay').to.equal(1);
+      expect(this.session.monitor?.applicationAttempts).to.equal(1);
+      expect(this.session.writes).to.have.length(1);
+    });
+  }
+
+  /** Independently persists observed authority before decoding or asserting the raw UI receipt. */
+  public waitReplacementReceipt(): void {
+    cy.wait('@draftMutation').then(({ response }) => {
       const context = this.current();
-      if (kind === 'denied') {
-        if (!this.foreign) throw new Error('Verified foreign-BU inputter missing');
-        performAuthentication(this.foreign.email);
-        cy.then(() => this.observeCompletion());
-        this.openDenied();
+      if (!response) throw new Error('Real amendment receipt missing');
+      if (this.session.kind === 'stale') {
+        expect(response.statusCode, 'actual stale PUT').to.equal(409);
         return;
       }
-      if (kind === 'non-rejected') {
-        this.compete();
-        cy.then(() => this.observeCompletion());
-        this.openDenied();
-        return;
-      }
-      if (kind === 'stale') this.compete();
-      cy.then(() => {
-        this.monitor = armDraftCasefileMutation(
-          context.owned.id,
-          'PUT',
-          kind === 'retry' ? 'definite-failure' : 'none',
-        );
-      });
-      cy.then(() => this.observeCompletion());
-      this.submit();
-      if (kind === 'retry') {
-        cy.wait('@draftMutation').its('response.statusCode').should('equal', 400);
-        this.recovery.assertFailure('resubmit');
-        cy.get(S.amendmentSubmit).should('be.enabled');
-        this.scan();
-        readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(context.before, saved));
-        cy.then(() => {
-          expect(this.monitor?.attempts, 'one failed activation without automatic replay').to.equal(1);
-          expect(this.monitor?.applicationAttempts).to.equal(1);
-          expect(this.writes).to.have.length(1);
-        });
-        this.submit();
-      }
-      cy.wait('@draftMutation').then(({ response }) => {
-        if (!response) throw new Error('Real amendment receipt missing');
-        if (kind === 'stale') {
-          expect(response.statusCode, 'actual stale PUT').to.equal(409);
-          return;
-        }
-        // Persist observed authority before receipt, aggregate or UI outcome assertions can fail.
-        readDraftSnapshot(context.owned.id).then((saved) =>
-          this.fixture.recordCleanupActor(context, saved).then(() => {
-            this.saved = saved;
-            expect(response.statusCode, 'real UI resubmission').to.equal(200);
-            this.receipt = decodeDraftSnapshot(context.owned.id, response.body, response.headers['etag']);
-            if (this.monitor) this.monitor.upstreamEtag = this.receipt.etag;
-          }),
-        );
-      });
+      return readDraftSnapshot(context.owned.id).then((saved) =>
+        this.fixture.recordCleanupActor(context, saved).then(() => {
+          this.session.saved = saved;
+          expect(response.statusCode, 'real UI resubmission').to.equal(200);
+          this.session.receipt = decodeDraftSnapshot(context.owned.id, response.body, response.headers['etag']);
+          if (this.session.monitor) this.session.monitor.upstreamEtag = this.session.receipt.etag;
+        }),
+      );
     });
   }
 
   /** Attempts only the canonical protected amendment entry. */
-  private openDenied(): void {
+  public openDenied(): void {
     cy.visit(`/${CREATE.root}/${CREATE.children.taskList}/${this.current().owned.id}`);
   }
 
   /** Requires the actual canonical refusal and no stale case/editor/task data. */
-  private assertDenied(): void {
+  public assertDeniedEntry(): void {
     cy.location('pathname').should('equal', '/error/permission-denied');
     for (const selector of [
       S.amendmentTasks,
       C.caseDetails.checkCaseButton,
       S.reviewSections,
       S.history,
-      S.amendmentSubmit,
+      C.review.submit,
     ])
       cy.get(selector).should('not.exist');
     this.scan();
@@ -322,8 +244,8 @@ export class RejectedCasefileJourneyActions {
    */
   private assertWrites(count: number): void {
     const context = this.current();
-    expect(this.writes, 'exact UI writes without POST/PATCH/replay').to.have.length(count);
-    for (const write of this.writes) {
+    expect(this.session.writes, 'exact UI writes without POST/PATCH/replay').to.have.length(count);
+    for (const write of this.session.writes) {
       expect(write.method).to.equal('PUT');
       expect(write.version).to.equal(context.before.etag);
       expect(
@@ -343,13 +265,13 @@ export class RejectedCasefileJourneyActions {
    */
   private assertProvider(status: string, included: boolean, checker = false): void {
     const context = this.current();
-    const matches = this.collections.filter(
+    const matches = this.session.collections.filter(
       ({ query }) =>
         query['casefile_status'] === status &&
         (checker
           ? query['not_submitted_by'] === context.owned.checkerId
           : query['not_submitted_by'] === undefined &&
-            (this.kind === 'cross-user' && status === 'REJECTED'
+            (this.session.kind === 'cross-user' && status === 'REJECTED'
               ? query['submitted_by'] === undefined
               : query['submitted_by'] === context.amender.id)),
     );
@@ -366,7 +288,7 @@ export class RejectedCasefileJourneyActions {
         expect(owned[0].casefile_status).to.equal('RESUBMITTED');
         expect(
           Cypress._.get(owned[0].casefile_snapshot, 'respondent_account.respondent_name') ===
-            Cypress._.get(this.saved?.draft.casefile_snapshot, 'respondent_account.respondent_name'),
+            Cypress._.get(this.session.saved?.draft.casefile_snapshot, 'respondent_account.respondent_name'),
           'corrected provider respondent name',
         ).to.equal(true);
       } else expect(owned, 'owned case absent from actual provider').to.have.length(0);
@@ -378,7 +300,7 @@ export class RejectedCasefileJourneyActions {
    */
   private collect(included: boolean): void {
     const collector = new CheckerDashboardWindowActions();
-    if (this.keyboard) collector.enableAccessibility();
+    if (this.session.keyboard) collector.enableAccessibility();
     collector.collectIds().then((ids) => {
       expect(ids.has(this.current().owned.id), 'owned case across every real DOM page').to.equal(included);
     });
@@ -403,7 +325,7 @@ export class RejectedCasefileJourneyActions {
   private openSaved(checker: boolean, winning = false): void {
     const context = this.current();
     this.firstPage();
-    this.entry.locateRejected(context.owned.id, this.keyboard);
+    this.entry.locateRejected(context.owned.id, this.session.keyboard);
     cy.intercept({
       method: 'GET',
       pathname: `/opal-maintenance-service/draft-casefiles/${context.owned.id}`,
@@ -411,9 +333,12 @@ export class RejectedCasefileJourneyActions {
     }).as('amendmentSavedDetail');
     this.activate(`${D.row(context.owned.id)} ${D.column('respondent')} a`);
     cy.wait('@amendmentSavedDetail').then(({ response }) => {
-      if (!response || !this.saved) throw new Error('Saved browser detail evidence missing');
+      if (!response || !this.session.saved) throw new Error('Saved browser detail evidence missing');
       expect(response.statusCode).to.equal(200);
-      assertUnchangedDraft(this.saved, decodeDraftSnapshot(context.owned.id, response.body, response.headers['etag']));
+      assertUnchangedDraft(
+        this.session.saved,
+        decodeDraftSnapshot(context.owned.id, response.body, response.headers['etag']),
+      );
     });
     if (checker)
       cy.location('pathname').should('equal', `/${CHECKER.root}/${CHECKER.children.review}/${context.owned.id}`);
@@ -422,17 +347,19 @@ export class RejectedCasefileJourneyActions {
         'equal',
         `/${CREATE.root}/${CREATE.children.checkCaseDetails}/${context.owned.id}`,
       );
-    cy.then(() => (winning ? this.winnerReview : this.recovery).assertSavedPresentation(this.saved!, false, !checker));
-    if (!checker) cy.get(S.amendmentSubmit).should('not.exist');
+    cy.then(() =>
+      (winning ? this.winnerReview : this.recovery).assertSavedPresentation(this.session.saved!, false, !checker),
+    );
+    if (!checker) cy.get(C.review.submit).should('not.exist');
     this.scan();
   }
 
   /** Proves origin notice, complete rejected removal, and actual inputter In review inclusion. */
-  private inputterOutcome(): void {
-    const cross = this.kind === 'cross-user';
+  public assertOriginOutcome(): void {
+    const cross = this.session.kind === 'cross-user';
     cy.then(() => {
-      if (!this.saved) throw new Error('Independent saved outcome missing');
-      this.recovery.assertRetrySuccess('resubmit', this.saved);
+      if (!this.session.saved) throw new Error('Independent saved outcome missing');
+      this.recovery.assertRetrySuccess('resubmit', this.session.saved);
     });
     cy.wait('@amendmentRejected');
     cy.location('pathname').should('equal', cross ? REJECTIONS : DASHBOARD);
@@ -442,6 +369,11 @@ export class RejectedCasefileJourneyActions {
     this.firstPage();
     this.collect(false);
     this.scan();
+  }
+
+  /** Dismisses the origin notice and checks its restored focus. */
+  public dismissOriginNotice(): void {
+    const cross = this.session.kind === 'cross-user';
     this.activate(cross ? D.allRejectedDismiss : D.successDismiss);
     cy.get(cross ? D.allRejectedHeading : D.heading).should('be.focused');
     cy.get(cross ? D.allRejectedSuccess : D.success).should('not.exist');
@@ -450,11 +382,19 @@ export class RejectedCasefileJourneyActions {
       new AllRejectedActions().returnDashboard();
       this.scan();
     }
+  }
+
+  /** Opens the inputter In review consultation after the origin outcome. */
+  public openInputterInReview(): void {
     cy.then(() => {
-      this.collections = [];
+      this.session.collections = [];
     });
-    if (this.keyboard) this.activate(D.tab('in-review'));
+    if (this.session.keyboard) this.activate(D.tab('in-review'));
     else new InputterDashboardActions().selectTab('in-review');
+  }
+
+  /** Requires complete provider/DOM inclusion and the independently saved read-only detail. */
+  public assertInputterInReview(): void {
     cy.wait('@amendmentInReview');
     cy.get(D.tab('in-review')).should('have.attr', 'aria-current', 'page');
     cy.get(D.heading).should('be.visible');
@@ -466,21 +406,27 @@ export class RejectedCasefileJourneyActions {
   }
 
   /** Proves independent checker eligibility or latest-submitter exclusion and complete read-only review. */
-  private checkerOutcome(): void {
+  public openCheckerQueue(): void {
     const context = this.current();
-    const cross = this.kind === 'cross-user';
-    performAuthentication(context.owned.checker);
     cy.then(() => {
-      this.collections = [];
+      this.session.collections = [];
     });
     const checker = new CheckerDashboardWindowActions();
     checker.observe(context.owned.checkerId);
     cy.then(() => this.observeCompletion());
-    if (this.keyboard) checker.enableAccessibility();
+    if (this.session.keyboard) checker.enableAccessibility();
     checker.open();
     this.scan();
     checker.select('to-review');
     this.scan();
+  }
+
+  /** Proves checker eligibility or latest-submitter exclusion and full read-only saved detail. */
+  public assertCheckerOutcome(): void {
+    const context = this.current();
+    const cross = this.session.kind === 'cross-user';
+    const checker = new CheckerDashboardWindowActions();
+    if (this.session.keyboard) checker.enableAccessibility();
     cy.then(() => this.assertProvider('SUBMITTED,RESUBMITTED', !cross, true));
     checker
       .collectIds()
@@ -489,43 +435,52 @@ export class RejectedCasefileJourneyActions {
       );
     if (cross) {
       cy.visit(`/${CHECKER.root}/${CHECKER.children.review}/${context.owned.id}`);
-      cy.then(() => this.recovery.assertSavedPresentation(this.saved!));
-      for (const selector of [S.approve, S.reject, S.continue, S.deleteLink, S.deleteReason, S.deleteSubmit])
+      cy.then(() => this.recovery.assertSavedPresentation(this.session.saved!));
+      for (const selector of [
+        C.review.decisionApprove,
+        C.review.decisionReject,
+        C.review.decisionContinue,
+        C.review.delete,
+        C.deletion.reason,
+        C.deletion.submit,
+      ])
         cy.get(selector).should('not.exist');
       this.scan();
     } else this.openSaved(true);
-    readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.saved!, saved));
-    cy.then(() => this.assertWrites(this.kind === 'retry' ? 2 : 1));
-    // Cleanup restores the observed legitimate actor rather than rewriting immutable creator metadata.
-    performAuthentication(context.amender.email);
+    readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.session.saved!, saved));
   }
 
   /** Requires native Cancel/OK departure protection, then safe actual saved winner navigation. */
-  private staleOutcome(): void {
+  public assertStaleFeedback(): void {
     const context = this.current();
     this.recovery.assertFailure('resubmit');
     this.scan();
-    if (this.keyboard) {
-      this.submit();
+    if (this.session.keyboard) {
+      this.submitReplacement();
       cy.get(C.globalErrorBanner).should('contain.text', 'Select Back to reload the saved case');
       this.recovery.assertRetained('resubmit');
     } else this.recovery.assertReloadRequired('resubmit');
     this.scan();
     cy.then(() => {
       this.assertWrites(1);
-      expect(this.monitor?.attempts).to.equal(1);
-      expect(this.monitor?.applicationAttempts).to.equal(1);
-      expect(this.monitor?.lastStatus).to.equal(409);
-      expect(this.monitor?.requestVersions).to.deep.equal([context.before.etag]);
+      expect(this.session.monitor?.attempts).to.equal(1);
+      expect(this.session.monitor?.applicationAttempts).to.equal(1);
+      expect(this.session.monitor?.lastStatus).to.equal(409);
+      expect(this.session.monitor?.requestVersions).to.deep.equal([context.before.etag]);
     });
-    readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.saved!, saved));
+    readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.session.saved!, saved));
+  }
+
+  /** Retains native Cancel/OK departure protection and exactly one authoritative reload. */
+  public recoverStaleWinner(): void {
+    const context = this.current();
     let reads = 0;
     cy.intercept('GET', `**/opal-maintenance-service/draft-casefiles/${context.owned.id}`, (request) => {
       reads++;
       request.on('response', (response) => {
         expect(response.statusCode).to.equal(200);
         assertUnchangedDraft(
-          this.saved!,
+          this.session.saved!,
           decodeDraftSnapshot(context.owned.id, response.body, response.headers['etag']),
         );
       });
@@ -547,8 +502,13 @@ export class RejectedCasefileJourneyActions {
         cy.then(() => expect(reads, 'Cancel does not reload').to.equal(0));
       }
     }
-    this.assertDenied();
+    this.assertDeniedEntry();
     cy.then(() => expect(reads, 'confirmed Back reloads authoritative winner once').to.equal(1));
+  }
+
+  /** Consults the authoritative winner through inputter provider, DOM and complete saved detail. */
+  public assertSavedWinner(): void {
+    const context = this.current();
     new InputterDashboardActions().open('in-review');
     cy.wait('@amendmentInReview');
     cy.get(D.heading).should('be.visible');
@@ -557,43 +517,39 @@ export class RejectedCasefileJourneyActions {
     this.firstPage();
     this.collect(true);
     this.openSaved(false, true);
-    readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.saved!, saved));
+    readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.session.saved!, saved));
     cy.then(() => this.assertWrites(1));
   }
 
-  /** Rechecks complete receipt/GET, provider/DOM destinations and no replay in the explicit Then.
-   * @param kind Exact prepared outcome.
-   */
-  public assertOutcome(kind: RejectedAmendmentKind): void {
-    cy.then(() => {
-      this.requireKind(kind);
-      const context = this.current();
-      if (kind === 'denied' || kind === 'non-rejected') {
-        this.assertDenied();
-        performAuthentication(context.amender.email);
-        readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.saved ?? context.before, saved));
-        cy.then(() => expect(this.writes, 'denied entry sends no application writes').to.have.length(0));
-      } else if (kind === 'stale') this.staleOutcome();
-      else {
-        if (!this.saved || !this.receipt || !this.monitor) throw new Error('Complete resubmission evidence missing');
-        assertResubmittedCasefile(context, this.saved, 'Corrected');
-        assertUnchangedDraft(this.saved, this.receipt);
-        if (kind === 'retry') assertRejectedRetry(this.monitor, context.before.etag);
-        else {
-          expect(this.monitor.applicationAttempts).to.equal(1);
-          expect(this.monitor.attempts).to.equal(1);
-          expect(this.monitor.upstreamSuccesses).to.equal(1);
-          expect(this.monitor.lastStatus).to.equal(200);
-          expect(this.monitor.requestVersions).to.deep.equal([context.before.etag]);
-        }
-        this.assertWrites(kind === 'retry' ? 2 : 1);
-        this.inputterOutcome();
-        this.checkerOutcome();
-      }
-      cy.then(() => {
-        this.outcome = true;
-      });
-      cy.then(() => expect(this.outcome, 'all business outcome checks completed').to.equal(true));
-    });
+  /** Rechecks the full aggregate, original identity/version and immutable creator against the real receipt. */
+  public assertResubmissionEvidence(): void {
+    const context = this.current();
+    const { saved, receipt, monitor, kind } = this.session;
+    if (!saved || !receipt || !monitor) throw new Error('Complete resubmission evidence missing');
+    assertResubmittedCasefile(context, saved, 'Corrected');
+    assertUnchangedDraft(saved, receipt);
+    if (kind === 'retry') assertRejectedRetry(monitor, context.before.etag);
+    else {
+      expect(monitor.applicationAttempts).to.equal(1);
+      expect(monitor.attempts).to.equal(1);
+      expect(monitor.upstreamSuccesses).to.equal(1);
+      expect(monitor.lastStatus).to.equal(200);
+      expect(monitor.requestVersions).to.deep.equal([context.before.etag]);
+    }
+    this.assertWrites(kind === 'retry' ? 2 : 1);
+  }
+
+  /** Requires the independently authorised aggregate to remain unchanged after denied entry. */
+  public assertDeniedSaved(): void {
+    const context = this.current();
+    readDraftSnapshot(context.owned.id).then((saved) =>
+      assertUnchangedDraft(this.session.saved ?? context.before, saved),
+    );
+    cy.then(() => expect(this.session.writes, 'denied entry sends no application writes').to.have.length(0));
+  }
+
+  /** Proves the final exact write count after all inputter/checker visits. */
+  public assertFinalWrites(): void {
+    this.assertWrites(this.session.kind === 'retry' ? 2 : 1);
   }
 }

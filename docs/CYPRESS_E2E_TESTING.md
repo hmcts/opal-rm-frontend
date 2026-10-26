@@ -894,6 +894,16 @@ same-user correction/resubmission (AC1), cross-user resubmission/self-review pre
 and explicit retry (AC2), stale correction/departure protection, foreign-BU denial and no-longer-Rejected denial
 (AC4). Every accessibility counterpart adds AC5 and retains the same complete business outcome assertions.
 
+`RejectedCasefileAmendmentFlow` owns fixture preparation, authentication handoffs and the order of origin,
+inputter In review and checker visits. Each prepare creates one fresh `IRejectedAmendmentSession`, shared with its
+`RejectedCasefileJourneyActions`; no global provider or additional persistence is introduced. The explicit
+`resubmit`, `retryResubmission`, `submitStaleReplacement` and `attemptDeniedEntry` verbs lead to
+`assertResubmitted`, `assertStaleRecovery` or `assertDenied`. Page/network Actions retain editing, observation,
+receipt decoding, aggregate/provider/DOM assertions, native departure protection and strict pre-departure scans.
+Compound business `Then` clauses name identity, rejection removal and, for cross-user correction, latest-submitter
+self-review prevention while invoking the full navigational outcome exactly once. Retry retains one monitor and
+the original version across both explicit submissions; the definite-failure proof runs before the second submit.
+
 Each example creates fresh data through normal POST, uses two minor creditors and unique synthetic names, and
 requires an actual REJECTED prerequisite with the exact rejection marker/history. A is the immutable original
 inputter (ACTIVE Maintenance BU44 permission21). Independent B rejects with actual permission22 in BU44; the
@@ -976,9 +986,13 @@ Never store names, case bodies, cookies, credentials or tokens in evidence. Cont
 
 ```bash
 corepack yarn test:component:leaf --browser=chrome \
-  --spec 'cypress/component/checkAndValidateCase/rejected-casefile-journey-support.cy.ts'
+  --spec 'cypress/component/checkAndValidateCase/rejected-casefile-journey-support.cy.ts,cypress/component/checkAndValidateCase/rejected-casefile-support.cy.ts'
 ```
 
+The journey helper includes behavioural regressions requiring successful PUT observation, independent GET,
+persisted observed cleanup actor, receipt decoding, inputter saved detail and checker self-review exclusion in that
+order. Its retry regression checks the unchanged authoritative original and definite-failure proof before the
+second native activation. These helper results count separately from actual routed application browser results.
 Discovery proves selection/bindings only. Controlled support proves scanner/keyboard/reflow/orchestration failure
 sensitivity against synthetic boundaries. Neither is passing live acceptance or proof of deployed permissions,
 cleanup compatibility or complete WCAG conformance. Run the preserved inherited caller regression separately.

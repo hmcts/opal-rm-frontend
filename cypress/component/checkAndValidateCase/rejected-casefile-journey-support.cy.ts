@@ -25,6 +25,21 @@ const DASHBOARD = '/cases/draft/create-and-manage/tabs';
 const REJECTIONS = '/cases/draft/create-and-manage/rejections';
 const CHECKER = '/cases/draft/check-and-validate/tabs';
 
+/** Exercises the explicit business entry point for each independently owned controlled example. */
+function complete(flow: RejectedCasefileAmendmentFlow, kind: RejectedAmendmentKind): void {
+  if (kind === 'retry') flow.retryResubmission();
+  else if (kind === 'stale') flow.submitStaleReplacement();
+  else if (kind === 'denied' || kind === 'non-rejected') flow.attemptDeniedEntry();
+  else flow.resubmit();
+}
+
+/** Runs each detailed business outcome once; phrases never repeat the whole navigation journey. */
+function assertOutcome(flow: RejectedCasefileAmendmentFlow, kind: RejectedAmendmentKind): void {
+  if (kind === 'stale') flow.assertStaleRecovery();
+  else if (kind === 'denied' || kind === 'non-rejected') flow.assertDenied();
+  else flow.assertResubmitted();
+}
+
 function fixture(cross: boolean): IRejectedCasefileContext {
   const draft = createPersistedCasefileDetail();
   const marker = 'E2E-0123456789012345';
@@ -214,6 +229,7 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
     });
   const renderReview = (editable: boolean, checker = false) => {
     const snapshot = editable ? context.before : state.saved;
+    if (!editable) state.events.push(checker ? 'checker-saved-detail' : 'inputter-saved-detail');
     if (!editable) state.error = '';
     const aggregate = structuredClone(snapshot.draft.casefile);
     if (editable) aggregate.respondent_account.respondent.party_details.individual_details!.forenames = state.field;
@@ -389,6 +405,14 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
       receipt,
       context.before.etag,
     );
+    state.events.push(`put:${status}`);
+    const receiptBody = receipt.body;
+    Object.defineProperty(receipt, 'body', {
+      get: () => {
+        state.events.push('receipt-decode');
+        return receiptBody;
+      },
+    });
     receipts.push({ response: receipt });
     if (status !== 200) {
       state.error = 'The change could not be saved';
@@ -400,7 +424,7 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
       table('rejected', false, true);
       provider('rejected', false, false);
     }
-    return new Response(JSON.stringify(receipt.body), { status, headers: { etag: state.saved.etag } });
+    return new Response(JSON.stringify(receiptBody), { status, headers: { etag: state.saved.etag } });
   };
   cy.document().then((doc) => {
     document = doc;
@@ -608,6 +632,60 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       return false;
     });
   }
+  it(
+    'AC1, AC3. should expose resubmission and persisted cross-user evidence through the Flow',
+    { tags: tags() },
+    () => {
+      const state = harness('cross-user');
+      const flow = new RejectedCasefileAmendmentFlow();
+      flow.prepare('cross-user');
+      flow.resubmit();
+      flow.assertResubmitted();
+      cy.then(() => {
+        const ordered = [
+          'put:200',
+          'saved-get:B-id',
+          'cleanup:B-id',
+          'receipt-decode',
+          'inputter-saved-detail',
+          'checker-saved-detail',
+        ];
+        for (let index = 0; index < ordered.length; index++) {
+          expect(state.events, 'observed network, authority and real DOM outcome').to.include(ordered[index]);
+          if (index)
+            expect(state.events.indexOf(ordered[index - 1]), ordered.join(' → ')).to.be.lessThan(
+              state.events.indexOf(ordered[index]),
+            );
+        }
+        expect(state.saved.draft.submitted_by).to.equal('B-id');
+        expect(state.submissions).to.equal(1);
+      });
+    },
+  );
+  it('AC2. should retain one monitor and original version through the explicit Flow retry', { tags: tags() }, () => {
+    const state = harness('retry');
+    const definiteFailure = RejectedCasefileJourneyActions.prototype.assertDefiniteFailure;
+    cy.stub(RejectedCasefileJourneyActions.prototype, 'assertDefiniteFailure').callsFake(function (
+      this: RejectedCasefileJourneyActions,
+    ) {
+      definiteFailure.call(this);
+      cy.then(() => {
+        expect(state.submissions, 'failure proved before second activation').to.equal(1);
+        expect(state.saved).to.deep.equal(state.context.before);
+        state.events.push('definite-failure-proved');
+      });
+    });
+    const flow = new RejectedCasefileAmendmentFlow();
+    flow.prepare('retry');
+    flow.retryResubmission();
+    flow.assertResubmitted();
+    cy.then(() => {
+      expect(state.monitorRegistrations).to.equal(1);
+      expect(state.submissions).to.equal(2);
+      expect(state.events.indexOf('put:400')).to.be.lessThan(state.events.indexOf('definite-failure-proved'));
+      expect(state.events.indexOf('definite-failure-proved')).to.be.lessThan(state.events.indexOf('put:200'));
+    });
+  });
   for (const kind of [
     'same-user',
     'cross-user',
@@ -623,8 +701,8 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
         const state = harness(kind);
         const flow = new RejectedCasefileAmendmentFlow();
         flow.prepare(kind);
-        flow.complete(kind);
-        flow.assertOutcome(kind);
+        complete(flow, kind);
+        assertOutcome(flow, kind);
         cy.then(() => {
           expect(state.context.owned.inputterId).to.equal('A-id');
           if (!['denied'].includes(kind)) expect(state.receiptRecorded).to.equal(true);
@@ -633,7 +711,7 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
             expect(state.submissions).to.equal(kind === 'retry' ? 2 : 1);
           }
           if (kind === 'stale') {
-            expect(state.events.filter((event) => event.startsWith('auth:'))).to.have.length(0);
+            expect(state.events.filter((event) => event.startsWith('auth:'))).to.deep.equal(['auth:synthetic-A']);
             expect(
               state.saved.draft.casefile.respondent_account.respondent.party_details.individual_details!.forenames,
             ).to.equal('Winning');
@@ -662,8 +740,8 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
         });
         const flow = new RejectedCasefileAmendmentFlow();
         flow.prepare('cross-user');
-        flow.complete('cross-user');
-        flow.assertOutcome('cross-user');
+        complete(flow, 'cross-user');
+        assertOutcome(flow, 'cross-user');
         requireFailure();
       },
     );
@@ -718,8 +796,8 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       );
       const flow = new RejectedCasefileAmendmentFlow();
       flow.prepare('same-user');
-      flow.complete('same-user');
-      flow.assertOutcome('same-user');
+      complete(flow, 'same-user');
+      assertOutcome(flow, 'same-user');
       requireFailure();
       cy.then(() =>
         expect(state.receiptRecorded, 'observed cleanup actor persisted before fallible assertions').to.equal(true),
@@ -734,8 +812,8 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       mustFail('owned case in actual provider');
       const flow = new RejectedCasefileAmendmentFlow();
       flow.prepare('stale');
-      flow.complete('stale');
-      flow.assertOutcome('stale');
+      complete(flow, 'stale');
+      assertOutcome(flow, 'stale');
       requireFailure();
     },
   );
@@ -744,15 +822,15 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
     mustFail('native departure warning presented');
     const flow = new RejectedCasefileAmendmentFlow();
     flow.prepare('stale');
-    flow.complete('stale');
-    flow.assertOutcome('stale');
+    complete(flow, 'stale');
+    assertOutcome(flow, 'stale');
     requireFailure();
   });
   for (const guard of [undefined, false, 'true']) {
     it(`AC4. should block fixture creation for lifecycle guard ${String(guard)}`, { tags: tags() }, () => {
       const prepare = cy.spy(RejectedCasefileFixtureActions.prototype, 'prepare');
       Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', guard);
-      expect(() => new RejectedCasefileJourneyActions().prepare('same-user')).to.throw(
+      expect(() => new RejectedCasefileAmendmentFlow().prepare('same-user')).to.throw(
         'PO10625_LIFECYCLE_CLEANUP_VERIFIED',
       );
       expect(prepare).not.to.have.been.called;
@@ -779,7 +857,7 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
             expect(state.requests.some((request) => request.method === 'PUT')).to.equal(false);
           },
         );
-        flow.complete(kind);
+        complete(flow, kind);
         requireFailure();
       },
     );
@@ -787,7 +865,7 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
   it('AC4. should reject missing transfer cleanup before fixture preparation', { tags: tags() }, () => {
     const prepare = cy.spy(RejectedCasefileFixtureActions.prototype, 'prepare');
     Cypress.env('PO10623_TRANSFER_CLEANUP_VERIFIED', false);
-    expect(() => new RejectedCasefileJourneyActions().prepare('cross-user')).to.throw(
+    expect(() => new RejectedCasefileAmendmentFlow().prepare('cross-user')).to.throw(
       'PO10623_TRANSFER_CLEANUP_VERIFIED',
     );
     expect(prepare).not.to.have.been.called;
@@ -809,8 +887,8 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
         recordScans(state);
         const flow = new RejectedCasefileAmendmentFlow();
         flow.prepare(kind, true);
-        flow.complete(kind);
-        flow.assertOutcome(kind);
+        complete(flow, kind);
+        assertOutcome(flow, kind);
         cy.then(() => {
           const required = ['denied', 'non-rejected'].includes(kind)
             ? ['denial']
@@ -856,8 +934,8 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
     });
     const flow = new RejectedCasefileAmendmentFlow();
     flow.prepare('same-user', true);
-    flow.complete('same-user');
-    flow.assertOutcome('same-user');
+    complete(flow, 'same-user');
+    assertOutcome(flow, 'same-user');
     requireFailure();
   });
   it('AC5. should reject removed scanner coverage', { tags: tags() }, () => {
@@ -866,8 +944,8 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
     mustFail('strict scan coverage');
     const flow = new RejectedCasefileAmendmentFlow();
     flow.prepare('denied', true);
-    flow.complete('denied');
-    flow.assertOutcome('denied');
+    complete(flow, 'denied');
+    assertOutcome(flow, 'denied');
     cy.then(() => expect(state.scans, 'strict scan coverage').to.include('denial:320'));
     requireFailure();
   });
@@ -897,8 +975,8 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
     });
     const flow = new RejectedCasefileAmendmentFlow();
     flow.prepare('denied', true);
-    flow.complete('denied');
-    flow.assertOutcome('denied');
+    complete(flow, 'denied');
+    assertOutcome(flow, 'denied');
     requireFailure();
   });
   it('AC5. should preserve pointer correction defaults', { tags: tags() }, () => {
@@ -929,7 +1007,6 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
 
   it('AC4. should validate all string choices immediately before scheduling work', { tags: tags() }, () => {
     const flow = new RejectedCasefileAmendmentFlow();
-    for (const method of ['prepare', 'complete', 'assertOutcome'] as const)
-      expect(() => flow[method]('unsupported')).to.throw('Unsupported rejected amendment kind');
+    expect(() => flow.prepare('unsupported')).to.throw('Unsupported rejected amendment kind');
   });
 });

@@ -328,6 +328,15 @@ TAGS=@UAT-Technical yarn test:functional:tags
 
 Run `yarn test:component` to execute the Cypress component suite.
 
+The PO-10623 rejected-amendment pair keeps six functional and six accessibility live examples with explicit
+resubmission, retry, stale-recovery and protected-entry outcomes. Its Flow owns fresh fixture/authentication state
+and inputter/checker sequencing; page Actions share that one feature-local session and retain receipt, aggregate,
+provider, DOM, permission and no-replay evidence. Compound business `Then` clauses run the detailed outcome once.
+The two rejected support specs exercise synthetic boundaries and failure sensitivity; they do not establish live
+backend permissions or cleanup readiness. Discovery proves bindings only. Follow the
+[owned rejected amendment guide](docs/CYPRESS_E2E_TESTING.md#po-10623-owned-rejected-amendment) for the separate
+controlled regressions, twelve-example discovery and externally verified live prerequisites.
+
 All three top-level runners accept:
 
 - `--browser=<chrome|edge|firefox>` for an explicit browser

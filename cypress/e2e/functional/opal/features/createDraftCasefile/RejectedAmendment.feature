@@ -54,35 +54,35 @@ Feature: Correct and resubmit rejected casefiles
   @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC1 @retries(0)
   Scenario: Resubmit my corrected complete rejected case through its original dashboard
     Given an owned rejected case is ready for the "same-user" amendment outcome
-    When I complete the real "same-user" rejected amendment journey
-    Then the real "same-user" rejected amendment outcome is retained
+    When I resubmit the complete corrected rejected case
+    Then the corrected case returns to review with its original identifier and the originating rejection list no longer contains the case
 
   @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC1 @AC3 @retries(0)
   Scenario: Resubmit another inputter's rejected case and prevent latest-submitter self-review
     Given an owned rejected case is ready for the "cross-user" amendment outcome
-    When I complete the real "cross-user" rejected amendment journey
-    Then the real "cross-user" rejected amendment outcome is retained
+    When I resubmit the complete corrected rejected case
+    Then the corrected case returns to review with its original identifier, leaves the originating rejection list, and the correcting inputter becomes latest submitter and cannot review that case
 
   @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC2 @retries(0)
   Scenario: Retain complete corrections after definite failure and explicitly retry once
     Given an owned rejected case is ready for the "retry" amendment outcome
-    When I complete the real "retry" rejected amendment journey
-    Then the real "retry" rejected amendment outcome is retained
+    When I explicitly retry the complete correction after a definite failure
+    Then the corrected case returns to review with its original identifier and the originating rejection list no longer contains the case
 
   @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @retries(0)
   Scenario: Protect a winning resubmission from a stale amendment and reload without replay
     Given an owned rejected case is ready for the "stale" amendment outcome
-    When I complete the real "stale" rejected amendment journey
-    Then the real "stale" rejected amendment outcome is retained
+    When I submit my old correction after another correction has returned the case to review
+    Then I recover the saved winning correction without replay
 
   @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @retries(0)
   Scenario: Deny rejected amendment to an inputter from another Business Unit
     Given an owned rejected case is ready for the "denied" amendment outcome
-    When I complete the real "denied" rejected amendment journey
-    Then the real "denied" rejected amendment outcome is retained
+    When I attempt to amend the protected rejected case
+    Then amendment is denied without exposing or changing the case
 
   @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @retries(0)
   Scenario: Deny amendment after the rejected case has actually returned to review
     Given an owned rejected case is ready for the "non-rejected" amendment outcome
-    When I complete the real "non-rejected" rejected amendment journey
-    Then the real "non-rejected" rejected amendment outcome is retained
+    When I attempt to amend the protected rejected case
+    Then amendment is denied without exposing or changing the case

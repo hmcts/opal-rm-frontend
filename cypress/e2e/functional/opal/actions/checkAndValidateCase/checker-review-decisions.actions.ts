@@ -213,6 +213,11 @@ export class CheckerReviewActions {
     });
   }
 
+  /** Enables strict scans at the maintained navigation and pagination boundaries. */
+  public enableAccessibility(): void {
+    this.scanning = true;
+  }
+
   /** Observes provider-owned checker collection/count responses without replacing them.
    * @param owned Scenario record and checker identity.
    */

@@ -1,4 +1,7 @@
-import { CheckAndValidateCaseSelectors as S } from '../../shared/selectors/check-and-validate-case.selectors';
+import {
+  setCasefileReason,
+  activateCasefileControl,
+} from '../../e2e/functional/opal/actions/createDraftCasefile/casefile-review-controls.actions';
 import { CreateCasefileSelectors as C } from '../../shared/selectors/create-casefile.selectors';
 import { DraftCasefileRecoveryActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-recovery.actions';
 import { InputterCasefileMonitoringActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/inputter-casefile-monitoring.actions';
@@ -293,6 +296,15 @@ describe('PO-10625 checker lifecycle and accessible validation dispatch support'
     () => {
       const actions = new CheckerReviewActions();
       const events: string[] = [];
+      // Forbid pointer selection only within this accessible action-under-test seam.
+      const get = cy.get;
+      cy.stub(cy, 'get').callsFake((...args: Parameters<typeof cy.get>) => {
+        const chain = get.apply(cy, args);
+        if (args[0] === C.review.decisionReject)
+          cy.stub(chain, 'check').throws(new Error('Accessible decision must use native Space'));
+        return chain;
+      });
+      const press = cy.spy(cy, 'press');
       cy.document().then((document) => {
         document.body.innerHTML =
           '<label for="create_casefile_review_decision-reject">Reject</label><input type="radio" id="create_casefile_review_decision-reject"><label for="create_casefile_review_rejection_reason">Reason</label><textarea id="create_casefile_review_rejection_reason">Stale reason</textarea>';
@@ -301,8 +313,11 @@ describe('PO-10625 checker lifecycle and accessible validation dispatch support'
       cy.stub(actions, 'prepare');
       cy.stub(actions, 'assertValidation');
       cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
-        cy.get(C.review.rejectionReason).should('have.value', '');
+        cy.get(C.review.decisionReject).should('be.checked');
+        cy.get(C.review.rejectionReason).should('have.value', '').and('be.focused');
         cy.then(() => {
+          expect(press).to.have.been.calledWithExactly(Cypress.Keyboard.Keys.SPACE);
+          expect(press).to.have.been.calledWithExactly(Cypress.Keyboard.Keys.TAB);
           events.push('strict scan');
         });
       });
@@ -317,6 +332,61 @@ describe('PO-10625 checker lifecycle and accessible validation dispatch support'
       cy.then(() => expect(events).to.deep.equal(['strict scan', 'native validation submit']));
     },
   );
+});
+
+describe('PO-10625 checker selection input dispatch support', () => {
+  for (const keyboard of [false, true]) {
+    for (const action of ['decide', 'compete'] as const) {
+      it(
+        `AC1. should forward keyboard boolean ${keyboard} from ${action} to decision selection`,
+        { tags: buildTags() },
+        () => {
+          const actions = new CheckerReviewActions();
+          if (keyboard) actions.enableAccessibility();
+          // Stop at the selection seam before receipt or competing-provider operations.
+          const choose = cy
+            .stub(DraftCasefileRecoveryActions.prototype, 'choose')
+            .throws(new Error('Controlled selection boundary'));
+          expect(() => actions[action]('reject')).to.throw('Controlled selection boundary');
+          expect(choose).to.have.been.calledOnceWithExactly('reject', keyboard);
+        },
+      );
+    }
+  }
+
+  for (const decision of ['approve', 'reject'] as const) {
+    for (const keyboard of [undefined, false, true]) {
+      it(
+        `AC1. should choose ${decision} through the recovery caller with keyboard ${keyboard ?? 'default'}`,
+        { tags: buildTags() },
+        () => {
+          const press = cy.spy(cy, 'press');
+          cy.document().then((document) => {
+            document.body.innerHTML =
+              '<label for="create_casefile_review_decision-approve">Approve</label><input type="radio" name="decision" id="create_casefile_review_decision-approve">' +
+              '<label for="create_casefile_review_decision-reject">Reject</label><input type="radio" name="decision" id="create_casefile_review_decision-reject">' +
+              '<label for="create_casefile_review_rejection_reason">Reason</label><textarea id="create_casefile_review_rejection_reason">Stale reason</textarea>';
+          });
+          const recovery = new DraftCasefileRecoveryActions();
+          if (keyboard === undefined) recovery.choose(decision);
+          else recovery.choose(decision, keyboard);
+          cy.get(decision === 'approve' ? C.review.decisionApprove : C.review.decisionReject).should('be.checked');
+          if (decision === 'reject')
+            cy.get(C.review.rejectionReason).should('have.value', 'Synthetic concurrency decision');
+          cy.then(() => {
+            if (keyboard) {
+              expect(press).to.have.been.calledWithExactly(Cypress.Keyboard.Keys.SPACE);
+              expect(press.callCount).to.equal(decision === 'reject' ? 2 : 1);
+              if (decision === 'reject') expect(press).to.have.been.calledWithExactly(Cypress.Keyboard.Keys.TAB);
+            } else {
+              expect(press).not.to.have.been.called;
+            }
+            expect(recovery.expectedReason()).to.equal('Synthetic concurrency decision');
+          });
+        },
+      );
+    }
+  }
 });
 
 describe('PO-10625 exact decision history support', () => {
@@ -361,10 +431,10 @@ describe('PO-10625 exact decision history support', () => {
 
 describe('PO-10625 real recovery form activation support', () => {
   for (const [journey, selector] of [
-    ['approve', S.continue],
-    ['reject', S.continue],
-    ['resubmit', S.amendmentSubmit],
-    ['delete', S.deleteSubmit],
+    ['approve', C.review.decisionContinue],
+    ['reject', C.review.decisionContinue],
+    ['resubmit', C.review.submit],
+    ['delete', C.deletion.submit],
   ] as const) {
     for (const keyboard of [true, false]) {
       it(
@@ -611,4 +681,35 @@ describe('PO-10624 complete checker queue absence support', () => {
       },
     );
   }
+});
+
+describe('Shared casefile review controls', () => {
+  it('AC2. should replace a retained reason through the real input', { tags: buildTags() }, () => {
+    cy.document().then((document) => {
+      document.body.innerHTML = '<textarea id="reason">old</textarea>';
+    });
+    setCasefileReason('#reason', 'corrected');
+    cy.get('#reason').should('have.value', 'corrected');
+    setCasefileReason('#reason', '');
+    cy.get('#reason').should('have.value', '');
+  });
+
+  it('AC2. should activate a focused control through native Enter', { tags: buildTags() }, () => {
+    const activated = cy.stub().as('activatedControl');
+    cy.document().then((document) => {
+      document.body.innerHTML = '<button id="control">Continue</button>';
+      document.querySelector('#control')!.addEventListener('click', activated);
+    });
+    cy.spy(Cypress, 'automation').as('nativeEnter');
+    activateCasefileControl('#control', true);
+    cy.get('@activatedControl').should('have.been.calledOnce');
+    cy.get('@nativeEnter').should('have.been.calledWithMatch', 'remote:debugger:protocol', {
+      command: 'Input.dispatchKeyEvent',
+      params: { type: 'keyDown', key: 'Enter', text: '\r' },
+    });
+    cy.get('@nativeEnter').should('have.been.calledWithMatch', 'remote:debugger:protocol', {
+      command: 'Input.dispatchKeyEvent',
+      params: { type: 'keyUp', key: 'Enter' },
+    });
+  });
 });

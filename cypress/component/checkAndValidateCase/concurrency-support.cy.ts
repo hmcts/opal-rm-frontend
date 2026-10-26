@@ -1,5 +1,5 @@
+import { CasesDraftSelectors as D } from '../../shared/selectors/cases-draft.selectors';
 import type { CyHttpMessages } from 'cypress/types/net-stubbing';
-import { CheckAndValidateCaseSelectors as S } from '../../shared/selectors/check-and-validate-case.selectors';
 import {
   createMutationControl,
   installDraftCasefileFetchMonitor,
@@ -101,14 +101,14 @@ describe('PO-10626 concurrency test support', () => {
           '<opal-lib-moj-alert-content-text>You have rejected Owned Respondent’s case.</opal-lib-moj-alert-content-text><button type="button">Dismiss</button><span aria-live="polite">Success announcement</span>';
         doc.body.appendChild(alert);
       });
-      cy.get(S.dashboardSuccess)
+      cy.get(D.success)
         .invoke('text')
         .then((hostText) => {
           expect(() =>
             assertRetryDestination('/cases/draft/check-and-validate/tabs', hostText, 'reject', 'Owned Respondent'),
           ).to.throw('owned checker decision notice');
         });
-      cy.get(S.dashboardSuccessText)
+      cy.get(D.successText)
         .invoke('text')
         .then((message) => {
           assertRetryDestination('/cases/draft/check-and-validate/tabs', message, 'reject', 'Owned Respondent');

@@ -13,7 +13,6 @@ import type { ICheckerPreparedReview } from '../../e2e/functional/opal/actions/c
 import { CheckerReviewFixtureActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/checker-review-fixture.actions';
 import { CheckerDashboardWindowActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/checker-dashboard-window.actions';
 import { DraftCasefileRecoveryActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-recovery.actions';
-import { CheckAndValidateCaseSelectors as S } from '../../shared/selectors/check-and-validate-case.selectors';
 import { CreateCasefileSelectors as C } from '../../shared/selectors/create-casefile.selectors';
 import type { CyHttpMessages } from 'cypress/types/net-stubbing';
 const buildTags = () => [
@@ -260,7 +259,7 @@ describe('PO-10624 deletion journey safety boundaries', () => {
                 : kind === 'blank'
                   ? ''
                   : 'Synthetic concurrency decision';
-          cy.get(S.deleteReason).should('have.value', expected);
+          cy.get(C.deletion.reason).should('have.value', expected);
           expect(session.recovery.capture).to.have.been.calledOnceWithExactly('delete');
         });
       },
@@ -271,16 +270,16 @@ describe('PO-10624 deletion journey safety boundaries', () => {
     cy.stub(CheckerDeletionActions.prototype, 'prepare').callsFake(function (this: CheckerDeletionActions) {
       instances.push(this);
     });
-    const act = cy.stub(CheckerDeletionActions.prototype, 'act');
+    const cancel = cy.stub(CheckerDeletionActions.prototype, 'cancelToReview');
     const outcome = cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
     const flow = new CheckerDeletionFlow();
     flow.prepare('cancel');
-    flow.act();
-    flow.assertOutcome();
+    flow.cancel();
+    flow.assertUnchanged();
     flow.prepare('blank');
     expect(instances).to.have.length(2);
     expect(instances[0]).not.to.equal(instances[1]);
-    expect(act).to.have.been.calledOnce;
+    expect(cancel).to.have.been.calledOnce;
     expect(outcome).to.have.been.calledOnce;
   });
 });
@@ -300,7 +299,7 @@ describe('PO-10624 deletion boundary rejection evidence', () => {
     expectBoundaryFailure('Controlled dispatch guard', () => expect(submit).not.to.have.been.called);
     const actions = new CheckerDeletionActions();
     actions.prepare('success');
-    actions.act();
+    actions.submitOnce();
   });
 
   for (const kind of ['cancel', 'blank', 'over-limit']) {
@@ -455,10 +454,24 @@ function controlledRetry(session: ICheckerPreparedReview, events: string[]) {
     return cy.wrap({}, { log: false });
   });
   cy.window().then((window) => {
-    cy.stub(window, 'fetch').callsFake(() => {
+    cy.stub(window, 'fetch').callsFake((input, options) => {
+      expect(input, 'exact owned retry resource').to.equal(`/opal-maintenance-service/draft-casefiles/${owned.id}`);
+      expect(options?.method).to.equal('PATCH');
+      const headers = new Headers(options?.headers);
+      expect(headers.get('if-match'), 'both explicit activations retain original version').to.equal(
+        session.before.etag,
+      );
+      expect(
+        JSON.parse(String(options?.body)),
+        'both explicit activations retain exact decision and reason',
+      ).to.deep.equal({
+        business_unit_id: session.before.draft.business_unit_id,
+        casefile_status: 'DELETED',
+        status_message: 'Synthetic concurrency decision',
+      });
       events.push(`activation ${++attempts}`);
       handler({
-        headers: { 'if-match': '"1"' },
+        headers: { 'if-match': headers.get('if-match')! },
         reply: (reply: { statusCode: number; body: unknown }) => {
           response = { ...reply, headers: {} };
         },
@@ -475,7 +488,15 @@ function controlledRetry(session: ICheckerPreparedReview, events: string[]) {
   cy.stub(cy, 'wait').callsFake(() => cy.then(() => ({ response })));
   const submit = cy.stub(session.recovery, 'submit').callsFake(() => {
     cy.window().then((window) =>
-      window.fetch(`/opal-maintenance-service/draft-casefiles/${owned.id}`, { method: 'PATCH' }),
+      window.fetch(`/opal-maintenance-service/draft-casefiles/${owned.id}`, {
+        method: 'PATCH',
+        headers: { 'if-match': session.before.etag },
+        body: JSON.stringify({
+          business_unit_id: session.before.draft.business_unit_id,
+          casefile_status: 'DELETED',
+          status_message: String(Cypress.$(C.deletion.reason).val()),
+        }),
+      }),
     );
   });
   let firstMonitor: IDraftCasefileMonitor;
@@ -487,6 +508,8 @@ function controlledRetry(session: ICheckerPreparedReview, events: string[]) {
       expect(firstMonitor.applicationAttempts).to.equal(1);
       expect(firstMonitor.interceptedFailures).to.equal(1);
       expect(firstMonitor.upstreamSuccesses).to.equal(0);
+      cy.get(C.deletion.reason).should('have.value', 'Synthetic concurrency decision');
+      cy.get(C.deletion.submit).should('be.enabled');
     });
   });
   cy.stub(cy, 'request').callsFake(() =>
@@ -511,15 +534,18 @@ describe('PO-10624 explicit retry journey orchestration', () => {
         events.push('guard');
       });
       const initialMonitor = session.monitor;
-      const actions = new CheckerDeletionActions();
-      actions.prepare('retry');
-      actions.act();
+      const flow = new CheckerDeletionFlow();
+      flow.prepare('retry');
+      flow.retry();
       cy.then(() => {
         expect(session.monitor).not.to.equal(initialMonitor);
         expect(session.monitor).to.equal(transport.firstMonitor());
         expect(guard).to.have.been.calledTwice;
         expect(transport.submit).to.have.been.calledTwice;
         assertDeletionRetry(session.monitor, '"1"');
+        const receipt = (flow as unknown as { actions: { saved: IDraftCasefileSnapshot } }).actions.saved;
+        assertDeletedAggregate(session.before, receipt, owned, 'Synthetic concurrency decision');
+        expect(receipt.draft.timeline_data).to.have.length(session.before.draft.timeline_data.length + 1);
         expect(events).to.deep.equal([
           'guard',
           'activation 1',
@@ -550,9 +576,9 @@ describe('PO-10624 guarded explicit retry rejection', () => {
       expect(session.monitor.attempts).to.equal(1);
       expect(session.monitor.upstreamSuccesses).to.equal(0);
     });
-    const actions = new CheckerDeletionActions();
-    actions.prepare('retry');
-    actions.act();
+    const flow = new CheckerDeletionFlow();
+    flow.prepare('retry');
+    flow.retry();
   });
 });
 
@@ -561,11 +587,40 @@ function validationDocument(message: string, reason: string, counter: string) {
     document.body.innerHTML = `<div id="create_casefile_delete_page"><div class="govuk-error-summary" tabindex="-1"><a href="#create_casefile_delete_reason">${message}</a></div><div id="create_casefile_delete_reason-error-message"><span>Error:</span> ${message}</div><div id="create_casefile_delete_reason_field"><span class="govuk-character-count__status">${counter}</span></div><label for="create_casefile_delete_reason">Reason</label><textarea id="create_casefile_delete_reason" aria-describedby="create_casefile_delete_reason-error-message">${reason}</textarea></div>`;
     document.querySelector('a')!.addEventListener('click', (event) => {
       event.preventDefault();
-      (document.querySelector(S.deleteReason) as HTMLTextAreaElement).focus();
+      (document.querySelector(C.deletion.reason) as HTMLTextAreaElement).focus();
     });
     (document.querySelector(C.deletion.summary) as HTMLElement).focus();
   });
 }
+
+describe('PO-10624 validation-only Flow activation', () => {
+  for (const kind of ['blank', 'over-limit']) {
+    it(
+      `AC3. should activate the ${kind} warning without waiting for or dispatching PATCH`,
+      { tags: buildTags() },
+      () => {
+        const { session } = controlledReview();
+        const wait = cy.spy(cy, 'wait');
+        const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
+        const activated = cy.stub();
+        cy.document().then((document) =>
+          document.querySelector(C.deletion.submit)!.addEventListener('click', () => activated()),
+        );
+        const flow = new CheckerDeletionFlow();
+        flow.prepare(kind);
+        flow.submitValidation();
+        cy.then(() => {
+          expect(activated, 'actual warning control activation').to.have.been.calledOnce;
+          expect(wait, 'validation must not await a PATCH receipt').not.to.have.been.called;
+          expect(guard, 'validation cannot begin a provider transition').not.to.have.been.called;
+          expect(session.monitor.applicationAttempts).to.equal(0);
+          expect(session.monitor.attempts).to.equal(0);
+          cy.get(C.deletion.reason).should('have.value', kind === 'blank' ? '' : 'D'.repeat(251));
+        });
+      },
+    );
+  }
+});
 
 describe('PO-10624 linked validation evidence', () => {
   for (const kind of ['blank', 'over-limit']) {
@@ -583,8 +638,8 @@ describe('PO-10624 linked validation evidence', () => {
           kind === 'blank' ? 'You have 250 characters remaining' : 'You have 1 character too many',
         );
         // Call the real validation boundary without navigating away in the later outcome checks.
-        cy.then(() => (actions as unknown as { assertValidation(): void }).assertValidation());
-        cy.get(S.deleteReason).should('be.focused');
+        actions.assertValidation(message);
+        cy.get(C.deletion.reason).should('be.focused');
       },
     );
   }
@@ -593,44 +648,35 @@ describe('PO-10624 linked validation evidence', () => {
 describe('PO-10624 independent accessibility composition', () => {
   it('AC4. should reject an unsupported accessibility kind before fixture setup', { tags: buildTags() }, () => {
     const prepare = cy.stub(CheckerDeletionActions.prototype, 'prepare');
-    expect(() => new CheckerDeletionActions().accessible('blank')).to.throw('Unsupported deletion accessibility kind');
+    expect(() => new CheckerDeletionFlow().accessible('blank')).to.throw('Unsupported deletion accessibility kind');
     expect(prepare).not.to.have.been.called;
   });
 
   it('AC4. should replace mutable actions for every broad accessibility journey', { tags: buildTags() }, () => {
     const instances: CheckerDeletionActions[] = [];
-    cy.stub(CheckerDeletionActions.prototype, 'accessible').callsFake(function (this: CheckerDeletionActions) {
+    cy.stub(CheckerDeletionActions.prototype, 'prepare').callsFake(function (this: CheckerDeletionActions) {
       instances.push(this);
     });
     const flow = new CheckerDeletionFlow();
-    for (const kind of ['success', 'validation', 'cancel', 'retry']) flow.accessible(kind);
+    for (const kind of ['success', 'validation', 'cancel', 'retry']) flow.prepareAccessible(kind);
     expect(new Set(instances).size).to.equal(4);
   });
 
   for (const kind of ['success', 'validation', 'cancel', 'retry']) {
-    it(`AC4. should compose fresh ${kind} preparation and the persisted outcome`, { tags: buildTags() }, () => {
-      const events: string[] = [];
-      cy.stub(CheckerReviewActions.prototype, 'enableAccessibility').callsFake(() => events.push('enable'));
-      cy.stub(CheckerDeletionActions.prototype, 'prepare').callsFake((chosen) => events.push(`prepare ${chosen}`));
-      cy.stub(CheckerDeletionActions.prototype, 'act').callsFake(() => events.push('act'));
-      cy.stub(CheckerDeletionActions.prototype, 'assertOutcome').callsFake(() => {
-        cy.then(() => events.push('outcome'));
+    it(`AC4. should prepare a fresh native ${kind} warning without a provider mutation`, { tags: buildTags() }, () => {
+      const { session, prepare } = nativeWarning();
+      cy.stub(accessibilityActions, 'checkAccessibilityOnly');
+      new CheckerDeletionFlow().prepareAccessible(kind);
+      cy.then(() => {
+        expect(prepare.firstCall.args[0]).to.equal(kind === 'success' || kind === 'retry');
+        expect(session.monitor.applicationAttempts).to.equal(0);
+        expect(session.monitor.attempts).to.equal(0);
+        cy.get(C.deletion.reason).should(
+          'have.value',
+          kind === 'success' ? boundaryReason : kind === 'validation' ? '' : 'Synthetic concurrency decision',
+        );
+        cy.get(C.deletion.submit).should('be.enabled');
       });
-      // Validation's exact native states are exercised independently below.
-      if (kind === 'validation')
-        cy.stub(
-          CheckerDeletionActions.prototype as unknown as { validateAccessibly(): void },
-          'validateAccessibly',
-        ).callsFake(() => events.push('validation'));
-      new CheckerDeletionActions().accessible(kind);
-      cy.then(() =>
-        expect(events).to.deep.equal([
-          'enable',
-          `prepare ${kind === 'validation' ? 'blank' : kind}`,
-          kind === 'validation' ? 'validation' : 'act',
-          'outcome',
-        ]),
-      );
     });
   }
 });
@@ -638,12 +684,12 @@ describe('PO-10624 independent accessibility composition', () => {
 function nativeWarning() {
   const context = controlledReview();
   cy.document().then((document) => {
-    document.body.innerHTML = `<h1 id="review-heading" tabindex="-1">Check case details</h1><a id="create_casefile_review_delete" href="#warning">Delete case</a><div id="create_casefile_delete_page" hidden><h1 id="create_casefile_delete_heading" tabindex="-1">Are you sure you want to delete this case?</h1><div id="create_casefile_delete_identity">Synthetic Respondent</div><label for="create_casefile_delete_reason">Reason</label><textarea id="create_casefile_delete_reason"></textarea><button id="create_casefile_delete_submit" class="govuk-button--warning">Yes - delete</button><a class="govuk-link" href="#cancel">No - cancel</a></div>`;
-    (document.querySelector(S.reviewHeading) as HTMLElement).focus();
-    document.querySelector(S.deleteLink)!.addEventListener('click', (event) => {
+    document.body.innerHTML = `<h1 id="review-heading" tabindex="-1">Check case details</h1><a id="create_casefile_review_delete" href="#warning">Delete case</a><div id="create_casefile_delete_page" hidden><h1 id="create_casefile_delete_heading" tabindex="-1">Are you sure you want to delete this case?</h1><div id="create_casefile_delete_identity">Synthetic Respondent</div><label for="create_casefile_delete_reason">Reason</label><textarea id="create_casefile_delete_reason"></textarea><button id="create_casefile_delete_submit" class="govuk-button--warning">Yes - delete</button><opal-lib-govuk-cancel-link><a class="govuk-link" href="#cancel">No - cancel</a></opal-lib-govuk-cancel-link></div>`;
+    (document.querySelector(C.review.heading) as HTMLElement).focus();
+    document.querySelector(C.review.delete)!.addEventListener('click', (event) => {
       event.preventDefault();
       (document.querySelector(C.deletion.host) as HTMLElement).hidden = false;
-      (document.querySelector(S.deleteHeading) as HTMLElement).focus();
+      (document.querySelector(C.deletion.heading) as HTMLElement).focus();
     });
   });
   return context;
@@ -665,7 +711,7 @@ describe('PO-10624 strict warning scans and native accessibility controls', () =
         const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
         const scans: string[] = [];
         cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
-          cy.get(S.deleteReason)
+          cy.get(C.deletion.reason)
             .invoke('val')
             .then((value) => {
               scans.push(String(value));
@@ -678,7 +724,7 @@ describe('PO-10624 strict warning scans and native accessibility controls', () =
           expect(scans).to.deep.equal(filled ? ['', boundaryReason] : ['']);
           expect(session.monitor.attempts).to.equal(0);
         });
-        new CheckerDeletionActions().accessible('success');
+        new CheckerDeletionFlow().accessible('success');
       },
     );
   }
@@ -691,7 +737,7 @@ describe('PO-10624 native accessible warning activation', () => {
       cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').throws(
         new Error('Accessible pre-create guard'),
       );
-      expect(() => new CheckerDeletionActions().accessible(kind)).to.throw('Accessible pre-create guard');
+      expect(() => new CheckerDeletionFlow().accessible(kind)).to.throw('Accessible pre-create guard');
       expect(create).not.to.have.been.called;
     });
   }
@@ -704,7 +750,7 @@ describe('PO-10624 native accessible warning activation', () => {
       const scans: string[] = [];
       const submit = cy.stub(session.recovery, 'submit');
       cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
-        cy.get(S.deleteReason)
+        cy.get(C.deletion.reason)
           .invoke('val')
           .then((value) => {
             scans.push(String(value));
@@ -713,8 +759,8 @@ describe('PO-10624 native accessible warning activation', () => {
       const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
       const activated = cy.stub();
       cy.document().then((document) => {
-        document.querySelector(S.deleteSubmit)!.addEventListener('click', () => {
-          expect(document.activeElement).to.equal(document.querySelector(S.deleteSubmit));
+        document.querySelector(C.deletion.submit)!.addEventListener('click', () => {
+          expect(document.activeElement).to.equal(document.querySelector(C.deletion.submit));
           expect(guard).to.have.been.calledOnce;
           activated();
         });
@@ -727,7 +773,7 @@ describe('PO-10624 native accessible warning activation', () => {
         ),
       );
       cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
-      new CheckerDeletionActions().accessible('success');
+      new CheckerDeletionFlow().accessible('success');
       cy.then(() => {
         expect(scans).to.deep.equal(['', boundaryReason]);
         expect(activated).to.have.been.calledOnce;
@@ -747,7 +793,7 @@ describe('PO-10624 native accessible warning activation', () => {
     );
     cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
     cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
-      cy.get(S.deleteReason)
+      cy.get(C.deletion.reason)
         .invoke('val')
         .then((value) => {
           const error = Cypress.$(C.deletion.reasonError).text().replace('Error:', '').trim();
@@ -755,7 +801,7 @@ describe('PO-10624 native accessible warning activation', () => {
         });
     });
     cy.document().then((document) => {
-      const field = document.querySelector(S.deleteReason) as HTMLTextAreaElement;
+      const field = document.querySelector(C.deletion.reason) as HTMLTextAreaElement;
       const host = document.querySelector(C.deletion.host)!;
       const counter = document.createElement('div');
       counter.id = 'create_casefile_delete_reason_field';
@@ -767,7 +813,7 @@ describe('PO-10624 native accessible warning activation', () => {
             ? `You have ${field.value.length - 250} character too many`
             : `You have ${250 - field.value.length} characters remaining`;
       });
-      document.querySelector(S.deleteSubmit)!.addEventListener('click', () => {
+      document.querySelector(C.deletion.submit)!.addEventListener('click', () => {
         const message = field.value.length ? 'Reason must be 250 characters or fewer' : 'Enter reason';
         document.querySelector(C.deletion.summary)?.remove();
         document.querySelector(C.deletion.reasonError)?.remove();
@@ -788,7 +834,7 @@ describe('PO-10624 native accessible warning activation', () => {
         summary.focus();
       });
     });
-    new CheckerDeletionActions().accessible('validation');
+    new CheckerDeletionFlow().accessible('validation');
     cy.then(() => {
       expect(scans).to.deep.equal([
         '0:',
@@ -825,12 +871,12 @@ function nativeCancellation() {
     controls.innerHTML =
       '<input id="create_casefile_review_decision-approve" class="govuk-radios__input" type="radio" style="opacity:0"><label for="create_casefile_review_decision-approve" class="govuk-radios__label">Approve</label><input id="create_casefile_review_decision-reject" class="govuk-radios__input" type="radio" style="opacity:0"><label for="create_casefile_review_decision-reject" class="govuk-radios__label">Reject</label><button id="create_casefile_review_continue">Continue</button>';
     document.body.prepend(controls);
-    document.querySelector(`${C.deletion.host} a.govuk-link`)!.addEventListener('click', (event) => {
+    document.querySelector(C.deletion.cancel)!.addEventListener('click', (event) => {
       event.preventDefault();
       expect(document.activeElement).to.equal(event.currentTarget);
       activated();
       (document.querySelector(C.deletion.host) as HTMLElement).hidden = true;
-      (document.querySelector(S.reviewHeading) as HTMLElement).focus();
+      (document.querySelector(C.review.heading) as HTMLElement).focus();
     });
   });
   return { session, activated };
@@ -849,11 +895,13 @@ describe('PO-10624 native accessible cancellation and retry', () => {
         cy.document().then((document) => {
           const warning = document.querySelector(C.deletion.host) as HTMLElement;
           scans.push(
-            warning.hidden ? 'returned review' : (document.querySelector(S.deleteReason) as HTMLTextAreaElement).value,
+            warning.hidden
+              ? 'returned review'
+              : (document.querySelector(C.deletion.reason) as HTMLTextAreaElement).value,
           );
         });
       });
-      new CheckerDeletionActions().accessible('cancel');
+      new CheckerDeletionFlow().accessible('cancel');
       cy.then(() => {
         expect(activated).to.have.been.calledOnce;
         expect(scans).to.deep.equal(['', 'Synthetic concurrency decision', 'returned review']);
@@ -876,25 +924,32 @@ describe('PO-10624 native accessible cancellation and retry', () => {
       });
       const scans: string[] = [];
       cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
-        cy.get(S.deleteReason).then((field) => {
+        cy.get(C.deletion.reason).then((field) => {
           expect(field.val()).to.equal(scans.length ? 'Synthetic concurrency decision' : '');
           scans.push(Cypress.$(C.globalErrorBanner).length ? 'retained error' : 'warning');
         });
       });
       cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
-      const actions = new CheckerDeletionActions();
-      const seam = actions as unknown as { assertFailure(): void };
-      const retainedFailure = seam.assertFailure.bind(actions);
-      cy.stub(seam, 'assertFailure').callsFake(() => {
-        retainedFailure();
-        // Reuse the controlled transport's monitor-identity observation after the real retention/scan assertions.
+      const seam = CheckerDeletionActions.prototype as unknown as { assertFailure(): void };
+      const retainedFailure = seam.assertFailure;
+      cy.stub(seam, 'assertFailure').callsFake(function (this: CheckerDeletionActions) {
+        retainedFailure.call(this);
+        // Observe monitor identity after the real native retention and strict scan assertions.
         session.recovery.assertFailure('delete');
       });
       cy.document().then((document) => {
-        document.querySelector(S.deleteSubmit)!.addEventListener('click', () => {
-          expect(document.activeElement).to.equal(document.querySelector(S.deleteSubmit));
+        document.querySelector(C.deletion.submit)!.addEventListener('click', () => {
+          expect(document.activeElement).to.equal(document.querySelector(C.deletion.submit));
           void document
-            .defaultView!.fetch(`/opal-maintenance-service/draft-casefiles/${owned.id}`, { method: 'PATCH' })
+            .defaultView!.fetch(`/opal-maintenance-service/draft-casefiles/${owned.id}`, {
+              method: 'PATCH',
+              headers: { 'if-match': session.before.etag },
+              body: JSON.stringify({
+                business_unit_id: session.before.draft.business_unit_id,
+                casefile_status: 'DELETED',
+                status_message: (document.querySelector(C.deletion.reason) as HTMLTextAreaElement).value,
+              }),
+            })
             .then((response) => {
               if (response.status === 400) {
                 const banner = document.createElement('div');
@@ -905,7 +960,7 @@ describe('PO-10624 native accessible cancellation and retry', () => {
             });
         });
       });
-      actions.accessible('retry');
+      new CheckerDeletionFlow().accessible('retry');
       cy.then(() => {
         expect(scans).to.deep.equal(['warning', 'warning', 'retained error']);
         expect(guard).to.have.been.calledTwice;
@@ -938,7 +993,7 @@ describe('PO-10624 returned review decision availability', () => {
         () => {
           const { session, activated } = nativeCancellation();
           cy.stub(accessibilityActions, 'checkAccessibilityOnly');
-          const selector = S[choice];
+          const selector = choice === 'approve' ? C.review.decisionApprove : C.review.decisionReject;
           const id = selector.slice(1);
           cy.document().then((document) => {
             const input = document.querySelector(selector) as HTMLInputElement;
@@ -966,7 +1021,7 @@ describe('PO-10624 returned review decision availability', () => {
             observedBoundaryFailure = true;
             return false;
           });
-          new CheckerDeletionActions().accessible('cancel');
+          new CheckerDeletionFlow().accessible('cancel');
         },
       );
     }

@@ -574,6 +574,16 @@ BU 44. The maintained fixture defaults to `opal-test@dev.platform.hmcts.net` and
 provisioned independent users. Setup verifies real permissions and environment-valid reference data. It does not
 grant access or manufacture saved outcomes.
 
+Feature steps state confirmation, cancellation, linked validation, unchanged saved state and retained Deleted
+outcomes explicitly. The functional success reason is exactly 250 characters; over-limit validation types 251.
+The accessibility validation fixture follows blank → 251 → corrected 250 → Cancel, with the canonical accessibility
+step at visible checkpoints and strict intermediate scans before departure. Each independent Given resets its Flow
+state. `CheckerDeletionFlow` owns retry and broad accessibility sequencing; Actions own native controls, linked
+focus, scans, transport/receipt decoding and saved-state assertions. Validation-only activation never waits for a
+PATCH receipt. Successful confirmation and each explicit retry activation still check lifecycle cleanup; retry
+arms one definite-failure monitor and preserves that same monitor, reason and original ETag for both attempts.
+The final outcome assertion reads persisted evidence without initiating another mutation.
+
 Enable `release-1c-rm-create-case-files` in the frontend and
 `TESTING_SUPPORT_ENDPOINTS_ENABLED=true` in the actual Maintenance runtime. Before execution, verify the frontend
 process/build belongs to this checkout and record the actual compiled backend revision and running services.

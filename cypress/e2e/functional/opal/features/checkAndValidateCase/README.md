@@ -17,7 +17,13 @@ common UI `0.0.114`. Recovery actions use the maintained checker and create-case
 the rendered Continue, Delete case, deletion heading and Submit for review controls. Keep retained-context,
 no-replay and recovery assertions intact when the actual runtime fails them. Definite-failure and ambiguous examples still require retained editing context. Conflict examples assert the
 actual shared concurrency-failure page and recover through Cases, the actor dashboard, the saved-status tab and
-the owned respondent row. Only a fresh GET and full rendered winning aggregate/history satisfy recovery.
+the exact owned respondent row. Recovery observes an HTTP 200 collection response for the target statuses
+(`SUBMITTED,RESUBMITTED` for resubmission or `REJECTED` for checker recovery), excluding count requests. The
+observer is registered before entering the dashboard so an initially active In review tab can use its initial list
+response. Recovery then waits for the rendered table or empty-state hook; both are absent during list loading.
+Once that destination/list is ready, the row locator resets to page one and traverses native pagination,
+using native Enter for keyboard recovery. It returns the exact row without opening it and fails on invalid IDs,
+absent owned rows or pagination that repeats or fails to advance. Only a fresh GET and full rendered winning aggregate/history satisfy recovery.
 
 Use an isolated build from this checkout for local integration, for example `http://localhost:5100`. Verify its
 process working directory and build SHA before execution. Install with `corepack yarn install --immutable` using
@@ -176,7 +182,7 @@ corepack yarn test:functional:leaf --browser=chrome \
 ## Support verification
 
 ```bash
-corepack yarn test:component:leaf --browser=chrome --spec 'cypress/component/checkAndValidateCase/api-fixture-support.cy.ts,cypress/component/checkAndValidateCase/concurrency-support.cy.ts,cypress/component/checkAndValidateCase/cleanup-policy.cy.ts,cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts'
+corepack yarn test:component:leaf --browser=chrome --spec 'cypress/component/checkAndValidateCase/draft-casefile-table-support.cy.ts,cypress/component/checkAndValidateCase/api-fixture-support.cy.ts,cypress/component/checkAndValidateCase/concurrency-support.cy.ts,cypress/component/checkAndValidateCase/cleanup-policy.cy.ts,cypress/component/createDraftCasefile/draft-casefile-cleanup.cy.ts'
 corepack yarn exec tsc -p e2e.tsconfig.json --noEmit
 corepack yarn exec tsc -p cypress/tsconfig.json --noEmit
 corepack yarn lint:cypress
@@ -184,6 +190,12 @@ corepack yarn exec opal-cypress-check-new-tests-jira-metadata --component-root c
 corepack yarn check:cypress:test-metadata
 corepack yarn find:duplicate:scenarios
 ```
+
+Controlled table support proves later-page lookup, page-one reset, native keyboard pagination and fail-closed
+handling against controlled DOM; it does not prove live conflict recovery. Live acceptance requires 26 independently
+owned eligible records created through maintained normal API fixtures, retained cleanup receipts, and a recovery
+target beyond page one. Run the conflict functional/accessibility cases and verify one stale UI attempt, one fresh
+selected GET, unchanged winner and final publication evidence.
 
 Controlled support regressions verify API fixture boundaries, registration/read contracts and failures, forwarding
 before interruption, later requests, rejection handling, explicit retry, lossless versions, evidence validation,

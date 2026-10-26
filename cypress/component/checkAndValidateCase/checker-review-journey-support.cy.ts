@@ -1,4 +1,7 @@
-import { CheckAndValidateCaseSelectors as S } from '../../shared/selectors/check-and-validate-case.selectors';
+import {
+  setCasefileReason,
+  activateCasefileControl,
+} from '../../e2e/functional/opal/actions/createDraftCasefile/casefile-review-controls.actions';
 import { CreateCasefileSelectors as C } from '../../shared/selectors/create-casefile.selectors';
 import { DraftCasefileRecoveryActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-recovery.actions';
 import { InputterCasefileMonitoringActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/inputter-casefile-monitoring.actions';
@@ -357,10 +360,10 @@ describe('PO-10625 exact decision history support', () => {
 
 describe('PO-10625 real recovery form activation support', () => {
   for (const [journey, selector] of [
-    ['approve', S.continue],
-    ['reject', S.continue],
-    ['resubmit', S.amendmentSubmit],
-    ['delete', S.deleteSubmit],
+    ['approve', C.review.decisionContinue],
+    ['reject', C.review.decisionContinue],
+    ['resubmit', C.review.submit],
+    ['delete', C.deletion.submit],
   ] as const) {
     for (const keyboard of [true, false]) {
       it(
@@ -387,4 +390,35 @@ describe('PO-10625 real recovery form activation support', () => {
       );
     }
   }
+});
+
+describe('Shared casefile review controls', () => {
+  it('AC2. should replace a retained reason through the real input', { tags: buildTags() }, () => {
+    cy.document().then((document) => {
+      document.body.innerHTML = '<textarea id="reason">old</textarea>';
+    });
+    setCasefileReason('#reason', 'corrected');
+    cy.get('#reason').should('have.value', 'corrected');
+    setCasefileReason('#reason', '');
+    cy.get('#reason').should('have.value', '');
+  });
+
+  it('AC2. should activate a focused control through native Enter', { tags: buildTags() }, () => {
+    const activated = cy.stub().as('activatedControl');
+    cy.document().then((document) => {
+      document.body.innerHTML = '<button id="control">Continue</button>';
+      document.querySelector('#control')!.addEventListener('click', activated);
+    });
+    cy.spy(Cypress, 'automation').as('nativeEnter');
+    activateCasefileControl('#control', true);
+    cy.get('@activatedControl').should('have.been.calledOnce');
+    cy.get('@nativeEnter').should('have.been.calledWithMatch', 'remote:debugger:protocol', {
+      command: 'Input.dispatchKeyEvent',
+      params: { type: 'keyDown', key: 'Enter', text: '\r' },
+    });
+    cy.get('@nativeEnter').should('have.been.calledWithMatch', 'remote:debugger:protocol', {
+      command: 'Input.dispatchKeyEvent',
+      params: { type: 'keyUp', key: 'Enter' },
+    });
+  });
 });

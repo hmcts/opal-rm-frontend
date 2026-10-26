@@ -1,3 +1,4 @@
+import { setCasefileReason, chooseCasefileDecision } from '../createDraftCasefile/casefile-review-controls.actions';
 import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import {
   decodeDraftCasefileCount,
@@ -364,7 +365,7 @@ export class CheckerReviewActions {
     this.enter(`${D.row(owned.id)} ${D.column('respondent')} a`);
     cy.wait('@checkerDetail');
     cy.location('pathname').should('equal', `/${PATHS.root}/${PATHS.children.review}/${owned.id}`);
-    cy.get(S.reviewHeading).should('be.visible');
+    cy.get(C.review.heading).should('be.visible');
     this.recovery.capture('approve');
     this.scan();
     cy.then(() => {
@@ -379,7 +380,7 @@ export class CheckerReviewActions {
     const chosen = this.decision(decision);
     if (chosen === 'approve' && this.fixtureKind !== 'publication')
       throw new Error('Approval requires a publication fixture');
-    this.recovery.choose(chosen);
+    this.recovery.choose(chosen, this.scanning);
     this.scan();
     this.recovery.submit(chosen, this.scanning);
     cy.wait('@draftMutation').then(({ response }) => {
@@ -514,8 +515,7 @@ export class CheckerReviewActions {
 
   /** Selects Reject with an actually blank textarea and attempts validation without any PATCH. */
   public rejectBlank(): void {
-    cy.get(S.reject).check();
-    cy.get(S.reason).should('be.visible').clear().should('have.value', '');
+    chooseCasefileDecision('reject', '', this.scanning);
     this.scan();
     this.recovery.submit('reject', this.scanning);
   }
@@ -532,13 +532,13 @@ export class CheckerReviewActions {
       .focus()
       .should('be.focused');
     cy.press(Cypress.Keyboard.Keys.ENTER);
-    cy.get(S.reason)
+    cy.get(C.review.rejectionReason)
       .should('be.focused')
       .and('have.attr', 'aria-describedby')
       .and('include', 'create_casefile_review_rejection_reason-error-message');
     cy.get(C.review.rejectionReasonError).should('contain.text', 'Enter reason for rejection');
     if (this.scanning) {
-      cy.get(S.reason).type('Synthetic corrected reason');
+      setCasefileReason(C.review.rejectionReason, 'Synthetic corrected reason');
       this.scan();
     }
     this.assertNoMutation();
@@ -610,14 +610,20 @@ export class CheckerReviewActions {
           decodeDraftSnapshot(this.requireOwned().id, response?.body, response?.headers['etag']),
         );
       });
-      cy.get(S.reviewHeading).should('be.visible');
-      cy.get(S.status).should('have.text', 'To review');
+      cy.get(C.review.heading).should('be.visible');
+      cy.get(C.review.status).should('have.text', 'To review');
     } else {
       cy.location('pathname').should('equal', '/access-denied');
-      for (const selector of [S.reviewHeading, S.reviewSections, S.history]) cy.get(selector).should('not.exist');
+      for (const selector of [C.review.heading, S.reviewSections, S.history]) cy.get(selector).should('not.exist');
       cy.then(() => expect(this.detailReads, 'denied case detail requests').to.equal(0));
     }
-    for (const selector of [S.approve, S.reject, S.reason, S.continue, S.deleteLink])
+    for (const selector of [
+      C.review.decisionApprove,
+      C.review.decisionReject,
+      C.review.rejectionReason,
+      C.review.decisionContinue,
+      C.review.delete,
+    ])
       cy.get(selector).should('not.exist');
     this.scan();
     cy.then(() => performAuthentication(this.requireOwned().inputter));
@@ -629,7 +635,7 @@ export class CheckerReviewActions {
    */
   public compete(decision: string): void {
     const chosen = this.decision(decision);
-    this.recovery.choose(chosen);
+    this.recovery.choose(chosen, this.scanning);
     this.scan();
     requestDraftChange(this.baseline(), 'PATCH', {
       business_unit_id: 44,

@@ -2,13 +2,38 @@
 Feature: Independent checker deletion accessibility
   @AC4
   Scenario: Accessibly delete and inspect the retained casefile
-    Then my independent live checker deletion "success" journey is accessible with its business outcome verified
+    Given my accessible deletion scenario owns a submitted case for "success"
+    Then I check the page for accessibility
+    When I confirm deletion with the prepared 250-character reason
+    Then the owned case is retained in Deleted with its recorded reason
+    And I check the page for accessibility
   @AC4 @PO10624SubmittedOnly
   Scenario: Accessibly correct blank and over-limit reasons without changing the saved case
-    Then my independent live checker deletion "validation" journey is accessible with its business outcome verified
+    Given my accessible deletion scenario owns a submitted case for "validation"
+    Then I check the page for accessibility
+    When I confirm deletion without a reason
+    Then the linked deletion validation says "Enter reason"
+    And I check the page for accessibility
+    When I enter a 251-character deletion reason
+    And I confirm deletion with the prepared 251-character reason
+    Then the linked deletion validation says "Reason must be 250 characters or fewer"
+    And I check the page for accessibility
+    When I enter a 250-character deletion reason
+    Then I check the page for accessibility
+    When I cancel deletion
+    Then the saved case remains unchanged without a deletion decision
+    And I check the page for accessibility
   @AC4 @PO10624SubmittedOnly
   Scenario: Accessibly cancel deletion and return to unchanged review
-    Then my independent live checker deletion "cancel" journey is accessible with its business outcome verified
+    Given my accessible deletion scenario owns a submitted case for "cancel"
+    Then I check the page for accessibility
+    When I cancel deletion
+    Then the saved case remains unchanged without a deletion decision
+    And I check the page for accessibility
   @AC4
   Scenario: Accessibly retain a definite failure and explicitly retry deletion
-    Then my independent live checker deletion "retry" journey is accessible with its business outcome verified
+    Given my accessible deletion scenario owns a submitted case for "retry"
+    Then I check the page for accessibility
+    When I explicitly retry deletion after a definite failure
+    Then the owned case is retained in Deleted with its recorded reason
+    And I check the page for accessibility

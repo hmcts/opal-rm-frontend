@@ -1,7 +1,7 @@
+import { setCasefileReason } from '../createDraftCasefile/casefile-review-controls.actions';
 import { CASES_DRAFT_CHECKER_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
 import { decodeDraftCasefileList } from 'src/app/flows/cases/services/opal-maintenance-service/utils/opal-maintenance-draft-casefile-response';
 import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
-import { CheckAndValidateCaseSelectors as S } from '../../../../../shared/selectors/check-and-validate-case.selectors';
 import { CreateCasefileSelectors as C } from '../../../../../shared/selectors/create-casefile.selectors';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { accessibilityActions } from '../accessibility/accessibility.actions';
@@ -28,6 +28,7 @@ export class CheckerDeletionActions {
   private saved?: IDraftCasefileSnapshot;
   private reason = '';
   private scanning = false;
+  private definiteFailureArmed = false;
 
   /** Validates the scenario before the maintained fixture can create anything.
    * @param kind Explicit business outcome.
@@ -39,16 +40,18 @@ export class CheckerDeletionActions {
     this.review.prepareSubmittedReview(kind === 'success' || kind === 'retry', (session) => {
       this.session = session;
       if (this.scanning) {
-        cy.get(S.reviewHeading).should('be.focused');
-        cy.get(S.deleteLink).should('have.text', 'Delete case').focus().should('be.focused');
+        cy.get(C.review.heading).should('be.focused');
+        cy.get(C.review.delete).should('have.text', 'Delete case').focus().should('be.focused');
         pressDashboardEnter();
-        cy.get(S.deleteHeading).should('contain.text', 'Are you sure you want to delete this case?').and('be.focused');
-        cy.get(S.deleteReason).should('have.value', '');
+        cy.get(C.deletion.heading)
+          .should('contain.text', 'Are you sure you want to delete this case?')
+          .and('be.focused');
+        cy.get(C.deletion.reason).should('have.value', '');
         this.scan();
       } else session.recovery.choose('delete');
       this.enterReason(this.reasonFor(kind, session));
       this.assertWarningIdentity();
-      cy.get(S.deleteSubmit).should('be.visible').and('have.class', 'govuk-button--warning');
+      cy.get(C.deletion.submit).should('be.visible').and('have.class', 'govuk-button--warning');
       this.scan();
       session.recovery.capture('delete');
     });
@@ -70,75 +73,43 @@ export class CheckerDeletionActions {
   /** Types through the native field and requires the entire requested value, including 251 characters.
    * @param reason Exact untruncated input.
    */
-  private enterReason(reason: string): void {
+  public enterReason(reason: string): void {
     this.reason = reason;
-    cy.get(S.deleteReason).clear();
-    if (reason) cy.get(S.deleteReason).type(reason);
-    cy.get(S.deleteReason).should('have.value', reason);
+    setCasefileReason(C.deletion.reason, reason);
+  }
+
+  /** Requires the corrected visible boundary while the original case still has no mutation. */
+  public assertCorrectedReason(): void {
+    cy.get(C.deletion.reason).should('have.value', 'D'.repeat(250));
+    cy.get(C.deletion.counter).should('contain.text', 'You have 0 characters remaining');
+    assertCheckerNoPatch(this.context().monitor);
   }
 
   /** Requires the saved owned identity on the actual warning. */
   private assertWarningIdentity(): void {
-    cy.get(S.deleteIdentity).should(
+    cy.get(C.deletion.identity).should(
       'have.text',
       String(Cypress._.get(this.context().before.draft.casefile_snapshot, 'respondent_account.respondent_name')),
     );
   }
 
   /** Runs the maintained strict scanner at a meaningful visited state. */
-  private scan(): void {
+  public scan(): void {
     if (this.scanning) accessibilityActions.checkAccessibilityOnly();
   }
 
-  /** Completes one independent broad keyboard journey with its persisted business outcome.
-   * @param kind Explicit accessibility outcome, validated before fixture creation.
-   */
-  public accessible(kind: string): void {
-    if (!['success', 'validation', 'cancel', 'retry'].includes(kind))
-      throw new Error('Unsupported deletion accessibility kind');
+  /** Enables strict scans and native controls before the independent fixture is prepared. */
+  public enableAccessibility(): void {
     this.scanning = true;
     this.review.enableAccessibility();
-    this.prepare(kind === 'validation' ? 'blank' : kind);
-    cy.then(() => {
-      if (kind === 'validation') this.validateAccessibly();
-      else this.act();
-    });
-    this.assertOutcome();
-  }
-
-  /** Exercises blank, visible 251 and corrected 250 states without dispatching a mutation. */
-  private validateAccessibly(): void {
-    this.act();
-    cy.then(() => {
-      this.assertValidation();
-      this.scan();
-      cy.then(() => assertCheckerNoPatch(this.context().monitor));
-      cy.then(() => {
-        this.kind = 'over-limit';
-        this.enterReason('D'.repeat(251));
-        this.activateWarningSubmit();
-        cy.then(() => {
-          this.assertValidation();
-          this.scan();
-          cy.then(() => assertCheckerNoPatch(this.context().monitor));
-          this.enterReason('D'.repeat(250));
-          cy.get(C.deletion.counter).should('contain.text', 'You have 0 characters remaining');
-          this.scan();
-          this.cancelToReview();
-          cy.then(() => {
-            this.kind = 'cancel';
-          });
-        });
-      });
-    });
   }
 
   /** Uses native Tab from the reason through the actual warning submit control. */
   private activateWarningSubmit(): void {
     if (this.scanning) {
-      cy.get(S.deleteReason).focus().should('be.focused');
+      cy.get(C.deletion.reason).focus().should('be.focused');
       cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.deleteSubmit).should('be.enabled').and('be.focused');
+      cy.get(C.deletion.submit).should('be.enabled').and('be.focused');
       pressDashboardEnter();
     } else this.context().recovery.submit('delete', false);
   }
@@ -149,7 +120,7 @@ export class CheckerDeletionActions {
       cy.get(C.globalErrorBanner).should('be.visible').invoke('text').should('not.be.empty');
       cy.get(C.review.confirmationHeading).should('not.exist');
       this.assertWarningIdentity();
-      cy.get(S.deleteReason).should('have.value', this.reason);
+      cy.get(C.deletion.reason).should('have.value', this.reason);
     } else this.context().recovery.assertFailure('delete');
     this.scan();
   }
@@ -169,40 +140,38 @@ export class CheckerDeletionActions {
     this.activateWarningSubmit();
   }
 
-  /** Runs the selected interaction without conflating it with the final business assertion. */
-  public act(): void {
+  /** Activates a validation-only warning without waiting for a mutation that must not occur. */
+  public submitValidation(): void {
+    cy.then(() => {
+      this.context();
+      if (this.reason !== '' && this.reason.length !== 251) throw new Error('Invalid deletion validation reason');
+      this.activateWarningSubmit();
+    });
+  }
+
+  /** Replaces the original monitor once, before either explicit retry activation. */
+  public armDefiniteFailure(): void {
     cy.then(() => {
       const session = this.context();
-      if (this.kind === 'cancel') {
-        this.cancelToReview();
-        return;
-      }
-      if (this.kind === 'blank' || this.kind === 'over-limit') {
-        this.activateWarningSubmit();
-        return;
-      }
-      if (this.kind === 'retry') {
-        // Replace the original no-fault monitor once, before the first activation only.
-        session.monitor = armDraftCasefileMutation(session.owned.id, 'PATCH', 'definite-failure');
-        cy.then(() => this.submitDeletion());
-        cy.wait('@draftMutation').its('response.statusCode').should('equal', 400);
-        cy.then(() => {
-          expect(session.monitor.applicationAttempts, 'one failed UI activation').to.equal(1);
-          expect(session.monitor.attempts, 'one failed wire attempt').to.equal(1);
-          expect(session.monitor.interceptedFailures, 'one definite rejection before provider').to.equal(1);
-          expect(session.monitor.upstreamSuccesses, 'no provider success before retry').to.equal(0);
-          expect(session.monitor.requestVersions).to.deep.equal([session.before.etag]);
-        });
-        this.assertFailure();
-        cy.get(S.deleteSubmit).should('be.enabled');
-        cy.get(S.deleteRecovery).should('not.exist');
-        cy.get(S.dashboardSuccess).should('not.exist');
-        readDraftSnapshot(session.owned.id).then((saved) => assertUnchangedDraft(session.before, saved));
-        // Explicit second UI activation keeps the same monitor, original reason and opaque version.
-        cy.then(() => this.submitDeletion());
-      } else this.submitDeletion();
+      if (this.kind !== 'retry' || this.definiteFailureArmed) throw new Error('Invalid deletion retry setup');
+      session.monitor = armDraftCasefileMutation(session.owned.id, 'PATCH', 'definite-failure');
+      this.definiteFailureArmed = true;
+    });
+  }
+
+  /** Submits one guarded transition and decodes only its acknowledged successful receipt. */
+  public submitOnce(): void {
+    cy.then(() => {
+      const session = this.context();
+      if (this.kind !== 'success' && this.kind !== 'retry') throw new Error('Invalid deletion transition');
+      this.submitDeletion();
       cy.wait('@draftMutation').then(({ response }) => {
         if (!response) throw new Error('Deletion receipt missing');
+        if (response.statusCode === 400) {
+          if (!this.definiteFailureArmed || session.monitor.interceptedFailures !== 1 || session.monitor.attempts !== 1)
+            throw new Error('Unexpected deletion failure receipt');
+          return;
+        }
         this.saved = assertCheckerReceipt(
           response.statusCode,
           response.body,
@@ -215,68 +184,95 @@ export class CheckerDeletionActions {
     });
   }
 
-  /** Returns to the same owned review and checks the actual reloaded receipt. */
-  private cancelToReview(): void {
-    const session = this.context();
-    cy.intercept({
-      method: 'GET',
-      pathname: `/opal-maintenance-service/draft-casefiles/${session.owned.id}`,
-      times: 1,
-    }).as('deletionCancelledDetail');
-    const cancel = cy.contains(S.cancel, 'No - cancel').should('be.visible');
-    if (this.scanning) {
-      cy.get(S.deleteReason).focus().should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cy.get(S.deleteSubmit).should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.TAB);
-      cancel.should('be.focused');
-      pressDashboardEnter();
-    } else cancel.click();
-    cy.wait('@deletionCancelledDetail').then(({ response }) => {
-      if (!response) throw new Error('Cancelled review receipt missing');
-      expect(response.statusCode).to.equal(200);
-      assertUnchangedDraft(
-        session.before,
-        decodeDraftSnapshot(session.owned.id, response.body, response.headers['etag']),
-      );
+  /** Proves a definite rejection retained the original aggregate before the next explicit activation. */
+  public assertDefiniteFailure(): void {
+    cy.then(() => {
+      const session = this.context();
+      expect(this.saved, 'no successful receipt before retry').to.equal(undefined);
+      expect(session.monitor.applicationAttempts, 'one failed UI activation').to.equal(1);
+      expect(session.monitor.attempts, 'one failed wire attempt').to.equal(1);
+      expect(session.monitor.interceptedFailures, 'one definite rejection before provider').to.equal(1);
+      expect(session.monitor.upstreamSuccesses, 'no provider success before retry').to.equal(0);
+      expect(session.monitor.requestVersions).to.deep.equal([session.before.etag]);
+      this.assertFailure();
+      cy.get(C.deletion.submit).should('be.enabled');
+      cy.get(C.deletion.recovery).should('not.exist');
+      cy.get(D.success).should('not.exist');
+      readDraftSnapshot(session.owned.id).then((saved) => assertUnchangedDraft(session.before, saved));
     });
-    cy.location('pathname').should('equal', `/${PATHS.root}/${PATHS.children.review}/${session.owned.id}`);
-    session.recovery.assertSavedPresentation(session.before);
-    cy.get(S.continue).should('be.enabled');
-    for (const selector of [S.approve, S.reject]) {
-      cy.get(selector)
-        .should('have.attr', 'type', 'radio')
-        .and('be.enabled')
-        .then(($input) => {
-          cy.get(`label[for="${$input.attr('id')}"]`).should('be.visible');
-        });
-    }
-    cy.get(S.deleteLink).should('be.visible');
-    if (this.scanning) cy.get(S.reviewHeading).should('be.focused');
-    this.scan();
   }
 
-  /** Proves exact visible validation and native linked focus with the original typed value. */
-  private assertValidation(): void {
-    const deletion = C.deletion;
-    const message = this.kind === 'blank' ? 'Enter reason' : 'Reason must be 250 characters or fewer';
-    cy.get(deletion.summary).should('be.visible').and('be.focused');
-    cy.get(deletion.reasonError)
-      .should('be.visible')
-      .and(($error) => expect($error.text().replace('Error:', '').trim()).to.equal(message));
-    cy.get(deletion.summaryLink).should('have.text', message).focus().should('be.focused');
-    pressDashboardEnter();
-    cy.get(S.deleteReason)
-      .should('be.focused')
-      .and('have.value', this.reason)
-      .and('have.attr', 'aria-describedby')
-      .and('include', 'create_casefile_delete_reason-error-message');
-    cy.get(deletion.counter)
-      .should('be.visible')
-      .and(
-        'contain.text',
-        this.kind === 'blank' ? 'You have 250 characters remaining' : 'You have 1 character too many',
-      );
+  /** Returns to the same owned review and checks the actual reloaded receipt. */
+  public cancelToReview(): void {
+    cy.then(() => {
+      const session = this.context();
+      cy.intercept({
+        method: 'GET',
+        pathname: `/opal-maintenance-service/draft-casefiles/${session.owned.id}`,
+        times: 1,
+      }).as('deletionCancelledDetail');
+      const cancel = cy.contains(C.deletion.cancel, 'No - cancel').should('be.visible');
+      if (this.scanning) {
+        cy.get(C.deletion.reason).focus().should('be.focused');
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.get(C.deletion.submit).should('be.focused');
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cancel.should('be.focused');
+        pressDashboardEnter();
+      } else cancel.click();
+      cy.wait('@deletionCancelledDetail').then(({ response }) => {
+        if (!response) throw new Error('Cancelled review receipt missing');
+        expect(response.statusCode).to.equal(200);
+        assertUnchangedDraft(
+          session.before,
+          decodeDraftSnapshot(session.owned.id, response.body, response.headers['etag']),
+        );
+      });
+      cy.location('pathname').should('equal', `/${PATHS.root}/${PATHS.children.review}/${session.owned.id}`);
+      session.recovery.assertSavedPresentation(session.before);
+      cy.get(C.review.decisionContinue).should('be.enabled');
+      for (const selector of [C.review.decisionApprove, C.review.decisionReject]) {
+        cy.get(selector)
+          .should('have.attr', 'type', 'radio')
+          .and('be.enabled')
+          .then(($input) => {
+            cy.get(`label[for="${$input.attr('id')}"]`).should('be.visible');
+          });
+      }
+      cy.get(C.review.delete).should('be.visible');
+      if (this.scanning) cy.get(C.review.heading).should('be.focused');
+      this.scan();
+      this.kind = 'cancel';
+    });
+  }
+
+  /** Proves exact visible validation and native linked focus with the original typed value.
+   * @param expectedMessage Explicit scenario contract, when supplied.
+   */
+  public assertValidation(expectedMessage?: string): void {
+    cy.then(() => {
+      const deletion = C.deletion;
+      const message = this.reason === '' ? 'Enter reason' : 'Reason must be 250 characters or fewer';
+      if (expectedMessage !== undefined) expect(expectedMessage, 'selected validation contract').to.equal(message);
+      cy.get(deletion.summary).should('be.visible').and('be.focused');
+      cy.get(deletion.reasonError)
+        .should('be.visible')
+        .and(($error) => expect($error.text().replace('Error:', '').trim()).to.equal(message));
+      cy.get(deletion.summaryLink).should('have.text', message).focus().should('be.focused');
+      pressDashboardEnter();
+      cy.get(C.deletion.reason)
+        .should('be.focused')
+        .and('have.value', this.reason)
+        .and('have.attr', 'aria-describedby')
+        .and('include', 'create_casefile_delete_reason-error-message');
+      cy.get(deletion.counter)
+        .should('be.visible')
+        .and(
+          'contain.text',
+          this.reason === '' ? 'You have 250 characters remaining' : 'You have 1 character too many',
+        );
+      assertCheckerNoPatch(this.context().monitor);
+    });
   }
 
   /** Checks all business evidence independently after the interaction. */
@@ -299,7 +295,6 @@ export class CheckerDeletionActions {
         cy.then(() => this.review.releaseQueueObservation());
         this.consultCollection('deleted');
       } else {
-        if (this.kind !== 'cancel') this.assertValidation();
         cy.then(() => assertCheckerNoPatch(session.monitor));
         readDraftSnapshot(session.owned.id).then((saved) => assertUnchangedDraft(session.before, saved));
         if (this.kind !== 'cancel') this.cancelToReview();
@@ -375,11 +370,11 @@ export class CheckerDeletionActions {
     });
     cy.location('pathname').should('equal', `/${PATHS.root}/${PATHS.children.view}/${session.owned.id}`);
     session.recovery.assertSavedPresentation(this.saved!);
-    if (this.scanning) cy.get(S.reviewHeading).should('be.focused');
+    if (this.scanning) cy.get(C.review.heading).should('be.focused');
     this.scan();
-    cy.get(`${S.approve}, ${S.reject}, ${S.continue}, ${S.deleteLink}, ${S.deleteReason}, ${S.deleteSubmit}`).should(
-      'not.exist',
-    );
+    cy.get(
+      `${C.review.decisionApprove}, ${C.review.decisionReject}, ${C.review.decisionContinue}, ${C.review.delete}, ${C.deletion.reason}, ${C.deletion.submit}`,
+    ).should('not.exist');
   }
 
   /** Minimal owned-row lookup after maintained complete collection, using actual pagination readiness.

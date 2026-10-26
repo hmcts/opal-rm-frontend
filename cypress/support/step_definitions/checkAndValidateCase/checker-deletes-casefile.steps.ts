@@ -4,12 +4,15 @@ import { CheckerDeletionFlow } from '../../../e2e/functional/opal/flows/checkAnd
 const flow = new CheckerDeletionFlow();
 
 Given('my live deletion scenario owns a submitted case for {string}', (kind: string) => flow.prepare(kind));
-When('its independent checker completes the deletion interaction', () => flow.act());
-Then('the deletion outcome preserves the owned case and records only its intended decision', () =>
-  flow.assertOutcome(),
+Given('my accessible deletion scenario owns a submitted case for {string}', (kind: string) =>
+  flow.prepareAccessible(kind),
 );
-
-Then(
-  'my independent live checker deletion {string} journey is accessible with its business outcome verified',
-  (kind: string) => flow.accessible(kind),
-);
+When('I confirm deletion with the prepared 250-character reason', () => flow.confirm());
+When('I confirm deletion without a reason', () => flow.submitValidation());
+When('I confirm deletion with the prepared 251-character reason', () => flow.submitValidation());
+When('I enter a {int}-character deletion reason', (length: number) => flow.enterReasonWithLength(length));
+When('I cancel deletion', () => flow.cancel());
+When('I explicitly retry deletion after a definite failure', () => flow.retry());
+Then('the linked deletion validation says {string}', (message: string) => flow.assertValidation(message));
+Then('the saved case remains unchanged without a deletion decision', () => flow.assertUnchanged());
+Then('the owned case is retained in Deleted with its recorded reason', () => flow.assertDeleted());

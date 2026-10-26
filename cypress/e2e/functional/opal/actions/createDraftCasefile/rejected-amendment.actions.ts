@@ -1,3 +1,4 @@
+import { activateCasefileControl } from './casefile-review-controls.actions';
 import { UNSAVED_CHANGES_WARNING } from '../../../../../shared/constants/create-casefile-test-copy.constant';
 import { accessibilityActions } from '../accessibility/accessibility.actions';
 import { CreateCasefileSelectors as S } from '../../../../../shared/selectors/create-casefile.selectors';
@@ -120,7 +121,7 @@ export class RejectedAmendmentActions {
   /** Activates the real submission control.
    */
   public resubmitCorrectedCase(): void {
-    cy.get(S.review.submit).click();
+    activateCasefileControl(S.review.submit, false);
   }
   /** Enters the correction journey and submits once with an uncertain server outcome. */
   public prepareUncertain(): void {

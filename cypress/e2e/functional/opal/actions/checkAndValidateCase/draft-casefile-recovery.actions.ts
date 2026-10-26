@@ -1,3 +1,4 @@
+import { setCasefileReason, activateCasefileControl } from '../createDraftCasefile/casefile-review-controls.actions';
 import { locateDraftCasefileRow } from './draft-casefile-table.actions';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
@@ -113,14 +114,14 @@ export class DraftCasefileRecoveryActions {
     } else {
       cy.visit(`/${CHECKER.root}/${CHECKER.children.review}/${id}`);
     }
-    cy.get(S.reviewHeading).should('be.visible');
+    cy.get(C.review.heading).should('be.visible');
     if (journey === 'resubmit') {
       cy.location('pathname').should('equal', `/${CREATE.root}/${CREATE.children.checkCaseDetails}`);
-      cy.get(S.reviewHeading).should('have.text', 'Check case details');
-      cy.get(S.amendmentSubmit).should('contain.text', 'Submit for review');
+      cy.get(C.review.heading).should('have.text', 'Check case details');
+      cy.get(C.review.submit).should('contain.text', 'Submit for review');
     } else {
       cy.location('pathname').should('equal', `/${CHECKER.root}/${CHECKER.children.review}/${id}`);
-      cy.get(S.continue).should('have.text', 'Continue');
+      cy.get(C.review.decisionContinue).should('have.text', 'Continue');
     }
   }
 
@@ -131,14 +132,14 @@ export class DraftCasefileRecoveryActions {
   public choose(journey: DraftCasefileJourney): void {
     this.reason = 'Synthetic concurrency decision';
     if (journey === 'delete') {
-      cy.get(S.deleteLink).should('have.text', 'Delete case').click();
-      cy.get(S.deleteHeading).should('contain.text', 'Are you sure you want to delete this case?');
-      cy.get(S.deleteReason).should('be.visible').type(this.reason);
+      cy.get(C.review.delete).should('have.text', 'Delete case').click();
+      cy.get(C.deletion.heading).should('contain.text', 'Are you sure you want to delete this case?');
+      setCasefileReason(C.deletion.reason, this.reason);
     } else if (journey === 'approve') {
-      cy.get(S.approve).check();
+      cy.get(C.review.decisionApprove).check();
     } else if (journey === 'reject') {
-      cy.get(S.reject).check();
-      cy.get(S.reason).should('be.visible').type(this.reason);
+      cy.get(C.review.decisionReject).check();
+      setCasefileReason(C.review.rejectionReason, this.reason);
     }
   }
 
@@ -147,7 +148,7 @@ export class DraftCasefileRecoveryActions {
    */
   public reviseReason(): void {
     this.reason = 'Synthetic corrected concurrency decision';
-    cy.get(S.reason).clear().type(this.reason);
+    setCasefileReason(C.review.rejectionReason, this.reason);
   }
 
   /**
@@ -166,7 +167,7 @@ export class DraftCasefileRecoveryActions {
     cy.get(C.review.change('respondent')).click();
     cy.get(C.respondentDetails.firstNames).clear().type(value);
     cy.get(C.respondentDetails.returnToCaseDetails).click();
-    cy.get(S.reviewHeading).should('be.visible');
+    cy.get(C.review.heading).should('be.visible');
     cy.get(C.review.section('respondent')).should('contain.text', value);
   }
 
@@ -175,7 +176,7 @@ export class DraftCasefileRecoveryActions {
    * @param journey Business action whose rendered controls or outcome are being exercised.
    */
   public capture(journey: DraftCasefileJourney): void {
-    const selector = journey === 'delete' ? S.deleteIdentity : S.reviewSections;
+    const selector = journey === 'delete' ? C.deletion.identity : S.reviewSections;
     cy.get(selector)
       .should('be.visible')
       .then(($sections) => {
@@ -202,7 +203,7 @@ export class DraftCasefileRecoveryActions {
    * @param journey Business action whose rendered controls or outcome are being exercised.
    */
   public assertRetained(journey: DraftCasefileJourney): void {
-    const selector = journey === 'delete' ? S.deleteIdentity : S.reviewSections;
+    const selector = journey === 'delete' ? C.deletion.identity : S.reviewSections;
     cy.get(selector)
       .should('be.visible')
       .should(($sections) => {
@@ -212,10 +213,10 @@ export class DraftCasefileRecoveryActions {
         );
       });
     if (journey === 'delete' || journey === 'reject') {
-      cy.get(journey === 'delete' ? S.deleteReason : S.reason).should('have.value', this.reason);
+      cy.get(journey === 'delete' ? C.deletion.reason : C.review.rejectionReason).should('have.value', this.reason);
     }
     if (journey === 'approve' || journey === 'reject') {
-      cy.get(journey === 'approve' ? S.approve : S.reject).should(($input) =>
+      cy.get(journey === 'approve' ? C.review.decisionApprove : C.review.decisionReject).should(($input) =>
         assertRetainedCheckerDecision($input[0] as HTMLInputElement, journey),
       );
     }
@@ -237,19 +238,15 @@ export class DraftCasefileRecoveryActions {
    * @param keyboard Whether to use native keyboard activation instead of a pointer click.
    */
   public submit(journey: DraftCasefileJourney, keyboard = false): void {
-    let selector: string = S.continue;
-    if (journey === 'resubmit') selector = S.amendmentSubmit;
-    if (journey === 'delete') selector = S.deleteSubmit;
-    if (keyboard) {
-      if (journey === 'reject') {
-        cy.get(S.reason).focus().should('be.focused');
-        cy.press(Cypress.Keyboard.Keys.TAB);
-      } else cy.get(selector).should('be.enabled').focus();
+    let selector: string = C.review.decisionContinue;
+    if (journey === 'resubmit') selector = C.review.submit;
+    if (journey === 'delete') selector = C.deletion.submit;
+    if (keyboard && journey === 'reject') {
+      cy.get(C.review.rejectionReason).focus().should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
       cy.get(selector).should('be.enabled').and('be.focused');
-      cy.press(Cypress.Keyboard.Keys.ENTER);
-    } else {
-      cy.get(selector).should('be.enabled').click();
-    }
+      pressDashboardEnter();
+    } else activateCasefileControl(selector, keyboard);
   }
 
   /**
@@ -258,12 +255,12 @@ export class DraftCasefileRecoveryActions {
    */
   public assertReloadRequired(journey: DraftCasefileJourney): void {
     if (journey === 'delete') {
-      cy.get(S.deleteRecovery).should('be.visible');
-      cy.get(S.deleteSubmit).should('be.disabled');
+      cy.get(C.deletion.recovery).should('be.visible');
+      cy.get(C.deletion.submit).should('be.disabled');
       return;
     }
     if (journey === 'approve' || journey === 'reject') {
-      cy.get(journey === 'approve' ? S.approve : S.reject).should(($input) =>
+      cy.get(journey === 'approve' ? C.review.decisionApprove : C.review.decisionReject).should(($input) =>
         assertRetainedCheckerDecision($input[0] as HTMLInputElement, journey),
       );
     }
@@ -281,8 +278,8 @@ export class DraftCasefileRecoveryActions {
       .should('be.visible')
       .and('contain.text', 'Something else was changed while you were doing this.')
       .and('contain.text', 'Your changes have not been saved. You will need to start again.');
-    cy.get(S.continue).should('not.exist');
-    cy.get(S.amendmentSubmit).should('not.exist');
+    cy.get(C.review.decisionContinue).should('not.exist');
+    cy.get(C.review.submit).should('not.exist');
   }
 
   /**
@@ -317,9 +314,9 @@ export class DraftCasefileRecoveryActions {
       } else link.click();
     });
     cy.wait('@recoveredDraft').its('response.statusCode').should('equal', 200);
-    cy.get(S.reviewHeading).should('be.visible');
-    cy.get(S.continue).should('not.exist');
-    cy.get(S.amendmentSubmit).should('not.exist');
+    cy.get(C.review.heading).should('be.visible');
+    cy.get(C.review.decisionContinue).should('not.exist');
+    cy.get(C.review.submit).should('not.exist');
   }
 
   /**
@@ -332,11 +329,11 @@ export class DraftCasefileRecoveryActions {
     const draft = snapshot.draft;
     const individual = draft.casefile.respondent_account.respondent.party_details.individual_details;
     if (!individual?.forenames) throw new Error('Synthetic recovery presentation requires an individual');
-    cy.get(S.reviewHeading).should('be.visible');
+    cy.get(C.review.heading).should('be.visible');
     cy.get(C.review.section('respondent'))
       .should('contain.text', individual.forenames)
       .and('contain.text', individual.surname);
-    cy.get(S.status).should('have.text', savedStatusLabel(draft.casefile_status, inputter));
+    cy.get(C.review.status).should('have.text', savedStatusLabel(draft.casefile_status, inputter));
     const expected = original ? this.originalReview : this.savedReview;
     cy.get(S.reviewSections)
       .should('be.visible')
@@ -364,9 +361,9 @@ export class DraftCasefileRecoveryActions {
     const respondent: unknown = Cypress._.get(draft.casefile_snapshot, 'respondent_account.respondent_name');
     if (typeof respondent !== 'string' || !respondent.trim()) throw new Error('Owned respondent name is missing');
     if (journey === 'resubmit') {
-      cy.get(`${S.dashboardHeading}, ${S.allRejectedHeading}`).should('be.visible');
-      cy.get(`${S.dashboardSuccess}, ${S.allRejectedSuccess}`).should('be.visible');
-      cy.get(`${S.dashboardSuccessText}, ${S.allRejectedSuccessText}`)
+      cy.get(`${D.heading}, ${D.allRejectedHeading}`).should('be.visible');
+      cy.get(`${D.success}, ${D.allRejectedSuccess}`).should('be.visible');
+      cy.get(`${D.successText}, ${D.allRejectedSuccessText}`)
         .should('be.visible')
         .then(($notice) =>
           cy
@@ -374,9 +371,9 @@ export class DraftCasefileRecoveryActions {
             .then((pathname) => assertRetryDestination(pathname, $notice.text(), journey, respondent)),
         );
     } else {
-      cy.get(S.dashboardHeading).should('have.text', 'Review cases');
-      cy.get(S.dashboardSuccess).should('be.visible');
-      cy.get(S.dashboardSuccessText)
+      cy.get(D.heading).should('have.text', 'Review cases');
+      cy.get(D.success).should('be.visible');
+      cy.get(D.successText)
         .should('be.visible')
         .then(($notice) =>
           cy
@@ -385,8 +382,8 @@ export class DraftCasefileRecoveryActions {
         );
     }
     cy.get(C.globalErrorBanner).should('not.exist');
-    cy.get(S.continue).should('not.exist');
-    cy.get(S.amendmentSubmit).should('not.exist');
+    cy.get(C.review.decisionContinue).should('not.exist');
+    cy.get(C.review.submit).should('not.exist');
   }
 
   /**
@@ -434,11 +431,11 @@ export class DraftCasefileRecoveryActions {
       this.assertRetained(journey);
       this.amendmentBack(true, keyboard);
     } else if (journey === 'delete') {
-      cy.get(S.deleteRecovery).should('be.visible');
-      cy.get(S.deleteSubmit).should('be.disabled');
-      const cancel = cy.contains(S.cancel, 'No - cancel').should('be.visible');
+      cy.get(C.deletion.recovery).should('be.visible');
+      cy.get(C.deletion.submit).should('be.disabled');
+      const cancel = cy.contains(C.deletion.cancel, 'No - cancel').should('be.visible');
       if (keyboard) {
-        cy.get(S.deleteReason).focus().should('be.focused');
+        cy.get(C.deletion.reason).focus().should('be.focused');
         cy.press(Cypress.Keyboard.Keys.TAB);
         cancel.should('be.focused');
         cy.press(Cypress.Keyboard.Keys.ENTER);
@@ -452,7 +449,7 @@ export class DraftCasefileRecoveryActions {
     cy.wait('@recoveredDraft').then(({ response }) =>
       expect(response?.statusCode, 'recovery reloaded persisted state').to.equal(200),
     );
-    cy.get(S.continue).should('not.exist');
-    cy.get(S.amendmentSubmit).should('not.exist');
+    cy.get(C.review.decisionContinue).should('not.exist');
+    cy.get(C.review.submit).should('not.exist');
   }
 }

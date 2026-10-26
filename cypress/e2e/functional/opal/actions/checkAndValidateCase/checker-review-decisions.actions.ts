@@ -1,4 +1,4 @@
-import { setCasefileReason } from '../createDraftCasefile/casefile-review-controls.actions';
+import { setCasefileReason, chooseCasefileDecision } from '../createDraftCasefile/casefile-review-controls.actions';
 import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import {
   decodeDraftCasefileCount,
@@ -337,7 +337,7 @@ export class CheckerReviewActions {
     const chosen = this.decision(decision);
     if (chosen === 'approve' && this.fixtureKind !== 'publication')
       throw new Error('Approval requires a publication fixture');
-    this.recovery.choose(chosen);
+    this.recovery.choose(chosen, this.scanning);
     this.scan();
     this.recovery.submit(chosen, this.scanning);
     cy.wait('@draftMutation').then(({ response }) => {
@@ -465,8 +465,7 @@ export class CheckerReviewActions {
 
   /** Selects Reject with an actually blank textarea and attempts validation without any PATCH. */
   public rejectBlank(): void {
-    cy.get(C.review.decisionReject).check();
-    setCasefileReason(C.review.rejectionReason, '');
+    chooseCasefileDecision('reject', '', this.scanning);
     this.scan();
     this.recovery.submit('reject', this.scanning);
   }
@@ -586,7 +585,7 @@ export class CheckerReviewActions {
    */
   public compete(decision: string): void {
     const chosen = this.decision(decision);
-    this.recovery.choose(chosen);
+    this.recovery.choose(chosen, this.scanning);
     this.scan();
     requestDraftChange(this.baseline(), 'PATCH', {
       business_unit_id: 44,

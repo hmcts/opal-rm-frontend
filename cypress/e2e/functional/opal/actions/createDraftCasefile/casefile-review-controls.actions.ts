@@ -1,3 +1,4 @@
+import { CreateCasefileSelectors as C } from '../../../../../shared/selectors/create-casefile.selectors';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 
 /** Replaces the rendered reason, including a deliberate empty value.
@@ -19,4 +20,27 @@ export function activateCasefileControl(selector: string, keyboard: boolean): vo
     cy.get(selector).should('be.visible').and('not.be.disabled').focus().should('be.focused');
     pressDashboardEnter();
   } else cy.get(selector).should('be.visible').and('not.be.disabled').click();
+}
+
+/** Selects a checker decision and reaches its conditional reason through native Tab when requested.
+ * @param decision Checker choice to activate.
+ * @param reason Complete synthetic rejection reason, including a deliberate blank value.
+ * @param keyboard Whether to use native Space and Tab instead of pointer selection.
+ */
+export function chooseCasefileDecision(decision: 'approve' | 'reject', reason: string, keyboard: boolean): void {
+  const selector = decision === 'approve' ? C.review.decisionApprove : C.review.decisionReject;
+  if (keyboard) {
+    cy.get(selector).focus().should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(selector).should('be.checked').and('be.focused');
+  } else cy.get(selector).check().should('be.checked');
+  if (decision === 'reject') {
+    cy.get(C.review.rejectionReason).should('be.visible');
+    if (keyboard) {
+      cy.get(selector).should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(C.review.rejectionReason).should('be.focused');
+    }
+    setCasefileReason(C.review.rejectionReason, reason);
+  }
 }

@@ -292,6 +292,15 @@ describe('PO-10625 checker lifecycle and accessible validation dispatch support'
     () => {
       const actions = new CheckerReviewActions();
       const events: string[] = [];
+      // Forbid pointer selection only within this accessible action-under-test seam.
+      const get = cy.get;
+      cy.stub(cy, 'get').callsFake((...args: Parameters<typeof cy.get>) => {
+        const chain = get.apply(cy, args);
+        if (args[0] === C.review.decisionReject)
+          cy.stub(chain, 'check').throws(new Error('Accessible decision must use native Space'));
+        return chain;
+      });
+      const press = cy.spy(cy, 'press');
       cy.document().then((document) => {
         document.body.innerHTML =
           '<label for="create_casefile_review_decision-reject">Reject</label><input type="radio" id="create_casefile_review_decision-reject"><label for="create_casefile_review_rejection_reason">Reason</label><textarea id="create_casefile_review_rejection_reason">Stale reason</textarea>';
@@ -300,8 +309,11 @@ describe('PO-10625 checker lifecycle and accessible validation dispatch support'
       cy.stub(actions, 'prepare');
       cy.stub(actions, 'assertValidation');
       cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
-        cy.get(C.review.rejectionReason).should('have.value', '');
+        cy.get(C.review.decisionReject).should('be.checked');
+        cy.get(C.review.rejectionReason).should('have.value', '').and('be.focused');
         cy.then(() => {
+          expect(press).to.have.been.calledWithExactly(Cypress.Keyboard.Keys.SPACE);
+          expect(press).to.have.been.calledWithExactly(Cypress.Keyboard.Keys.TAB);
           events.push('strict scan');
         });
       });
@@ -316,6 +328,61 @@ describe('PO-10625 checker lifecycle and accessible validation dispatch support'
       cy.then(() => expect(events).to.deep.equal(['strict scan', 'native validation submit']));
     },
   );
+});
+
+describe('PO-10625 checker selection input dispatch support', () => {
+  for (const keyboard of [false, true]) {
+    for (const action of ['decide', 'compete'] as const) {
+      it(
+        `AC1. should forward keyboard boolean ${keyboard} from ${action} to decision selection`,
+        { tags: buildTags() },
+        () => {
+          const actions = new CheckerReviewActions();
+          if (keyboard) actions.enableAccessibility();
+          // Stop at the selection seam before receipt or competing-provider operations.
+          const choose = cy
+            .stub(DraftCasefileRecoveryActions.prototype, 'choose')
+            .throws(new Error('Controlled selection boundary'));
+          expect(() => actions[action]('reject')).to.throw('Controlled selection boundary');
+          expect(choose).to.have.been.calledOnceWithExactly('reject', keyboard);
+        },
+      );
+    }
+  }
+
+  for (const decision of ['approve', 'reject'] as const) {
+    for (const keyboard of [undefined, false, true]) {
+      it(
+        `AC1. should choose ${decision} through the recovery caller with keyboard ${keyboard ?? 'default'}`,
+        { tags: buildTags() },
+        () => {
+          const press = cy.spy(cy, 'press');
+          cy.document().then((document) => {
+            document.body.innerHTML =
+              '<label for="create_casefile_review_decision-approve">Approve</label><input type="radio" name="decision" id="create_casefile_review_decision-approve">' +
+              '<label for="create_casefile_review_decision-reject">Reject</label><input type="radio" name="decision" id="create_casefile_review_decision-reject">' +
+              '<label for="create_casefile_review_rejection_reason">Reason</label><textarea id="create_casefile_review_rejection_reason">Stale reason</textarea>';
+          });
+          const recovery = new DraftCasefileRecoveryActions();
+          if (keyboard === undefined) recovery.choose(decision);
+          else recovery.choose(decision, keyboard);
+          cy.get(decision === 'approve' ? C.review.decisionApprove : C.review.decisionReject).should('be.checked');
+          if (decision === 'reject')
+            cy.get(C.review.rejectionReason).should('have.value', 'Synthetic concurrency decision');
+          cy.then(() => {
+            if (keyboard) {
+              expect(press).to.have.been.calledWithExactly(Cypress.Keyboard.Keys.SPACE);
+              expect(press.callCount).to.equal(decision === 'reject' ? 2 : 1);
+              if (decision === 'reject') expect(press).to.have.been.calledWithExactly(Cypress.Keyboard.Keys.TAB);
+            } else {
+              expect(press).not.to.have.been.called;
+            }
+            expect(recovery.expectedReason()).to.equal('Synthetic concurrency decision');
+          });
+        },
+      );
+    }
+  }
 });
 
 describe('PO-10625 exact decision history support', () => {

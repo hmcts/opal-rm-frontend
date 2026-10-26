@@ -419,9 +419,13 @@ Blank-reason validation requires `Enter reason for rejection`, the maintained na
 focusing the reason textarea, its inline ARIA association, zero PATCH and a fresh unchanged aggregate/ETag/history.
 The maintained shared summary uses an emitted field identity; its literal href is not an acceptance contract.
 Accessibility validation corrects the reason without submitting. Accessibility journeys use the shared strict Axe
-scanner with native Enter/Tab, heading and tab focus checks, scans for every meaningful visited state including
+scanner with native Space to select checker decisions, Tab from Reject to the revealed reason and from that reason
+to Continue, native Enter activation, heading and tab focus checks, and scans for every meaningful visited state including
 pagination, success notices, inputter outcomes, conflict, read-only and denied states. These scans provide partial
-automated accessibility evidence.
+automated accessibility evidence. The real Angular persisted-review component additionally proves native Space,
+Tab through the conditional reason to Continue, and ArrowUp selecting Approve and removing the reason, with no
+mutation. Helper dispatch checks support this evidence; they do not prove Angular rendering or live provider
+behavior. Screen-reader use and full WCAG 2.2 AA assessment remain external checks.
 
 Controlled support (synthetic boundaries, no live journey):
 

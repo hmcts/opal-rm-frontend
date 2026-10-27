@@ -2,6 +2,7 @@ import { selectedPersistedCasefile } from '../../mocks/createDraftCasefile/persi
 import { stubPersistedCasefileReferences } from '../../setup/createDraftCasefile/persisted-casefile.intercept';
 import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selectors/create-casefile.selectors';
 import { CasesDraftSelectors as DASHBOARD } from '../../../../../shared/selectors/cases-draft.selectors';
+import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { checkerUser } from '../../mocks/createDraftCasefile/checker-dashboard.mock';
 import type { CheckerRole } from '../../mocks/createDraftCasefile/checker-dashboard.mock';
 import type { CasesDraftCasefileDecision } from 'src/app/flows/cases/cases-draft/types/cases-draft-casefile-decision.type';
@@ -165,7 +166,8 @@ export class CheckCaseDetailsModesActions {
     cy.get(DASHBOARD.empty).should('contain.text', 'There are no cases to review.');
     cy.get('@decisionPatch.all').should('have.length', 1);
     cy.then(() => expect(this.writes).to.deep.equal(['PATCH']));
-    cy.screenshot('po10611-confirmed-' + outcome);
+    // Restoring the interactive runner after a screenshot can move focus to its spec list.
+    if (!Cypress.config('isInteractive')) cy.screenshot('po10611-confirmed-' + outcome);
   }
 
   /** Checks an uncertain receipt retains enabled controls while the parent prevents another mutation. */
@@ -191,14 +193,17 @@ export class CheckCaseDetailsModesActions {
     if (!['dismiss', 'refresh', 'history', 'departure'].includes(method))
       throw new Error('Unsupported notice departure');
     if (method === 'dismiss') {
-      cy.get(DASHBOARD.successDismiss).focus();
-      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get(DASHBOARD.successDismiss).focus().should('be.focused');
+      pressDashboardEnter();
+      cy.get(DASHBOARD.success).should('not.exist');
       cy.get(DASHBOARD.heading).should('be.focused');
     }
     if (method === 'refresh') cy.reload();
     if (method === 'history') {
       cy.go('back');
       cy.location('pathname').should('eq', CHECKER + '/review/17');
+      cy.get(S.heading).should('be.visible');
+      cy.get(DASHBOARD.heading).should('not.exist');
       cy.go('forward');
     }
     if (method === 'departure') {

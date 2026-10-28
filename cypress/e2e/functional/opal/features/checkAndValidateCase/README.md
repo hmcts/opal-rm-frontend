@@ -382,8 +382,9 @@ Before any rejection, approval or resubmission fixture creation, the operator mu
 cleanup and set **boolean** `PO10625_LIFECYCLE_CLEANUP_VERIFIED=true` in the live runner. This is a safety guard,
 not evidence of delivered cleanup. Approval additionally requires the maintained
 `PO10628_PUBLICATION_CLEANUP_VERIFIED=true` publication preflight. Never enable either switch automatically for
-live execution. Current Submitted-only cleanup cannot support these transitions; a missing prerequisite is an
-unrun or failed journey, never a passing acceptance result. Preserve required cleanup receipts on failure.
+live execution. The updated support branch supplies eligible lifecycle and exclusive published cleanup; verify
+that build's actual owner/marker DELETE before enabling these guards. Missing prerequisites remain an unrun or
+failed journey, never a passing acceptance result. Preserve required cleanup receipts on failure.
 
 Queue list/count/detail and UI PATCH observations pass through real provider responses. Queue scope requires
 BU 44, `not_submitted_by` the checker and exactly `SUBMITTED,RESUBMITTED`, without date filtering. The actual
@@ -459,9 +460,9 @@ checker dashboard, and a separate accessibility example for each. Existing decis
 `CheckerDashboardWindowFlow` resets its Actions per Given/accessibility journey. The lifecycle safety guard
 `PO10625_LIFECYCLE_CLEANUP_VERIFIED` must be **boolean true**, externally verified before **any** Rejected/Deleted
 creation. Maintained normal API fixtures use distinct ACTIVE Maintenance BU44 permission21 inputter and permission22
-checker, fresh ETags and receipt-owned marker cleanup. The inspected runtime cleans up Submitted only: **do not run
-these window fixtures live until compatible lifecycle cleanup is verified**. The switch itself is not evidence and
-must never self-enable in live setup. Empty scenarios create no data, require the existing checker actor and fail on
+checker, fresh ETags and receipt-owned marker cleanup. The historical inspected runtime cleaned up Submitted only;
+the updated support branch supplies eligible Rejected/Deleted cleanup. Verify the actual running build before
+these window fixtures execute. The switch itself is not evidence and must never self-enable in live setup. Empty scenarios create no data, require the existing checker actor and fail on
 unrelated eligible work; they never delete it.
 
 The actual persisted `casefile_status_date` anchors independent `monitoringCalendar` expectations. Each D0/D3/D7/D8
@@ -526,9 +527,10 @@ corepack yarn exec cypress run --browser chrome --config '{"baseUrl":null}' \
 
 Live selections require parent-coordinated execution using the maintained live runner and real base URL, with
 `dryRun` disabled. Retain **boolean false** for both `PO10625_LIFECYCLE_CLEANUP_VERIFIED` and
-`PO10628_PUBLICATION_CLEANUP_VERIFIED` on the current Submitted-only-cleanup runtime. Neither selector grants
-cleanup compatibility or authorises a transition. The full selection therefore has 14 unavailable guarded
-examples on that runtime; the narrower selections separate prerequisite failures from runner diagnosis.
+`PO10628_PUBLICATION_CLEANUP_VERIFIED` on an older Submitted-only-cleanup runtime. Its full selection has 14
+guarded examples it cannot support. With the updated support build, independently verify lifecycle and published
+cleanup before supplying true. Neither selector grants compatibility; the narrower selections remain useful for
+separating prerequisite failures from runner diagnosis.
 
 Compatible setup does not mean every selected example currently passes. Real empty-checker preflight found two
 unrelated eligible cases: both no-create empty examples legitimately fail their zero-count requirement. Preserve

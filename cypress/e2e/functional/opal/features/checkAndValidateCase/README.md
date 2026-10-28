@@ -579,8 +579,9 @@ exact Deleted history and marker-owned cleanup; a source checkout or an issue's 
 compiled runtime contract. Deletion does **not** require publication, a publication consumer or publication
 evidence registration.
 
-Current maintained cleanup supports SUBMITTED only. The four transition-capable examples (functional success and
-retry, accessibility success and retry) must stay unrun until DELETED lifecycle cleanup is externally verified.
+The updated support branch supplies eligible DELETED lifecycle cleanup; the earlier inspected runtime supported
+SUBMITTED only. Verify the actual compatible build's owner/marker DELETE before the four transition-capable
+examples (functional success/retry and accessibility success/retry) execute.
 `PO10625_LIFECYCLE_CLEANUP_VERIFIED` must be **boolean true** only after that verification. The maintained guard
 runs before any transition-capable fixture creation and immediately before each DELETED dispatch, including the
 explicit retry. Never self-enable the switch, reset lifecycle state, delete unrelated cases, or treat a switch as

@@ -839,8 +839,9 @@ Maintenance BU 44. Require `release-1c-rm-create-case-files`, Maintenance testin
 compiled backend revision/running services and compatible persisted deletion/list/detail/cleanup contracts.
 Publication and its consumer are not deletion prerequisites.
 
-Current owned cleanup supports SUBMITTED only. The four successful/retry transition examples remain blocked until
-DELETED cleanup is externally verified. Never self-enable the maintained **boolean**
+The updated support branch supplies eligible DELETED cleanup; the earlier inspected runtime supported SUBMITTED
+only. Verify the actual compatible build's owner/marker DELETE before the four successful/retry transition examples
+execute. Never self-enable the maintained **boolean**
 `PO10625_LIFECYCLE_CLEANUP_VERIFIED` guard; it runs before transition-capable creation and immediately before each
 DELETED dispatch, including retry. Exactly five nontransition examples carry `@PO10624SubmittedOnly`.
 

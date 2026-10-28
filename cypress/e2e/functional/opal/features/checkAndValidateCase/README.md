@@ -220,14 +220,14 @@ before dashboard consultation. All rejected is BU-wide and has neither submitter
 owned IDs and actor fields rather than assuming the shared BU contains only this scenario's work. Amendment entry
 is covered here; complete resubmission belongs to PO-10623.
 
-### Real prerequisites and current blocked acceptance
+### Real prerequisites and historical runtime evidence
 
-The inspected 23 October 2026 local Maintenance runtime is **incompatible**: exact revision is unverified, packaged
-and installed migrations end at V1_34/1.34, no publication consumer/repository classes were found, and V1_49
-observation tables/routes are absent. A healthy service and a configured queue do not establish publication or
-cleanup. No live PO-10628 browser/API fixture mutation or approval was executed against that runtime. Future-facing
-scenarios remain enabled; discovery and controlled support passes do not satisfy their acceptance. Delivery is
-**Not Agent Complete** until real acceptance and outstanding repository/external gates pass.
+The 23 October 2026 inspection found an incompatible local Maintenance runtime with an unverified revision,
+migrations only through V1_34/1.34 and no publication consumer/repository. No live PO-10628 fixture or approval was
+executed against it. This is historical evidence, not the contract of the updated support branch. Use a compatible
+`codex/PO-10626-publication-support` build and its DB/BE dependencies locally before master merge; verify the actual
+running build. Discovery and controlled support passes remain separate from live acceptance, which is **Not Agent
+Complete** until real acceptance and applicable repository/external gates pass.
 
 Before live execution, an operator must verify:
 
@@ -235,8 +235,7 @@ Before live execution, an operator must verify:
   the existing frontend on port 5000 untouched. Verify release `release-1c-rm-create-case-files=true` separately.
 - Actual list/count/detail POST/GET/PATCH behavior, authoritative quoted ETags, full persisted dates/timeline and
   BU44 permission enforcement. Enable existing `TESTING_SUPPORT_ENDPOINTS_ENABLED` and owner/marker DELETE cleanup.
-  This monitoring pack does not call publication-observation endpoints; if running the adjacent PO-10626 pack,
-  verify its V1_49 observation migration and fixed evidence route as documented above.
+  Neither this pack nor the updated PO-10626 pack requires an observation migration or publication-evidence route.
 - A functioning real publication consumer, procedure and `rm-publish-draft-casefile-queue`, reaching PUBLISHED with
   complete generated IDs/numbers for one respondent, one applicant and two sequenced minor creditors. Independently
   verify existing ID/marker cleanup returns HTTP204 for pending/published graphs; HTTP409 is a failure.
@@ -255,11 +254,11 @@ Before live execution, an operator must verify:
   suspend services. A fast consumer reaching PUBLISHED fails that pending fixture.
 
 Ordinary SUBMITTED/REJECTED/DELETED, empty and permission examples require only their own verified endpoints,
-identities and cleanup; they do not require publication readiness. A later read-only capability check confirmed
-ordinary POST/list/detail/PATCH/PUT routes and enabled testing support, but the running cleanup accepts **only
-SUBMITTED**. Thus REJECTED/DELETED/RESUBMITTED fixtures also remain unsafe on this runtime, independently of publication. Approval guards apply only to scenarios creating
-PUBLISHED/PUBLISHING_PENDING records (including the populated lifecycle scenarios). No live execution of any subset
-is authorised until its actual runtime capability is verified.
+identities and cleanup; they do not require publication readiness. The historical follow-up runtime accepted only
+SUBMITTED cleanup. The updated backend accepts eligible unlinked lifecycle states, approved pending drafts and
+exclusive published graphs as described above. Verify that contract on the actual running build before creating
+transitioned fixtures. Approval guards apply only to PUBLISHED/PUBLISHING_PENDING scenarios, including populated
+lifecycle scenarios; the guards do not establish runtime compatibility.
 
 Only after the corresponding operator preflights may external runner configuration supply boolean
 `PO10628_PUBLICATION_CLEANUP_VERIFIED=true` and, for stable pending, `PO10628_STABLE_PENDING_VERIFIED=true`.

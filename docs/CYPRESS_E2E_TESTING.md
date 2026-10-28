@@ -815,13 +815,12 @@ respondent/applicant/two minor-creditor number as exact read-only text; stable p
 keyboard/focus checks and shared strict Axe cover populated/empty tabs, pagination, All rejected/amendment return,
 published rows and denied destination. Full amendment resubmission belongs to PO-10623.
 
-Do not run live setup against the inspected incompatible local Maintenance runtime (migrations only through1.34,
-unverified exact build, missing publication/observation implementation). Verify actual compatible backend revision,
-list/detail/decision permissions and ETags, testing support, create-casefile release, provisioned primary/checker/
-second-inputter/denied identities, valid reference data, real publication consumer/procedure/queue and successful
-pending/published owner/marker cleanup first. The monitoring pack does not consume observation routes; V1_49 remains
-a prerequisite when running adjacent PO-10626 observation coverage. Backend timezone/inclusive calendar semantics
-and stable-pending configuration require external verification too.
+The 23 October inspection of a runtime with migrations only through1.34 and no publication implementation is
+historical. Use a compatible `codex/PO-10626-publication-support` build and its DB/BE dependencies locally, then
+verify actual list/detail/decision permissions and ETags, testing support, create-casefile release, provisioned
+primary/checker/second-inputter/denied identities, reference data, publication and pending/published owner/marker
+cleanup. Neither this monitoring pack nor the updated PO-10626 pack requires an observation migration or
+publication-evidence route. Backend calendar semantics and stable-pending configuration still require verification.
 
 `PO10628_SECOND_INPUTTER_EMAIL` must explicitly select an existing independent permission21 actor. Externally verified
 boolean guards `PO10628_PUBLICATION_CLEANUP_VERIFIED` and `PO10628_STABLE_PENDING_VERIFIED` never self-enable in live
@@ -838,8 +837,9 @@ snapshots. Keep its results separate from live acceptance and retain raw logs/re
 all remaining Definition of Done checks pass, report **Not Agent Complete**. Screen-reader and magnification checks
 need the specialist setup and expected results documented in the suite guide.
 
-A subsequent read-only capability split found ordinary POST/list/detail/PATCH/PUT plus enabled testing support,
-but cleanup accepts **SUBMITTED only**. The suite's `@PO10628SubmittedOnly` tag selects exactly **4 enabled examples**
+A historical read-only capability split found ordinary POST/list/detail/PATCH/PUT plus enabled testing support,
+but only SUBMITTED cleanup on that older runtime. The updated support branch supplies eligible lifecycle and
+exclusive published cleanup; verify its actual deployment before executing those fixtures. The suite's `@PO10628SubmittedOnly` tag selects exactly **4 enabled examples**
 (SUBMITTED boundary row, functional denial, accessibility empty and accessibility denial), preserving16overall.
 Use the suite guide's exact three matching tag selectors and command after final review, actual authentication/
 reference-data/submitted-cleanup preflight and explicit live authorisation. Add `dryRun=true` and baseUrl null for

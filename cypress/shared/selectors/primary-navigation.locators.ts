@@ -1,4 +1,3 @@
-// Temporary comment for testing approval dismissal after a Cypress-only push.
 const PRIMARY_NAVIGATION_CONTAINER = '#primaryNavigation nav[aria-label="Primary navigation"]';
 const PRIMARY_NAVIGATION_ITEMS = '#primaryNavigation .moj-primary-navigation__link';
 

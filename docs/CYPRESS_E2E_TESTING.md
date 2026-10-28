@@ -911,8 +911,9 @@ A source checkout or ticket status does not establish these contracts. Testing s
 runtime. PO-10623 has no publication, publication-evidence registration, observation migration or publication
 consumer dependency.
 
-The currently inspected cleanup runtime supports SUBMITTED only. **Both boolean guards stay false until their
-capabilities are independently verified**: `PO10625_LIFECYCLE_CLEANUP_VERIFIED` covers REJECTED/RESUBMITTED lifecycle
+The earlier inspected runtime supported SUBMITTED cleanup only. The updated support branch supplies eligible
+REJECTED/RESUBMITTED cleanup using the persisted latest submitter, including cross-user transfer. **Both boolean
+guards stay false until that actual running contract is independently verified**: `PO10625_LIFECYCLE_CLEANUP_VERIFIED` covers REJECTED/RESUBMITTED lifecycle
 cleanup and is checked before creation and immediately before every transition; additionally
 `PO10623_TRANSFER_CLEANUP_VERIFIED` covers latest-submitter transfer cleanup and is checked before cross-user
 creation and transition. Tests never self-enable either guard. A false guard is an expected unavailable-prerequisite

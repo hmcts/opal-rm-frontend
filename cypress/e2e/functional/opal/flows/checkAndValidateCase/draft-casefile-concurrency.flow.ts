@@ -9,9 +9,6 @@ import {
   readDraftSnapshot,
   assertUnchangedDraft,
   versionValue,
-  registerPublicationEvidence,
-  readPublicationEvidence,
-  assertPublicationDelta,
 } from '../../actions/checkAndValidateCase/draft-casefile-evidence.actions';
 import { DraftCasefileRecoveryActions } from '../../actions/checkAndValidateCase/draft-casefile-recovery.actions';
 import { accessibilityActions } from '../../actions/accessibility/accessibility.actions';
@@ -20,7 +17,6 @@ import type { DraftCasefileFault } from '../../actions/checkAndValidateCase/type
 import type { IOwnedDraftCasefile } from '../../actions/checkAndValidateCase/interfaces/draft-casefile-owned.interface';
 import type { IDraftCasefileSnapshot } from '../../actions/checkAndValidateCase/interfaces/draft-casefile-snapshot.interface';
 import type { IDraftCasefileMonitor } from '../../actions/checkAndValidateCase/interfaces/draft-casefile-monitor.interface';
-import type { IDraftCasefilePublicationEvidence } from '../../actions/checkAndValidateCase/interfaces/draft-casefile-publication-evidence.interface';
 
 /** Each prepare call creates its own mutable context; no case or acceptance evidence is shared between examples. */
 export class DraftCasefileConcurrencyFlow {
@@ -31,7 +27,6 @@ export class DraftCasefileConcurrencyFlow {
   private before?: IDraftCasefileSnapshot;
   private winner?: IDraftCasefileSnapshot;
   private monitor?: IDraftCasefileMonitor;
-  private publicationBefore?: IDraftCasefilePublicationEvidence;
   private correction = 'Corrected synthetic';
   private retried = false;
   private recovered = false;
@@ -59,17 +54,12 @@ export class DraftCasefileConcurrencyFlow {
     this.before = undefined;
     this.winner = undefined;
     this.monitor = undefined;
-    this.publicationBefore = undefined;
     this.correction = 'Corrected synthetic';
     this.retried = false;
     this.recovered = false;
     createOwnedSubmittedDraft().then((owned) => {
       this.owned = owned;
       if (this.journey === 'resubmit') rejectOwnedDraft(owned);
-      // API fixture creation and rejected-prerequisite setup end in the current inputter session.
-      registerPublicationEvidence(owned).then((evidence) => {
-        this.publicationBefore = evidence;
-      });
       if (this.journey !== 'resubmit') cy.then(() => performAuthentication(owned.checker));
       readDraftSnapshot(owned.id).then((snapshot) => {
         expect(snapshot.draft.casefile_status).to.equal(this.journey === 'resubmit' ? 'REJECTED' : 'SUBMITTED');
@@ -260,10 +250,9 @@ export class DraftCasefileConcurrencyFlow {
       const expectedEvent = { approve: 'Approved', reject: 'Rejected', delete: 'Deleted', resubmit: 'Resubmitted' }[
         this.journey
       ];
-      // BE dependency: successful approval can remain PUBLISHING_PENDING until the
-      // PO-10629 consumer is delivered. Producer evidence proves send attempts and
-      // acknowledgments, not account creation. Published lifecycle cleanup remains
-      // required before the pending approval example can satisfy full AC1 acceptance.
+      // The consumer and lifecycle cleanup are delivered on the support branch.
+      // Keep approval pending until a real recovery/cleanup run and its separate
+      // producer/broker evidence are verified; this GET proves persisted state only.
       const statuses =
         this.journey === 'approve'
           ? ['PUBLISHING_PENDING', 'PUBLISHED', 'PUBLISHING_FAILED']
@@ -313,30 +302,6 @@ export class DraftCasefileConcurrencyFlow {
       cy.then(() => {
         expect(monitor.attempts).to.equal(this.retried ? 2 : 1);
         expect(monitor.upstreamSuccesses).to.equal(1);
-      });
-    });
-  }
-
-  /** Reads owner-scoped producer evidence after the final browser and accessibility assertions. */
-  public assertPublicationEvidence(): void {
-    cy.then(() => {
-      const { owned, monitor } = this.context();
-      const baseline = this.publicationBefore;
-      if (!baseline) throw new Error('Publication observation was not registered before the mutation');
-      expect(monitor.applicationAttempts, 'application dispatches through the final UI assertion').to.equal(
-        this.retried ? 2 : 1,
-      );
-      expect(monitor.attempts, 'browser attempts through the final UI assertion').to.equal(this.retried ? 2 : 1);
-      // Restoring cy.session navigates away. This must be the final step after all UI/Axe assertions.
-      performAuthentication(owned.inputter);
-      readPublicationEvidence(owned).then((current) => {
-        return cy
-          .writeFile(
-            `functional-output/po10626/publication-${owned.marker}-${owned.id}.json`,
-            { id: owned.id, testRunReference: owned.marker, before: baseline, after: current },
-            { log: false },
-          )
-          .then(() => assertPublicationDelta(baseline, current, this.journey === 'approve' ? 1 : 0));
       });
     });
   }

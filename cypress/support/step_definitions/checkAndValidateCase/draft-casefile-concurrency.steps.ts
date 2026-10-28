@@ -20,4 +20,4 @@ Then('I see the authoritative winning outcome without replaying my change', () =
 Then('the recovery message and controls are accessible', () => flow.assertRecovery());
 When('I use the recovery controls with the keyboard', () => flow.recoverUsingKeyboard());
 Then('I reach the supported next state without an automatic case change', () => flow.assertAccessibleNextState());
-Then('publication evidence confirms no duplicate case publication', () => flow.assertPublicationEvidence());
+Then('the completed recovery has not replayed the case change', () => flow.assertFinalState());

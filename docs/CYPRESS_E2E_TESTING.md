@@ -27,55 +27,41 @@ Both tag environment variables and the lowercase
 Each example uses normal API creation with live environment-valid reference data and existing ACTIVE Maintenance
 users: inputter permission 21 and a distinct checker permission 22 in BU 44. Setup does not create users, alter
 permissions or provide backend-owned fields. The case-creation UI regression instructions below remain required.
-Enable the create-casefile release and Maintenance testing support separately; verify the actual backend revision,
-V1_49 observation migration and persisted review/deletion/amendment routes. The backend change remains a blocked
-draft until direct evidence establishes otherwise.
+Enable the create-casefile release and Maintenance testing support separately. Verify the actual compatible
+`codex/PO-10626-publication-support` build (reviewed at `215b577`) and its DB/BE dependencies, persisted
+review/deletion/amendment routes and owner/marker cleanup. These dependencies can run locally before merging to
+master. This support contract has no observation migration, publication-evidence route or evidence-response schema.
 
-Publication evidence uses the fixed authenticated POST/GET route
-`/opal-maintenance-service/testing-support/draft-casefiles/{id}/publication-evidence` and exact `Test-Run-Reference`.
-Both calls require the current owning inputter with permission 21 in the stored BU; neither accepts a caller-supplied
-URI or body. POST registers a complete zero-attempt baseline before the tested mutation, after rejected-prerequisite
-setup and before checker authentication/browser navigation. Registration returns 201 or idempotent 200; an
-unregistered GET returns 409. The exact response fields are `observation_id`, `registered_at`, `send_attempt_count`,
-`acknowledged_send_count`, `uncertain_send_count`, `unfinished_send_count` and `evidence_complete`. Counts are safe
-nonnegative integers with attempts equal to acknowledged plus uncertain plus unfinished sends. Final evidence must
-be complete and retain the observation identity/time. Approval needs one additional attempt and acknowledgement;
-all other journeys need zero. Producer evidence does not prove consumer delivery or account creation.
+Normal authenticated GET/re-entry proves original ID, opaque ETag, lifecycle, complete saved aggregate/snapshot and
+one corresponding timeline event with the prior history retained. Browser application/wire request counts prove
+no automatic replay through completed recovery and accessibility checks; explicit retry requires two deliberate
+activations. The final `the completed recovery has not replayed the case change` step repeats the count checks.
+No owner-session switch for a publication journal remains. Mutation receipts contain only owned ID/marker,
+journey/fault, counts and opaque versions in `functional-output/po10626/`; never persist participant names, cookies,
+request bodies or snapshots there.
 
-The final Gherkin assertion runs after every UI/Axe check, restores the inputter and reads the observation before
-cleanup. Restoring `cy.session` navigates away, so no UI assertion may follow it. Publication receipts contain only ID, exact marker and the seven
-safe before/after fields. Mutation receipts contain the owned ID/marker, journey/fault, application/network counts
-and opaque versions. Both use `functional-output/po10626/`; never persist names, cookies, request bodies or casefile
-snapshots there. Missing/incomplete evidence fails; no partial-success mode remains. The existing single
-cleanup hook persists all receipts, restores each recorded inputter, then sends the ID-scoped DELETE with the exact
-marker. Only 204 clears a receipt. Non-204/transport failure retains receipts and fails acceptance, including 409.
-No body, If-Match, cleanup GET or `ignore_missing` query is used. `PO10626_DEFER_CLEANUP` remains an existing helper
-capability for explicitly deferred localhost receipts; these new required-cleanup fixtures do not use it.
+Producer invocation, broker acceptance/redelivery and a published graph need their separately labelled backend
+and opt-in dedicated-broker evidence. Normal GET/timeline and browser counts cannot establish producer send counts.
+The original AC1 no-duplicate-publication requirement remains unmet until the acceptance owner confirms the
+proposed allocation in the [suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#recovery-evidence-and-publication-boundaries)
+or separately scoped broker-observation capability is delivered. This cutover does not waive that requirement.
 
-The feature's explicit dependency comment is:
+The existing single cleanup hook persists each receipt, restores its recorded latest submitter and sends the
+ID-scoped DELETE with the exact marker; only 204 clears it. Non-204/transport failure retains the receipt and fails
+the run. No body, If-Match, cleanup GET or `ignore_missing` query is used. The updated backend supports eligible
+unlinked lifecycle states, approved pending drafts and exclusive published graphs. Verify actual graph read/delete
+capability and the latest-submitter/BU permission rules. Published cleanup's concurrent-writer risk is accepted by
+the backend operating contract; additional table-wide locks are not prerequisites. DELETE does not establish
+broker settlement. Complete saved-state assertions before cleanup. Required-cleanup fixtures do not use the existing
+localhost-only `PO10626_DEFER_CLEANUP` capability.
 
-```gherkin
-# BE dependency: PO-10629 consumer and published-account cleanup are outstanding.
-# Current DELETE rejects PUBLISHING_PENDING and PUBLISHED with 409.
-# Retain this AC1 approval example; remove its pending tags only after the
-# delivered cleanup contract and a full live approval/recovery run are verified.
-```
-
-The approval status assertion records:
-
-```ts
-// BE dependency: successful approval can remain PUBLISHING_PENDING until the
-// PO-10629 consumer is delivered. Producer evidence proves send attempts and
-// acknowledgments, not account creation. Published lifecycle cleanup remains
-// required before the pending approval example can satisfy full AC1 acceptance.
-```
-
-Confirm both consumer and published-account cleanup deliveries and their final contract before reactivating approval;
-an issue's status alone is insufficient. Require a full owned approval/recovery/evidence/cleanup run before removing
-the tags. `PUBLISHING_FAILED` cleanup eligibility does not authorise deliberately forcing publication failure.
-Preserve failed receipts and raw outputs before runner resets. Controlled component checks prove helper boundaries;
-discovery proves selection/bindings. Neither proves real owner/session ordering, publication evidence or cleanup.
-The suite retains all UI recovery, Axe and native keyboard checks, with no additional accessibility exemptions.
+Approval retains `@skip @PO10626RequiresPublishedCleanup` until the actual deployed consumer/cleanup contract and a
+full owned approval/recovery/cleanup run are verified, with publication evidence allocated separately as above.
+The consumer and pending/published cleanup are delivered on the support branch; their source delivery alone does
+not satisfy this verification gate. `PUBLISHING_FAILED` cleanup eligibility does not authorise forcing that state.
+Preserve failed receipts and raw outputs before runner resets. Controlled support checks and discovery establish
+helper behaviour and selection/bindings respectively; live acceptance remains separate. All existing recovery,
+Axe and native keyboard checks remain, with no additional accessibility exemptions.
 
 Full inventory discovery (no browser actions or approval fixture creation):
 
@@ -812,13 +798,12 @@ respondent/applicant/two minor-creditor number as exact read-only text; stable p
 keyboard/focus checks and shared strict Axe cover populated/empty tabs, pagination, All rejected/amendment return,
 published rows and denied destination. Full amendment resubmission belongs to PO-10623.
 
-Do not run live setup against the inspected incompatible local Maintenance runtime (migrations only through1.34,
-unverified exact build, missing publication/observation implementation). Verify actual compatible backend revision,
-list/detail/decision permissions and ETags, testing support, create-casefile release, provisioned primary/checker/
-second-inputter/denied identities, valid reference data, real publication consumer/procedure/queue and successful
-pending/published owner/marker cleanup first. The monitoring pack does not consume observation routes; V1_49 remains
-a prerequisite when running adjacent PO-10626 observation coverage. Backend timezone/inclusive calendar semantics
-and stable-pending configuration require external verification too.
+The 23 October inspection of a runtime with migrations only through1.34 and no publication implementation is
+historical. Use a compatible `codex/PO-10626-publication-support` build and its DB/BE dependencies locally, then
+verify actual list/detail/decision permissions and ETags, testing support, create-casefile release, provisioned
+primary/checker/second-inputter/denied identities, reference data, publication and pending/published owner/marker
+cleanup. Neither this monitoring pack nor the updated PO-10626 pack requires an observation migration or
+publication-evidence route. Backend calendar semantics and stable-pending configuration still require verification.
 
 `PO10628_SECOND_INPUTTER_EMAIL` must explicitly select an existing independent permission21 actor. Externally verified
 boolean guards `PO10628_PUBLICATION_CLEANUP_VERIFIED` and `PO10628_STABLE_PENDING_VERIFIED` never self-enable in live
@@ -835,8 +820,9 @@ snapshots. Keep its results separate from live acceptance and retain raw logs/re
 all remaining Definition of Done checks pass, report **Not Agent Complete**. Screen-reader and magnification checks
 need the specialist setup and expected results documented in the suite guide.
 
-A subsequent read-only capability split found ordinary POST/list/detail/PATCH/PUT plus enabled testing support,
-but cleanup accepts **SUBMITTED only**. The suite's `@PO10628SubmittedOnly` tag selects exactly **4 enabled examples**
+A historical read-only capability split found ordinary POST/list/detail/PATCH/PUT plus enabled testing support,
+but only SUBMITTED cleanup on that older runtime. The updated support branch supplies eligible lifecycle and
+exclusive published cleanup; verify its actual deployment before executing those fixtures. The suite's `@PO10628SubmittedOnly` tag selects exactly **4 enabled examples**
 (SUBMITTED boundary row, functional denial, accessibility empty and accessibility denial), preserving16overall.
 Use the suite guide's exact three matching tag selectors and command after final review, actual authentication/
 reference-data/submitted-cleanup preflight and explicit live authorisation. Add `dryRun=true` and baseUrl null for

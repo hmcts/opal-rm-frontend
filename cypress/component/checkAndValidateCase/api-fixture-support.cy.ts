@@ -1,3 +1,6 @@
+import { createPersistedCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
+import { DraftCasefileConcurrencyFlow } from '../../e2e/functional/opal/flows/checkAndValidateCase/draft-casefile-concurrency.flow';
+import { DraftCasefileRecoveryActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-recovery.actions';
 import { buildSyntheticDraftRequest } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-payload';
 import {
   captureCreatedDraft,
@@ -537,6 +540,101 @@ describe('PO-10626 owned API fixture support', () => {
           expect(Cypress.env('draftCasefileCleanupReceipts')).to.deep.equal([]);
         });
         postSyntheticDraft('synthetic-inputter');
+      },
+    );
+  }
+
+  for (const journey of ['approve', 'reject', 'delete', 'resubmit']) {
+    it(
+      `AC1, AC2. should prepare ${journey} using only normal APIs and retain its cleanup receipt`,
+      { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
+      () => {
+        const inputter = String(Cypress.env('PO10626_INPUTTER_EMAIL') || 'opal-test@dev.platform.hmcts.net');
+        const checker = String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net');
+        let actor = '';
+        let version = '"1"';
+        const calls: Cypress.RequestOptions[] = [];
+        const replies = referenceReplies();
+        const saved = createPersistedCasefileDetail();
+        saved.draft_casefile_id = 101;
+        saved.submitted_by = 'BU-SUBMITTER';
+        const writes = stubLedger();
+        cy.stub(cy, 'session').callsFake((email: string) =>
+          cy.then(() => {
+            actor = email;
+          }),
+        );
+        cy.stub(cy, 'visit').callsFake(() => cy.wrap(null, { log: false }));
+        cy.document().then((doc) => {
+          const navigation = doc.createElement('nav');
+          navigation.setAttribute('aria-label', 'Account navigation');
+          navigation.innerHTML = '<a class="moj-header__navigation-link" href="/sign-out">Sign out</a>';
+          doc.body.appendChild(navigation);
+        });
+        const open = cy.stub(DraftCasefileRecoveryActions.prototype, 'open');
+        for (const method of ['captureOriginalReview', 'correctRespondent', 'choose', 'capture'] as const)
+          cy.stub(DraftCasefileRecoveryActions.prototype, method);
+        cy.stub(cy, 'request').callsFake((options: Cypress.RequestOptions) =>
+          cy.then(() => {
+            calls.push(options);
+            if (options.url === '/api/user-state')
+              return {
+                status: 200,
+                body: {
+                  status: 'ACTIVE',
+                  name: actor === checker ? 'Synthetic Checker' : saved.submitted_by_name,
+                  domains: {
+                    maintenance: {
+                      business_unit_users: [
+                        {
+                          business_unit_id: 44,
+                          business_unit_user_id: actor === checker ? 'BU-CHECKER' : saved.submitted_by,
+                          permissions: [{ permission_id: actor === checker ? 22 : 21 }],
+                        },
+                      ],
+                    },
+                  },
+                },
+              };
+            if (Object.hasOwn(replies, options.url)) return { status: 200, body: replies[options.url] };
+            if (options.url === draftsPath && options.method === 'POST') {
+              expect(actor, 'creation inputter').to.equal(inputter);
+              saved.casefile = structuredClone((options.body as typeof DRAFT_CASEFILE_RECOVERY_REQUEST).casefile);
+              return { status: 201, body: structuredClone(saved), headers: { etag: version } };
+            }
+            if (options.url === `${draftsPath}/101` && options.method === 'PATCH') {
+              expect(actor, 'independent prerequisite checker').to.equal(checker);
+              expect(options.headers).to.deep.equal({ 'If-Match': version });
+              expect(options.body).to.have.property('casefile_status', 'REJECTED');
+              saved.casefile_status = 'REJECTED';
+              saved.timeline_data.push({
+                username: 'Synthetic Checker',
+                status: 'Rejected',
+                status_date: saved.created_date,
+              });
+              version = '"2"';
+              return { status: 200, body: structuredClone(saved), headers: { etag: version } };
+            }
+            expect(options.url, 'only normal draft detail remains').to.equal(`${draftsPath}/101`);
+            expect(options.method).to.equal('GET');
+            return { status: 200, body: structuredClone(saved), headers: { etag: version } };
+          }),
+        );
+        new DraftCasefileConcurrencyFlow().prepare(journey);
+        cy.then(() => {
+          expect(open).to.have.been.calledOnceWithExactly(101, journey);
+          expect(calls.filter((call) => call.method === 'POST').map((call) => call.url)).to.deep.equal([draftsPath]);
+          expect(calls.filter((call) => call.method === 'PATCH')).to.have.length(journey === 'resubmit' ? 1 : 0);
+          expect(writes).to.have.length(1);
+          expect(Cypress.env('draftCasefileCleanupReceipts')).to.deep.equal([
+            {
+              id: 101,
+              testRunReference: saved.casefile.respondent_account.remo_reference,
+              cleanupActor: inputter,
+              cleanupPolicy: 'required',
+            },
+          ]);
+        });
       },
     );
   }

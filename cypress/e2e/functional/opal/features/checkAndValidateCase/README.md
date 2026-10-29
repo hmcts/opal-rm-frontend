@@ -268,13 +268,14 @@ Ordinary SUBMITTED/REJECTED/DELETED, empty and permission examples require only 
 identities and cleanup; they do not require publication readiness. The historical follow-up runtime accepted only
 SUBMITTED cleanup. The updated backend accepts eligible unlinked lifecycle states, approved pending drafts and
 exclusive published graphs as described above. Verify that contract on the actual running build before creating
-transitioned fixtures. Approval guards apply only to PUBLISHED/PUBLISHING_PENDING scenarios, including populated
-lifecycle scenarios; the guards do not establish runtime compatibility.
+transitioned fixtures. Publication prerequisites apply to PUBLISHED/PUBLISHING_PENDING scenarios, including populated
+lifecycle scenarios; actual API responses establish compatibility.
 
-Only after the corresponding operator preflights may external runner configuration supply boolean
-`PO10628_PUBLICATION_CLEANUP_VERIFIED=true` and, for stable pending, `PO10628_STABLE_PENDING_VERIFIED=true`.
-The steps never set these guards. Flags alone are not verification evidence. Missing capabilities are explicit
-failures, with retained cleanup receipts; do not skip scenarios or manufacture success.
+Fixture setup uses the actual lifecycle APIs and validates persisted status, ownership, ETags and generated
+accounts. No ticket-specific cleanup or publication verification variables are required. The shared `afterEach`
+hook restores the observed cleanup owner and deletes each exact ID/marker through the existing testing-support
+endpoint. Enable `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction backend. Any response other
+than HTTP204 fails cleanup and retains the outstanding receipt; tests never suppress cleanup errors.
 
 ### Application rollback and retained expectations
 
@@ -399,13 +400,11 @@ alone uses the same dual-role identity. Denied tests authenticate `PO10625_DENIE
 `opal-test-4@dev.platform.hmcts.net`), verify its actual user-state lacks BU 44 permission 22, require the actual
 access-denied route and absence of case data, then restore the owner before independent GET and cleanup.
 
-Before any rejection, approval or resubmission fixture creation, the operator must verify compatible lifecycle
-cleanup and set **boolean** `PO10625_LIFECYCLE_CLEANUP_VERIFIED=true` in the live runner. This is a safety guard,
-not evidence of delivered cleanup. Approval additionally requires the maintained
-`PO10628_PUBLICATION_CLEANUP_VERIFIED=true` publication preflight. Never enable either switch automatically for
-live execution. The updated support branch supplies eligible lifecycle and exclusive published cleanup; verify
-that build's actual owner/marker DELETE before enabling these guards. Missing prerequisites remain an unrun or
-failed journey, never a passing acceptance result. Preserve required cleanup receipts on failure.
+Fixture setup uses the actual lifecycle APIs and validates persisted status, ownership, ETags and generated
+accounts. No ticket-specific cleanup or publication verification variables are required. The shared `afterEach`
+hook restores the observed cleanup owner and deletes each exact ID/marker through the existing testing-support
+endpoint. Enable `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction backend. Any response other
+than HTTP204 fails cleanup and retains the outstanding receipt; tests never suppress cleanup errors.
 
 Queue list/count/detail and UI PATCH observations pass through real provider responses. Queue scope requires
 BU 44, `not_submitted_by` the checker and exactly `SUBMITTED,RESUBMITTED`, without date filtering. The actual
@@ -478,13 +477,10 @@ checker dashboard, and a separate accessibility example for each. Existing decis
 | Deleted calendar window         | Owned ID included D0/D3/D7 and excluded D8 in both actual collection and every-page DOM; exact inclusive from/to dates                                                        | Same independently owned journey and strict scans at every visited state                                 |
 | Genuine empty checker dashboard | Four actual zero-row/zero-count list preflights, separate real Rejected/Failed zero count preflights, exact empty text, no rows/badges on all four tabs, no creation/deletion | Initial entry and each To review/Rejected/Deleted/Failed tab with native keyboard/focus and strict scans |
 
-`CheckerDashboardWindowFlow` resets its Actions per Given/accessibility journey. The lifecycle safety guard
-`PO10625_LIFECYCLE_CLEANUP_VERIFIED` must be **boolean true**, externally verified before **any** Rejected/Deleted
-creation. Maintained normal API fixtures use distinct ACTIVE Maintenance BU44 permission21 inputter and permission22
-checker, fresh ETags and receipt-owned marker cleanup. The historical inspected runtime cleaned up Submitted only;
-the updated support branch supplies eligible Rejected/Deleted cleanup. Verify the actual running build before
-these window fixtures execute. The switch itself is not evidence and must never self-enable in live setup. Empty scenarios create no data, require the existing checker actor and fail on
-unrelated eligible work; they never delete it.
+`CheckerDashboardWindowFlow` resets its Actions per Given/accessibility journey. Maintained normal API
+fixtures use distinct ACTIVE Maintenance BU44 permission21 inputter and permission22 checker, fresh ETags and
+required receipt-owned marker cleanup. Empty scenarios create no data and fail on unrelated eligible work without
+deleting it.
 
 The actual persisted `casefile_status_date` anchors independent `monitoringCalendar` expectations. Each D0/D3/D7/D8
 consultation installs `cy.clock(now, ['Date'])` in the AUT and restores it before the next consultation. Timers,
@@ -525,7 +521,7 @@ Submitted records or creates no data. Functional selections are Submitted blank-
 denied permission and genuine empty outcomes. Accessibility selections are validation, self-review, denied
 permission and genuine empty outcomes. Resubmitted validation and every transition/publication/window fixture
 remain outside this selector. `@PO10625Self` tags only the two self-review examples and is a subset of the eight.
-All 22 examples remain enabled with their existing names, order, native example indices, business steps and guards.
+All 22 examples remain enabled with their existing names, order, native example indices, business steps and runtime assertions.
 
 | Selection                       | Exact tag expression                                                                            | Expanded examples                    |
 | ------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
@@ -543,15 +539,12 @@ TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly a
 CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self' \
 corepack yarn exec cypress run --browser chrome --config '{"baseUrl":null}' \
   --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisions.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerReviewDecisionsAccessibility.feature' \
-  --env 'dryRun=true,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self,PO10625_LIFECYCLE_CLEANUP_VERIFIED=false,PO10628_PUBLICATION_CLEANUP_VERIFIED=false'
+  --env 'dryRun=true,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self'
 ```
 
-Live selections require parent-coordinated execution using the maintained live runner and real base URL, with
-`dryRun` disabled. Retain **boolean false** for both `PO10625_LIFECYCLE_CLEANUP_VERIFIED` and
-`PO10628_PUBLICATION_CLEANUP_VERIFIED` on an older Submitted-only-cleanup runtime. Its full selection has 14
-guarded examples it cannot support. With the updated support build, independently verify lifecycle and published
-cleanup before supplying true. Neither selector grants compatibility; the narrower selections remain useful for
-separating prerequisite failures from runner diagnosis.
+Live selections use the maintained runner and real base URL with `dryRun` disabled. Use a compatible backend
+with lifecycle and published cleanup; a Submitted-only cleanup runtime cannot support all examples. Narrower
+selectors remain useful for separating runtime prerequisite failures from runner diagnosis.
 
 Compatible setup does not mean every selected example currently passes. Real empty-checker preflight found two
 unrelated eligible cases: both no-create empty examples legitimately fail their zero-count requirement. Preserve

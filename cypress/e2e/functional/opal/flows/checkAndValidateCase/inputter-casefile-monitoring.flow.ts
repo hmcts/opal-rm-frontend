@@ -26,7 +26,6 @@ export class InputterCasefileMonitoringFlow {
 
   /** Creates four independent real lifecycle records before monitoring any dashboard traffic. */
   public prepareLifecycle(): void {
-    this.fixtures.requirePublication();
     cy.wrap(['SUBMITTED', 'REJECTED', 'PUBLISHED', 'DELETED'] as MonitoringStatus[], { log: false }).each(
       (status: MonitoringStatus) =>
         this.fixtures.create(status).then((owned) => {

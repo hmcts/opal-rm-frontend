@@ -10,7 +10,6 @@ import { PrimaryNavigationLocators as P } from '../../../../../shared/selectors/
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { performAuthentication } from '../../../../actions/login.actions';
 import { accessibilityActions } from '../accessibility/accessibility.actions';
-import { CheckerReviewFixtureActions } from './checker-review-fixture.actions';
 import { InputterMonitoringFixtureActions } from './inputter-monitoring-fixture.actions';
 import { requireMembership } from './draft-casefile-fixture.actions';
 import { readDraftSnapshot } from './draft-casefile-evidence.actions';
@@ -101,13 +100,12 @@ export class CheckerDashboardWindowActions {
     if (this.scanning) accessibilityActions.checkAccessibilityOnly();
   }
 
-  /** Creates one real outcome only after strict pre-creation cleanup verification.
+  /** Creates one real outcome with required owner/marker cleanup.
    * @param status Required persisted outcome.
    */
   public prepare(status: string): void {
     if (status !== 'REJECTED' && status !== 'DELETED') throw new Error('Unsupported checker outcome');
     this.status = status;
-    new CheckerReviewFixtureActions().requireLifecycleCleanup();
     new InputterMonitoringFixtureActions().create(status).then((owned) => {
       this.owned = owned;
       readDraftSnapshot(owned.id).then((snapshot) => {

@@ -307,14 +307,6 @@ describe('PO-10625 checker lifecycle and accessible validation dispatch support'
       expect(() => actions.assertDecision('delete')).to.throw('Unsupported checker decision');
       expect(() => actions.compete('delete')).to.throw('Unsupported checker decision');
       expect(() => actions.decide('approve')).to.throw('Approval requires a publication fixture');
-      const previous = Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED');
-      try {
-        Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', false);
-        for (const kind of ['decision', 'publication', 'stale'])
-          expect(() => actions.prepare('SUBMITTED', kind)).to.throw('PO10625_LIFECYCLE_CLEANUP_VERIFIED');
-      } finally {
-        Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', previous);
-      }
       expect(request).not.to.have.been.called;
     },
   );

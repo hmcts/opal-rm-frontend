@@ -1,4 +1,3 @@
-import { CheckerReviewFixtureActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/checker-review-fixture.actions';
 import { InputterMonitoringFixtureActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/inputter-monitoring-fixture.actions';
 import { accessibilityActions } from '../../e2e/functional/opal/actions/accessibility/accessibility.actions';
 import { createPersistedCasefileDetail } from '../../../src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
@@ -135,22 +134,6 @@ describe('PO-10625 real caller boundary dispatch support', () => {
     });
   }
 
-  for (const status of ['REJECTED', 'DELETED']) {
-    it(`AC6. should stop ${status} creation for missing or string cleanup guards`, { tags: buildTags() }, () => {
-      const previous: unknown = Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED');
-      const create = cy.spy(InputterMonitoringFixtureActions.prototype, 'create');
-      try {
-        for (const guard of [undefined, false, 'true']) {
-          Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', guard);
-          expect(() => new CheckerDashboardWindowActions().prepare(status)).to.throw('must be boolean true');
-        }
-        expect(create).not.to.have.been.called;
-      } finally {
-        Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', previous);
-      }
-    });
-  }
-
   type Observed = {
     query: Record<string, string>;
     alias?: string;
@@ -262,9 +245,6 @@ describe('PO-10625 real caller boundary dispatch support', () => {
         });
       }),
     );
-    cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').callsFake(() => {
-      state.events.push('guard');
-    });
     cy.stub(InputterMonitoringFixtureActions.prototype, 'create').callsFake((selected: string) => {
       expect(selected).to.equal(status);
       state.events.push('create');
@@ -355,7 +335,7 @@ describe('PO-10625 real caller boundary dispatch support', () => {
         for (const days of [0, 3, 7, 8]) actions.consultDay(days);
         actions.assertWindow(status === 'REJECTED' ? 'unbounded' : 'seven-day');
         cy.then(() => {
-          expect(state.events).to.deep.equal(['guard', 'create']);
+          expect(state.events).to.deep.equal(['create']);
           for (const days of [0, 3, 7, 8]) {
             expect(state.scans).to.include(`${days}:to-review:1`);
             expect(state.scans).to.include(`${days}:${status.toLowerCase()}:1`);
@@ -402,7 +382,7 @@ describe('PO-10625 real caller boundary dispatch support', () => {
       const actions = new CheckerDashboardWindowActions();
       actions.prepareEmpty();
       cy.then(() => {
-        expect(state.events, 'no guard or creation needed').to.deep.equal([]);
+        expect(state.events, 'no fixture creation needed').to.deep.equal([]);
         const collections = state.requests.filter(
           (request) => request.url === '/opal-maintenance-service/draft-casefiles',
         );

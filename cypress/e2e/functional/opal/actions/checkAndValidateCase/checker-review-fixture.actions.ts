@@ -7,29 +7,17 @@ import {
   requestDraftChange,
   requireMembership,
 } from './draft-casefile-fixture.actions';
-import { InputterMonitoringFixtureActions } from './inputter-monitoring-fixture.actions';
 import type { IOwnedDraftCasefile } from './interfaces/draft-casefile-owned.interface';
 
 /** Real owned prerequisites for checker decisions; existing receipt teardown owns every observed creation. */
 export class CheckerReviewFixtureActions {
-  /** Operator preflight guard only; the switch itself does not establish cleanup compatibility. */
-  public requireLifecycleCleanup(): void {
-    if (Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED') !== true) {
-      throw new Error(
-        'PO10625_LIFECYCLE_CLEANUP_VERIFIED must be boolean true after external lifecycle cleanup preflight',
-      );
-    }
-  }
-
   /**
    * Creates Submitted normally, then uses a real rejection and fresh-version amendment when required.
    * @param status Persisted prerequisite for the checker journey.
-   * @param publication Includes two minor creditors after the existing publication safety preflight.
+   * @param publication Includes two minor creditors for publication account assertions.
    * @returns The created identity after authoritative lifecycle, ownership and version checks.
    */
   public create(status: 'SUBMITTED' | 'RESUBMITTED', publication = false): Cypress.Chainable<IOwnedDraftCasefile> {
-    if (status === 'RESUBMITTED') this.requireLifecycleCleanup();
-    if (publication) new InputterMonitoringFixtureActions().requirePublication();
     return createOwnedSubmittedDraft(publication ? { minorCreditorCount: 2 } : {}).then((owned) => {
       if (status === 'SUBMITTED') return cy.wrap(owned, { log: false });
       rejectOwnedDraft(owned);
@@ -37,7 +25,6 @@ export class CheckerReviewFixtureActions {
         expect(snapshot.draft.casefile_status, 'rejected resubmission prerequisite').to.equal('REJECTED');
         expect(snapshot.draft.submitted_by, 'same owned inputter').to.equal(owned.inputterId);
         expect(snapshot.draft.casefile.respondent_account.remo_reference, 'same owned marker').to.equal(owned.marker);
-        this.requireLifecycleCleanup();
         return requestDraftChange(snapshot, 'PUT', {
           business_unit_id: snapshot.draft.business_unit_id,
           casefile: structuredClone(snapshot.draft.casefile),

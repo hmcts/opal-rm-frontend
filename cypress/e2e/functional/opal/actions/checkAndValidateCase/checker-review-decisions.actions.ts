@@ -191,7 +191,7 @@ export class CheckerReviewActions {
     pressDashboardEnter();
   }
 
-  /** Creates the independently owned prerequisite after all transition safety checks.
+  /** Creates the independently owned prerequisite with required automatic cleanup.
    * @param status Submitted or Resubmitted.
    * @param kind Publication, decision, validation or stale fixture.
    */
@@ -199,7 +199,6 @@ export class CheckerReviewActions {
     if (status !== 'SUBMITTED' && status !== 'RESUBMITTED') throw new Error('Unsupported checker prerequisite');
     if (!['publication', 'decision', 'validation', 'stale'].includes(kind))
       throw new Error('Unsupported checker fixture');
-    if (kind !== 'validation') this.fixture.requireLifecycleCleanup();
     this.fixtureKind = kind;
     this.fixture.create(status, kind === 'publication').then((owned) => {
       this.owned = owned;

@@ -385,7 +385,11 @@ export class DraftCasefileRecoveryActions {
    */
   public assertRetrySuccess(journey: DraftCasefileJourney, snapshot: IDraftCasefileSnapshot): void {
     const draft = snapshot.draft;
-    const respondent: unknown = Cypress._.get(draft.casefile_snapshot, 'respondent_account.respondent_name');
+    const individual = draft.casefile.respondent_account.respondent.party_details.individual_details;
+    const respondent: unknown =
+      journey === 'resubmit'
+        ? [individual?.forenames, individual?.surname].filter(Boolean).join(' ')
+        : Cypress._.get(draft.casefile_snapshot, 'respondent_account.respondent_name');
     if (typeof respondent !== 'string' || !respondent.trim()) throw new Error('Owned respondent name is missing');
     if (journey === 'resubmit') {
       cy.get(`${D.heading}, ${D.allRejectedHeading}`).should('be.visible');

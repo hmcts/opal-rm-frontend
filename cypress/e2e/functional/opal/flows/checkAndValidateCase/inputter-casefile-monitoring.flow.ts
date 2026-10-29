@@ -190,18 +190,19 @@ export class InputterCasefileMonitoringFlow {
     this.actions.viewAllRejected();
   }
 
-  /** Verifies all this scenario's rejected rows and the other inputter, without assuming the shared-BU total.
+  /** Verifies other-inputter rejections and excludes personal work, without assuming the shared-BU total.
    * @param scanStates Whether every visited All rejected page requires the maintained strict Axe check.
    */
   public expectAllRejected(scanStates = false): void {
     cy.then(() => {
       const submittedPrimary = this.requirePrimary();
-      const rejected = [...this.fixtures.state.ownedByKey.entries()]
-        .filter(([key]) => key.startsWith('REJECTED:'))
-        .map(([, owned]) => owned);
+      const owned = [...this.fixtures.state.ownedById.values()];
+      const otherRejected = [...this.fixtures.state.ownedByKey.entries()]
+        .filter(([key, item]) => key.startsWith('REJECTED:') && item.inputterId !== submittedPrimary.inputterId)
+        .map(([, item]) => item);
       this.actions.expectRows(
-        rejected,
-        rejected.some((owned) => owned.id === submittedPrimary.id) ? [] : [submittedPrimary],
+        otherRejected,
+        owned.filter((item) => !otherRejected.some((rejected) => rejected.id === item.id)),
         scanStates,
       );
     });

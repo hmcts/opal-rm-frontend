@@ -13,7 +13,7 @@ const COLLECTION = /\/opal-maintenance-service\/draft-casefiles(?:\?|$)/;
 const PERSISTED = /\/opal-maintenance-service\/draft-casefiles\/[^?]+(?:\?|$)/;
 const DASHBOARD = '/' + PATHS.root + '/' + PATHS.children.tabs;
 const LIST = '/' + PATHS.root + '/' + PATHS.children.rejections;
-const ALL_REJECTED_QUERY = { business_unit_id: '44', casefile_status: 'REJECTED' };
+const OTHER_QUERY = { business_unit_id: '44', casefile_status: 'REJECTED', not_submitted_by: 'BUU-SYNTHETIC' };
 const OWN_QUERY = { business_unit_id: '44', casefile_status: 'REJECTED', submitted_by: 'BUU-SYNTHETIC' };
 
 /** Owns real-browser interaction and exclusive synthetic provider boundaries. */
@@ -50,9 +50,7 @@ export class AllRejectedActions {
       },
     );
     cy.intercept('GET', COLLECTION, (request) => {
-      const allRejected =
-        request.query['submitted_by'] === undefined && request.query['casefile_status'] === 'REJECTED';
-      if (!allRejected) {
+      if (request.query['not_submitted_by'] === undefined) {
         if (request.query['restrict'] === 'counts') {
           expect(request.query).to.deep.equal({ ...OWN_QUERY, restrict: 'counts' });
           request.reply({ body: { count: inputterRows('rejected').length } });
@@ -66,7 +64,7 @@ export class AllRejectedActions {
         request.reply({ body: { count: summaries.length, summaries: structuredClone(summaries) } });
         return;
       }
-      expect(request.query).to.deep.equal(ALL_REJECTED_QUERY);
+      expect(request.query).to.deep.equal(OTHER_QUERY);
       this.rejectionRequests.push({ ...request.query });
       if (this.listFailures > 0) {
         this.listFailures--;

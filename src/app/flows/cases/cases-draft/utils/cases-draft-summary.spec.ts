@@ -71,19 +71,19 @@ describe('mapCasesDraftRows', () => {
     });
   });
 
-  it('hides every pending account number even when the snapshot supplies values', () => {
-    const pending = createCasesDraftSummary({
-      casefile_status: 'PUBLISHING_PENDING',
+  it('retains supplied snapshot account numbers before publication', () => {
+    const submitted = createCasesDraftSummary({
+      casefile_status: 'SUBMITTED',
       casefile_snapshot: {
         respondent_account: { account_number: 'UNPUBLISHED' },
         applicant_account: { account_number: 'UNPUBLISHED' },
         minor_creditor_accounts: [{ account_number: 'UNPUBLISHED' }],
       },
     });
-    expect(mapCasesDraftRows([pending], 'approved')[0]).toMatchObject({
-      respondentAccount: null,
-      applicantAccount: null,
-      minorCreditorAccounts: [],
+    expect(mapCasesDraftRows([submitted], 'in-review')[0]).toMatchObject({
+      respondentAccount: 'UNPUBLISHED',
+      applicantAccount: 'UNPUBLISHED',
+      minorCreditorAccounts: ['UNPUBLISHED'],
     });
   });
 

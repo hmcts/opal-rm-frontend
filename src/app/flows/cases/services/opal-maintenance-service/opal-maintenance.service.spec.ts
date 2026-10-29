@@ -305,16 +305,6 @@ describe('OpalMaintenanceService', () => {
       await pending;
     });
 
-    it('consults all business-unit rejections without submitter or date filters', async () => {
-      const pending = firstValueFrom(service.getDraftCasefiles({ business_unit_id: 44, casefile_status: 'REJECTED' }));
-      const get = expectCollection();
-      expect(get.request.params.keys().sort()).toEqual(['business_unit_id', 'casefile_status']);
-      expect(get.request.params.get('business_unit_id')).toBe('44');
-      expect(get.request.params.get('casefile_status')).toBe('REJECTED');
-      get.flush({ count: 0, summaries: [] });
-      expect(await pending).toEqual({ count: 0, summaries: [] });
-    });
-
     it('consults the full selected list with BU user scope and manual retry only', async () => {
       const pending = firstValueFrom(service.getDraftCasefiles(params));
       const get = expectCollection();

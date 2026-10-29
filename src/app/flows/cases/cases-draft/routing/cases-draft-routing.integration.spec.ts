@@ -134,10 +134,9 @@ describe('draft production route boundaries', () => {
       const request = http.expectOne(
         (request) =>
           request.url === '/opal-maintenance-service/draft-casefiles' &&
-          !request.params.has('submitted_by') &&
-          request.params.get('casefile_status') === 'REJECTED',
+          request.params.get('not_submitted_by') === 'BUU-SYNTHETIC',
       );
-      expect(request.request.params.keys().sort()).toEqual(['business_unit_id', 'casefile_status']);
+      expect(request.request.params.keys().sort()).toEqual(['business_unit_id', 'casefile_status', 'not_submitted_by']);
       expect(request.request.params.get('business_unit_id')).toBe('44');
       expect(request.request.params.get('casefile_status')).toBe('REJECTED');
       request.flush({
@@ -241,21 +240,21 @@ describe('draft production route boundaries', () => {
   });
 
   const exclusive = (request: import('@angular/common/http').HttpRequest<unknown>) =>
-    request.url === '/opal-maintenance-service/draft-casefiles' &&
-    !request.params.has('submitted_by') &&
-    request.params.get('casefile_status') === 'REJECTED';
-  async function flushExclusive(count = 1) {
+    request.url === '/opal-maintenance-service/draft-casefiles' && request.params.has('not_submitted_by');
+  async function flushExclusive(count = 1, submittedBy = 'BUU-SYNTHETIC') {
     await vi.waitFor(() =>
-      http.expectOne(exclusive).flush({
-        count,
-        summaries: Array.from({ length: count }, (_, index) =>
-          createCasesDraftSummary({
-            draft_casefile_id: index + 1,
-            casefile_status: 'REJECTED',
-            submitted_by: 'BUU-OTHER',
-          }),
-        ),
-      }),
+      http
+        .expectOne((request) => exclusive(request) && request.params.get('not_submitted_by') === submittedBy)
+        .flush({
+          count,
+          summaries: Array.from({ length: count }, (_, index) =>
+            createCasesDraftSummary({
+              draft_casefile_id: index + 1,
+              casefile_status: 'REJECTED',
+              submitted_by: 'BUU-OTHER',
+            }),
+          ),
+        }),
     );
   }
   it.each(['populated', 'empty'] as const)(
@@ -299,7 +298,7 @@ describe('draft production route boundaries', () => {
       ).toBeNull();
     },
   );
-  it('does not activate pending arrival and includes own rejections and defensively excludes foreign and wrong-status rows', async () => {
+  it('does not activate pending arrival and defensively excludes own, foreign and wrong-status rows', async () => {
     const harness = await openPersisted(details);
     const arrival = harness.navigateByUrl(rejections);
     let pending!: import('@angular/common/http/testing').TestRequest;
@@ -327,8 +326,7 @@ describe('draft production route boundaries', () => {
     });
     await arrival;
     harness.detectChanges();
-    expect(harness.routeNativeElement!.querySelectorAll('tbody tr')).toHaveLength(2);
-    expect(harness.routeNativeElement!.querySelector('[data-draft-id="124"]')).not.toBeNull();
+    expect(harness.routeNativeElement!.querySelectorAll('tbody tr')).toHaveLength(1);
     http.expectNone(exclusive);
   });
   it('cancels B while resolving newest C and hides old success and rows synchronously', async () => {
@@ -346,14 +344,14 @@ describe('draft production route boundaries', () => {
     harness.detectChanges();
     let pending!: import('@angular/common/http/testing').TestRequest;
     await vi.waitFor(() => {
-      pending = http.expectOne(exclusive);
+      pending = http.expectOne((request) => exclusive(request) && request.params.get('not_submitted_by') === 'BUU-B');
     });
     const newest = structuredClone(replacement);
     newest.user_id += 1;
     newest.business_unit_users[0].business_unit_user_id = 'BUU-C';
     userState.set(newest);
     harness.detectChanges();
-    await flushExclusive(1);
+    await flushExclusive(1, 'BUU-C');
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(pending.cancelled).toBe(true);

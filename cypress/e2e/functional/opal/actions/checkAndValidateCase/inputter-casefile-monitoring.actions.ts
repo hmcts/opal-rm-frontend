@@ -59,7 +59,8 @@ export class InputterCasefileMonitoringActions {
       expect(query['business_unit_id']).to.equal('44');
       const personal = query['submitted_by'] !== undefined;
       if (personal) expect(query['submitted_by']).to.equal(actor);
-      else expect(query).to.deep.equal({ business_unit_id: '44', casefile_status: 'REJECTED' });
+      else
+        expect(query).to.deep.equal({ business_unit_id: '44', casefile_status: 'REJECTED', not_submitted_by: actor });
       const count = query['restrict'] === 'counts';
       request.alias = personal ? 'monitoringList' : 'monitoringAllRejected';
       if (count) request.alias = 'monitoringCount';

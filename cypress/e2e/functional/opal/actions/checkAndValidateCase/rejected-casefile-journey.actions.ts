@@ -70,13 +70,14 @@ export class RejectedCasefileJourneyActions {
     this.entry.expectRows([context.owned], [], this.session.keyboard);
     this.entry.openAmendment(context.owned, this.session.keyboard);
     this.entry.releaseObservation();
+    this.recovery.assertSavedHistory(context.before, true);
     cy.get(C.caseDetails.checkCaseButton).should('be.enabled');
     this.scan();
     this.activate(C.caseDetails.checkCaseButton);
     cy.get(C.review.heading).should('have.text', 'Check case details');
     this.recovery.capture('resubmit');
     this.recovery.captureOriginalReview();
-    cy.then(() => this.recovery.assertSavedPresentation(context.before, true, true));
+    cy.then(() => this.recovery.assertReviewDetails(context.before, true));
     this.scan();
     // The separate winner rendering is captured through the same real edit controls before the stale edit.
     if (this.session.kind === 'stale') {

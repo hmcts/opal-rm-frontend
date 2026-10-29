@@ -699,6 +699,11 @@ and the maintained cleanup receipt is persisted immediately before later outcome
 reuse ambient cases, relabel A, share fixtures between functional/accessibility examples, or mock live user,
 reference, collection, detail or successful lifecycle responses.
 
+Amendment entry verifies the saved `Rejected` status and complete timeline on the task-list page before opening
+editable Check case details. Editable review presents the case details without a status tag or history; the
+subsequent saved read-only views still require the complete details, saved status and timeline. The controlled
+journey harness follows this page boundary and rejects an incorrect task-list status or missing timeline event.
+
 Foreign-BU denial additionally requires an existing `PO10623_FOREIGN_BU_INPUTTER_EMAIL`: ACTIVE permission21 in
 another Maintenance BU and no permission21 in BU44. Missing or incompatible users are fixture failures. A global
 role denial does not prove this Business Unit boundary.
@@ -781,3 +786,44 @@ corepack yarn test:component:leaf --browser=chrome \
 Discovery proves selection/bindings only. Controlled support proves scanner/keyboard/reflow/orchestration failure
 sensitivity against synthetic boundaries. Neither is passing live acceptance or proof of deployed permissions,
 cleanup compatibility or complete WCAG conformance. Run the preserved inherited caller regression separately.
+
+### Status assertion fix verification — 29 October 2026
+
+The task-list status/history check and separate editable-review details check passed controlled regression using
+Node 24.22.1, Yarn 4.18.1, Cypress 15.21.1 and headless Chrome 156, serial execution and no scenario retries.
+All 46 existing rejected-amendment support examples retain their names and tags; two negative examples additionally
+prove that a wrong task-list status and a missing timeline event stop entry before editing or submission.
+The feature files, expanded scenario identities, tags and Examples rows are unchanged.
+
+```bash
+corepack yarn test:component:leaf --browser=chrome \
+  --spec 'cypress/component/checkAndValidateCase/rejected-casefile-journey-support.cy.ts,cypress/component/checkAndValidateCase/concurrency-support.cy.ts,cypress/component/checkAndValidateCase/checker-deletion-journey-support.cy.ts,cypress/component/checkAndValidateCase/rejected-casefile-support.cy.ts,cypress/component/createDraftCasefile/review/rejected-amendment.cy.ts'
+```
+
+Result: **225 passed, zero failed/pending/skipped** across all five specs, including all 48 amendment journey
+support examples. The exact 12-example discovery command above also passed all six functional and six accessibility
+examples; discovery does not execute application actions. `corepack yarn test` passed **3,711 tests in 171 files**.
+`corepack yarn prettier`, `corepack yarn lint:cypress`, `corepack yarn lint:ng`,
+`corepack yarn exec tsc --project e2e.tsconfig.json --noEmit`, `corepack yarn check:cypress:test-metadata`,
+`corepack yarn find:duplicate:scenarios`, `corepack yarn build` and `git diff --check` passed. Changed TypeScript
+files also passed scoped formatting/lint checks after the final negative-test correction.
+
+The first sandboxed Cypress launch aborted before running tests. The first unrestricted focused run passed 47 of
+48 examples: the new missing-event negative test expected different Cypress error wording. Correcting only that
+error expectation produced the final passing run above. Logs retain both attempts; no assertion, timeout, retry
+policy or existing scenario was removed to obtain a pass. Existing Cypress environment-deprecation and jsdom
+navigation/scroll warnings remain.
+
+Final agent review against the repository review guidelines found no blocking findings. The changed files are
+Cypress assertions, their synthetic harness and this guide. Application UI/accessibility changes, before/after UI
+screenshots, dependency/vulnerability changes, unit-coverage changes and Sonar New Code coverage are not applicable:
+no application or dependency files changed, and Sonar sources/tests are configured under `src/`. The synthetic
+fixtures introduce no credentials or real participant data; there are no new security exceptions or CVE suppressions.
+
+Live acceptance remains unverified: neither cleanup-verification guard is configured in the execution shell.
+Use the independently verified runtime/users/cleanup prerequisites and live command above to rerun all 12 examples;
+expect the status/history check on the task list, complete editable-review details and the existing successful,
+retry, stale and denial outcomes. Full release/smoke suites and the full component suite were not run for this
+focused assertion correction; the five affected support/component specs were run instead. CI, external Sonar,
+reviewer approval and QA sign-off remain pending. This evidence establishes the source fix and controlled regression,
+not completion of the full PO-10623 acceptance pack.

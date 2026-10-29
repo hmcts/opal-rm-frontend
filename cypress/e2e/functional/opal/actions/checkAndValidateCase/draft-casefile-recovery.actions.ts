@@ -346,13 +346,11 @@ export class DraftCasefileRecoveryActions {
     cy.get(C.review.submit).should('not.exist');
   }
 
-  /**
-   * Requires the recovered page to present the saved case and history, rather than an empty or denied route.
-   * @param snapshot Independently read authoritative state after recovery.
-   * @param original Whether the competing winner retained the original pre-edit aggregate.
-   * @param inputter Whether the recovered review is rendered for the inputter.
+  /** Requires complete review details on either the editable or saved review page.
+   * @param snapshot Independently read authoritative case.
+   * @param original Whether the original pre-edit rendering is expected.
    */
-  public assertSavedPresentation(snapshot: IDraftCasefileSnapshot, original = false, inputter = false): void {
+  public assertReviewDetails(snapshot: IDraftCasefileSnapshot, original = false): void {
     const draft = snapshot.draft;
     const individual = draft.casefile.respondent_account.respondent.party_details.individual_details;
     if (!individual?.forenames) throw new Error('Synthetic recovery presentation requires an individual');
@@ -360,7 +358,6 @@ export class DraftCasefileRecoveryActions {
     cy.get(C.review.section('respondent'))
       .should('contain.text', individual.forenames)
       .and('contain.text', individual.surname);
-    cy.get(C.review.status).should('have.text', savedStatusLabel(draft.casefile_status, inputter));
     const expected = original ? this.originalReview : this.savedReview;
     cy.get(S.reviewSections)
       .should('be.visible')
@@ -368,6 +365,16 @@ export class DraftCasefileRecoveryActions {
         const actual = this.reviewData($sections);
         assertRecoveredReviewSections(actual, expected);
       });
+    cy.get(C.globalErrorBanner).should('not.exist');
+  }
+
+  /** Requires the saved lifecycle and complete history on a task-list or saved review page.
+   * @param snapshot Independently read authoritative case.
+   * @param inputter Whether the page is rendered for the inputter.
+   */
+  public assertSavedHistory(snapshot: IDraftCasefileSnapshot, inputter = false): void {
+    const draft = snapshot.draft;
+    cy.get(C.review.status).should('have.text', savedStatusLabel(draft.casefile_status, inputter));
     cy.get(S.history).within(() => {
       cy.get(S.timelineItem).should('have.length', draft.timeline_data.length);
       for (const event of draft.timeline_data) {
@@ -375,7 +382,16 @@ export class DraftCasefileRecoveryActions {
         if (event.reason_text) cy.root().should('contain.text', event.reason_text);
       }
     });
-    cy.get(C.globalErrorBanner).should('not.exist');
+  }
+
+  /** Requires the recovered saved page to present the complete case, lifecycle and history.
+   * @param snapshot Independently read authoritative state after recovery.
+   * @param original Whether the competing winner retained the original pre-edit aggregate.
+   * @param inputter Whether the recovered review is rendered for the inputter.
+   */
+  public assertSavedPresentation(snapshot: IDraftCasefileSnapshot, original = false, inputter = false): void {
+    this.assertReviewDetails(snapshot, original);
+    this.assertSavedHistory(snapshot, inputter);
   }
 
   /**

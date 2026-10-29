@@ -135,6 +135,7 @@ interface Faults {
   unreachableReturn?: boolean;
   lostFocus?: boolean;
   rejectionScope?: 'unfiltered' | 'wrong-actor';
+  rejectedHistory?: 'wrong-status' | 'missing-event';
 }
 
 /** Controlled route/HTTP boundary; native rendered controls still drive every edit, submit and departure. */
@@ -236,10 +237,13 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
     if (editable) aggregate.respondent_account.respondent.party_details.individual_details!.forenames = state.field;
     const individual = aggregate.respondent_account.respondent.party_details.individual_details!;
     const displayed = faults.lostCorrection && !editable ? 'Lost' : individual.forenames;
-    document.body.innerHTML = `<h1 id="review-heading" tabindex="-1">${editable ? 'Check case details' : name(snapshot)}</h1><span id="create_casefile_review_status">${editable ? 'Rejected' : checker ? 'To review' : 'In review'}</span><a class="govuk-back-link" href="#back">Back</a>
+    const savedLabel = checker ? 'To review' : 'In review';
+    const savedStatus = `<span id="create_casefile_review_status">${savedLabel}</span>`;
+    const savedHistory = `<app-cases-draft-casefile-history>${snapshot.draft.timeline_data.map((event) => `<div class="moj-timeline__item">${event.status} ${event.username} ${event.reason_text ?? ''}</div>`).join('')}</app-cases-draft-casefile-history>`;
+    document.body.innerHTML = `<h1 id="review-heading" tabindex="-1">${editable ? 'Check case details' : name(snapshot)}</h1>${editable ? '' : savedStatus}<a class="govuk-back-link" href="#back">Back</a>
       <app-cases-create-casefile-review-section id="review-respondent">${displayed} ${individual.surname}${editable ? '<span class="govuk-summary-card__action"><a id="review-respondent-change" href="#change">Change</a></span>' : ''}</app-cases-create-casefile-review-section>
       <app-cases-create-casefile-review-section id="review-rest">${JSON.stringify({ ...aggregate, respondent_account: { ...aggregate.respondent_account, respondent: null } })}</app-cases-create-casefile-review-section>
-      <app-cases-draft-casefile-history>${snapshot.draft.timeline_data.map((event) => `<div class="moj-timeline__item">${event.status} ${event.username} ${event.reason_text ?? ''}</div>`).join('')}</app-cases-draft-casefile-history>
+      ${editable ? '' : savedHistory}
       ${state.error ? `<div class="moj-alert--error">${state.error}</div>` : ''}${editable ? '<button id="create_casefile_review_submit">Submit for review</button>' : checker && kind !== 'cross-user' ? '<input id="create_casefile_review_decision-approve"><input id="create_casefile_review_decision-reject"><button id="create_casefile_review_continue">Continue</button><a id="create_casefile_review_delete">Delete case</a>' : ''}`;
     bind('#review-respondent-change', renderEditor);
     bind('#create_casefile_review_submit', () => {
@@ -374,7 +378,9 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
     state.path = `/cases/create-casefile/task-list/${context.owned.id}`;
     state.field =
       context.before.draft.casefile.respondent_account.respondent.party_details.individual_details!.forenames!;
-    document.body.innerHTML = `<h1>${name(context.before)}</h1><button id="checkCaseButton">Check case details</button>`;
+    const status = faults.rejectedHistory === 'wrong-status' ? 'In review' : 'Rejected';
+    const timeline = context.before.draft.timeline_data.slice(faults.rejectedHistory === 'missing-event' ? 1 : 0);
+    document.body.innerHTML = `<h1>${name(context.before)}</h1><app-cases-draft-casefile-history><span id="create_casefile_review_status">${status}</span>${timeline.map((event) => `<div class="moj-timeline__item">${event.status} ${event.username} ${event.reason_text ?? ''}</div>`).join('')}</app-cases-draft-casefile-history><button id="checkCaseButton">Check case details</button>`;
     bind('#checkCaseButton', () => {
       state.path = '/cases/create-casefile/check-case-details';
       renderReview(true);
@@ -722,6 +728,20 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
         });
       },
     );
+  }
+  for (const rejectedHistory of ['wrong-status', 'missing-event'] as const) {
+    it(`AC1. should reject ${rejectedHistory} on the amendment task list before editing`, { tags: tags() }, () => {
+      const state = harness('same-user', { rejectedHistory });
+      mustFail(
+        rejectedHistory === 'wrong-status' ? 'Rejected' : "Not enough elements found. Found '1', expected '2'",
+        () => {
+          expect(state.path).to.equal(`/cases/create-casefile/task-list/${state.context.owned.id}`);
+          expect(state.submissions).to.equal(0);
+        },
+      );
+      new RejectedCasefileAmendmentFlow().prepare('same-user');
+      requireFailure();
+    });
   }
   for (const rejectionScope of ['unfiltered', 'wrong-actor'] as const) {
     it(

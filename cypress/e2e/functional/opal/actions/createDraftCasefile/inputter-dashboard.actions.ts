@@ -268,16 +268,14 @@ export class InputterDashboardActions {
     cy.get(S.row(200)).find(S.column('respondentAccount')).should('contain.text', '—');
     cy.get(S.row(200)).find(S.column('applicantAccount')).should('contain.text', '—');
     cy.get(S.row(200)).find(S.column('minorCreditorAccounts')).should('contain.text', '—');
-    cy.get(S.row(201)).should('be.visible');
-    for (const column of ['respondentAccount', 'applicantAccount', 'minorCreditorAccounts'])
-      cy.get(S.row(201)).find(S.column(column)).should('contain.text', '—');
+    cy.get(S.row(201)).should('not.exist');
     cy.get(S.table).find('td a, td button').should('not.exist');
     this.assertNoPersistence();
   }
   /** Checks exact BU/user/status parameters and the seven-day status-date boundary. */
   public expectDateBoundary(): void {
     cy.then(() => {
-      const approved = this.requests.find((request) => request['casefile_status'] === 'PUBLISHING_PENDING,PUBLISHED');
+      const approved = this.requests.find((request) => request['casefile_status'] === 'PUBLISHED');
       expect(approved).to.have.all.keys(
         'business_unit_id',
         'submitted_by',
@@ -288,7 +286,7 @@ export class InputterDashboardActions {
       expect(approved).to.include({
         business_unit_id: '44',
         submitted_by: 'BUU-SYNTHETIC',
-        casefile_status: 'PUBLISHING_PENDING,PUBLISHED',
+        casefile_status: 'PUBLISHED',
       });
       const now = new Date();
       const date = (days: number) =>

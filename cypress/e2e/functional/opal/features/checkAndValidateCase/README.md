@@ -219,7 +219,7 @@ and `@retries(0)`. There are no pending/skip tags. Each scenario constructs fres
 | AC1 | Own SUBMITTED, REJECTED, PUBLISHED and DELETED records appear only in their matching tabs. Four date-window examples consult at actual persisted lifecycle D+7 and D+8; only Approved/Deleted use inclusive calendar filters. In review/Rejected omit both dates.                                                                                                              |
 | AC2 | Empty and populated personal Rejected both reach the real other-inputter Business Unit rejection list. Empty setup requires genuinely zero personal rejections and leaves unrelated data alone.                                                                                                                                                                                |
 | AC3 | The provisioned second inputter's rejected IDs and owning actors are present; the current inputter's cases are excluded. Exactly 26 owned personal rejected records exercise sort, next/previous and page retention. The selected other-owned ID receives a fresh real GET and reaches amendment; Back restores the actual captured own page/sort/visible IDs without a write. |
-| AC4 | Actual PUBLISHED detail supplies positive IDs and all respondent/applicant/two minor-creditor numbers, rendered in creditor sequence as exact read-only text. Separate stable PUBLISHING_PENDING coverage requires null IDs/numbers and a visible row with only missing-number indicators.                                                                                     |
+| AC4 | Actual PUBLISHED detail supplies positive IDs and all respondent/applicant/two minor-creditor numbers, rendered in creditor sequence as exact read-only text. Separate stable PUBLISHING_PENDING coverage requires null IDs/numbers and absence from the Approved response and every rendered page.                                                                            |
 | AC5 | Successful authorised entry precedes an existing ACTIVE denied user's direct dashboard attempt; no counts, rows, collection GETs or writes are exposed.                                                                                                                                                                                                                        |
 | AC6 | Five separate scenarios scan every visited meaningful page/state with the shared strict Axe step: populated tabs, genuinely empty tabs, pagination/All rejected/amendment/return, published multi-account row and actual denied destination. Native Enter and focus checks cover tabs, sorting, next/previous and Back links.                                                  |
 
@@ -280,9 +280,10 @@ failures, with retained cleanup receipts; do not skip scenarios or manufacture s
 
 PO-10628 application changes have been reverted for developer confirmation. All rejected tests now require
 `not_submitted_by` and exclude the current inputter's rows. Account mapping tests retain values supplied by the
-snapshot without a publication-status guard; a genuinely pending live snapshot with no numbers still renders blanks.
-The Approved tests continue to expect `PUBLISHING_PENDING,PUBLISHED`, although production currently selects only
-`PUBLISHED`. Those failures are intentional pending developer confirmation. The original AC requiring both own and
+snapshot without a publication-status guard. Developer clarification confirms approval enters the asynchronous
+`PUBLISHING_PENDING` state before `PUBLISHED`; pending cases should not appear in Approved. Cypress tests now
+expect only `PUBLISHED` in the Approved query and exclude pending rows even when a snapshot supplies numbers.
+The entire `src` directory, including colocated tests, remains identical to `origin/master`. The original AC requiring both own and
 other-inputter cases on All rejected is not covered by the revised expectations and remains unresolved.
 
 ### Commands and evidence boundary

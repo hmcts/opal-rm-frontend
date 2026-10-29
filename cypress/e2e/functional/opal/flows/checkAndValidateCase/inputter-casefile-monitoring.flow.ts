@@ -246,7 +246,7 @@ export class InputterCasefileMonitoringFlow {
     this.actions.consult('approved');
   }
 
-  /** Checks persisted generated numbers or the strictly null pending account state.
+  /** Checks published account numbers or exclusion of pending work from Approved.
    * @param pending Whether this example requires verified stable pending.
    */
   public expectAccounts(pending: boolean): void {

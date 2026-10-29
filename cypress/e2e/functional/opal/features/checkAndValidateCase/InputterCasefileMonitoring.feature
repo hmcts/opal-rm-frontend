@@ -52,8 +52,9 @@ Feature: Monitor independently owned live inputter casefiles
   @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC4 @retries(0)
   Scenario: Show no account numbers while real publication is pending
     Given my live monitoring scenario owns a verified pending casefile
-    When I inspect its Approved row
-    Then the pending casefile exposes no account numbers
+    When I consult the live "in-review" monitoring tab with the keyboard
+    And I consult the live "approved" monitoring tab with the keyboard
+    Then the pending casefile does not appear in Approved
 
   @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC5 @PO10628SubmittedOnly @retries(0)
   Scenario: Deny monitoring to a provisioned user without inputter permission

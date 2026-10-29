@@ -182,6 +182,8 @@
   },
   "resolutions": {
     "@cucumber/messages": "^34.0.0",
+    "@azure/msal-node@npm:3.8.10/uuid": "11.1.1",
+    "sockjs@npm:0.3.24/uuid": "11.1.1",
     "browserslist": "^4.28.1",
     "cookie": "^1.0.0",
     "on-headers": "^1.1.0",

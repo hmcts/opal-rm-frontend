@@ -268,13 +268,14 @@ Ordinary SUBMITTED/REJECTED/DELETED, empty and permission examples require only 
 identities and cleanup; they do not require publication readiness. The historical follow-up runtime accepted only
 SUBMITTED cleanup. The updated backend accepts eligible unlinked lifecycle states, approved pending drafts and
 exclusive published graphs as described above. Verify that contract on the actual running build before creating
-transitioned fixtures. Approval guards apply only to PUBLISHED/PUBLISHING_PENDING scenarios, including populated
-lifecycle scenarios; the guards do not establish runtime compatibility.
+transitioned fixtures. Publication prerequisites apply to PUBLISHED/PUBLISHING_PENDING scenarios, including populated
+lifecycle scenarios; actual API responses establish compatibility.
 
-Only after the corresponding operator preflights may external runner configuration supply boolean
-`PO10628_PUBLICATION_CLEANUP_VERIFIED=true` and, for stable pending, `PO10628_STABLE_PENDING_VERIFIED=true`.
-The steps never set these guards. Flags alone are not verification evidence. Missing capabilities are explicit
-failures, with retained cleanup receipts; do not skip scenarios or manufacture success.
+Fixture setup uses the actual lifecycle APIs and validates persisted status, ownership, ETags and generated
+accounts. No ticket-specific cleanup or publication verification variables are required. The shared `afterEach`
+hook restores the observed cleanup owner and deletes each exact ID/marker through the existing testing-support
+endpoint. Enable `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction backend. Any response other
+than HTTP204 fails cleanup and retains the outstanding receipt; tests never suppress cleanup errors.
 
 ### Application rollback and retained expectations
 

@@ -1,7 +1,7 @@
 @R1CRmCreateCaseFiles @JIRA-LABEL:create-draft-casefile @functional
 Feature: Monitor independently owned live inputter casefiles
   # Each example requires its own compatible lifecycle/cleanup runtime; approval examples also require publication.
-  # Verification switches are external safety guards. Discovery is not live acceptance.
+  # Fixtures use required automatic owner/marker cleanup. Discovery is not live acceptance.
   Background:
     Given I am logged in with email "opal-test@dev.platform.hmcts.net"
 

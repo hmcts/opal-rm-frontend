@@ -19,23 +19,6 @@ type MonitoringStatus = 'SUBMITTED' | 'REJECTED' | 'DELETED' | 'PUBLISHING_PENDI
 export class InputterMonitoringFixtureActions {
   public readonly state: IInputterMonitoringState = { ownedByKey: new Map(), ownedById: new Map() };
 
-  /** Operator preflight guard only: the switch does not prove publication or cleanup acceptance. */
-  public requirePublication(): void {
-    if (Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED') !== true) {
-      throw new Error(
-        'PO10628_PUBLICATION_CLEANUP_VERIFIED must be boolean true after external publication/cleanup preflight',
-      );
-    }
-  }
-
-  /** Requires an externally verified nonproduction pending setup; never changes consumer/service state. */
-  public requireStablePending(): void {
-    this.requirePublication();
-    if (Cypress.env('PO10628_STABLE_PENDING_VERIFIED') !== true) {
-      throw new Error('PO10628_STABLE_PENDING_VERIFIED must be boolean true after external stable-pending preflight');
-    }
-  }
-
   /** Requires a caller-provisioned actor instead of guessing an available identity.
    * @returns The configured independent inputter identity, validated against BU membership before creation.
    */
@@ -68,7 +51,7 @@ export class InputterMonitoringFixtureActions {
     );
   }
 
-  /** Guards before creation, then retains each observed receipt while performing fresh-version lifecycle changes.
+  /** Retains each observed receipt before performing fresh-version lifecycle changes.
    * @param status Required persisted lifecycle state.
    * @param options Provisioned actor overrides and synthetic payload variations.
    * @returns The observed owned fixture after authoritative lifecycle/account assertions succeed.
@@ -78,8 +61,6 @@ export class InputterMonitoringFixtureActions {
     options: IDraftCasefileFixtureOptions = {},
   ): Cypress.Chainable<IOwnedDraftCasefile> {
     const approval = status === 'PUBLISHED' || status === 'PUBLISHING_PENDING';
-    if (approval) this.requirePublication();
-    if (status === 'PUBLISHING_PENDING') this.requireStablePending();
     const seed = approval ? { ...options, minorCreditorCount: 2 as const } : options;
     return createOwnedSubmittedDraft(seed).then((owned) => {
       this.state.ownedById.set(owned.id, owned);
@@ -90,8 +71,6 @@ export class InputterMonitoringFixtureActions {
       } else {
         performAuthentication(owned.checker);
         readDraftSnapshot(owned.id).then((snapshot) => {
-          if (approval) this.requirePublication();
-          if (status === 'PUBLISHING_PENDING') this.requireStablePending();
           return requestDraftChange(snapshot, 'PATCH', {
             business_unit_id: snapshot.draft.business_unit_id,
             casefile_status: approval ? 'PUBLISHING_PENDING' : 'DELETED',

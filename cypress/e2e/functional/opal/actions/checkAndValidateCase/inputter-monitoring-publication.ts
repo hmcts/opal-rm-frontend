@@ -4,7 +4,7 @@ import type { IDraftCasefileSnapshot } from './interfaces/draft-casefile-snapsho
 
 /** Checks generated wire accounts and their exact read-only dashboard projection.
  * @param snapshot Independent authenticated persisted GET, never a manufactured publication result.
- * @param pending Whether the operator-verified stable pending state is required.
+ * @param pending Whether the persisted pending state is required.
  */
 export function assertMonitoringAccounts(snapshot: IDraftCasefileSnapshot, pending: boolean): void {
   const { draft } = decodeDraftCasefileDetail(snapshot.draft, snapshot.etag, snapshot.draft.draft_casefile_id);

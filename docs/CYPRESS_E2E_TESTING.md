@@ -822,12 +822,14 @@ primary/checker/second-inputter/denied identities, reference data, publication a
 cleanup. Neither this monitoring pack nor the updated PO-10626 pack requires an observation migration or
 publication-evidence route. Backend calendar semantics and stable-pending configuration still require verification.
 
-`PO10628_SECOND_INPUTTER_EMAIL` must explicitly select an existing independent permission21 actor. Externally verified
-boolean guards `PO10628_PUBLICATION_CLEANUP_VERIFIED` and `PO10628_STABLE_PENDING_VERIFIED` never self-enable in live
-steps and do not establish acceptance. Publication guards apply only to approval/pending/published fixtures; ordinary submitted/rejected/deleted/empty/
-permission examples remain independently runnable after verification of their own runtime prerequisites and
-execution authorisation. Missing runtime capabilities fail visibly; no skip, fake-success or cleanup bypass is permitted. Empty setup fails on existing personal work without altering it. Port5100 belongs to the
-isolated checkout; leave the existing port5000 instance untouched.
+`PO10628_SECOND_INPUTTER_EMAIL` must explicitly select an existing independent permission21 actor.
+Fixture setup uses the actual lifecycle APIs and validates persisted status, ownership, ETags and generated
+accounts. No ticket-specific cleanup or publication verification variables are required. The shared `afterEach`
+hook restores the observed cleanup owner and deletes each exact ID/marker through the existing testing-support
+endpoint. Enable `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction backend. Any response other
+than HTTP204 fails cleanup and retains the outstanding receipt; tests never suppress cleanup errors.
+Stable-pending scenarios still require a runtime that keeps the fixture pending; a fast consumer reaching PUBLISHED
+fails the actual status assertion. Empty setup fails on existing personal work without altering it.
 
 For safe discovery use the suite's exact command with `dryRun=true` and its ignored discovery config explicitly
 setting `e2e.baseUrl=null` (CLI null overrides retained the configured URL here); this executes no
@@ -856,11 +858,9 @@ Maintenance BU 44. Require `release-1c-rm-create-case-files`, Maintenance testin
 compiled backend revision/running services and compatible persisted deletion/list/detail/cleanup contracts.
 Publication and its consumer are not deletion prerequisites.
 
-The updated support branch supplies eligible DELETED cleanup; the earlier inspected runtime supported SUBMITTED
-only. Verify the actual compatible build's owner/marker DELETE before the four successful/retry transition examples
-execute. Never self-enable the maintained **boolean**
-`PO10625_LIFECYCLE_CLEANUP_VERIFIED` guard; it runs before transition-capable creation and immediately before each
-DELETED dispatch, including retry. Exactly five nontransition examples carry `@PO10624SubmittedOnly`.
+Deletion success/retry scenarios require a backend supporting DELETED owner/marker cleanup. Every executed
+example uses required automatic cleanup; failed cleanup retains the exact receipt. The five
+`@PO10624SubmittedOnly` examples create only SUBMITTED records and remain a diagnostic subset.
 
 Full live selection after runtime and cleanup preflight:
 
@@ -885,6 +885,6 @@ currently prevents that input: record **frontend GAP008**, preserve the normal t
 force/seed/bypass the control, accept truncation or assume a backend cause or accepted waiver.
 
 Controlled support and discovery are not passing live deletion. Parent-owned evidence and the delivery report/PR
-must record measured results, interruptions, unrun guarded examples and actual marker-owned cleanup receipts.
+must record measured results, interruptions, unrun lifecycle examples and actual marker-owned cleanup receipts.
 These reusable instructions make no live-pass claim. Draft handoff does not require publication or an approval-state
 check; failed applicable checks still mean Not Agent Complete.

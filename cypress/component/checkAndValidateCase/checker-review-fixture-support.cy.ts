@@ -15,13 +15,7 @@ const buildTags = (): string[] => [
 ];
 
 describe('PO-10625 owned checker fixture support', () => {
-  const environmentKeys = [
-    'PO10626_INPUTTER_EMAIL',
-    'PO10626_CHECKER_EMAIL',
-    'PO10625_LIFECYCLE_CLEANUP_VERIFIED',
-    'PO10628_PUBLICATION_CLEANUP_VERIFIED',
-    'draftCasefileCleanupReceipts',
-  ];
+  const environmentKeys = ['PO10626_INPUTTER_EMAIL', 'PO10626_CHECKER_EMAIL', 'draftCasefileCleanupReceipts'];
   let originalEnvironment: Record<string, unknown>;
   let expectedFailure: boolean;
   let observedFailure: boolean;
@@ -32,8 +26,6 @@ describe('PO-10625 owned checker fixture support', () => {
     Cypress.env({
       PO10626_INPUTTER_EMAIL: 'synthetic-inputter',
       PO10626_CHECKER_EMAIL: 'synthetic-checker',
-      PO10625_LIFECYCLE_CLEANUP_VERIFIED: true,
-      PO10628_PUBLICATION_CLEANUP_VERIFIED: true,
       draftCasefileCleanupReceipts: [],
     });
     expectedFailure = false;
@@ -213,35 +205,6 @@ describe('PO-10625 owned checker fixture support', () => {
       }),
     );
     return { calls, events, writes, detail };
-  }
-
-  for (const value of [undefined, false, 'true', 'false']) {
-    it(
-      `AC1. should reject RESUBMITTED cleanup ${typeof value} ${String(value)} before POST`,
-      { tags: buildTags() },
-      () => {
-        const request = cy.stub(cy, 'request');
-        Cypress.env({ PO10625_LIFECYCLE_CLEANUP_VERIFIED: value });
-        const fixture = new CheckerReviewFixtureActions();
-        expect(() => fixture.requireLifecycleCleanup()).to.throw('PO10625_LIFECYCLE_CLEANUP_VERIFIED');
-        expect(() => fixture.create('RESUBMITTED')).to.throw('PO10625_LIFECYCLE_CLEANUP_VERIFIED');
-        expect(request).not.to.have.been.called;
-      },
-    );
-    for (const status of ['SUBMITTED', 'RESUBMITTED'] as const) {
-      it(
-        `AC1. should reject ${status} publication ${typeof value} ${String(value)} before POST`,
-        { tags: buildTags() },
-        () => {
-          const request = cy.stub(cy, 'request');
-          Cypress.env({ PO10628_PUBLICATION_CLEANUP_VERIFIED: value });
-          expect(() => new CheckerReviewFixtureActions().create(status, true)).to.throw(
-            'PO10628_PUBLICATION_CLEANUP_VERIFIED',
-          );
-          expect(request).not.to.have.been.called;
-        },
-      );
-    }
   }
 
   for (const status of ['SUBMITTED', 'RESUBMITTED'] as const) {
@@ -433,8 +396,6 @@ describe('PO-10625 owned checker fixture support', () => {
       { tags: buildTags() },
       () => {
         const runtime = publicationRuntime({ pending });
-        // Reading is safe even when the mutation guard is disabled.
-        Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED', false);
         new InputterMonitoringFixtureActions().readPublished(publicationOwned).then((saved) => {
           expect(saved.draft.casefile_status).to.equal('PUBLISHED');
           expect(runtime.calls).to.have.length(pending + 1);

@@ -17,8 +17,6 @@ describe('PO-10628 owned monitoring fixture support', () => {
     'PO10626_INPUTTER_EMAIL',
     'PO10626_CHECKER_EMAIL',
     'PO10628_SECOND_INPUTTER_EMAIL',
-    'PO10628_PUBLICATION_CLEANUP_VERIFIED',
-    'PO10628_STABLE_PENDING_VERIFIED',
     'draftCasefileCleanupReceipts',
   ];
 
@@ -57,7 +55,6 @@ describe('PO-10628 owned monitoring fixture support', () => {
       publicationFailure?: boolean;
       incompleteAccounts?: boolean;
       pendingReads?: number;
-      revokePublication?: boolean;
       rejectedCount?: number;
       duplicateInputter?: boolean;
       accountStatus?: string;
@@ -160,7 +157,6 @@ describe('PO-10628 owned monitoring fixture support', () => {
         if (request.url === '/opal-maintenance-service/draft-casefiles/101') {
           events.push(`GET:${actor}:"${version}"`);
           if (version > 1) expect(actor, 'restored fixture inputter').to.equal('synthetic-inputter');
-          if (options.revokePublication) Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED', false);
           if (version > 1 && pendingReads-- > 0) {
             const pending = structuredClone(detail);
             pending.casefile_status = 'PUBLISHING_PENDING';
@@ -263,33 +259,6 @@ describe('PO-10628 owned monitoring fixture support', () => {
     },
   );
 
-  for (const value of [undefined, false, 'true', 'false']) {
-    it(`AC4. should reject publication capability ${String(value)} before any request`, { tags: buildTags() }, () => {
-      const request = cy.stub(cy, 'request');
-      Cypress.env({ PO10628_PUBLICATION_CLEANUP_VERIFIED: value });
-      const fixture = new InputterMonitoringFixtureActions();
-      for (const status of ['PUBLISHED', 'PUBLISHING_PENDING'] as const) {
-        expect(() => fixture.create(status)).to.throw('PO10628_PUBLICATION_CLEANUP_VERIFIED');
-      }
-      expect(request).not.to.have.been.called;
-      expect(Cypress.env('draftCasefileCleanupReceipts')).to.deep.equal([]);
-    });
-
-    it(
-      `AC4. should reject stable-pending capability ${String(value)} before any request`,
-      { tags: buildTags() },
-      () => {
-        const request = cy.stub(cy, 'request');
-        Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED', true);
-        Cypress.env({ PO10628_STABLE_PENDING_VERIFIED: value });
-        expect(() => new InputterMonitoringFixtureActions().create('PUBLISHING_PENDING')).to.throw(
-          'PO10628_STABLE_PENDING_VERIFIED',
-        );
-        expect(request).not.to.have.been.called;
-      },
-    );
-  }
-
   it(
     'AC2, AC3. should require an explicitly provisioned second inputter and isolate scenario state',
     { tags: buildTags() },
@@ -322,8 +291,6 @@ describe('PO-10628 owned monitoring fixture support', () => {
 
   for (const status of ['SUBMITTED', 'REJECTED', 'DELETED', 'PUBLISHING_PENDING', 'PUBLISHED'] as const) {
     it(`AC1, AC4. should set up ${status} with owned receipts and fresh versions`, { tags: buildTags() }, () => {
-      Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED', true);
-      Cypress.env('PO10628_STABLE_PENDING_VERIFIED', true);
       const calls = controlledRuntime({ published: status === 'PUBLISHED' });
       const fixtures = new InputterMonitoringFixtureActions();
       fixtures.create(status, { uniqueNames: true }).then((owned) => {
@@ -397,8 +364,6 @@ describe('PO-10628 owned monitoring fixture support', () => {
   );
 
   it('AC4. should fail stable pending if a fast consumer has already published', { tags: buildTags() }, () => {
-    Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED', true);
-    Cypress.env('PO10628_STABLE_PENDING_VERIFIED', true);
     const calls = controlledRuntime({ published: true });
     expectFailure('real PUBLISHING_PENDING fixture lifecycle', () => {
       expect(calls.filter(({ method }) => method === 'POST')).to.have.length(1);
@@ -454,35 +419,22 @@ describe('PO-10628 owned monitoring fixture support', () => {
     );
   }
 
-  for (const invalid of [
-    { publicationFailure: true },
-    { published: true, incompleteAccounts: true },
-    { revokePublication: true },
-  ]) {
+  for (const invalid of [{ publicationFailure: true }, { published: true, incompleteAccounts: true }]) {
     it(
       `AC4. should retain approval ownership when publication validation fails for ${JSON.stringify(invalid)}`,
       { tags: buildTags() },
       () => {
-        Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED', true);
         const calls = controlledRuntime(invalid);
-        expectFailure(
-          invalid.publicationFailure
-            ? 'PUBLISHING_FAILED'
-            : invalid.revokePublication
-              ? 'PO10628_PUBLICATION_CLEANUP_VERIFIED'
-              : 'generated account number',
-          () => {
-            expect(Cypress.env('draftCasefileCleanupReceipts')).to.have.length(1);
-            expect(calls.filter(({ method }) => method === 'PATCH')).to.have.length(invalid.revokePublication ? 0 : 1);
-          },
-        );
+        expectFailure(invalid.publicationFailure ? 'PUBLISHING_FAILED' : 'generated account number', () => {
+          expect(Cypress.env('draftCasefileCleanupReceipts')).to.have.length(1);
+          expect(calls.filter(({ method }) => method === 'PATCH')).to.have.length(1);
+        });
         new InputterMonitoringFixtureActions().create('PUBLISHED');
       },
     );
   }
 
   it('AC4. should poll pending real-read boundaries to a complete publication', { tags: buildTags() }, () => {
-    Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED', true);
     const calls = controlledRuntime({ published: true, pendingReads: 2 });
     const wait = cy.stub(cy, 'wait').callsFake((milliseconds: number) => {
       expect(milliseconds).to.equal(1000);
@@ -497,7 +449,6 @@ describe('PO-10628 owned monitoring fixture support', () => {
   });
 
   it('AC4. should exhaust bounded publication polling without fabricating completion', { tags: buildTags() }, () => {
-    Cypress.env('PO10628_PUBLICATION_CLEANUP_VERIFIED', true);
     const calls = controlledRuntime();
     const wait = cy.stub(cy, 'wait').callsFake(() => cy.wrap(null, { log: false }));
     expectFailure('real PUBLISHED fixture lifecycle', () => {

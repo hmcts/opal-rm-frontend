@@ -204,7 +204,7 @@ function controlledReview() {
     document.body.innerHTML =
       '<div id="create_casefile_delete_identity">Synthetic Respondent</div><label for="create_casefile_delete_reason">Reason</label><textarea id="create_casefile_delete_reason"></textarea><button id="create_casefile_delete_submit" class="govuk-button--warning">Delete</button>';
   });
-  const prepare = cy.stub(CheckerReviewActions.prototype, 'prepareSubmittedReview').callsFake((_transition, ready) => {
+  const prepare = cy.stub(CheckerReviewActions.prototype, 'prepareSubmittedReview').callsFake((ready) => {
     cy.then(() => ready(session));
   });
   cy.stub(session.recovery, 'choose');
@@ -231,39 +231,25 @@ describe('PO-10624 deletion journey safety boundaries', () => {
     expect(prepare).not.to.have.been.called;
     expect(create).not.to.have.been.called;
   });
-  for (const kind of ['success', 'retry']) {
-    it(`AC1. should require cleanup before creating a ${kind} fixture`, { tags: buildTags() }, () => {
-      const create = cy.stub(CheckerReviewFixtureActions.prototype, 'create');
-      cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').throws(
-        new Error('Controlled cleanup preflight'),
-      );
-      expect(() => new CheckerDeletionActions().prepare(kind)).to.throw('Controlled cleanup preflight');
-      expect(create).not.to.have.been.called;
-    });
-  }
   for (const kind of ['success', 'cancel', 'blank', 'over-limit', 'retry']) {
-    it(
-      `AC2. should prepare ${kind} with the exact transition choice and actual typed reason`,
-      { tags: buildTags() },
-      () => {
-        const { session, prepare } = controlledReview();
-        const actions = new CheckerDeletionActions();
-        actions.prepare(kind);
-        cy.then(() => {
-          expect(prepare.firstCall.args[0]).to.equal(kind === 'success' || kind === 'retry');
-          const expected =
-            kind === 'success'
-              ? boundaryReason
-              : kind === 'over-limit'
-                ? 'D'.repeat(251)
-                : kind === 'blank'
-                  ? ''
-                  : 'Synthetic concurrency decision';
-          cy.get(C.deletion.reason).should('have.value', expected);
-          expect(session.recovery.capture).to.have.been.calledOnceWithExactly('delete');
-        });
-      },
-    );
+    it(`AC2. should prepare ${kind} with the actual typed reason`, { tags: buildTags() }, () => {
+      const { session, prepare } = controlledReview();
+      const actions = new CheckerDeletionActions();
+      actions.prepare(kind);
+      cy.then(() => {
+        expect(prepare).to.have.been.calledOnce;
+        const expected =
+          kind === 'success'
+            ? boundaryReason
+            : kind === 'over-limit'
+              ? 'D'.repeat(251)
+              : kind === 'blank'
+                ? ''
+                : 'Synthetic concurrency decision';
+        cy.get(C.deletion.reason).should('have.value', expected);
+        expect(session.recovery.capture).to.have.been.calledOnceWithExactly('delete');
+      });
+    });
   }
   it('AC2. should create a fresh action instance on every Given through the thin flow', { tags: buildTags() }, () => {
     const instances: CheckerDeletionActions[] = [];
@@ -289,18 +275,6 @@ describe('PO-10624 deletion boundary rejection evidence', () => {
     observedBoundaryFailure = false;
   });
   afterEach(() => expect(observedBoundaryFailure, 'required boundary failure observed').to.equal(true));
-
-  it('AC1. should stop at the transition guard before submitting deletion', { tags: buildTags() }, () => {
-    const { session } = controlledReview();
-    const submit = cy.stub(session.recovery, 'submit');
-    cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').throws(
-      new Error('Controlled dispatch guard'),
-    );
-    expectBoundaryFailure('Controlled dispatch guard', () => expect(submit).not.to.have.been.called);
-    const actions = new CheckerDeletionActions();
-    actions.prepare('success');
-    actions.submitOnce();
-  });
 
   for (const kind of ['cancel', 'blank', 'over-limit']) {
     for (const fault of ['missing monitor', 'wire PATCH', 'application PATCH']) {
@@ -523,62 +497,24 @@ function controlledRetry(session: ICheckerPreparedReview, events: string[]) {
 }
 
 describe('PO-10624 explicit retry journey orchestration', () => {
-  it(
-    'AC2. should retain one monitor from failed activation through explicit guarded retry',
-    { tags: buildTags() },
-    () => {
-      const { session } = controlledReview();
-      const events: string[] = [];
-      const transport = controlledRetry(session, events);
-      const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').callsFake(() => {
-        events.push('guard');
-      });
-      const initialMonitor = session.monitor;
-      const flow = new CheckerDeletionFlow();
-      flow.prepare('retry');
-      flow.retry();
-      cy.then(() => {
-        expect(session.monitor).not.to.equal(initialMonitor);
-        expect(session.monitor).to.equal(transport.firstMonitor());
-        expect(guard).to.have.been.calledTwice;
-        expect(transport.submit).to.have.been.calledTwice;
-        assertDeletionRetry(session.monitor, '"1"');
-        const receipt = (flow as unknown as { actions: { saved: IDraftCasefileSnapshot } }).actions.saved;
-        assertDeletedAggregate(session.before, receipt, owned, 'Synthetic concurrency decision');
-        expect(receipt.draft.timeline_data).to.have.length(session.before.draft.timeline_data.length + 1);
-        expect(events).to.deep.equal([
-          'guard',
-          'activation 1',
-          'failure',
-          'independent unchanged GET',
-          'guard',
-          'activation 2',
-        ]);
-      });
-    },
-  );
-});
-
-describe('PO-10624 guarded explicit retry rejection', () => {
-  beforeEach(() => {
-    observedBoundaryFailure = false;
-  });
-  afterEach(() => expect(observedBoundaryFailure, 'required retry guard failure observed').to.equal(true));
-  it('AC2. should check cleanup again immediately before the second activation', { tags: buildTags() }, () => {
+  it('AC2. should retain one monitor from failed activation through explicit retry', { tags: buildTags() }, () => {
     const { session } = controlledReview();
     const events: string[] = [];
     const transport = controlledRetry(session, events);
-    const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
-    guard.onSecondCall().throws(new Error('Controlled retry dispatch guard'));
-    expectBoundaryFailure('Controlled retry dispatch guard', () => {
-      expect(transport.submit).to.have.been.calledOnce;
-      expect(session.monitor).to.equal(transport.firstMonitor());
-      expect(session.monitor.attempts).to.equal(1);
-      expect(session.monitor.upstreamSuccesses).to.equal(0);
-    });
+    const initialMonitor = session.monitor;
     const flow = new CheckerDeletionFlow();
     flow.prepare('retry');
     flow.retry();
+    cy.then(() => {
+      expect(session.monitor).not.to.equal(initialMonitor);
+      expect(session.monitor).to.equal(transport.firstMonitor());
+      expect(transport.submit).to.have.been.calledTwice;
+      assertDeletionRetry(session.monitor, '"1"');
+      const receipt = (flow as unknown as { actions: { saved: IDraftCasefileSnapshot } }).actions.saved;
+      assertDeletedAggregate(session.before, receipt, owned, 'Synthetic concurrency decision');
+      expect(receipt.draft.timeline_data).to.have.length(session.before.draft.timeline_data.length + 1);
+      expect(events).to.deep.equal(['activation 1', 'failure', 'independent unchanged GET', 'activation 2']);
+    });
   });
 });
 
@@ -601,7 +537,6 @@ describe('PO-10624 validation-only Flow activation', () => {
       () => {
         const { session } = controlledReview();
         const wait = cy.spy(cy, 'wait');
-        const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
         const activated = cy.stub();
         cy.document().then((document) =>
           document.querySelector(C.deletion.submit)!.addEventListener('click', () => activated()),
@@ -612,7 +547,6 @@ describe('PO-10624 validation-only Flow activation', () => {
         cy.then(() => {
           expect(activated, 'actual warning control activation').to.have.been.calledOnce;
           expect(wait, 'validation must not await a PATCH receipt').not.to.have.been.called;
-          expect(guard, 'validation cannot begin a provider transition').not.to.have.been.called;
           expect(session.monitor.applicationAttempts).to.equal(0);
           expect(session.monitor.attempts).to.equal(0);
           cy.get(C.deletion.reason).should('have.value', kind === 'blank' ? '' : 'D'.repeat(251));
@@ -668,7 +602,7 @@ describe('PO-10624 independent accessibility composition', () => {
       cy.stub(accessibilityActions, 'checkAccessibilityOnly');
       new CheckerDeletionFlow().prepareAccessible(kind);
       cy.then(() => {
-        expect(prepare.firstCall.args[0]).to.equal(kind === 'success' || kind === 'retry');
+        expect(prepare).to.have.been.calledOnce;
         expect(session.monitor.applicationAttempts).to.equal(0);
         expect(session.monitor.attempts).to.equal(0);
         cy.get(C.deletion.reason).should(
@@ -708,7 +642,6 @@ describe('PO-10624 strict warning scans and native accessibility controls', () =
       () => {
         const { session } = nativeWarning();
         const submit = cy.stub(session.recovery, 'submit');
-        const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
         const scans: string[] = [];
         cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
           cy.get(C.deletion.reason)
@@ -720,7 +653,6 @@ describe('PO-10624 strict warning scans and native accessibility controls', () =
         });
         expectBoundaryFailure('Controlled strict warning violation', () => {
           expect(submit).not.to.have.been.called;
-          expect(guard).not.to.have.been.called;
           expect(scans).to.deep.equal(filled ? ['', boundaryReason] : ['']);
           expect(session.monitor.attempts).to.equal(0);
         });
@@ -731,17 +663,6 @@ describe('PO-10624 strict warning scans and native accessibility controls', () =
 });
 
 describe('PO-10624 native accessible warning activation', () => {
-  for (const kind of ['success', 'retry']) {
-    it(`AC4. should guard before creating an accessible ${kind} fixture`, { tags: buildTags() }, () => {
-      const create = cy.stub(CheckerReviewFixtureActions.prototype, 'create');
-      cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').throws(
-        new Error('Accessible pre-create guard'),
-      );
-      expect(() => new CheckerDeletionFlow().accessible(kind)).to.throw('Accessible pre-create guard');
-      expect(create).not.to.have.been.called;
-    });
-  }
-
   it(
     'AC4. should reach the warning and submit using native Enter and Tab with strict scans',
     { tags: buildTags() },
@@ -756,12 +677,10 @@ describe('PO-10624 native accessible warning activation', () => {
             scans.push(String(value));
           });
       });
-      const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
       const activated = cy.stub();
       cy.document().then((document) => {
         document.querySelector(C.deletion.submit)!.addEventListener('click', () => {
           expect(document.activeElement).to.equal(document.querySelector(C.deletion.submit));
-          expect(guard).to.have.been.calledOnce;
           activated();
         });
       });
@@ -786,7 +705,6 @@ describe('PO-10624 native accessible warning activation', () => {
     const { session } = nativeWarning();
     const scans: string[] = [];
     const submit = cy.stub(session.recovery, 'submit');
-    const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
     const cancelled = cy.stub(
       CheckerDeletionActions.prototype as unknown as { cancelToReview(): void },
       'cancelToReview',
@@ -846,7 +764,6 @@ describe('PO-10624 native accessible warning activation', () => {
       expect(session.monitor.applicationAttempts).to.equal(0);
       expect(session.monitor.attempts).to.equal(0);
       expect(submit).not.to.have.been.called;
-      expect(guard).not.to.have.been.called;
       expect(cancelled).to.have.been.calledOnce;
     });
   });
@@ -890,7 +807,6 @@ describe('PO-10624 native accessible cancellation and retry', () => {
     () => {
       const { session, activated } = nativeCancellation();
       const scans: string[] = [];
-      const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup');
       cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
         cy.document().then((document) => {
           const warning = document.querySelector(C.deletion.host) as HTMLElement;
@@ -905,7 +821,6 @@ describe('PO-10624 native accessible cancellation and retry', () => {
       cy.then(() => {
         expect(activated).to.have.been.calledOnce;
         expect(scans).to.deep.equal(['', 'Synthetic concurrency decision', 'returned review']);
-        expect(guard).not.to.have.been.called;
         expect(session.monitor.applicationAttempts).to.equal(0);
         expect(session.monitor.attempts).to.equal(0);
       });
@@ -919,9 +834,6 @@ describe('PO-10624 native accessible cancellation and retry', () => {
       const { session } = nativeWarning();
       const events: string[] = [];
       const transport = controlledRetry(session, events);
-      const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').callsFake(() => {
-        events.push('guard');
-      });
       const scans: string[] = [];
       cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
         cy.get(C.deletion.reason).then((field) => {
@@ -963,18 +875,10 @@ describe('PO-10624 native accessible cancellation and retry', () => {
       new CheckerDeletionFlow().accessible('retry');
       cy.then(() => {
         expect(scans).to.deep.equal(['warning', 'warning', 'retained error']);
-        expect(guard).to.have.been.calledTwice;
         expect(transport.submit, 'no pointer-oriented recovery submission').not.to.have.been.called;
         expect(session.monitor).to.equal(transport.firstMonitor());
         assertDeletionRetry(session.monitor, '"1"');
-        expect(events).to.deep.equal([
-          'guard',
-          'activation 1',
-          'failure',
-          'independent unchanged GET',
-          'guard',
-          'activation 2',
-        ]);
+        expect(events).to.deep.equal(['activation 1', 'failure', 'independent unchanged GET', 'activation 2']);
       });
     },
   );

@@ -15,14 +15,20 @@ owned row before a fresh GET and complete rendered winner check. The scoped resp
 delivery after an independently observed real HTTP 200; it does not model every socket failure.
 
 The [suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md) records the exact discovery,
-live and support commands. Its inventory retains **14 examples (8 functional + 6 accessibility)**; the current
-executable selection is **13 (7 functional + 6 accessibility)**. The retained AC1 approval row alone carries
-`@skip @PO10626RequiresPublishedCleanup`. A 13-example pass does not complete AC1 or PO-10626. The default runner
+live and support commands. Its inventory retains **12 examples (7 functional + 5 accessibility)**; the current
+executable selection is **11 (6 functional + 5 accessibility)**. The retained AC1 approval row alone carries
+`@skip @PO10626RequiresPublishedCleanup`. An 11-example pass does not complete AC1 or PO-10626. The default runner
 excludes `@skip`; inventory-only discovery uses `omitFiltered=false` to expose the row as pending. The installed
-preprocessor skips `@skip` regardless of tag selection; its default `omitFiltered=true` hides that row. Expect 14
-inventoried cases: 13 dry-run passes and one pending approval. Parsed Gherkin also retains all 14 names/rows/tags.
+preprocessor skips `@skip` regardless of tag selection; its default `omitFiltered=true` hides that row. Expect 12
+inventoried cases: 11 dry-run passes and one pending approval. Parsed Gherkin also retains all 12 names/rows/tags.
 Both tag environment variables and the lowercase
 `--env tags=...` override must agree so inherited selection cannot hide cases.
+
+The lost-response resubmission functional/accessibility pair was removed following frontend developer feedback
+on 29 October 2026. Back currently re-enters the REJECTED-only amendment route after the case becomes RESUBMITTED;
+changing that navigation is outside the agreed scope. The original committed-PUT response-loss recovery Acceptance
+Criterion therefore has no automated evidence in this pack. Definite-failure retry and stale-conflict resubmission
+coverage remain; see the suite guide's agreed recovery coverage for the removed assertions.
 
 Each example uses normal API creation with live environment-valid reference data and existing ACTIVE Maintenance
 users: inputter permission 21 and a distinct checker permission 22 in BU 44. Setup does not create users, alter

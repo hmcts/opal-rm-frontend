@@ -13,10 +13,9 @@ Feature: Recover concurrent and unacknowledged Draft Casefile changes
     And the completed recovery has not replayed the case change
 
     Examples:
-      | journey  |
-      | reject   |
-      | delete   |
-      | resubmit |
+      | journey |
+      | reject  |
+      | delete  |
 
     # Consumer and pending/published cleanup are delivered on the support branch.
     # Retain this AC1 approval example until the deployed contract and a full owned

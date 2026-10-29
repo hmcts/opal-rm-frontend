@@ -72,7 +72,7 @@ describe('Inputter casefile dashboard', () => {
     cy.get(S.pageStatus).should('contain.text', 'Create cases, page 2 of 2');
     cy.get('@listRequest').should('have.been.calledOnce');
   });
-  it('AC2. should include queued publishing rows without exposing account numbers', { tags: buildTags() }, () => {
+  it('AC2. should include queued publishing rows with supplied snapshot account numbers', { tags: buildTags() }, () => {
     setupInputterDashboard({
       tab: 'approved',
       rows: [
@@ -89,9 +89,9 @@ describe('Inputter casefile dashboard', () => {
       ],
     });
     cy.get(S.row(123)).should('exist');
-    cy.get(S.row(124)).should('be.visible').and('not.contain.text', 'UNPUBLISHED');
+    cy.get(S.row(124)).should('be.visible');
     for (const column of ['respondentAccount', 'applicantAccount', 'minorCreditorAccounts'])
-      cy.get(S.row(124)).find(S.column(column)).should('contain.text', '—');
+      cy.get(S.row(124)).find(S.column(column)).should('contain.text', 'UNPUBLISHED');
     cy.get(S.row(124)).find('a, button').should('not.exist');
   });
   it('AC4. should expose all rejected cases with populated results', { tags: buildTags() }, () => {

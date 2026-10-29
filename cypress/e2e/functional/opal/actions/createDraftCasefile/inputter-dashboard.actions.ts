@@ -51,10 +51,11 @@ export class InputterDashboardActions {
     );
     cy.intercept('GET', COLLECTION, (request) => {
       this.requests.push({ ...request.query });
-      if (request.query['submitted_by'] === undefined && request.query['casefile_status'] === 'REJECTED') {
+      if (request.query['not_submitted_by'] !== undefined) {
         expect(request.query).to.deep.equal({
           business_unit_id: '44',
           casefile_status: 'REJECTED',
+          not_submitted_by: 'BUU-SYNTHETIC',
         });
         const summaries = allRejectedRows();
         request.reply({ body: { count: summaries.length, summaries } });
@@ -237,6 +238,7 @@ export class InputterDashboardActions {
     cy.then(() =>
       expect(this.requests).to.deep.include({
         business_unit_id: '44',
+        not_submitted_by: 'BUU-SYNTHETIC',
         casefile_status: 'REJECTED',
       }),
     );
@@ -255,7 +257,7 @@ export class InputterDashboardActions {
     pressDashboardEnter();
     cy.get(S.table).should('be.visible');
   }
-  /** Checks read-only account sequence, missing-value fallback and pending account suppression. */
+  /** Checks read-only account sequence and fallback for missing snapshot numbers. */
   public expectPublished(): void {
     this.expectDashboard('approved');
     cy.get(S.row(1)).should('contain.text', '000123A').and('contain.text', 'A010');

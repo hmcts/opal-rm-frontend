@@ -122,7 +122,7 @@ describe('stateless dashboard data', () => {
       expect(JSON.stringify(setBannerError.mock.calls)).not.toContain('private detail');
     });
   });
-  it('consults all business-unit rejections without dates, counts or paging', async () => {
+  it('consults all other-inputter rejections without dates, counts or paging', async () => {
     const request = service.getAllRejectedList(identity);
     expect(api.getDraftCasefiles).not.toHaveBeenCalled();
     await firstValueFrom(request);
@@ -131,6 +131,7 @@ describe('stateless dashboard data', () => {
     expect(api.getDraftCasefiles).toHaveBeenCalledWith({
       business_unit_id: 44,
       casefile_status: 'REJECTED',
+      not_submitted_by: 'BUU-SYNTHETIC',
     });
     expect(dates.getDateRange).not.toHaveBeenCalled();
     expect(api.getRejectedDraftCasefileCount).not.toHaveBeenCalled();

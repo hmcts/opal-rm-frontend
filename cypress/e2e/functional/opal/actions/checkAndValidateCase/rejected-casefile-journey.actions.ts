@@ -114,7 +114,13 @@ export class RejectedCasefileJourneyActions {
         if (observation !== this.session.observation) return;
         const query = { ...request.query };
         if (query['restrict']) return;
-        if (query['not_submitted_by'] === undefined)
+        const crossUserRejected =
+          this.session.kind === 'cross-user' &&
+          query['casefile_status'] === 'REJECTED' &&
+          query['not_submitted_by'] === this.current().amender.id &&
+          query['submitted_by'] === undefined;
+        const personal = query['not_submitted_by'] === undefined && query['submitted_by'] === this.current().amender.id;
+        if (personal || crossUserRejected)
           request.alias =
             query['casefile_status'] === 'SUBMITTED,RESUBMITTED' ? 'amendmentInReview' : 'amendmentRejected';
         request.on('response', (response) => {
@@ -270,10 +276,9 @@ export class RejectedCasefileJourneyActions {
         query['casefile_status'] === status &&
         (checker
           ? query['not_submitted_by'] === context.owned.checkerId
-          : query['not_submitted_by'] === undefined &&
-            (this.session.kind === 'cross-user' && status === 'REJECTED'
-              ? query['submitted_by'] === undefined
-              : query['submitted_by'] === context.amender.id)),
+          : this.session.kind === 'cross-user' && status === 'REJECTED'
+            ? query['not_submitted_by'] === context.amender.id && query['submitted_by'] === undefined
+            : query['not_submitted_by'] === undefined && query['submitted_by'] === context.amender.id),
     );
     expect(matches.length, 'actual matching provider consultation observed').to.be.greaterThan(0);
     for (const { query, statusCode, body } of matches) {

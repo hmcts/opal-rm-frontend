@@ -30,7 +30,7 @@ Then('all generated respondent applicant and minor creditor numbers match the sa
   flow.expectAccounts(false),
 );
 Given('my live monitoring scenario owns a verified pending casefile', () => flow.prepareStatus('PUBLISHING_PENDING'));
-Then('the pending casefile exposes no account numbers', () => flow.expectAccounts(true));
+Then('the pending casefile does not appear in Approved', () => flow.expectAccounts(true));
 Given('live authorised monitoring entry succeeds and my provisioned denied user lacks permission 21', () =>
   flow.prepareDenied(),
 );

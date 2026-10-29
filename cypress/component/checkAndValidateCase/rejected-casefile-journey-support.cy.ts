@@ -134,6 +134,7 @@ interface Faults {
   overflow?: boolean;
   unreachableReturn?: boolean;
   lostFocus?: boolean;
+  rejectionScope?: 'unfiltered' | 'wrong-actor';
 }
 
 /** Controlled route/HTTP boundary; native rendered controls still drive every edit, submit and departure. */
@@ -295,7 +296,9 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
           ...(checker
             ? { not_submitted_by: 'B-id' }
             : state.path === REJECTIONS
-              ? {}
+              ? faults.rejectionScope === 'unfiltered'
+                ? {}
+                : { not_submitted_by: faults.rejectionScope === 'wrong-actor' ? 'wrong-id' : context.amender.id }
               : { submitted_by: context.amender.id }),
         },
         undefined,
@@ -717,6 +720,21 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
             ).to.equal('Winning');
           }
         });
+      },
+    );
+  }
+  for (const rejectionScope of ['unfiltered', 'wrong-actor'] as const) {
+    it(
+      `AC3. should reject the ${rejectionScope} All rejected consultation after cross-user resubmission`,
+      { tags: tags() },
+      () => {
+        harness('cross-user', { rejectionScope });
+        mustFail('Missing exact controlled provider receipt @amendmentRejected');
+        const flow = new RejectedCasefileAmendmentFlow();
+        flow.prepare('cross-user');
+        complete(flow, 'cross-user');
+        assertOutcome(flow, 'cross-user');
+        requireFailure();
       },
     );
   }

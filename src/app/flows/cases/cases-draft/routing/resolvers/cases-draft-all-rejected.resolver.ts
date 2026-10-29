@@ -15,7 +15,10 @@ export const casesDraftAllRejectedResolver: ResolveFn<ICasesDraftAllRejectedReso
       identity,
       rows: mapCasesDraftRows(
         response.summaries.filter(
-          (summary) => summary.business_unit_id === identity.businessUnitId && summary.casefile_status === 'REJECTED',
+          (summary) =>
+            summary.business_unit_id === identity.businessUnitId &&
+            summary.casefile_status === 'REJECTED' &&
+            summary.submitted_by !== identity.submittedBy,
         ),
         'rejected',
       ),

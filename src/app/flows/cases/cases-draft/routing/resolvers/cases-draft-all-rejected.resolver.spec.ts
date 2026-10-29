@@ -52,7 +52,7 @@ describe('all-rejected route resolver', () => {
     );
     const result = await run();
     expect(result).not.toHaveProperty('status');
-    expect(result.rows.map((row) => row.id)).toEqual([1, 2]);
+    expect(result.rows.map((row) => row.id)).toEqual([1]);
     expect(data.getAllRejectedList).toHaveBeenCalledExactlyOnceWith(identity);
   });
   it('distinguishes recoverable decoding failure from an empty success', async () => {
@@ -72,7 +72,7 @@ describe('all-rejected route resolver', () => {
     data.getAllRejectedList.mockReturnValue(
       of({
         count: 99,
-        summaries: [createCasesDraftSummary({ casefile_status: 'SUBMITTED', submitted_by: identity.submittedBy })],
+        summaries: [createCasesDraftSummary({ casefile_status: 'REJECTED', submitted_by: identity.submittedBy })],
       }),
     );
     expect(await run()).toEqual({ identity, rows: [] });

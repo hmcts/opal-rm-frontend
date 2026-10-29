@@ -144,10 +144,16 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
     },
   );
 
-  it('AC4. should accept a visible pending row only when every ID and number is null', { tags: buildTags() }, () => {
-    render('—', '—', '—');
-    cy.then(() => assertMonitoringAccounts(snapshot(true), true));
-  });
+  it(
+    'AC4. should require pending work to be absent while every persisted ID and number is null',
+    { tags: buildTags() },
+    () => {
+      cy.document().then((document) => {
+        document.body.innerHTML = '<table><tbody></tbody></table>';
+      });
+      cy.then(() => assertMonitoringAccounts(snapshot(true), true));
+    },
+  );
 
   it(
     'AC4. should reject pending as completed publication and incomplete generated accounts',
@@ -205,11 +211,11 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
   }
 
   it(
-    'AC4. should reject any number exposed in the pending DOM',
+    'AC4. should reject any pending row exposed in the Approved DOM',
     { tags: buildTags(), defaultCommandTimeout: 100 },
     () => {
       render('RESP-101', '—', '—');
-      expectDomFailure('—');
+      expectDomFailure('not to exist');
       cy.then(() => assertMonitoringAccounts(snapshot(true), true));
     },
   );
@@ -504,7 +510,7 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
           expect(events).to.deep.equal([
             `authenticate:${selected}`,
             `membership:${selected}`,
-            ...['SUBMITTED,RESUBMITTED', 'REJECTED', 'PUBLISHING_PENDING,PUBLISHED', 'DELETED'].map(
+            ...['SUBMITTED,RESUBMITTED', 'REJECTED', 'PUBLISHED', 'DELETED'].map(
               (status) => `list:${selected}:${status}`,
             ),
           ]);

@@ -13,7 +13,7 @@ describe('buildCasesDraftListParams', () => {
   it.each([
     ['in-review', 'SUBMITTED,RESUBMITTED', false],
     ['rejected', 'REJECTED', false],
-    ['approved', 'PUBLISHING_PENDING,PUBLISHED', true],
+    ['approved', 'PUBLISHED', true],
     ['deleted', 'DELETED', true],
   ] as const)('builds the %s request', (tab, status, bounded) => {
     const params = buildCasesDraftListParams({ userId: 7, businessUnitId: 44, submittedBy: 'BUU-SYNTHETIC' }, tab, {
@@ -50,8 +50,8 @@ describe('buildCasesDraftListParams', () => {
     });
   });
 
-  it('defines the approved tab as pending and published cases', () => {
-    expect(CASES_DRAFT_TABS.approved.statuses).toBe('PUBLISHING_PENDING,PUBLISHED');
+  it('defines the approved tab as published cases only', () => {
+    expect(CASES_DRAFT_TABS.approved.statuses).toBe('PUBLISHED');
   });
 
   it.each([

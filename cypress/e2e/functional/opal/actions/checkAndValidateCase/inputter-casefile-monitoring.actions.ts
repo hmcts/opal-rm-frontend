@@ -27,7 +27,7 @@ const ALL_REJECTED = '/' + PATHS.root + '/' + PATHS.children.rejections;
 const STATUSES = {
   'in-review': 'SUBMITTED,RESUBMITTED',
   rejected: 'REJECTED',
-  approved: 'PUBLISHING_PENDING,PUBLISHED',
+  approved: 'PUBLISHED',
   deleted: 'DELETED',
 };
 
@@ -65,7 +65,8 @@ export class InputterCasefileMonitoringActions {
       expect(query['business_unit_id']).to.equal('44');
       const personal = query['submitted_by'] !== undefined;
       if (personal) expect(query['submitted_by']).to.equal(actor);
-      else expect(query).to.deep.equal({ business_unit_id: '44', casefile_status: 'REJECTED' });
+      else
+        expect(query).to.deep.equal({ business_unit_id: '44', casefile_status: 'REJECTED', not_submitted_by: actor });
       const count = query['restrict'] === 'counts';
       request.alias = personal ? 'monitoringList' : 'monitoringAllRejected';
       if (count) request.alias = 'monitoringCount';
@@ -506,7 +507,8 @@ export class InputterCasefileMonitoringActions {
    */
   public expectAccounts(owned: IOwnedDraftCasefile, pending: boolean, scanStates = false): void {
     this.firstPage(scanStates);
-    this.findRow(owned.id, scanStates);
+    if (pending) this.expectRows([], [owned], scanStates);
+    else this.findRow(owned.id, scanStates);
     readDraftSnapshot(owned.id).then((snapshot) => assertMonitoringAccounts(snapshot, pending));
     this.expectNoWrites();
   }

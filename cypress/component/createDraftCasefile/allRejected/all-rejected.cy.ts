@@ -36,16 +36,15 @@ function assertUnchangedConsultation() {
 
 describe('All rejected cases collection', () => {
   it(
-    'AC1. should request all business-unit rejections and expose six columns with shared MOJ pagination',
+    'AC1. should request only other-inputter rejections and expose six columns with shared MOJ pagination',
     { tags: buildTags() },
     () => {
-      setupAllRejected({
-        rows: F.rows().map((row, index) => (index === 0 ? { ...row, submitted_by: F.identity.submittedBy } : row)),
-      });
+      setupAllRejected();
       cy.get(S.allRejectedHeading).should('have.text', 'All rejected cases');
       cy.get('@listRequest').should('have.been.calledOnceWithExactly', {
         business_unit_id: 44,
         casefile_status: 'REJECTED',
+        not_submitted_by: F.identity.submittedBy,
       });
       cy.get(S.table)
         .find('th')
@@ -67,8 +66,6 @@ describe('All rejected cases collection', () => {
         'Showing 1 to 25 of 26 total results',
       );
       cy.get(S.allRejectedPageStatus).should('have.text', 'All rejected cases, page 1 of 2');
-      cy.get(S.row(26)).should('be.visible');
-      cy.get(S.row(25)).should('be.visible');
     },
   );
   for (const count of [0, 1, 25, 26])

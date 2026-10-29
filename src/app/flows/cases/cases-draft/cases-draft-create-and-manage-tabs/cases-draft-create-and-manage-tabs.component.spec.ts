@@ -36,7 +36,7 @@ const response = (tab: CasesDraftInputterTab, id = 123): IOpalMaintenanceDraftCa
     createCasesDraftSummary({
       draft_casefile_id: id,
       casefile_status: CASES_DRAFT_TABS[tab].statuses.split(',')[0] as
-        'SUBMITTED' | 'REJECTED' | 'PUBLISHING_PENDING' | 'DELETED',
+        'SUBMITTED' | 'REJECTED' | 'PUBLISHED' | 'DELETED',
     }),
   ],
 });
@@ -261,7 +261,7 @@ describe('resolver-backed dashboard', () => {
     expect(navigate).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
     expect(api.getDraftCasefiles).toHaveBeenLastCalledWith(
-      expect.objectContaining({ submitted_by: 'BUU-REPLACEMENT', casefile_status: 'PUBLISHING_PENDING,PUBLISHED' }),
+      expect.objectContaining({ submitted_by: 'BUU-REPLACEMENT', casefile_status: 'PUBLISHED' }),
     );
   });
   it('uses the shared tab base and capped count formatting', async () => {

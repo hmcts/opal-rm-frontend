@@ -12,8 +12,8 @@ with an independent authenticated request while the browser retains its earlier 
 
 ## PO-10611 frontend integration
 
-Run this pack on the `codex/PO-10611` frontend foundation (integration base `275011b2`), including its inherited
-common UI `0.0.114`. Recovery actions use the maintained checker and create-casefile route constants and assert
+Run this pack on the PO-10611 frontend foundation with the dependencies inherited from master `8cf1f9e6`,
+including common UI `0.0.116` and common Cypress `0.0.5`. Recovery actions use the maintained checker and create-casefile route constants and assert
 the rendered Continue, Delete case, deletion heading and Submit for review controls. Keep retained-context,
 no-replay and recovery assertions intact when the actual runtime fails them. Definite-failure and ambiguous examples still require retained editing context. Conflict examples assert the
 actual shared concurrency-failure page and recover through Cases, the actor dashboard, the saved-status tab and

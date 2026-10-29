@@ -44,7 +44,7 @@ export class OpalMaintenanceService {
       .set('business_unit_id', params.business_unit_id)
       .set('casefile_status', params.casefile_status);
     if (params.not_submitted_by !== undefined) query = query.set('not_submitted_by', params.not_submitted_by);
-    else if (params.submitted_by !== undefined) query = query.set('submitted_by', params.submitted_by);
+    else query = query.set('submitted_by', params.submitted_by);
     if (params.casefile_status_from_date !== undefined) {
       query = query.set('casefile_status_from_date', params.casefile_status_from_date);
     }

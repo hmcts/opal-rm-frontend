@@ -28,6 +28,10 @@ export function assertMonitoringAccounts(snapshot: IDraftCasefileSnapshot, pendi
     }
   }
   const row = S.row(draft.draft_casefile_id);
+  if (pending) {
+    cy.get(row).should('not.exist');
+    return;
+  }
   cy.get(row).should('be.visible');
   for (const [column, account] of [
     ['respondentAccount', saved.respondent_account],
@@ -35,24 +39,17 @@ export function assertMonitoringAccounts(snapshot: IDraftCasefileSnapshot, pendi
   ] as const) {
     cy.get(row)
       .find(S.column(column))
-      .should((cell) => expect(cell.text().trim()).to.equal(pending ? '—' : account.account_number));
+      .should((cell) => expect(cell.text().trim()).to.equal(account.account_number));
   }
-  if (pending) {
-    cy.get(row)
-      .find(S.column('minorCreditorAccounts'))
-      .should((cell) => expect(cell.text().trim()).to.equal('—'));
-    cy.get(row).find(S.column('minorCreditorAccounts')).find('li').should('not.exist');
-  } else {
-    cy.get(row)
-      .find(S.column('minorCreditorAccounts'))
-      .find('li')
-      .should((items) => {
-        expect(
-          [...items].map((item) => item.textContent?.trim()),
-          'all saved creditors in sequence',
-        ).to.deep.equal(creditors.map((account) => account.account_number));
-      });
-  }
+  cy.get(row)
+    .find(S.column('minorCreditorAccounts'))
+    .find('li')
+    .should((items) => {
+      expect(
+        [...items].map((item) => item.textContent?.trim()),
+        'all saved creditors in sequence',
+      ).to.deep.equal(creditors.map((account) => account.account_number));
+    });
   for (const column of ['respondentAccount', 'applicantAccount', 'minorCreditorAccounts']) {
     cy.get(row).find(S.column(column)).find('a, button, input').should('not.exist');
   }

@@ -164,14 +164,16 @@ function publishedSnapshot() {
   return saved;
 }
 
-function controlledAccountTable(options: { missingCreditor?: boolean; linkedNumber?: boolean } = {}) {
+function controlledAccountTable(
+  options: { missingCreditor?: boolean; linkedNumber?: boolean; pending?: boolean } = {},
+) {
   const state = { page: 3 };
   cy.document().then((document) => {
     const render = () => {
       const respondent = options.linkedNumber ? '<a href="#number">RESP-101</a>' : 'RESP-101';
       const minors = options.missingCreditor ? '<li>MINOR-1</li>' : '<li>MINOR-1</li><li>MINOR-2</li>';
       const row =
-        state.page === 2
+        state.page === 2 && !options.pending
           ? `<tr data-draft-id="101"><td data-column="respondentAccount">${respondent}</td><td data-column="applicantAccount">APP-201</td><td data-column="minorCreditorAccounts"><ul>${minors}</ul></td></tr>`
           : '<tr data-draft-id="999"><td>Unrelated row</td></tr>';
       const prev = state.page > 1 ? '<a href="#prev" rel="prev">Previous</a>' : '';
@@ -196,7 +198,20 @@ function controlledAccountTable(options: { missingCreditor?: boolean; linkedNumb
     cy.then(() => {
       expect(request.method).to.equal('GET');
       expect(request.url).to.equal('/opal-maintenance-service/draft-casefiles/101');
-      return { status: 200, body: publishedSnapshot().draft, headers: { etag: '"2"' } };
+      const saved = publishedSnapshot();
+      if (options.pending) {
+        saved.draft.casefile_status = 'PUBLISHING_PENDING';
+        const accounts = saved.draft.casefile_snapshot;
+        for (const account of [
+          accounts.respondent_account,
+          accounts.applicant_account,
+          ...accounts.minor_creditor_accounts,
+        ]) {
+          account.account_id = null;
+          account.account_number = null;
+        }
+      }
+      return { status: 200, body: saved.draft, headers: { etag: '"2"' } };
     }),
   );
   return state;
@@ -213,6 +228,24 @@ describe('PO-10625 published account traversal support', () => {
     if (expectedFailure) expect(observedFailure, 'required failure observed').to.equal(true);
   });
   for (const scanning of [true, false]) {
+    it(
+      `AC1. should exclude pending work on every page with strict scanning boolean ${scanning}`,
+      { tags: buildTags() },
+      () => {
+        const state = controlledAccountTable({ pending: true });
+        const scans: number[] = [];
+        cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+          cy.then(() => {
+            scans.push(state.page);
+          });
+        });
+        new InputterCasefileMonitoringActions().expectAccounts(owned, true, scanning);
+        cy.then(() => {
+          expect(scans).to.deep.equal(scanning ? [2, 1, 1, 2, 3] : []);
+          expect(state.page).to.equal(3);
+        });
+      },
+    );
     it(`AC1. should search every account page with strict scanning boolean ${scanning}`, { tags: buildTags() }, () => {
       const state = controlledAccountTable();
       const scans: number[] = [];

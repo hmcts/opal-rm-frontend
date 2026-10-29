@@ -82,13 +82,13 @@ preceding saved-outcome assertion requires exactly one matching lifecycle event 
 stale cases require the complete unchanged winning aggregate. There are no publication-evidence registration/read
 calls, journal interfaces or counter assertions.
 
-| Fact | Evidence source and limit |
-| --- | --- |
-| No automatic browser replay after response loss, failure or conflict | Scoped application Fetch and wire request counts through recovery; explicit retry has its own expected count. |
-| Persisted decision/resubmission, original ID/version, complete aggregate/snapshot and one corresponding timeline event | Real normal-API GET/re-entry and rendered saved-state assertions before cleanup. |
-| One producer invocation and repeat/stale refusal | Separately labelled backend decision/transaction and enabled/disabled publisher integration tests; mocked publisher/JMS boundaries do not establish broker delivery. |
-| Broker acceptance, settlement/redelivery and one persisted published graph | Separate opt-in real-broker/consumer integration execution on an agreed dedicated test queue. |
-| No duplicate producer sends during this deployed UI journey | Unmet until the acceptance owner confirms the proposed evidence allocation or separately scoped broker-observation capability is delivered. Browser counts and GET/timeline state cannot establish this fact. |
+| Fact                                                                                                                   | Evidence source and limit                                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No automatic browser replay after response loss, failure or conflict                                                   | Scoped application Fetch and wire request counts through recovery; explicit retry has its own expected count.                                                                                                 |
+| Persisted decision/resubmission, original ID/version, complete aggregate/snapshot and one corresponding timeline event | Real normal-API GET/re-entry and rendered saved-state assertions before cleanup.                                                                                                                              |
+| One producer invocation and repeat/stale refusal                                                                       | Separately labelled backend decision/transaction and enabled/disabled publisher integration tests; mocked publisher/JMS boundaries do not establish broker delivery.                                          |
+| Broker acceptance, settlement/redelivery and one persisted published graph                                             | Separate opt-in real-broker/consumer integration execution on an agreed dedicated test queue.                                                                                                                 |
+| No duplicate producer sends during this deployed UI journey                                                            | Unmet until the acceptance owner confirms the proposed evidence allocation or separately scoped broker-observation capability is delivered. Browser counts and GET/timeline state cannot establish this fact. |
 
 The backend [test handoff](https://github.com/hmcts/opal-maintenance-service/blob/215b577/docs/TESTING.md#feqa-consumer-cutover-and-acceptance-evidence)
 defines the proposed allocation. Removing the retired routes does not waive the original AC1 publication-request
@@ -214,20 +214,20 @@ enabled broad accessibility scenarios**. All carry `@R1CRmCreateCaseFiles`, `@fu
 `@JIRA-LABEL:create-draft-casefile`, `@JIRA-STORY:PO-10628`, `@JIRA-EPIC:PO-10817`, appropriate `@AC1`–`@AC6` tags
 and `@retries(0)`. There are no pending/skip tags. Each scenario constructs fresh flow/actions/fixture state.
 
-| AC  | Enabled examples and assertions                                                                                                                                                                                                                                                                                                            |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| AC1 | Own SUBMITTED, REJECTED, PUBLISHED and DELETED records appear only in their matching tabs. Four date-window examples consult at actual persisted lifecycle D+7 and D+8; only Approved/Deleted use inclusive calendar filters. In review/Rejected omit both dates.                                                                          |
-| AC2 | Empty and populated personal Rejected both reach the real complete Business Unit rejection list. Empty setup requires genuinely zero personal rejections and leaves unrelated data alone.                                                                                                                                                  |
-| AC3 | Own plus a provisioned second inputter's rejected IDs and owning actors are present. Exactly 26 owned personal rejected records exercise sort, next/previous and page retention. The selected other-owned ID receives a fresh real GET and reaches amendment; Back restores the actual captured own page/sort/visible IDs without a write. |
-| AC4 | Actual PUBLISHED detail supplies positive IDs and all respondent/applicant/two minor-creditor numbers, rendered in creditor sequence as exact read-only text. Separate stable PUBLISHING_PENDING coverage requires null IDs/numbers and a visible row with only missing-number indicators.                                                 |
-| AC5 | Successful authorised entry precedes an existing ACTIVE denied user's direct dashboard attempt; no counts, rows, collection GETs or writes are exposed.                                                                                                                                                                                    |
-| AC6 | Five separate scenarios scan every visited meaningful page/state with the shared strict Axe step: populated tabs, genuinely empty tabs, pagination/All rejected/amendment/return, published multi-account row and actual denied destination. Native Enter and focus checks cover tabs, sorting, next/previous and Back links.              |
+| AC  | Enabled examples and assertions                                                                                                                                                                                                                                                                                                                                                |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AC1 | Own SUBMITTED, REJECTED, PUBLISHED and DELETED records appear only in their matching tabs. Four date-window examples consult at actual persisted lifecycle D+7 and D+8; only Approved/Deleted use inclusive calendar filters. In review/Rejected omit both dates.                                                                                                              |
+| AC2 | Empty and populated personal Rejected both reach the real other-inputter Business Unit rejection list. Empty setup requires genuinely zero personal rejections and leaves unrelated data alone.                                                                                                                                                                                |
+| AC3 | The provisioned second inputter's rejected IDs and owning actors are present; the current inputter's cases are excluded. Exactly 26 owned personal rejected records exercise sort, next/previous and page retention. The selected other-owned ID receives a fresh real GET and reaches amendment; Back restores the actual captured own page/sort/visible IDs without a write. |
+| AC4 | Actual PUBLISHED detail supplies positive IDs and all respondent/applicant/two minor-creditor numbers, rendered in creditor sequence as exact read-only text. Separate stable PUBLISHING_PENDING coverage requires null IDs/numbers and absence from the Approved response and every rendered page.                                                                            |
+| AC5 | Successful authorised entry precedes an existing ACTIVE denied user's direct dashboard attempt; no counts, rows, collection GETs or writes are exposed.                                                                                                                                                                                                                        |
+| AC6 | Five separate scenarios scan every visited meaningful page/state with the shared strict Axe step: populated tabs, genuinely empty tabs, pagination/All rejected/amendment/return, published multi-account row and actual denied destination. Native Enter and focus checks cover tabs, sorting, next/previous and Back links.                                                  |
 
 Setup uses `InputterMonitoringFixtureActions`, normal authenticated POST and fresh-ETag lifecycle changes with a
 distinct checker. Every successfully created ID immediately has required owner/marker cleanup, including setup
 failure. No shared fixture records, synthetic lifecycle dates, fabricated successful business responses, permission
 changes, queue manipulation or unowned deletion are used. Other-inputter creation restores the primary inputter
-before dashboard consultation. All rejected is BU-wide and has neither submitter nor date filters; assertions use
+before dashboard consultation. All rejected stays within the Business Unit, excludes the current inputter using `not_submitted_by`, and has no date filters; assertions use
 owned IDs and actor fields rather than assuming the shared BU contains only this scenario's work. Amendment entry
 is covered here; complete resubmission belongs to PO-10623.
 
@@ -275,6 +275,16 @@ Only after the corresponding operator preflights may external runner configurati
 `PO10628_PUBLICATION_CLEANUP_VERIFIED=true` and, for stable pending, `PO10628_STABLE_PENDING_VERIFIED=true`.
 The steps never set these guards. Flags alone are not verification evidence. Missing capabilities are explicit
 failures, with retained cleanup receipts; do not skip scenarios or manufacture success.
+
+### Application rollback and retained expectations
+
+PO-10628 application changes have been reverted for developer confirmation. All rejected tests now require
+`not_submitted_by` and exclude the current inputter's rows. Account mapping tests retain values supplied by the
+snapshot without a publication-status guard. Developer clarification confirms approval enters the asynchronous
+`PUBLISHING_PENDING` state before `PUBLISHED`; pending cases should not appear in Approved. Cypress tests now
+expect only `PUBLISHED` in the Approved query and exclude pending rows even when a snapshot supplies numbers.
+The entire `src` directory, including colocated tests, remains identical to `origin/master`. The original AC requiring both own and
+other-inputter cases on All rejected is not covered by the revised expectations and remains unresolved.
 
 ### Commands and evidence boundary
 

@@ -1,13 +1,8 @@
-# GitHub uses the last matching pattern to select the code owner.
+# GitHub uses the last matching pattern to select the code owners.
 # Required team approvals are configured separately in the master ruleset.
 
-# QA owns files without a more specific owner.
-* @hmcts/opal-testers
-
-# Frontend developers own application source and dependency updates.
-/src/** @hmcts/opal-frontend-developers
-/package.json @hmcts/opal-frontend-developers
-/yarn.lock @hmcts/opal-frontend-developers
+# Frontend developers and QA share default ownership.
+* @hmcts/opal-frontend-developers @hmcts/opal-testers
 
 # Admins own build, deployment, toolchain, and API-generation configuration.
 /.nvmrc @hmcts/opal-admins

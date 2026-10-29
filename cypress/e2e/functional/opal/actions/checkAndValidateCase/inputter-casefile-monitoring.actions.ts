@@ -27,7 +27,7 @@ const ALL_REJECTED = '/' + PATHS.root + '/' + PATHS.children.rejections;
 const STATUSES = {
   'in-review': 'SUBMITTED,RESUBMITTED',
   rejected: 'REJECTED',
-  approved: 'PUBLISHING_PENDING,PUBLISHED',
+  approved: 'PUBLISHED',
   deleted: 'DELETED',
 };
 
@@ -490,7 +490,8 @@ export class InputterCasefileMonitoringActions {
    */
   public expectAccounts(owned: IOwnedDraftCasefile, pending: boolean): void {
     this.firstPage();
-    this.findRow(owned.id);
+    if (pending) this.expectRows([], [owned]);
+    else this.findRow(owned.id);
     readDraftSnapshot(owned.id).then((snapshot) => assertMonitoringAccounts(snapshot, pending));
     this.expectNoWrites();
   }

@@ -311,14 +311,6 @@ describe('PO-10625 checker lifecycle and accessible validation dispatch support'
       expect(() => actions.assertDecision('delete')).to.throw('Unsupported checker decision');
       expect(() => actions.compete('delete')).to.throw('Unsupported checker decision');
       expect(() => actions.decide('approve')).to.throw('Approval requires a publication fixture');
-      const previous = Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED');
-      try {
-        Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', false);
-        for (const kind of ['decision', 'publication', 'stale'])
-          expect(() => actions.prepare('SUBMITTED', kind)).to.throw('PO10625_LIFECYCLE_CLEANUP_VERIFIED');
-      } finally {
-        Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', previous);
-      }
       expect(request).not.to.have.been.called;
     },
   );
@@ -526,9 +518,6 @@ function setupPreparedReview(
   const seam = actions as unknown as CheckerReviewSeam;
   const expectedMonitor = monitor();
   const saved = snapshot();
-  const guard = cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').callsFake(() => {
-    events.push('guard');
-  });
   const create = cy.stub(CheckerReviewFixtureActions.prototype, 'create').callsFake(() => {
     events.push('create');
     return cy.wrap(owned, { log: false });
@@ -552,46 +541,26 @@ function setupPreparedReview(
       if (missing) seam[missing] = undefined;
     });
   });
-  return { seam, saved, expectedMonitor, guard, create };
+  return { seam, saved, expectedMonitor, create };
 }
 
 describe('PO-10624 prepared checker review support', () => {
-  for (const transition of [true, false]) {
-    it(
-      `AC1. should prepare an identical complete session after setup with transition ${transition}`,
-      { tags: deletionTags() },
-      () => {
-        const actions = new CheckerReviewActions();
-        const events: string[] = [];
-        const { seam, saved, expectedMonitor, guard, create } = setupPreparedReview(actions, events);
-        actions.prepareSubmittedReview(transition, (session) => {
-          events.push('ready');
-          expect(session.owned).to.equal(owned);
-          expect(session.before).to.equal(seam.before);
-          expect(session.before).to.deep.equal(saved);
-          expect(session.recovery).to.equal(seam.recovery);
-          expect(session.monitor).to.equal(expectedMonitor);
-        });
-        cy.then(() => {
-          expect(guard.callCount).to.equal(transition ? 1 : 0);
-          expect(create).to.have.been.calledOnceWithExactly('SUBMITTED', false);
-          expect(events).to.deep.equal([...(transition ? ['guard'] : []), 'create', 'monitor installed', 'ready']);
-        });
-      },
-    );
-  }
-
-  it('AC1. should stop before fixture creation when lifecycle cleanup is unavailable', { tags: deletionTags() }, () => {
-    const create = cy.stub(CheckerReviewFixtureActions.prototype, 'create');
-    cy.stub(CheckerReviewFixtureActions.prototype, 'requireLifecycleCleanup').throws(
-      new Error('Controlled cleanup guard'),
-    );
-    expect(() =>
-      new CheckerReviewActions().prepareSubmittedReview(true, () => {
-        throw new Error('ready must not run');
-      }),
-    ).to.throw('Controlled cleanup guard');
-    expect(create).not.to.have.been.called;
+  it('AC1. should prepare a complete session after fixture and monitor setup', { tags: deletionTags() }, () => {
+    const actions = new CheckerReviewActions();
+    const events: string[] = [];
+    const { seam, saved, expectedMonitor, create } = setupPreparedReview(actions, events);
+    actions.prepareSubmittedReview((session) => {
+      events.push('ready');
+      expect(session.owned).to.equal(owned);
+      expect(session.before).to.equal(seam.before);
+      expect(session.before).to.deep.equal(saved);
+      expect(session.recovery).to.equal(seam.recovery);
+      expect(session.monitor).to.equal(expectedMonitor);
+    });
+    cy.then(() => {
+      expect(create).to.have.been.calledOnceWithExactly('SUBMITTED', false);
+      expect(events).to.deep.equal(['create', 'monitor installed', 'ready']);
+    });
   });
 
   it(
@@ -636,7 +605,7 @@ describe('PO-10624 incomplete prepared checker session support', () => {
           observedFailure = true;
           return false;
         });
-        actions.prepareSubmittedReview(false, () => {
+        actions.prepareSubmittedReview(() => {
           ready = true;
         });
       },

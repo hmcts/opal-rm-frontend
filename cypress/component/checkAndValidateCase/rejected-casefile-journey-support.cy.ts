@@ -611,21 +611,11 @@ function recordScans(state: ReturnType<typeof harness>, removed = false): void {
 }
 
 describe('PO-10623 real journey orchestration (controlled support only)', { retries: 0 }, () => {
-  let environment: Record<string, unknown>;
   let expected = false;
   let observed = false;
   beforeEach(() => {
-    environment = {
-      PO10625_LIFECYCLE_CLEANUP_VERIFIED: Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED'),
-      PO10623_TRANSFER_CLEANUP_VERIFIED: Cypress.env('PO10623_TRANSFER_CLEANUP_VERIFIED'),
-    };
-    // Controlled fixture dependency is replaced before preparation; no live data or session is created.
-    Cypress.env({ PO10625_LIFECYCLE_CLEANUP_VERIFIED: true, PO10623_TRANSFER_CLEANUP_VERIFIED: true });
     expected = false;
     observed = false;
-  });
-  afterEach(() => {
-    Cypress.env(environment);
   });
   function requireFailure(): void {
     cy.then(() => {
@@ -863,50 +853,6 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
     complete(flow, 'stale');
     assertOutcome(flow, 'stale');
     requireFailure();
-  });
-  for (const guard of [undefined, false, 'true']) {
-    it(`AC4. should block fixture creation for lifecycle guard ${String(guard)}`, { tags: tags() }, () => {
-      const prepare = cy.spy(RejectedCasefileFixtureActions.prototype, 'prepare');
-      Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', guard);
-      expect(() => new RejectedCasefileAmendmentFlow().prepare('same-user')).to.throw(
-        'PO10625_LIFECYCLE_CLEANUP_VERIFIED',
-      );
-      expect(prepare).not.to.have.been.called;
-    });
-  }
-  for (const kind of ['same-user', 'cross-user', 'stale', 'non-rejected'] as RejectedAmendmentKind[]) {
-    it(
-      `AC4. should block the ${kind} transition if cleanup capability is lost after preparation`,
-      { tags: tags() },
-      () => {
-        const state = harness(kind);
-        const flow = new RejectedCasefileAmendmentFlow();
-        flow.prepare(kind);
-        cy.then(() =>
-          Cypress.env(
-            kind === 'cross-user' ? 'PO10623_TRANSFER_CLEANUP_VERIFIED' : 'PO10625_LIFECYCLE_CLEANUP_VERIFIED',
-            false,
-          ),
-        );
-        mustFail(
-          kind === 'cross-user' ? 'PO10623_TRANSFER_CLEANUP_VERIFIED' : 'PO10625_LIFECYCLE_CLEANUP_VERIFIED',
-          () => {
-            expect(state.submissions).to.equal(0);
-            expect(state.requests.some((request) => request.method === 'PUT')).to.equal(false);
-          },
-        );
-        complete(flow, kind);
-        requireFailure();
-      },
-    );
-  }
-  it('AC4. should reject missing transfer cleanup before fixture preparation', { tags: tags() }, () => {
-    const prepare = cy.spy(RejectedCasefileFixtureActions.prototype, 'prepare');
-    Cypress.env('PO10623_TRANSFER_CLEANUP_VERIFIED', false);
-    expect(() => new RejectedCasefileAmendmentFlow().prepare('cross-user')).to.throw(
-      'PO10623_TRANSFER_CLEANUP_VERIFIED',
-    );
-    expect(prepare).not.to.have.been.called;
   });
 
   for (const kind of [

@@ -22,7 +22,7 @@ export class RejectedCasefileAmendmentFlow {
     return this.session.context;
   }
 
-  /** Prepares one fresh guarded rejection and authenticates its actual correcting inputter.
+  /** Prepares one fresh owned rejection and authenticates its actual correcting inputter.
    * @param kind Exact supported outcome.
    * @param accessible Native keyboard activation.
    */
@@ -36,7 +36,6 @@ export class RejectedCasefileAmendmentFlow {
     };
     this.session = session;
     this.actions = new RejectedCasefileJourneyActions(session);
-    this.fixture.requireCleanup(session.kind === 'cross-user');
     if (session.kind === 'denied')
       this.fixture.foreignActor().then((foreign) => {
         session.foreign = foreign;

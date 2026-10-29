@@ -4,7 +4,6 @@ import {
   configureDraftCasefileCleanup,
   persistDraftCasefileCleanupReceipts,
 } from '../../../../../support/draftCasefiles';
-import { CheckerReviewFixtureActions } from './checker-review-fixture.actions';
 import { readDraftSnapshot } from './draft-casefile-evidence.actions';
 import { createOwnedSubmittedDraft, rejectOwnedDraft, requireMembership } from './draft-casefile-fixture.actions';
 import type {
@@ -15,23 +14,11 @@ import type { IDraftCasefileSnapshot } from './interfaces/draft-casefile-snapsho
 
 /** Real rejected fixtures; immutable creation ownership and observed cleanup authority remain separate. */
 export class RejectedCasefileFixtureActions {
-  /** Guards before creation and every lifecycle dispatch.
-   * @param transfer Whether another inputter can become latest submitter.
-   */
-  public requireCleanup(transfer: boolean): void {
-    new CheckerReviewFixtureActions().requireLifecycleCleanup();
-    if (transfer && Cypress.env('PO10623_TRANSFER_CLEANUP_VERIFIED') !== true)
-      throw new Error(
-        'PO10623_TRANSFER_CLEANUP_VERIFIED must be boolean true after external ownership-transfer cleanup preflight',
-      );
-  }
-
   /** Creates rich normal Submitted data, rejects independently and reads a fresh Rejected baseline.
    * @param transfer Select independent checker B as the actual amender.
    * @returns Owned creator A, complete baseline A and actual authenticated amender.
    */
   public prepare(transfer: boolean): Cypress.Chainable<IRejectedCasefileContext> {
-    this.requireCleanup(transfer);
     if (transfer) {
       const checker = String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net');
       performAuthentication(checker);
@@ -43,11 +30,9 @@ export class RejectedCasefileFixtureActions {
     }
     return cy
       .then(() => {
-        this.requireCleanup(transfer);
         return createOwnedSubmittedDraft({ minorCreditorCount: 2, uniqueNames: true });
       })
       .then((owned) => {
-        cy.then(() => this.requireCleanup(transfer));
         cy.then(() => rejectOwnedDraft(owned));
         return readDraftSnapshot(owned.id).then((before) => {
           expect(before.draft.casefile_status, 'real rejected prerequisite').to.equal('REJECTED');
@@ -116,7 +101,6 @@ export class RejectedCasefileFixtureActions {
     context: IRejectedCasefileContext,
     saved: IDraftCasefileSnapshot,
   ): Cypress.Chainable<unknown> {
-    this.requireCleanup(false);
     const { owned } = context;
     expect(saved.draft.draft_casefile_id, 'cleanup observed original ID').to.equal(owned.id);
     expect(saved.draft.business_unit_id, 'cleanup observed original BU').to.equal(
@@ -131,7 +115,6 @@ export class RejectedCasefileFixtureActions {
       actor = owned.inputter;
     else if (saved.draft.submitted_by === owned.checkerId && saved.draft.submitted_by_name === owned.checkerName) {
       expect(owned.checkerId === owned.inputterId, 'independent transfer identity').to.equal(false);
-      this.requireCleanup(true);
       actor = owned.checker;
     } else throw new Error('Observed cleanup submitter is not an exact known A or B identity');
     configureDraftCasefileCleanup(owned.id, owned.marker, { actor, policy: 'required' });

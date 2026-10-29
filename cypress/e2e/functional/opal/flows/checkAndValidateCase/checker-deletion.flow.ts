@@ -23,7 +23,7 @@ export class CheckerDeletionFlow {
     this.actions.prepare(kind === 'validation' ? 'blank' : kind);
   }
 
-  /** Confirms one guarded, receipt-owning deletion. */
+  /** Confirms one receipt-owning deletion. */
   public confirm(): void {
     this.actions.submitOnce();
   }

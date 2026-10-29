@@ -291,8 +291,6 @@ describe('PO-10623 owned rejected fixture boundaries (controlled support only)',
   const keys = [
     'PO10626_INPUTTER_EMAIL',
     'PO10626_CHECKER_EMAIL',
-    'PO10625_LIFECYCLE_CLEANUP_VERIFIED',
-    'PO10623_TRANSFER_CLEANUP_VERIFIED',
     'PO10623_FOREIGN_BU_INPUTTER_EMAIL',
     'draftCasefileCleanupReceipts',
   ];
@@ -304,8 +302,6 @@ describe('PO-10623 owned rejected fixture boundaries (controlled support only)',
     Cypress.env({
       PO10626_INPUTTER_EMAIL: 'synthetic-A',
       PO10626_CHECKER_EMAIL: 'synthetic-B',
-      PO10625_LIFECYCLE_CLEANUP_VERIFIED: true,
-      PO10623_TRANSFER_CLEANUP_VERIFIED: true,
       PO10623_FOREIGN_BU_INPUTTER_EMAIL: 'synthetic-foreign',
       draftCasefileCleanupReceipts: [],
     });
@@ -331,7 +327,6 @@ describe('PO-10623 owned rejected fixture boundaries (controlled support only)',
   function controlledRuntime(
     options: {
       b21?: boolean;
-      disableAfterPost?: boolean;
       foreignStatus?: string;
       foreignOwning?: boolean;
       foreignOther?: boolean;
@@ -410,7 +405,6 @@ describe('PO-10623 owned rejected fixture boundaries (controlled support only)',
         }
         if (request.method === 'POST') {
           detail.casefile = structuredClone((request.body as IOpalMaintenanceDraftCasefileRequest).casefile);
-          if (options.disableAfterPost) Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', false);
           return {
             status: 201,
             body: { draft_casefile_id: detail.draft_casefile_id, casefile_status: 'SUBMITTED' },
@@ -486,46 +480,11 @@ describe('PO-10623 owned rejected fixture boundaries (controlled support only)',
       },
     );
   }
-  for (const value of [undefined, false, 'true']) {
-    for (const transfer of [false, true]) {
-      it(
-        `AC1. should reject lifecycle cleanup ${String(value)} before POST transfer ${transfer}`,
-        { tags: buildTags() },
-        () => {
-          const request = cy.stub(cy, 'request');
-          Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', value);
-          expect(() => new RejectedCasefileFixtureActions().prepare(transfer)).to.throw(
-            'PO10625_LIFECYCLE_CLEANUP_VERIFIED',
-          );
-          expect(request).not.to.have.been.called;
-        },
-      );
-    }
-    it(`AC3. should reject transfer cleanup ${String(value)} before POST`, { tags: buildTags() }, () => {
-      const request = cy.stub(cy, 'request');
-      Cypress.env('PO10623_TRANSFER_CLEANUP_VERIFIED', value);
-      expect(() => new RejectedCasefileFixtureActions().prepare(true)).to.throw('PO10623_TRANSFER_CLEANUP_VERIFIED');
-      expect(request).not.to.have.been.called;
-    });
-  }
   it('AC3. should require B inputter permission before any POST', { tags: buildTags() }, () => {
     const runtime = controlledRuntime({ b21: false });
     fail('permission 21', () => expect(runtime.calls.filter((call) => call.method === 'POST')).to.have.length(0));
     new RejectedCasefileFixtureActions().prepare(true);
   });
-  it(
-    'AC1. should recheck lifecycle cleanup before rejection and preserve its creation receipt',
-    { tags: buildTags() },
-    () => {
-      const runtime = controlledRuntime({ disableAfterPost: true });
-      fail('PO10625_LIFECYCLE_CLEANUP_VERIFIED', () => {
-        expect(runtime.calls.filter((call) => call.method === 'POST')).to.have.length(1);
-        expect(runtime.calls.filter((call) => call.method === 'PATCH')).to.have.length(0);
-        expect(Cypress.env('draftCasefileCleanupReceipts')).to.have.length(1);
-      });
-      new RejectedCasefileFixtureActions().prepare(false);
-    },
-  );
   it('AC1. should reject an incomplete real rejected history', { tags: buildTags() }, () => {
     controlledRuntime({ rejectedHistory: false });
     fail('complete Submitted and Rejected history', () =>
@@ -581,17 +540,7 @@ describe('PO-10623 owned rejected fixture boundaries (controlled support only)',
       },
     );
   }
-  for (const fault of [
-    'ID',
-    'BU',
-    'marker',
-    'actor',
-    'actor name',
-    'missing receipt',
-    'receipt marker',
-    'transfer guard',
-    'lifecycle guard',
-  ] as const) {
+  for (const fault of ['ID', 'BU', 'marker', 'actor', 'actor name', 'missing receipt', 'receipt marker'] as const) {
     it(`AC3. should preserve receipt on failed observed authority ${fault}`, { tags: buildTags() }, () => {
       const { context, saved } = exampleResubmission(true);
       if (fault !== 'missing receipt') {
@@ -608,8 +557,6 @@ describe('PO-10623 owned rejected fixture boundaries (controlled support only)',
       if (fault === 'marker') saved.draft.casefile.respondent_account.remo_reference = 'E2E-9999999999999999';
       if (fault === 'actor') saved.draft.submitted_by = 'unknown';
       if (fault === 'actor name') saved.draft.submitted_by_name = 'unknown';
-      if (fault === 'transfer guard') Cypress.env('PO10623_TRANSFER_CLEANUP_VERIFIED', false);
-      if (fault === 'lifecycle guard') Cypress.env('PO10625_LIFECYCLE_CLEANUP_VERIFIED', false);
       expect(() => new RejectedCasefileFixtureActions().recordCleanupActor(context, saved)).to.throw();
       expect(Cypress.env('draftCasefileCleanupReceipts')).to.deep.equal(receipts);
     });

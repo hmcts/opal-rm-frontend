@@ -6,7 +6,6 @@ import { CreateCasefileSelectors as C } from '../../../../../shared/selectors/cr
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { accessibilityActions } from '../accessibility/accessibility.actions';
 import { CheckerDashboardWindowActions } from './checker-dashboard-window.actions';
-import { CheckerReviewFixtureActions } from './checker-review-fixture.actions';
 import {
   CheckerReviewActions,
   assertCheckerAttempt,
@@ -37,7 +36,7 @@ export class CheckerDeletionActions {
     if (!['success', 'cancel', 'blank', 'over-limit', 'retry'].includes(kind))
       throw new Error('Unsupported deletion kind');
     this.kind = kind as CheckerDeletionKind;
-    this.review.prepareSubmittedReview(kind === 'success' || kind === 'retry', (session) => {
+    this.review.prepareSubmittedReview((session) => {
       this.session = session;
       if (this.scanning) {
         cy.get(C.review.heading).should('be.focused');
@@ -134,9 +133,8 @@ export class CheckerDeletionActions {
     return this.session;
   }
 
-  /** Dispatches a real transition only after checking cleanup at this precise boundary. */
+  /** Dispatches a real transition; the shared teardown cleans up the owned fixture. */
   private submitDeletion(): void {
-    new CheckerReviewFixtureActions().requireLifecycleCleanup();
     this.activateWarningSubmit();
   }
 
@@ -159,7 +157,7 @@ export class CheckerDeletionActions {
     });
   }
 
-  /** Submits one guarded transition and decodes only its acknowledged successful receipt. */
+  /** Submits one owned transition and decodes only its acknowledged successful receipt. */
   public submitOnce(): void {
     cy.then(() => {
       const session = this.context();

@@ -822,12 +822,14 @@ primary/checker/second-inputter/denied identities, reference data, publication a
 cleanup. Neither this monitoring pack nor the updated PO-10626 pack requires an observation migration or
 publication-evidence route. Backend calendar semantics and stable-pending configuration still require verification.
 
-`PO10628_SECOND_INPUTTER_EMAIL` must explicitly select an existing independent permission21 actor. Externally verified
-boolean guards `PO10628_PUBLICATION_CLEANUP_VERIFIED` and `PO10628_STABLE_PENDING_VERIFIED` never self-enable in live
-steps and do not establish acceptance. Publication guards apply only to approval/pending/published fixtures; ordinary submitted/rejected/deleted/empty/
-permission examples remain independently runnable after verification of their own runtime prerequisites and
-execution authorisation. Missing runtime capabilities fail visibly; no skip, fake-success or cleanup bypass is permitted. Empty setup fails on existing personal work without altering it. Port5100 belongs to the
-isolated checkout; leave the existing port5000 instance untouched.
+`PO10628_SECOND_INPUTTER_EMAIL` must explicitly select an existing independent permission21 actor.
+Fixture setup uses the actual lifecycle APIs and validates persisted status, ownership, ETags and generated
+accounts. No ticket-specific cleanup or publication verification variables are required. The shared `afterEach`
+hook restores the observed cleanup owner and deletes each exact ID/marker through the existing testing-support
+endpoint. Enable `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction backend. Any response other
+than HTTP204 fails cleanup and retains the outstanding receipt; tests never suppress cleanup errors.
+Stable-pending scenarios still require a runtime that keeps the fixture pending; a fast consumer reaching PUBLISHED
+fails the actual status assertion. Empty setup fails on existing personal work without altering it.
 
 For safe discovery use the suite's exact command with `dryRun=true` and its ignored discovery config explicitly
 setting `e2e.baseUrl=null` (CLI null overrides retained the configured URL here); this executes no
@@ -856,11 +858,9 @@ Maintenance BU 44. Require `release-1c-rm-create-case-files`, Maintenance testin
 compiled backend revision/running services and compatible persisted deletion/list/detail/cleanup contracts.
 Publication and its consumer are not deletion prerequisites.
 
-The updated support branch supplies eligible DELETED cleanup; the earlier inspected runtime supported SUBMITTED
-only. Verify the actual compatible build's owner/marker DELETE before the four successful/retry transition examples
-execute. Never self-enable the maintained **boolean**
-`PO10625_LIFECYCLE_CLEANUP_VERIFIED` guard; it runs before transition-capable creation and immediately before each
-DELETED dispatch, including retry. Exactly five nontransition examples carry `@PO10624SubmittedOnly`.
+Deletion success/retry scenarios require a backend supporting DELETED owner/marker cleanup. Every executed
+example uses required automatic cleanup; failed cleanup retains the exact receipt. The five
+`@PO10624SubmittedOnly` examples create only SUBMITTED records and remain a diagnostic subset.
 
 Full live selection after runtime and cleanup preflight:
 
@@ -885,7 +885,7 @@ currently prevents that input: record **frontend GAP008**, preserve the normal t
 force/seed/bypass the control, accept truncation or assume a backend cause or accepted waiver.
 
 Controlled support and discovery are not passing live deletion. Parent-owned evidence and the delivery report/PR
-must record measured results, interruptions, unrun guarded examples and actual marker-owned cleanup receipts.
+must record measured results, interruptions, unrun lifecycle examples and actual marker-owned cleanup receipts.
 These reusable instructions make no live-pass claim. Draft handoff does not require publication or an approval-state
 check; failed applicable checks still mean Not Agent Complete.
 
@@ -928,14 +928,10 @@ A source checkout or ticket status does not establish these contracts. Testing s
 runtime. PO-10623 has no publication, publication-evidence registration, observation migration or publication
 consumer dependency.
 
-The earlier inspected runtime supported SUBMITTED cleanup only. The updated support branch supplies eligible
-REJECTED/RESUBMITTED cleanup using the persisted latest submitter, including cross-user transfer. **Both boolean
-guards stay false until that actual running contract is independently verified**: `PO10625_LIFECYCLE_CLEANUP_VERIFIED` covers REJECTED/RESUBMITTED lifecycle
-cleanup and is checked before creation and immediately before every transition; additionally
-`PO10623_TRANSFER_CLEANUP_VERIFIED` covers latest-submitter transfer cleanup and is checked before cross-user
-creation and transition. Tests never self-enable either guard. A false guard is an expected unavailable-prerequisite
-failure, never a passing live journey. Preserve any failed owned cleanup receipt and report unresolved ownership or
-unreadable cleanup as outstanding evidence.
+Rejected and resubmitted fixtures require lifecycle cleanup using the persisted latest submitter, including
+cross-user transfer. The fixture records the independently observed actor against the original ID/marker receipt;
+automatic teardown authenticates as that actor. Unknown owners, failed transitions and failed cleanup remain
+explicit failures with outstanding receipts retained.
 
 Success requires real UI PUT200, a matching complete independent GET, full aggregate preservation except respondent
 forenames `Corrected`, preserved applicant/minor snapshots and null account identifiers, advanced ETag and exactly
@@ -970,10 +966,10 @@ CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
 corepack yarn test:functional:leaf --browser=chrome \
   --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendment*.feature' \
   --config '{"baseUrl":null}' \
-  --env 'dryRun=true,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip,PO10625_LIFECYCLE_CLEANUP_VERIFIED=false,PO10623_TRANSFER_CLEANUP_VERIFIED=false'
+  --env 'dryRun=true,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip'
 ```
 
-Exact live/guard selection (all12 are blocked before creation while lifecycle cleanup remains unverified):
+Live selection against a compatible lifecycle/cleanup backend:
 
 ```bash
 TEST_URL=http://localhost:5100 \
@@ -981,12 +977,12 @@ TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
 CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
 corepack yarn test:functional:leaf --browser=chrome \
   --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendment*.feature' \
-  --env 'dryRun=false,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip,PO10625_LIFECYCLE_CLEANUP_VERIFIED=false,PO10623_TRANSFER_CLEANUP_VERIFIED=false'
+  --env 'dryRun=false,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip'
 ```
 
-After independent external verification, configure only the genuinely supported boolean capabilities and existing
-actor addresses in the runner; do not copy a true flag from a controlled test as evidence. Retain exact commands,
-compiled revisions, selected counts, guards, actual failures, cleanup outcomes and safe marker/ID-only evidence.
+Configure existing provisioned actor addresses in the runner and enable the backend testing-support endpoints.
+Retain exact commands,
+compiled revisions, selected counts, runtime prerequisites, actual failures, cleanup outcomes and safe marker/ID-only evidence.
 Never store names, case bodies, cookies, credentials or tokens in evidence. Controlled orchestration verification:
 
 ```bash

@@ -153,10 +153,9 @@ export class RejectedCasefileJourneyActions {
     activateCasefileControl(selector, this.session.keyboard);
   }
 
-  /** Checks current cleanup capability immediately before the UI dispatch. */
+  /** Submits the retained replacement through the real UI. */
   public submitReplacement(): void {
     cy.then(() => {
-      this.fixture.requireCleanup(this.session.kind === 'cross-user');
       this.recovery.submit('resubmit', this.session.keyboard);
     });
   }
@@ -166,7 +165,6 @@ export class RejectedCasefileJourneyActions {
    */
   public commitCompetingReplacement(): Cypress.Chainable<unknown> {
     const context = this.current();
-    this.fixture.requireCleanup(false);
     return cy
       .request<unknown>({
         method: 'PUT',

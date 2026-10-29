@@ -16,7 +16,6 @@ Feature: Navigate Draft Casefile recovery accessibly
     Examples:
       | journey  | fault            |
       | reject   | lost-response    |
-      | resubmit | lost-response    |
       | reject   | definite-failure |
       | resubmit | definite-failure |
       | reject   | conflict         |

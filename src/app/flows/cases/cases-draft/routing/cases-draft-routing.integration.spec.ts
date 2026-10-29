@@ -482,8 +482,7 @@ describe('draft production route boundaries', () => {
           summaries: Array.from({ length: count }, (_, index) =>
             createCasesDraftSummary({
               draft_casefile_id: index + 1,
-              casefile_status: (status === 'PUBLISHING_PENDING,PUBLISHED' ? 'PUBLISHED' : status) as
-                'REJECTED' | 'PUBLISHED' | 'SUBMITTED',
+              casefile_status: status as 'REJECTED' | 'PUBLISHED' | 'SUBMITTED',
             }),
           ),
         });
@@ -523,7 +522,7 @@ describe('draft production route boundaries', () => {
     await vi.waitFor(() =>
       http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 7 }),
     );
-    await flushList('PUBLISHING_PENDING,PUBLISHED', 1);
+    await flushList('PUBLISHED', 1);
     await arrival;
     expect(harness.routeNativeElement?.querySelector('tbody')).not.toBeNull();
     await harness.navigateByUrl(dashboard + '?page=8&sort=respondentAccount&direction=descending#approved');
@@ -544,7 +543,7 @@ describe('draft production route boundaries', () => {
     await vi.waitFor(() =>
       http.expectOne((request) => request.params.get('restrict') === 'counts').flush({ count: 'invalid' }),
     );
-    await flushList('PUBLISHING_PENDING,PUBLISHED', 1);
+    await flushList('PUBLISHED', 1);
     await arrival;
     expect(harness.routeNativeElement?.querySelector('tbody')).not.toBeNull();
     expect(harness.routeNativeElement?.querySelectorAll('#cases-draft-tabs a')).toHaveLength(4);
@@ -552,7 +551,7 @@ describe('draft production route boundaries', () => {
     expect(banner).toHaveBeenCalledWith(expect.objectContaining({ error: true }));
   });
   it.each([
-    ['approved', 'PUBLISHING_PENDING,PUBLISHED'],
+    ['approved', 'PUBLISHED'],
     ['rejected', 'REJECTED'],
     ['deleted', 'DELETED'],
   ] as const)(
@@ -574,11 +573,7 @@ describe('draft production route boundaries', () => {
           )
           .flush({
             count: 1,
-            summaries: [
-              createCasesDraftSummary({
-                casefile_status: status === 'PUBLISHING_PENDING,PUBLISHED' ? 'PUBLISHED' : status,
-              }),
-            ],
+            summaries: [createCasesDraftSummary({ casefile_status: status })],
           }),
       );
       await arrival;
@@ -604,12 +599,10 @@ describe('draft production route boundaries', () => {
             summaries: [
               createCasesDraftSummary({
                 draft_casefile_id: 456,
-                casefile_status: status === 'PUBLISHING_PENDING,PUBLISHED' ? 'PUBLISHED' : status,
+                casefile_status: status,
                 submitted_by: 'BUU-REPLACEMENT',
               }),
-              createCasesDraftSummary({
-                casefile_status: status === 'PUBLISHING_PENDING,PUBLISHED' ? 'PUBLISHED' : status,
-              }),
+              createCasesDraftSummary({ casefile_status: status }),
             ],
           }),
       );

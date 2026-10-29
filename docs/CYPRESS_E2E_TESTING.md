@@ -7,7 +7,7 @@ For Draft Casefile concurrency, response-loss recovery and lifecycle support req
 
 ## Draft Casefile concurrency and recovery QA (PO-10626)
 
-Use the PO-10611 frontend foundation (`275011b2`, common UI `0.0.114`). Build this checkout with independent
+Use the PO-10611 frontend foundation with current master dependencies (`8cf1f9e6`, common UI `0.0.116`). Build this checkout with independent
 dependencies from its inherited immutable lockfile, run an isolated local port such as `TEST_URL=http://localhost:5100`,
 and verify the frontend process directory. Ambiguous and definite-failure cases still require retained context.
 Conflict cases exercise the actual shared concurrency page, Cases navigation, actor dashboard, saved-status tab and
@@ -235,6 +235,17 @@ E2E refresh scenarios prove the resulting navigation and state reset with the na
 They do not prove browser Leave/Cancel behaviour. Retain unit/component coverage of the actual guard
 and verify native dialog behaviour separately in a browser without this E2E helper. Do not claim a
 Cucumber dry run, or one passing parallel worker, as evidence of a completed functional suite.
+
+## Screenshots and keyboard focus
+
+In Cypress 15.21.1 open mode, restoring the runner after a screenshot can refocus the selected feature in the spec
+sidebar. A screenshot immediately before a native keyboard action or focus assertion can therefore interfere with
+the interaction being tested.
+
+When this runner behaviour is confirmed, restrict documentary screenshots to run mode using
+`!Cypress.config('isInteractive')`. Keep native keyboard actions, focus assertions and business outcome checks
+enabled in both modes. Retain screenshots required for layout or accessibility evidence, and verify that their
+placement does not interrupt subsequent keyboard checks.
 
 ## RM create-casefiles release selection
 

@@ -1,7 +1,7 @@
 # PO-10626 concurrency and recovery QA
 
-The two feature files retain **14 examples: eight functional and six accessibility**. The current executable selection
-is **13: seven functional and six accessibility**. Each example creates its own synthetic submitted draft through
+The two feature files retain **12 examples: seven functional and five accessibility**. The current executable selection
+is **11: six functional and five accessibility**. Each example creates its own synthetic submitted draft through
 the normal authenticated Maintenance API, preserving browser time for the decision/amendment and recovery journey.
 The case-creation journey regressions continue to use the real UI; this API setup does not replace their coverage.
 Scenario retries remain disabled. PATCH/PUT monitors count all browser attempts, including attempts after the injected
@@ -9,6 +9,17 @@ fault. Lost-response examples withhold Fetch delivery only after a real upstream
 saved aggregate, quoted ETag, original ID, actor and complete timeline delta. Definite-failure examples return one
 controlled HTTP 400 before dispatch and require an explicit live retry. Conflict examples advance the real resource
 with an independent authenticated request while the browser retains its earlier ETag.
+
+## Agreed recovery coverage
+
+Following frontend developer feedback, the lost-response resubmission functional example and its accessibility
+counterpart were removed on 29 October 2026. They required Back to recover the now-RESUBMITTED case through the
+REJECTED-only amendment route; changing that application navigation is outside the agreed scope. This removes
+automated evidence for committed PUT response-loss recovery (the original second Acceptance Criterion), including
+its retained context, saved presentation and keyboard recovery assertions. It does not establish that recovery works.
+Resubmission definite-failure/explicit-retry and stale-conflict examples remain in both feature files; checker
+reject/delete lost-response examples also remain. Retained scenario titles, parameter values and Jira tags are
+unchanged; generated accessibility example numbers shift after the removed row.
 
 ## PO-10611 frontend integration
 
@@ -103,7 +114,7 @@ DELETE does not establish queue settlement or undo external side effects.
 The lost-response approval row retains `@skip @PO10626RequiresPublishedCleanup` and all scenario metadata. The
 consumer and pending/published cleanup are delivered on the support branch; the remaining gate is verification of
 the actual deployed contract and a full owned approval/recovery/cleanup run, with separate publication evidence as
-allocated above. A source checkout or issue status does not supply that evidence. A 13-example pass therefore does
+allocated above. A source checkout or issue status does not supply that evidence. An 11-example pass therefore does
 not satisfy all of AC1 or complete PO-10626. Remove the pending tags only after those requirements are verified.
 `PUBLISHING_FAILED` cleanup eligibility does not authorise deliberately forcing publication failure. Never broaden
 deletion eligibility, reset lifecycle state or clear failed receipts to obtain a pass.
@@ -115,9 +126,9 @@ in an ignored local directory before any runner resets outputs.
 ## Discovery and live execution
 
 Full inventory includes the pending row; discovery executes no browser actions. The installed preprocessor always
-skips `@skip`; `omitFiltered=false` exposes it as pending, giving **14 inventoried: 13 dry-run passes + 1 pending**.
+skips `@skip`; `omitFiltered=false` exposes it as pending, giving **12 inventoried: 11 dry-run passes + 1 pending**.
 Without that inventory-only override, the default `omitFiltered=true` hides the row even when the tag expression
-includes it. The parsed Gherkin inventory retains all 14 expanded names/rows/tags:
+includes it. The parsed Gherkin inventory retains all 12 expanded names/rows/tags:
 
 ```bash
 TEST_URL=http://localhost:5100 \
@@ -128,7 +139,7 @@ corepack yarn test:functional:leaf --browser=chrome \
   --env 'dryRun=true,omitFiltered=false,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626'
 ```
 
-Current executable discovery selects 13 examples:
+Current executable discovery selects 11 examples:
 
 ```bash
 TEST_URL=http://localhost:5100 \
@@ -139,7 +150,7 @@ corepack yarn test:functional:leaf --browser=chrome \
   --env 'dryRun=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626 and not @skip'
 ```
 
-Actual browser execution uses the supported 13-case selection:
+Actual browser execution uses the supported 11-case selection:
 
 ```bash
 TEST_URL=http://localhost:5100 \

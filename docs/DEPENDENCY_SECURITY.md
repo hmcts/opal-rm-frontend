@@ -51,6 +51,9 @@ security thresholds and reporting requirements; do not weaken enforcement to cle
 
 ## Exceptions and suppressions
 
+Record approved temporary exceptions in the public [security exception register](SECURITY_EXCEPTIONS.md).
+Follow its review and expiry workflow to reassess due entries, including the suggested skill prompt.
+
 Apply supported fixes before proposing a temporary exception. Record the advisory, affected package,
 versions and paths, exposure, rationale, mitigating controls, owner, approver, tracking reference, and
 review or expiry date through the established approval process. Missing approval remains outstanding.

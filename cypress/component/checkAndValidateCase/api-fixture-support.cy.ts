@@ -1,3 +1,4 @@
+import { getTestActor } from '../../support/test-actors';
 import { createPersistedCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { DraftCasefileConcurrencyFlow } from '../../e2e/functional/opal/flows/checkAndValidateCase/draft-casefile-concurrency.flow';
 import { DraftCasefileRecoveryActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-recovery.actions';
@@ -601,8 +602,8 @@ describe('PO-10626 owned API fixture support', () => {
       `AC1, AC2. should prepare ${journey} using only normal APIs and retain its cleanup receipt`,
       { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
       () => {
-        const inputter = String(Cypress.env('PO10626_INPUTTER_EMAIL') || 'opal-test@dev.platform.hmcts.net');
-        const checker = String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net');
+        const inputter = getTestActor('inputter');
+        const checker = getTestActor('checker');
         let actor = '';
         let version = '"1"';
         const calls: Cypress.RequestOptions[] = [];

@@ -20,7 +20,7 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
   let expectedFailure = false;
   let observedFailure = false;
   let originalEnvironment: Record<string, unknown>;
-  const environmentKeys = ['PO10626_INPUTTER_EMAIL', 'PO10626_CHECKER_EMAIL', 'PO10628_SECOND_INPUTTER_EMAIL'];
+  const environmentKeys = ['RM_TEST_ACTORS'];
 
   beforeEach(() => {
     originalEnvironment = Object.fromEntries(environmentKeys.map((key) => [key, Cypress.env(key)]));
@@ -369,8 +369,11 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
     const events: string[] = [];
     const calls: Cypress.RequestOptions[] = [];
     let actor = defaultPrimary; // The feature Background's session must not decide the primary identity.
-    Cypress.env('PO10626_CHECKER_EMAIL', 'synthetic-checker');
-    Cypress.env('PO10628_SECOND_INPUTTER_EMAIL', 'synthetic-second');
+    Cypress.env('RM_TEST_ACTORS', {
+      ...Cypress.env('RM_TEST_ACTORS'),
+      checker: 'synthetic-checker',
+      secondInputter: 'synthetic-second',
+    });
     cy.document().then((document) => {
       document.body.innerHTML =
         '<nav aria-label="Account navigation"><a class="moj-header__navigation-link">Sign out</a></nav>';
@@ -426,7 +429,7 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
         `AC2, AC3. should authenticate the ${configuredPrimary ? 'overridden' : 'default'} primary before ${path.label} baseline and creation`,
         { tags: buildTags() },
         () => {
-          Cypress.env('PO10626_INPUTTER_EMAIL', configuredPrimary);
+          Cypress.env('RM_TEST_ACTORS', { ...Cypress.env('RM_TEST_ACTORS'), inputter: configuredPrimary });
           const selected = configuredPrimary ?? defaultPrimary;
           const { events, calls } = controlledPersonalBaseline(configuredPrimary ? defaultPrimary : undefined);
           // End at the first creation dispatch, after the real baseline. Do not fabricate a successful fixture.
@@ -468,7 +471,7 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
       `AC2, AC3, AC6. should stop ${path.label} before POST or PATCH when only the overridden primary has existing work`,
       { tags: buildTags() },
       () => {
-        Cypress.env('PO10626_INPUTTER_EMAIL', overridePrimary);
+        Cypress.env('RM_TEST_ACTORS', { ...Cypress.env('RM_TEST_ACTORS'), inputter: overridePrimary });
         const { events, calls } = controlledPersonalBaseline(overridePrimary);
         expectedFailure = true;
         cy.once('fail', (error) => {
@@ -499,7 +502,7 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
       `AC6. should inspect all empty dashboard baselines as the ${configuredPrimary ? 'overridden' : 'default'} primary without creating work`,
       { tags: buildTags() },
       () => {
-        Cypress.env('PO10626_INPUTTER_EMAIL', configuredPrimary);
+        Cypress.env('RM_TEST_ACTORS', { ...Cypress.env('RM_TEST_ACTORS'), inputter: configuredPrimary });
         const selected = configuredPrimary ?? defaultPrimary;
         const { events, calls } = controlledPersonalBaseline(configuredPrimary ? defaultPrimary : undefined);
         const observed = cy.stub(InputterCasefileMonitoringActions.prototype, 'observe');
@@ -526,7 +529,7 @@ describe('PO-10628 monitoring journey assertions (controlled support only)', { r
       `AC1. should preserve the shared fixture consumer's ${configuredPrimary ? 'overridden' : 'default'} primary selection`,
       { tags: buildTags() },
       () => {
-        Cypress.env('PO10626_INPUTTER_EMAIL', configuredPrimary);
+        Cypress.env('RM_TEST_ACTORS', { ...Cypress.env('RM_TEST_ACTORS'), inputter: configuredPrimary });
         const selected = configuredPrimary ?? defaultPrimary;
         const { events, calls } = controlledPersonalBaseline();
         // Reach the maintained fixture's authenticated reference read; stop before any POST/receipt.

@@ -15,7 +15,7 @@ const buildTags = (): string[] => [
 ];
 
 describe('PO-10625 owned checker fixture support', () => {
-  const environmentKeys = ['PO10626_INPUTTER_EMAIL', 'PO10626_CHECKER_EMAIL', 'draftCasefileCleanupReceipts'];
+  const environmentKeys = ['RM_TEST_ACTORS', 'draftCasefileCleanupReceipts'];
   let originalEnvironment: Record<string, unknown>;
   let expectedFailure: boolean;
   let observedFailure: boolean;
@@ -24,8 +24,7 @@ describe('PO-10625 owned checker fixture support', () => {
     originalEnvironment = Object.fromEntries(environmentKeys.map((key) => [key, Cypress.env(key)]));
     // Safety switches exist only within this controlled support runtime and are restored after every case.
     Cypress.env({
-      PO10626_INPUTTER_EMAIL: 'synthetic-inputter',
-      PO10626_CHECKER_EMAIL: 'synthetic-checker',
+      RM_TEST_ACTORS: { inputter: 'synthetic-inputter', checker: 'synthetic-checker' },
       draftCasefileCleanupReceipts: [],
     });
     expectedFailure = false;

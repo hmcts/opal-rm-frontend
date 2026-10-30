@@ -1,3 +1,4 @@
+import { getTestActor } from '../../../../../support/test-actors';
 import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import type { CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import type { IOpalMaintenanceDraftCasefileSummary } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-summary.interface';
@@ -518,7 +519,7 @@ export class InputterCasefileMonitoringActions {
    */
   public prepareDenied(owned: IOwnedDraftCasefile): void {
     this.expectRows([owned]);
-    this.deniedActor = String(Cypress.env('PO10628_DENIED_EMAIL') || 'opal-test-4@dev.platform.hmcts.net');
+    this.deniedActor = getTestActor('deniedUser');
     expect(this.deniedActor === owned.inputter, 'independent denied identity').to.equal(false);
     performAuthentication(this.deniedActor);
     new CasefilePermissionPreflightActions().assertPermission(false);

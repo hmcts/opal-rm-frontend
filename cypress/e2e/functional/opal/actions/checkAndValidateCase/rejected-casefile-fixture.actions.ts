@@ -1,3 +1,4 @@
+import { getTestActor } from '../../../../../support/test-actors';
 import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import { performAuthentication } from '../../../../actions/login.actions';
 import {
@@ -20,7 +21,7 @@ export class RejectedCasefileFixtureActions {
    */
   public prepare(transfer: boolean): Cypress.Chainable<IRejectedCasefileContext> {
     if (transfer) {
-      const checker = String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net');
+      const checker = getTestActor('checker');
       performAuthentication(checker);
       requireMembership(21).then((inputter) =>
         requireMembership(22).then((reviewer) => {
@@ -64,10 +65,7 @@ export class RejectedCasefileFixtureActions {
    * @returns The actual non-owning BU identity; caller must restore authorised session after denial.
    */
   public foreignActor(): Cypress.Chainable<IRejectedCasefileActor> {
-    const configured: unknown = Cypress.env('PO10623_FOREIGN_BU_INPUTTER_EMAIL');
-    if (typeof configured !== 'string' || !configured.trim())
-      throw new Error('PO10623_FOREIGN_BU_INPUTTER_EMAIL must identify an existing foreign-BU inputter');
-    const email = configured.trim();
+    const email = getTestActor('foreignBuInputter');
     performAuthentication(email);
     return cy
       .request<IOpalUserStateResponse>({ url: '/api/user-state', failOnStatusCode: false, log: false })

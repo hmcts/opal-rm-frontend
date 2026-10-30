@@ -288,21 +288,14 @@ describe('PO-10623 rejected amendment evidence (controlled support only)', () =>
 });
 
 describe('PO-10623 owned rejected fixture boundaries (controlled support only)', () => {
-  const keys = [
-    'PO10626_INPUTTER_EMAIL',
-    'PO10626_CHECKER_EMAIL',
-    'PO10623_FOREIGN_BU_INPUTTER_EMAIL',
-    'draftCasefileCleanupReceipts',
-  ];
+  const keys = ['RM_TEST_ACTORS', 'draftCasefileCleanupReceipts'];
   let original: Record<string, unknown>;
   let expectedFailure: boolean;
   let observedFailure: boolean;
   beforeEach(() => {
     original = Object.fromEntries(keys.map((key) => [key, Cypress.env(key)]));
     Cypress.env({
-      PO10626_INPUTTER_EMAIL: 'synthetic-A',
-      PO10626_CHECKER_EMAIL: 'synthetic-B',
-      PO10623_FOREIGN_BU_INPUTTER_EMAIL: 'synthetic-foreign',
+      RM_TEST_ACTORS: { inputter: 'synthetic-A', checker: 'synthetic-B', foreignBuInputter: 'synthetic-foreign' },
       draftCasefileCleanupReceipts: [],
     });
     expectedFailure = false;
@@ -493,8 +486,8 @@ describe('PO-10623 owned rejected fixture boundaries (controlled support only)',
     new RejectedCasefileFixtureActions().prepare(false);
   });
   it('AC5. should require an explicitly configured foreign inputter', { tags: buildTags() }, () => {
-    Cypress.env('PO10623_FOREIGN_BU_INPUTTER_EMAIL', '');
-    expect(() => new RejectedCasefileFixtureActions().foreignActor()).to.throw('PO10623_FOREIGN_BU_INPUTTER_EMAIL');
+    Cypress.env('RM_TEST_ACTORS', { ...Cypress.env('RM_TEST_ACTORS'), foreignBuInputter: '' });
+    expect(() => new RejectedCasefileFixtureActions().foreignActor()).to.throw("RM test actor 'foreignBuInputter'");
   });
   it('AC5. should read an actual foreign Maintenance permission 21 identity', { tags: buildTags() }, () => {
     const runtime = controlledRuntime();

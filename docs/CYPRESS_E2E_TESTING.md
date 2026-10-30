@@ -5,6 +5,33 @@ Use this guide when writing or updating Cypress E2E tests and Cucumber feature f
 For Draft Casefile concurrency, response-loss recovery and lifecycle support requirements, see the
 [PO-10626 suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md).
 
+## Shared test actors
+
+Reuse the existing provisioned users through [getTestActor](../cypress/support/test-actors.ts). Actor names describe
+roles, not Jira tickets. Do not introduce ticket-specific actor environment variables or repeat account selection
+in individual fixtures. Shared login still accepts a username, as in Fines; selecting an actor never creates an
+account or grants permissions.
+
+| Role                | Existing default                      | Required live access                                                                                                                  |
+| ------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `inputter`          | `opal-test@dev.platform.hmcts.net`    | ACTIVE Maintenance BU44 permission21                                                                                                  |
+| `checker`           | `opal-test-10@dev.platform.hmcts.net` | ACTIVE Maintenance BU44 permission22; distinct BU identity from the inputter; permission21 also required for ownership-transfer cases |
+| `deniedUser`        | `opal-test-4@dev.platform.hmcts.net`  | ACTIVE Maintenance membership, without the permission being tested                                                                    |
+| `secondInputter`    | None                                  | Explicit existing permission21 actor, distinct from creator and checker                                                               |
+| `foreignBuInputter` | None                                  | Explicit existing permission21 actor in another Maintenance BU, without owning-BU permission21                                        |
+
+The standard live selection uses the existing defaults and needs no actor configuration. Only when an environment
+uses different provisioned users, configure the optional single `RM_TEST_ACTORS` object with the relevant role names;
+omitted defaulted roles retain their defaults. For example, a controlled spec can select its synthetic actors with
+`Cypress.env('RM_TEST_ACTORS', { inputter: 'synthetic-inputter', checker: 'synthetic-checker' })` and must restore the
+whole object afterward. This object contains usernames only, never passwords, tokens or user-state snapshots.
+Blank or invalid selections fail before authentication. Ticket-prefixed actor overrides are no longer read.
+
+Secondary and foreign-BU actors remain optional for retained helpers/controlled coverage; their retired live cases
+are not re-enabled by this convention. Keep all actual permission, distinct-identity and cleanup-owner checks.
+Do not substitute another role or invent a username when an independent actor is unavailable, and do not present
+controlled user-state responses as live authorisation evidence.
+
 ## Draft Casefile concurrency and recovery QA (PO-10626)
 
 Use the PO-10611 frontend foundation with current master dependencies (`8cf1f9e6`, common UI `0.0.116`). Build this checkout with independent
@@ -935,7 +962,7 @@ reference, collection, detail or successful lifecycle responses.
 
 The normal live selection uses the existing A/B identities and does not require a foreign-BU inputter.
 The retained `RejectedCasefileFixtureActions.foreignActor()` helper still requires an explicit
-`PO10623_FOREIGN_BU_INPUTTER_EMAIL` when invoked: ACTIVE permission21 in another Maintenance BU and no permission21
+`RM_TEST_ACTORS.foreignBuInputter` selection when invoked: ACTIVE permission21 in another Maintenance BU and no permission21
 in BU44. Controlled specs supply synthetic membership and reject missing or incompatible identities. No new user,
 permission assignment, skip or configuration flag is introduced. A global role denial does not prove this
 Business Unit boundary.

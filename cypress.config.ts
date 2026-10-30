@@ -4,6 +4,7 @@ import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
+import { writeComponentParallelResult } from './scripts/cypress-component-parallel-results';
 import {
   addCucumberPreprocessorPlugin,
   afterRunHandler,
@@ -247,12 +248,8 @@ export default defineConfig({
     indexHtmlFile: 'cypress/support/component-index.html',
     reporter: 'cypress-multi-reporters',
     reporterOptions: {
-      reporterEnabled: [
-        ...(process.env.CYPRESS_THREAD ? ['cypress-parallel/json-stream.reporter.js'] : []),
-        'cypress-mochawesome-reporter',
-        'mocha-junit-reporter',
-        '@hmcts/zephyr-automation-nodejs/cypress/ZephyrReporter',
-      ].join(', '),
+      reporterEnabled:
+        'cypress-mochawesome-reporter, mocha-junit-reporter, @hmcts/zephyr-automation-nodejs/cypress/ZephyrReporter',
       mochaJunitReporterReporterOptions: {
         mochaFile: `functional-output/component/${resolvedBrowserToRun}/junit/component-test-output-[hash].xml`,
         toConsole: false,
@@ -307,6 +304,12 @@ export default defineConfig({
       cypressGrepPlugin(config);
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       require('cypress-mochawesome-reporter/plugin')(on);
+
+      if (process.env.CYPRESS_THREAD) {
+        on('after:spec', (spec, results) => {
+          writeComponentParallelResult(config.projectRoot, spec, results);
+        });
+      }
 
       on('before:run', () => {
         cleanZephyrReports({

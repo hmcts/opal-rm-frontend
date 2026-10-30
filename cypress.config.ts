@@ -247,8 +247,12 @@ export default defineConfig({
     indexHtmlFile: 'cypress/support/component-index.html',
     reporter: 'cypress-multi-reporters',
     reporterOptions: {
-      reporterEnabled:
-        'cypress-mochawesome-reporter, mocha-junit-reporter, @hmcts/zephyr-automation-nodejs/cypress/ZephyrReporter',
+      reporterEnabled: [
+        ...(process.env.CYPRESS_THREAD ? ['cypress-parallel/json-stream.reporter.js'] : []),
+        'cypress-mochawesome-reporter',
+        'mocha-junit-reporter',
+        '@hmcts/zephyr-automation-nodejs/cypress/ZephyrReporter',
+      ].join(', '),
       mochaJunitReporterReporterOptions: {
         mochaFile: `functional-output/component/${resolvedBrowserToRun}/junit/component-test-output-[hash].xml`,
         toConsole: false,

@@ -210,8 +210,8 @@ unexecuted acceptance evidence pending.
 ## PO-10628 live inputter monitoring
 
 `InputterCasefileMonitoring.feature` contains **7 enabled functional examples** (four scenarios, including one
-outline expanded to four examples). `InputterCasefileMonitoringAccessibility.feature` contains **4 enabled broad
-accessibility scenarios**: **11 enabled examples in total**. All carry `@R1CRmCreateCaseFiles`, `@functional`,
+outline expanded to four examples). `InputterCasefileMonitoringAccessibility.feature` contains **3 enabled broad
+accessibility scenarios**: **10 enabled examples in total**. All carry `@R1CRmCreateCaseFiles`, `@functional`,
 `@JIRA-LABEL:create-draft-casefile`, `@JIRA-STORY:PO-10628`, `@JIRA-EPIC:PO-10817`, appropriate `@AC1`–`@AC6` tags
 and `@retries(0)`. There are no pending/skip tags. Each scenario constructs fresh flow/actions/fixture state.
 
@@ -222,7 +222,7 @@ and `@retries(0)`. There are no pending/skip tags. Each scenario constructs fres
 | AC3 | Controlled collection, actor and traversal checks remain; live third-inputter amendment entry and consultation restoration are unverified. The original own/other-row acceptance mismatch also remains (see ledger). |
 | AC4 | Actual PUBLISHED detail supplies positive IDs and all respondent/applicant/two minor-creditor numbers, rendered in creditor sequence as exact read-only text. Pending exclusion remains controlled coverage; backend stable-pending duration is unverified. |
 | AC5 | Successful authorised entry precedes an existing ACTIVE denied user's direct dashboard attempt; no counts, rows, collection GETs or writes are exposed. |
-| AC6 | Four live scenarios retain strict Axe checks: populated tabs, genuinely empty tabs, published multi-account row and actual denied destination. Native keyboard/focus checks remain on those journeys; third-inputter sorting/paging/amendment/return accessibility remains controlled coverage. |
+| AC6 | Three live scenarios retain strict Axe checks: populated tabs, published multi-account row and actual denied destination. Empty tabs use mounted controlled coverage. Native keyboard/focus checks remain on those journeys; third-inputter sorting/paging/amendment/return accessibility remains controlled coverage. |
 
 Setup uses `InputterMonitoringFixtureActions`, normal authenticated POST and fresh-ETag lifecycle changes with a
 distinct checker. Every successfully created ID immediately has required owner/marker cleanup, including setup
@@ -279,8 +279,8 @@ Before live execution, an operator must verify:
   `RM_TEST_ACTORS.inputter` / `RM_TEST_ACTORS.checker` overrides select provisioned identities. The shared `deniedUser`
   role defaults to the already provisioned `opal-test-4@dev.platform.hmcts.net`; verify ACTIVE Maintenance
   membership and absence of BU44 permission21. Tests never grant permissions or create users.
-- Live active unique UK CJS Country, Create Casefile application and compatible MAT Order Term metadata. Empty
-  examples need genuinely empty own collections. Fail conflicting prerequisites without deleting unrelated data.
+- Live active unique UK CJS Country, Create Casefile application and compatible MAT Order Term metadata.
+  Empty collections are allocated to controlled dashboard coverage; live setup preserves unrelated work.
 - The backend's inclusive calendar-date/timezone semantics agree with AUT local calendar consultation. Date-window
   examples read actual lifecycle timestamps and advance only AUT Date; timers and server/database clocks stay real.
 
@@ -328,7 +328,7 @@ corepack yarn test:functional:leaf --browser=chrome \
   --env 'dryRun=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628 and not @skip'
 ```
 
-Expected discovery inventory is **11 examples (7 functional + 4 accessibility), zero skipped/pending**, with no
+Expected discovery inventory is **10 examples (7 functional + 3 accessibility), zero skipped/pending**, with no
 undefined or ambiguous bindings. Discovery is no browser or live acceptance evidence. For live acceptance after
 runtime verification, remove only `dryRun=true,` from `--env`; retain the identical tag selectors and ordinary
 configuration. This invokes real authentication, owned creation, decisions, bounded publication polling, dashboard
@@ -367,10 +367,10 @@ owner/marker cleanup; retain failed receipts if the runtime cannot return204.
 
 ### Submitted-only capability selection
 
-`@PO10628SubmittedOnly` identifies exactly **four enabled examples**: the SUBMITTED D+7/D+8 outline row, functional
-denial, accessibility genuinely empty tabs and accessibility denial. They create only SUBMITTED records or none;
+`@PO10628SubmittedOnly` identifies exactly **three enabled examples**: the SUBMITTED D+7/D+8 outline row, functional
+denial and accessibility denial. They create only SUBMITTED records or none;
 they perform no decisions/amendment writes. The tag is attached only to the SUBMITTED Examples block and those
-three scenarios; the overall inventory is 11. It is a selection tag, never a skip or acceptance waiver.
+two scenarios; the overall inventory is 10. It is a selection tag, never a skip or acceptance waiver.
 
 After final review, actual submitted cleanup/authentication/reference-data preflight and explicit live execution
 authorisation, this subset can be attempted independently of transitioned/publication readiness. Exact selection:
@@ -385,7 +385,7 @@ corepack yarn test:functional:leaf --browser=chrome \
 ```
 
 For **subset discovery only**, add `dryRun=true,` before lowercase `tags=` and retain the reachable configured URL;
-expect **4 dry-run examples (2 functional + 2 accessibility)**, with no live evidence. A future four-example live
+expect **3 dry-run examples (2 functional + 1 accessibility)**, with no live evidence. A future three-example live
 pass cannot satisfy the remaining 7 retained live examples or the ledger's unverified acceptance; it cannot complete
 PO-10628.
 
@@ -398,14 +398,14 @@ they do not establish live Axe acceptance.
 
 ## PO-10625 independent checker decisions
 
-The completed feature pair contains 22 examples: 13 functional and 9 accessibility. Its core decision coverage
+The completed feature pair contains 20 examples: 12 functional and 8 accessibility. Its core decision coverage
 comprises 10 functional examples: Submitted publication with two minor
 creditors, Resubmitted approval, Submitted/Resubmitted rejection, Submitted/Resubmitted blank-reason validation,
 self-review, permission denial, and stale approve/reject. `CheckerReviewDecisionsAccessibility.feature` contains
 six independent broad journeys: publication, rejection, blank validation, self-review, denied permission, and
 stale approval. These core decision examples carry `@R1CRmCreateCaseFiles`, `@JIRA-STORY:PO-10625`, `@JIRA-EPIC:PO-10817`,
 `@JIRA-LABEL:create-draft-casefile`, `@AC1`, and `@retries(0)`; the accessibility examples also carry
-`@accessibility`. The six checker outcome-window/empty examples below complete the 22-example inventory.
+`@accessibility`. The four live checker outcome-window examples below complete the 20-example inventory.
 No example is skipped or pending.
 
 Every Given creates fresh data with the exact E2E marker and required cleanup receipt. Positive fixtures require
@@ -454,7 +454,7 @@ corepack yarn exec cypress run --component --browser chrome \
   --spec 'cypress/component/checkAndValidateCase/checker-review-journey-support.cy.ts,cypress/component/checkAndValidateCase/inputter-monitoring-journey-support.cy.ts'
 ```
 
-Discovery only (22 examples: 13 functional + 9 accessibility; no browser actions or live fixtures):
+Discovery only (20 examples: 12 functional + 8 accessibility; no browser actions or live fixtures):
 
 ```bash
 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625' \
@@ -481,15 +481,14 @@ Do not report live AC1 acceptance until the full actual UI/API/publication/input
 
 ### PO-10625 checker outcome windows and empty states (AC6, AC7)
 
-The completed checker pair contains **22 expanded examples: 13 functional and 9 accessibility**, with no skipped or
-pending scenarios. Task3 adds independent Rejected and Deleted calendar-window examples plus a genuinely empty
-checker dashboard, and a separate accessibility example for each. Existing decision scenario identities remain unchanged.
+The completed checker pair contains **20 expanded examples: 12 functional and 8 accessibility**, with no skipped or
+pending scenarios. Independent Rejected and Deleted calendar-window examples retain their accessibility counterparts. Empty dashboards use controlled component coverage. Existing decision scenario identities remain unchanged.
 
 | Added coverage                  | Business assertions                                                                                                                                                           | Accessibility states                                                                                     |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | Rejected calendar window        | Owned ID present in real collection and every-page DOM at D0, D3, D7 and D8; exact BU44 / checker exclusion; no date query parameters                                         | Native Cases entry, initial focused heading, selected-tab focus and every consultation/pagination page   |
 | Deleted calendar window         | Owned ID included D0/D3/D7 and excluded D8 in both actual collection and every-page DOM; exact inclusive from/to dates                                                        | Same independently owned journey and strict scans at every visited state                                 |
-| Genuine empty checker dashboard | Four actual zero-row/zero-count list preflights, separate real Rejected/Failed zero count preflights, exact empty text, no rows/badges on all four tabs, no creation/deletion | Initial entry and each To review/Rejected/Deleted/Failed tab with native keyboard/focus and strict scans |
+| Controlled empty checker dashboard | Mounted zero-row/zero-count boundaries; exact empty text and no rows/badges on all four tabs. Deployed empty-list acceptance is unverified. | Per-tab native keyboard/focus and strict Axe checks in checker-dashboard.cy.ts |
 
 `CheckerDashboardWindowFlow` resets its Actions per Given/accessibility journey. Maintained normal API
 fixtures use distinct ACTIVE Maintenance BU44 permission21 inputter and permission22 checker, fresh ETags and
@@ -530,23 +529,23 @@ the maintained exemption policy only and remain partial WCAG evidence.
 
 ### PO-10625 Submitted-only and self-review selections
 
-The `@PO10625SubmittedOnly` selector covers exactly eight examples whose fixture setup creates at most
+The `@PO10625SubmittedOnly` selector covers exactly six examples whose fixture setup creates at most
 Submitted records or creates no data. Functional selections are Submitted blank-reason validation, self-review,
-denied permission and genuine empty outcomes. Accessibility selections are validation, self-review, denied
-permission and genuine empty outcomes. Resubmitted validation and every transition/publication/window fixture
-remain outside this selector. `@PO10625Self` tags only the two self-review examples and is a subset of the eight.
-All 22 examples remain enabled with their existing names, order, native example indices, business steps and runtime assertions.
+denied permission. Accessibility selections are validation, self-review and denied
+permission. Resubmitted validation and every transition/publication/window fixture
+remain outside this selector. `@PO10625Self` tags only the two self-review examples and is a subset of the six.
+All 20 retained examples remain enabled with their existing names, order, native example indices, business steps and runtime assertions.
 
 | Selection                       | Exact tag expression                                                                            | Expanded examples                    |
 | ------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Full inventory                  | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625`                                                | 22 (13 functional + 9 accessibility) |
-| Submitted-only compatible setup | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly`                      | 8 (4 + 4)                            |
+| Full inventory                  | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625`                                                | 20 (12 functional + 8 accessibility) |
+| Submitted-only compatible setup | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly`                      | 6 (3 + 3)                            |
 | Self-review diagnosis           | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625Self`                               | 2 (1 + 1)                            |
-| Submitted-only excluding self   | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self` | 6 (3 + 3)                            |
+| Submitted-only excluding self   | `@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self` | 4 (2 + 2)                            |
 
 Use matching `TAGS`, `CYPRESS_TAGS` and lowercase `tags` for every selection. For discovery only, use the same
 feature pair, a null E2E base URL and `dryRun=true,omitFiltered=true`; the last setting omits unselected examples
-without reporting them as skipped or pending. For example, the six-example selection is:
+without reporting them as skipped or pending. For example, the four-example selection is:
 
 ```bash
 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10625 and @PO10625SubmittedOnly and not @PO10625Self' \
@@ -745,7 +744,7 @@ users or permissions for the standard pack.
 The same-user, cross-user/latest-submitter, retry, stale and actual no-longer-Rejected functional/accessibility
 pairs retain their names, steps and tags. PO-10623 selection changes from 12 to 10 expanded live examples;
 including the inherited controlled examples, this feature pair changes from 26 to 24. Combined with the parent
-monitoring allocation, full functional inventory is 375 examples, with 348 selected and the existing 27 exclusions
+monitoring allocation, full functional inventory is 372 examples, with 345 selected and the existing 27 exclusions
 unchanged. Counts are supported by the parsed name/tag delta; discovery establishes bindings only.
 
 Before live work, verify the frontend checkout/build/process, enabled `release-1c-rm-create-case-files`, running
@@ -865,3 +864,22 @@ retry, stale and denial outcomes. Full release/smoke suites and the full compone
 focused assertion correction; the five affected support/component specs were run instead. CI, external Sonar,
 reviewer approval and QA sign-off remain pending. This evidence establishes the source fix and controlled regression,
 not completion of the full PO-10623 acceptance pack.
+
+
+### Empty dashboard coverage (CI isolation repair, 30 October 2026)
+
+Following Fines' mounted dashboard approach, three whole-collection empty live examples are allocated to
+controlled component coverage. Shared inputter/BU collections cannot remain empty while other functional
+workers create authorised cases. No shared records are deleted to establish this precondition.
+
+| Removed live identity | Original tags in addition to feature tags | Controlled replacement |
+| --- | --- | --- |
+| Consult genuinely empty personal lifecycle tabs accessibly | PO-10628, AC1, AC6, PO10628SubmittedOnly, retries(0) | dashboard/inputter-dashboard.cy.ts: all four exact empty messages, absent table, keyboard departure and strict Axe |
+| Consult genuinely empty checker outcome tabs without creating cases | PO-10625, AC6, PO10625SubmittedOnly | dashboard/checker-dashboard.cy.ts: every checker tab's exact empty message, absent table and zero badges |
+| Consult accessible genuinely empty checker outcome tabs | PO-10625, AC6, AC7, accessibility, PO10625SubmittedOnly | Same checker component examples: keyboard departure and strict Axe on each empty tab |
+
+Component replacements use controlled list/count boundaries; they do not establish deployed empty-list API
+behaviour. Owned populated live journeys and real collection filters remain enabled. The monitoring submitted-only
+selection is now three examples (two functional, one accessibility); the checker submitted-only selection loses
+its two empty examples. The original live empty-environment acceptance is explicitly unverified. No new actor,
+environment switch, runner script, scenario retry or timeout is introduced.

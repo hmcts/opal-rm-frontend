@@ -97,18 +97,20 @@ Cypress.Commands.overwrite('request', (originalFn, ...args: unknown[]) => {
 
   const body = serializeJsonRequestBody(options.body as Cypress.RequestBody);
 
-  return cy.task<string>('contentDigest:sha512Base64', body, { log: false }).then((digest) =>
-    originalRequest({
-      ...options,
-      body,
-      headers: {
-        ...options.headers,
-        'Content-Digest': `sha-512=:${digest}:`,
-        'Want-Content-Digest': 'sha-512',
-        ...(hasHeader(options.headers, 'Content-Type') ? {} : { 'Content-Type': 'application/json' }),
-      },
-    }),
-  );
+  return cy
+    .task<string>('contentDigest:sha512Base64', body, { log: false })
+    .then({ timeout: options.timeout ?? Cypress.config('responseTimeout') }, (digest) =>
+      originalRequest({
+        ...options,
+        body,
+        headers: {
+          ...options.headers,
+          'Content-Digest': `sha-512=:${digest}:`,
+          'Want-Content-Digest': 'sha-512',
+          ...(hasHeader(options.headers, 'Content-Type') ? {} : { 'Content-Type': 'application/json' }),
+        },
+      }),
+    );
 });
 
 export {};

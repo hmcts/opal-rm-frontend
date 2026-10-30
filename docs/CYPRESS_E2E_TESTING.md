@@ -32,6 +32,12 @@ are not re-enabled by this convention. Keep all actual permission, distinct-iden
 Do not substitute another role or invent a username when an independent actor is unavailable, and do not present
 controlled user-state responses as live authorisation evidence.
 
+## Shared request timeout
+
+The JSON request digest wrapper follows Fines: its callback uses the explicit request timeout, or Cypress's
+configured response timeout. This preserves the HTTP request's time budget instead of applying the shorter DOM
+command timeout while awaiting the response. HTTP errors still fail; no automatic retry is added.
+
 ## Draft Casefile concurrency and recovery QA (PO-10626)
 
 Use the PO-10611 frontend foundation with current master dependencies (`8cf1f9e6`, common UI `0.0.116`). Build this checkout with independent
@@ -831,7 +837,7 @@ magnification with the same enabled release and provisioned accounts.
 
 The [monitoring suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#po-10628-live-inputter-monitoring)
 contains the AC1–AC6 mapping, exact commands, real prerequisites and specialist checks for
-`InputterCasefileMonitoring.feature` and its accessibility feature: **11 examples (7 functional + 4 accessibility),
+`InputterCasefileMonitoring.feature` and its accessibility feature: **10 examples (7 functional + 3 accessibility),
 zero skipped/pending**, with fresh scenario-owned fixtures. All three selectors must agree:
 `TAGS`, `CYPRESS_TAGS` and `--env tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628 and not @skip`.
 
@@ -881,10 +887,10 @@ and expected results documented in the suite guide; automated Axe is partial acc
 A historical read-only capability split found ordinary POST/list/detail/PATCH/PUT plus enabled testing support,
 but only SUBMITTED cleanup on that older runtime. The updated support branch supplies eligible lifecycle and
 exclusive published cleanup; verify its actual deployment before executing those fixtures. The suite's
-`@PO10628SubmittedOnly` tag still selects exactly **4 enabled examples** (SUBMITTED boundary row, functional denial,
-accessibility empty and accessibility denial), within 11 overall. Use the suite guide's matching selectors after
+`@PO10628SubmittedOnly` tag still selects exactly **3 enabled examples** (SUBMITTED boundary row, functional denial
+and accessibility denial), within 10 overall. Use the suite guide's matching selectors after
 actual authentication/reference-data/submitted-cleanup preflight. Add `dryRun=true` for discovery only and retain
-the reachable URL. A four-example pass cannot complete the other 7 retained examples or the ledger's unverified
+the reachable URL. A three-example pass cannot complete the other 7 retained examples or the ledger's unverified
 acceptance; transitioned/approval fixtures still require their own real cleanup capabilities to be verified.
 
 ## PO-10624 independent checker deletion QA

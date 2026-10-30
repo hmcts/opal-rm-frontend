@@ -2,6 +2,91 @@
 
 Use this guide when writing or updating Cypress E2E tests and Cucumber feature files in opal-rm-frontend.
 
+For Draft Casefile concurrency, response-loss recovery and lifecycle support requirements, see the
+[PO-10626 suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md).
+
+## Shared accessibility exemption
+
+The shared E2E accessibility helper omits only Axe's `aria-allowed-attr` rule, matching the existing Fines
+GOV.UK exemption approved for RM. All other Axe rules still fail the test. This is a testing-policy exemption;
+it does not establish that every omitted ARIA attribute is correct. Component tests calling `cy.checkA11y()`
+directly keep their existing configuration. Do not add further exemptions without an explicit decision.
+
+## Draft Casefile concurrency and recovery QA (PO-10626)
+
+Use the PO-10611 frontend foundation with current master dependencies (`8cf1f9e6`, common UI `0.0.116`). Build this checkout with independent
+dependencies from its inherited immutable lockfile, run an isolated local port such as `TEST_URL=http://localhost:5100`,
+and verify the frontend process directory. Ambiguous and definite-failure cases still require retained context.
+Conflict cases exercise the actual shared concurrency page, Cases navigation, actor dashboard, saved-status tab and
+owned row before a fresh GET and complete rendered winner check. The scoped response-loss fault rejects Fetch
+delivery after an independently observed real HTTP 200; it does not model every socket failure.
+
+The [suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md) records the exact discovery,
+live and support commands. Its inventory retains **12 examples (7 functional + 5 accessibility)**; the current
+executable selection is **11 (6 functional + 5 accessibility)**. The retained AC1 approval row alone carries
+`@skip @PO10626RequiresPublishedCleanup`. An 11-example pass does not complete AC1 or PO-10626. The default runner
+excludes `@skip`; inventory-only discovery uses `omitFiltered=false` to expose the row as pending. The installed
+preprocessor skips `@skip` regardless of tag selection; its default `omitFiltered=true` hides that row. Expect 12
+inventoried cases: 11 dry-run passes and one pending approval. Parsed Gherkin also retains all 12 names/rows/tags.
+Both tag environment variables and the lowercase
+`--env tags=...` override must agree so inherited selection cannot hide cases.
+
+The lost-response resubmission functional/accessibility pair was removed following frontend developer feedback
+on 29 October 2026. Back currently re-enters the REJECTED-only amendment route after the case becomes RESUBMITTED;
+changing that navigation is outside the agreed scope. The original committed-PUT response-loss recovery Acceptance
+Criterion therefore has no automated evidence in this pack. Definite-failure retry and stale-conflict resubmission
+coverage remain; see the suite guide's agreed recovery coverage for the removed assertions.
+
+Each example uses normal API creation with live environment-valid reference data and existing ACTIVE Maintenance
+users: inputter permission 21 and a distinct checker permission 22 in BU 44. Setup does not create users, alter
+permissions or provide backend-owned fields. The case-creation UI regression instructions below remain required.
+Enable the create-casefile release and Maintenance testing support separately. Verify the actual compatible
+`codex/PO-10626-publication-support` build (reviewed at `215b577`) and its DB/BE dependencies, persisted
+review/deletion/amendment routes and owner/marker cleanup. These dependencies can run locally before merging to
+master. This support contract has no observation migration, publication-evidence route or evidence-response schema.
+
+Normal authenticated GET/re-entry proves original ID, opaque ETag, lifecycle, complete saved aggregate/snapshot and
+one corresponding timeline event with the prior history retained. Browser application/wire request counts prove
+no automatic replay through completed recovery and accessibility checks; explicit retry requires two deliberate
+activations. The final `the completed recovery has not replayed the case change` step repeats the count checks.
+No owner-session switch for a publication journal remains. Mutation receipts contain only owned ID/marker,
+journey/fault, counts and opaque versions in `functional-output/po10626/`; never persist participant names, cookies,
+request bodies or snapshots there.
+
+Producer invocation, broker acceptance/redelivery and a published graph need their separately labelled backend
+and opt-in dedicated-broker evidence. Normal GET/timeline and browser counts cannot establish producer send counts.
+The original AC1 no-duplicate-publication requirement remains unmet until the acceptance owner confirms the
+proposed allocation in the [suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#recovery-evidence-and-publication-boundaries)
+or separately scoped broker-observation capability is delivered. This cutover does not waive that requirement.
+
+The existing single cleanup hook persists each receipt, restores its recorded latest submitter and sends the
+ID-scoped DELETE with the exact marker; only 204 clears it. Non-204/transport failure retains the receipt and fails
+the run. No body, If-Match, cleanup GET or `ignore_missing` query is used. The updated backend supports eligible
+unlinked lifecycle states, approved pending drafts and exclusive published graphs. Verify actual graph read/delete
+capability and the latest-submitter/BU permission rules. Published cleanup's concurrent-writer risk is accepted by
+the backend operating contract; additional table-wide locks are not prerequisites. DELETE does not establish
+broker settlement. Complete saved-state assertions before cleanup. Required-cleanup fixtures do not use the existing
+localhost-only `PO10626_DEFER_CLEANUP` capability.
+
+Approval retains `@skip @PO10626RequiresPublishedCleanup` until the actual deployed consumer/cleanup contract and a
+full owned approval/recovery/cleanup run are verified, with publication evidence allocated separately as above.
+The consumer and pending/published cleanup are delivered on the support branch; their source delivery alone does
+not satisfy this verification gate. `PUBLISHING_FAILED` cleanup eligibility does not authorise forcing that state.
+Preserve failed receipts and raw outputs before runner resets. Controlled support checks and discovery establish
+helper behaviour and selection/bindings respectively; live acceptance remains separate. All existing recovery,
+Axe and native keyboard checks remain, with only the shared `aria-allowed-attr` exemption.
+
+Full inventory discovery (no browser actions or approval fixture creation):
+
+```bash
+TEST_URL=http://localhost:5100 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrency.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/DraftCasefileConcurrencyAccessibility.feature' \
+  --env 'dryRun=true,omitFiltered=false,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10626'
+```
+
 ## Required References
 
 Read this guide's Feature Layout and Tags, Accessibility Coverage, Step Definitions, Actions, Flows, and Selectors,
@@ -547,7 +632,7 @@ controls, review, removal confirmation, abandoned removal and removal success. K
 controls, with native Enter for anchors. Axe and these interactions provide partial accessibility evidence.
 Specialist follow-up must check full keyboard traversal and visible focus, screen-reader names and announcements,
 and magnification using the enabled release and provisioned creator; expect reachable controls, correctly announced
-state and no lost content. No further Axe exemptions are introduced.
+state and no lost content. Only the shared `aria-allowed-attr` exemption applies.
 
 ## Order Term creditor QA (PO-10279)
 

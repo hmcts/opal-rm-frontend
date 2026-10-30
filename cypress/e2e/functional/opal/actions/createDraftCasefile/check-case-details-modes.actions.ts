@@ -1,3 +1,4 @@
+import { activateCasefileControl, setCasefileReason } from './casefile-review-controls.actions';
 import { selectedPersistedCasefile } from '../../mocks/createDraftCasefile/persisted-casefile.mock';
 import { stubPersistedCasefileReferences } from '../../setup/createDraftCasefile/persisted-casefile.intercept';
 import { CreateCasefileSelectors as CREATE } from '../../../../../shared/selectors/create-casefile.selectors';
@@ -174,12 +175,12 @@ export class CheckCaseDetailsModesActions {
   public expectDecisionError(): void {
     cy.location('pathname').should('eq', CHECKER + '/review/17');
     cy.get(CREATE.globalErrorBanner).should('be.visible');
-    cy.get(S.decisionContinue).should('be.enabled').click();
-    cy.get(S.decisionContinue).click();
+    activateCasefileControl(S.decisionContinue, false);
+    activateCasefileControl(S.decisionContinue, false);
     cy.get(S.decisionApprove).should('be.enabled');
     cy.get(S.decisionReject).should('be.enabled').check();
-    cy.get(S.rejectionReason).should('be.enabled').type('Synthetic later rejection reason');
-    cy.get(S.decisionContinue).click();
+    setCasefileReason(S.rejectionReason, 'Synthetic later rejection reason');
+    activateCasefileControl(S.decisionContinue, false);
     cy.location('pathname').should('eq', CHECKER + '/review/17');
     cy.get(CREATE.globalErrorBanner).should('be.visible');
     cy.get(DASHBOARD.success).should('not.exist');
@@ -264,15 +265,15 @@ export class CheckCaseDetailsModesActions {
    * @param reason Synthetic reason sent unchanged. */
   public enterDeletionReason(reason: string): void {
     this.deletionReason = reason;
-    cy.get(D.reason).type(reason);
+    setCasefileReason(D.reason, reason);
   }
   /** Confirms deletion through the rendered form. */
   public confirmDeletion(): void {
-    cy.get(D.submit).click();
+    activateCasefileControl(D.submit, false);
   }
   /** Submits an empty reason to exercise validation. */
   public submitEmptyDeletion(): void {
-    cy.get(D.submit).click();
+    activateCasefileControl(D.submit, false);
     cy.get(D.summary).should('contain.text', 'Enter reason').and('be.focused');
     this.expectNoWrites();
     cy.screenshot('po10609-deletion-validation');
@@ -429,8 +430,8 @@ export class CheckCaseDetailsModesActions {
       this.decisionIntent = decision === 'approve' ? 'approve' : 'reject';
       cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
     }
-    if (decision === 'reject' && reason !== 'empty') cy.get(S.rejectionReason).clear().type(this.decisionReason);
-    cy.get(S.decisionContinue).click();
+    if (decision === 'reject' && reason !== 'empty') setCasefileReason(S.rejectionReason, this.decisionReason);
+    activateCasefileControl(S.decisionContinue, false);
   }
 
   /** Verifies focused summary, conditional invalid field and the real summary-to-field focus link.
@@ -451,7 +452,7 @@ export class CheckCaseDetailsModesActions {
     cy.get(S.decisionApprove).check();
     cy.get(S.rejectionReason).should('not.exist');
     cy.get(CREATE.errorSummary).should('not.exist');
-    cy.get(S.decisionContinue).click();
+    activateCasefileControl(S.decisionContinue, false);
   }
 
   /** Returns from a saved view through the actual Back link. */

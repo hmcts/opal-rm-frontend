@@ -1,8 +1,9 @@
 import { installDraftCasefileCleanup } from './draftCasefiles';
+import { performAuthentication } from '../e2e/actions/login.actions';
 import './commands';
 import 'cypress-axe';
 
-installDraftCasefileCleanup();
+installDraftCasefileCleanup((actor) => performAuthentication(actor));
 
 // Native leave-site dialogs block reloads and test isolation. Keep route confirm() dialogs enabled.
 Cypress.on('window:before:load', (window) => {

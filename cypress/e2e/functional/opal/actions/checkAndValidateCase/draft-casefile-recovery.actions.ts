@@ -1,5 +1,9 @@
 import { decodeDraftSnapshot } from './draft-casefile-evidence.actions';
-import { setCasefileReason, activateCasefileControl } from '../createDraftCasefile/casefile-review-controls.actions';
+import {
+  setCasefileReason,
+  activateCasefileControl,
+  chooseCasefileDecision,
+} from '../createDraftCasefile/casefile-review-controls.actions';
 import { locateDraftCasefileRow } from './draft-casefile-table.actions';
 import { pressDashboardEnter } from '../../../../../support/utils/press-dashboard-enter';
 import { CasesDraftSelectors as D } from '../../../../../shared/selectors/cases-draft.selectors';
@@ -153,18 +157,16 @@ export class DraftCasefileRecoveryActions {
   /**
    * Selects the decision and supplies only its conditional synthetic reason.
    * @param journey Business action whose rendered controls or outcome are being exercised.
+   * @param keyboard Whether checker selection uses native Space and conditional Tab.
    */
-  public choose(journey: DraftCasefileJourney): void {
+  public choose(journey: DraftCasefileJourney, keyboard = false): void {
     this.reason = 'Synthetic concurrency decision';
     if (journey === 'delete') {
       cy.get(C.review.delete).should('have.text', 'Delete case').click();
       cy.get(C.deletion.heading).should('contain.text', 'Are you sure you want to delete this case?');
       setCasefileReason(C.deletion.reason, this.reason);
-    } else if (journey === 'approve') {
-      cy.get(C.review.decisionApprove).check();
-    } else if (journey === 'reject') {
-      cy.get(C.review.decisionReject).check();
-      setCasefileReason(C.review.rejectionReason, this.reason);
+    } else if (journey === 'approve' || journey === 'reject') {
+      chooseCasefileDecision(journey, this.reason, keyboard);
     }
   }
 

@@ -65,9 +65,16 @@ describe('Checker routed dashboard', () => {
       });
     });
     it('AC1. should show exact ' + tab + ' empty message', { tags: buildTags() }, () => {
-      setupCheckerDashboard({ tab, rows: checkerFixtures.empty });
+      setupCheckerDashboard({ tab, rows: checkerFixtures.empty, rejectedCount: 0, failedCount: 0 });
       cy.get(S.empty).should((element) => expect(element.text().trim()).to.equal(checkerEmptyMessages[tab]));
       cy.get(S.table).should('not.exist');
+      cy.get(S.rejectedCount).should('not.exist');
+      cy.get(S.failedCount).should('not.exist');
+      cy.get(S.tab(tab)).focus().should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.tab(tab)).should('not.be.focused');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
     });
   }
   for (const count of [0, 1, 99, 100])

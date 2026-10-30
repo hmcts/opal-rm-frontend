@@ -263,6 +263,36 @@ describe('Persisted case details', () => {
     },
   );
 
+  it(
+    'AC1. should select and change a checker decision with the native keyboard',
+    { tags: ['@JIRA-STORY:PO-10625', '@JIRA-EPIC:PO-10817'] },
+    () => {
+      setupReview({
+        resolved: createPersistedCasefileResolved({
+          intent: 'checker-review',
+          mode: 'review',
+          context: 'checker',
+          dashboardMode: 'checker',
+        }),
+        user: reviewUser('checker'),
+      });
+      spyCompletion();
+      cy.get(S.decisionReject).focus().should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.SPACE);
+      cy.get(S.decisionReject).should('be.checked').and('be.focused');
+      cy.get(S.rejectionReason).should('be.visible');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.rejectionReason).should('be.focused').type('Synthetic keyboard reason');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.decisionContinue).should('be.focused');
+      cy.get(S.decisionReject).focus();
+      cy.press(Cypress.Keyboard.Keys.UP);
+      cy.get(S.decisionApprove).should('be.checked').and('be.focused');
+      cy.get(S.rejectionReason).should('not.exist');
+      assertNoMutation();
+    },
+  );
+
   it('AC3. should focus the exact missing-decision error and its first radio', { tags: buildTags() }, () => {
     setupReview({ resolved: createPersistedCasefileResolved() });
     spyCompletion();

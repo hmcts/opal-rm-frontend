@@ -208,28 +208,51 @@ unexecuted acceptance evidence pending.
 
 ## PO-10628 live inputter monitoring
 
-`InputterCasefileMonitoring.feature` contains **11 enabled functional examples** (seven scenarios, including two
-outlines expanded to four and two examples). `InputterCasefileMonitoringAccessibility.feature` contains **five
-enabled broad accessibility scenarios**. All carry `@R1CRmCreateCaseFiles`, `@functional`,
+`InputterCasefileMonitoring.feature` contains **7 enabled functional examples** (four scenarios, including one
+outline expanded to four examples). `InputterCasefileMonitoringAccessibility.feature` contains **4 enabled broad
+accessibility scenarios**: **11 enabled examples in total**. All carry `@R1CRmCreateCaseFiles`, `@functional`,
 `@JIRA-LABEL:create-draft-casefile`, `@JIRA-STORY:PO-10628`, `@JIRA-EPIC:PO-10817`, appropriate `@AC1`–`@AC6` tags
 and `@retries(0)`. There are no pending/skip tags. Each scenario constructs fresh flow/actions/fixture state.
 
-| AC  | Enabled examples and assertions                                                                                                                                                                                                                                                                                                                                                |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| AC1 | Own SUBMITTED, REJECTED, PUBLISHED and DELETED records appear only in their matching tabs. Four date-window examples consult at actual persisted lifecycle D+7 and D+8; only Approved/Deleted use inclusive calendar filters. In review/Rejected omit both dates.                                                                                                              |
-| AC2 | Empty and populated personal Rejected both reach the real other-inputter Business Unit rejection list. Empty setup requires genuinely zero personal rejections and leaves unrelated data alone.                                                                                                                                                                                |
-| AC3 | The provisioned second inputter's rejected IDs and owning actors are present; the current inputter's cases are excluded. Exactly 26 owned personal rejected records exercise sort, next/previous and page retention. The selected other-owned ID receives a fresh real GET and reaches amendment; Back restores the actual captured own page/sort/visible IDs without a write. |
-| AC4 | Actual PUBLISHED detail supplies positive IDs and all respondent/applicant/two minor-creditor numbers, rendered in creditor sequence as exact read-only text. Separate stable PUBLISHING_PENDING coverage requires null IDs/numbers and absence from the Approved response and every rendered page.                                                                            |
-| AC5 | Successful authorised entry precedes an existing ACTIVE denied user's direct dashboard attempt; no counts, rows, collection GETs or writes are exposed.                                                                                                                                                                                                                        |
-| AC6 | Five separate scenarios scan every visited meaningful page/state with the shared strict Axe step: populated tabs, genuinely empty tabs, pagination/All rejected/amendment/return, published multi-account row and actual denied destination. Native Enter and focus checks cover tabs, sorting, next/previous and Back links.                                                  |
+| AC | Retained live examples and evidence boundary |
+| --- | --- |
+| AC1 | Own SUBMITTED, REJECTED, PUBLISHED and DELETED records appear only in their matching tabs. Four date-window examples consult at actual persisted lifecycle D+7 and D+8; only Approved/Deleted use inclusive calendar filters. In review/Rejected omit both dates. |
+| AC2 | Empty/populated View all rejected entry remains controlled coverage; its live third-inputter acceptance is unverified (see ledger). |
+| AC3 | Controlled collection, actor and traversal checks remain; live third-inputter amendment entry and consultation restoration are unverified. The original own/other-row acceptance mismatch also remains (see ledger). |
+| AC4 | Actual PUBLISHED detail supplies positive IDs and all respondent/applicant/two minor-creditor numbers, rendered in creditor sequence as exact read-only text. Pending exclusion remains controlled coverage; backend stable-pending duration is unverified. |
+| AC5 | Successful authorised entry precedes an existing ACTIVE denied user's direct dashboard attempt; no counts, rows, collection GETs or writes are exposed. |
+| AC6 | Four live scenarios retain strict Axe checks: populated tabs, genuinely empty tabs, published multi-account row and actual denied destination. Native keyboard/focus checks remain on those journeys; third-inputter sorting/paging/amendment/return accessibility remains controlled coverage. |
 
 Setup uses `InputterMonitoringFixtureActions`, normal authenticated POST and fresh-ETag lifecycle changes with a
 distinct checker. Every successfully created ID immediately has required owner/marker cleanup, including setup
 failure. No shared fixture records, synthetic lifecycle dates, fabricated successful business responses, permission
-changes, queue manipulation or unowned deletion are used. Other-inputter creation restores the primary inputter
-before dashboard consultation. All rejected stays within the Business Unit, excludes the current inputter using `not_submitted_by`, and has no date filters; assertions use
-owned IDs and actor fields rather than assuming the shared BU contains only this scenario's work. Amendment entry
-is covered here; complete resubmission belongs to PO-10623.
+changes, queue manipulation or unowned deletion are used. Initial approval may already return `PUBLISHED` or may
+return `PUBLISHING_PENDING`; the retained `create('PUBLISHED')` path still performs bounded polling and requires
+final `PUBLISHED` status with every actual generated account number. Complete resubmission and the existing
+two-user amendment/ownership-transfer journeys belong to PO-10623.
+
+### Agreed live and controlled coverage allocation
+
+The standard live pack intentionally retires these five expanded examples. Their original names and metadata are
+recorded here so controlled evidence cannot be mistaken for deployed acceptance. Every row originally inherited
+`@R1CRmCreateCaseFiles @JIRA-LABEL:create-draft-casefile @functional` and carried
+`@JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @retries(0)`; additional original tags are listed per row. None had an
+external `@JIRA-TEST-KEY` identity.
+
+| Retired expanded live example | Additional original tags | Retained controlled spec and assertions | Unverified live acceptance |
+| --- | --- | --- | --- |
+| Reach the complete rejection list from either personal result state — empty. | `@AC2 @AC3` | `inputter-dashboard.cy.ts`: exposes View all rejected on empty Rejected results; `all-rejected.cy.ts`: empty collection, other-inputter query and returned rows; `inputter-monitoring-support.cy.ts`: empty personal scope and independent actor validation. | Real independently checked third-inputter backend journey from an empty personal result. |
+| Reach the complete rejection list from either personal result state — populated. | `@AC2 @AC3` | `inputter-dashboard.cy.ts`: View all rejected entry from populated results; `all-rejected.cy.ts`: other-inputter query and returned rows; `inputter-monitoring-support.cy.ts`: actor isolation and rejection of shared identities. | Real independently checked third-inputter backend journey from a populated personal result. |
+| Open another inputter's rejected work and restore dashboard consultation state. | `@AC3` | Mounted dashboard/all-rejected specs retain sorting, paging, navigation and Back assertions; `inputter-monitoring-journey-support.cy.ts` retains controlled flow traversal; actor-validation helpers remain in use. | Third-inputter backend amendment entry and restoration of the original live consultation. |
+| Sort paginate and return from another inputter amendment accessibly. | `@AC2 @AC3 @AC6` | Mounted dashboard/all-rejected specs retain native keyboard, focus, sorting, pagination and Axe checks; `inputter-monitoring-journey-support.cy.ts` verifies every intermediate scanner dispatch and stop-on-failure. | Live third-inputter traversal, restoration and accessibility across that journey. |
+| Show no account numbers while real publication is pending. | `@AC4` | `inputter-dashboard.cy.ts` excludes both null-number and defensively supplied-number pending rows and retains the published row; monitoring journey support checks null IDs/numbers, absent pending DOM and invalid publication/account shapes. | Backend stable-pending duration and its live rendered state. |
+
+Controlled fixtures do not establish real backend authorisation, an independently checked third-user journey or
+backend pending-state duration. Maintained routing integration also checks defensive own/foreign/wrong-status
+filtering. The original AC3 wording includes both own and other-inputter rows; the maintained frontend instead
+uses `not_submitted_by` and excludes own rows. That acceptance mismatch remains unresolved. No additional live
+users, permission assignments, environment flags or publication holds are required by this allocation. Existing
+two-user live amendment/ownership-transfer journeys remain enabled in their owning pack.
 
 ### Real prerequisites and historical runtime evidence
 
@@ -252,29 +275,28 @@ Before live execution, an operator must verify:
   verify existing ID/marker cleanup returns HTTP204 for pending/published graphs; HTTP409 is a failure.
 - Existing synthetic ACTIVE Maintenance BU44 permission21 inputter and independent permission22 checker. Defaults
   remain `opal-test@dev.platform.hmcts.net` / `opal-test-10@dev.platform.hmcts.net`; established
-  `PO10626_INPUTTER_EMAIL` / `PO10626_CHECKER_EMAIL` overrides select provisioned identities. Supply explicit
-  `PO10628_SECOND_INPUTTER_EMAIL` for a different existing permission21 actor. The denied account defaults to the
-  already provisioned `opal-test-4@dev.platform.hmcts.net` (`PO10628_DENIED_EMAIL` override); verify ACTIVE Maintenance
+  `PO10626_INPUTTER_EMAIL` / `PO10626_CHECKER_EMAIL` overrides select provisioned identities. The denied account
+  defaults to the already provisioned `opal-test-4@dev.platform.hmcts.net` (`PO10628_DENIED_EMAIL` override); verify ACTIVE Maintenance
   membership and absence of BU44 permission21. Tests never grant permissions or create users.
 - Live active unique UK CJS Country, Create Casefile application and compatible MAT Order Term metadata. Empty
-  examples need genuinely empty own collections; pagination needs an empty personal Rejected baseline before its
-  26 owned creates. Fail conflicting prerequisites without deleting unrelated data.
+  examples need genuinely empty own collections. Fail conflicting prerequisites without deleting unrelated data.
 - The backend's inclusive calendar-date/timezone semantics agree with AUT local calendar consultation. Date-window
   examples read actual lifecycle timestamps and advance only AUT Date; timers and server/database clocks stay real.
-- Independently verified nonproduction stable-pending configuration for the pending example; the test does not
-  suspend services. A fast consumer reaching PUBLISHED fails that pending fixture.
 
 Ordinary SUBMITTED/REJECTED/DELETED, empty and permission examples require only their own verified endpoints,
 identities and cleanup; they do not require publication readiness. The historical follow-up runtime accepted only
 SUBMITTED cleanup. The updated backend accepts eligible unlinked lifecycle states, approved pending drafts and
 exclusive published graphs as described above. Verify that contract on the actual running build before creating
-transitioned fixtures. Publication prerequisites apply to PUBLISHED/PUBLISHING_PENDING scenarios, including populated
-lifecycle scenarios; actual API responses establish compatibility.
+transitioned fixtures. Publication prerequisites apply to PUBLISHED scenarios, including populated lifecycle
+scenarios; actual API responses establish compatibility. The retired third-inputter and stable-pending examples
+are accounted for in the coverage ledger rather than prerequisites for this standard live selection. The retained
+controlled actor helpers still require an explicit independent identity when invoked; they never silently pass
+when that actor is missing.
 
 Fixture setup uses the actual lifecycle APIs and validates persisted status, ownership, ETags and generated
 accounts. No ticket-specific cleanup or publication verification variables are required. The shared `afterEach`
-hook restores the observed cleanup owner and deletes each exact ID/marker through the existing testing-support
-endpoint. Enable `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction backend. Any response other
+hook restores the recorded latest submitter and sends authenticated DELETE for each exact observed ID/marker
+through the original testing-support endpoint. Enable `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction backend. Any response other
 than HTTP204 fails cleanup and retains the outstanding receipt; tests never suppress cleanup errors.
 
 ### Application rollback and retained expectations
@@ -283,61 +305,51 @@ PO-10628 application changes have been reverted for developer confirmation. All 
 `not_submitted_by` and exclude the current inputter's rows. Account mapping tests retain values supplied by the
 snapshot without a publication-status guard. Developer clarification confirms approval enters the asynchronous
 `PUBLISHING_PENDING` state before `PUBLISHED`; pending cases should not appear in Approved. Cypress tests now
-expect only `PUBLISHED` in the Approved query and exclude pending rows even when a snapshot supplies numbers.
+expect only `PUBLISHED` in the Approved query and exclude pending rows both with null account numbers and when a
+snapshot defensively supplies numbers. Initial approval can already be published before the first observation;
+the final publication assertion still requires `PUBLISHED` and exact generated account numbers.
 The entire `src` directory, including colocated tests, remains identical to `origin/master`. The original AC requiring both own and
 other-inputter cases on All rejected is not covered by the revised expectations and remains unresolved.
 
 ### Commands and evidence boundary
 
-Use Node24.22.1 / Corepack Yarn4.18.1 and independently installed immutable dependencies. All three tag selectors
-must match exactly. **Discovery only** executes no AUT or real fixture creation. In this installed Cypress version,
-both wrapper and direct CLI `--config '{"baseUrl":null}'` attempts retained the configured URL and failed readiness
-before any specs ran. Use a local ignored discovery config to set the testing-type baseUrl explicitly, preserving
-the actual preprocessor, registry and reporting hooks:
-
-```bash
-mkdir -p docs/superpowers
-cat > docs/superpowers/po10628-discovery.config.ts <<'CONFIG'
-import config from '../../cypress.config';
-if (!config.e2e || typeof config.e2e !== 'object') throw new Error('Expected existing E2E configuration');
-config.e2e.baseUrl = null;
-export default config;
-CONFIG
-```
+Use the Node and Corepack Yarn versions declared by `.nvmrc` and `package.json#packageManager` (currently
+Node24.22.1 / Yarn4.18.1), with immutable dependencies. All three tag selectors must match exactly. The ordinary
+Cypress configuration requires a reachable URL even during **discovery only**, which executes no browser journey
+steps or fixture creation:
 
 ```bash
 TEST_URL=http://localhost:5100 \
-TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628' \
-CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628' \
-corepack yarn exec cypress run --browser chrome --config-file docs/superpowers/po10628-discovery.config.ts \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628 and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628 and not @skip' \
+corepack yarn test:functional:leaf --browser=chrome \
   --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/InputterCasefileMonitoring.feature,cypress/e2e/functional/opal/features/checkAndValidateCase/InputterCasefileMonitoringAccessibility.feature' \
-  --env 'dryRun=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628'
+  --env 'dryRun=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628 and not @skip'
 ```
 
-This local config stays ignored; do not commit it. Discovery is no acceptance evidence. Use the maintained
-wrapper for ordinary live runs, where its existing reporting/reset behavior remains applicable.
-
-Expected discovery inventory is **16 examples (11 functional + 5 accessibility), zero skipped/pending**. For live
-acceptance, after verified runtime and explicit execution authorisation, replace `corepack yarn exec cypress run
---browser chrome` with `corepack yarn test:functional:leaf --browser=chrome`, remove
-`--config-file docs/superpowers/po10628-discovery.config.ts` and remove `dryRun=true,` from `--env`; retain all identical tag selectors. This invokes
-real authentication, owned creation, decisions, publication polling, dashboard navigation, strict Axe and required
-cleanup. Preserve raw outputs and failed receipts before any runner reset.
+Expected discovery inventory is **11 examples (7 functional + 4 accessibility), zero skipped/pending**, with no
+undefined or ambiguous bindings. Discovery is no browser or live acceptance evidence. For live acceptance after
+runtime verification, remove only `dryRun=true,` from `--env`; retain the identical tag selectors and ordinary
+configuration. This invokes real authentication, owned creation, decisions, bounded publication polling, dashboard
+navigation, strict Axe and required original-endpoint cleanup. Preserve raw outputs and failed receipts before any
+runner reset.
 
 Controlled helper verification is separate:
 
 ```bash
 corepack yarn exec cypress run --browser chrome --component \
-  --spec 'cypress/component/checkAndValidateCase/inputter-monitoring-journey-support.cy.ts'
+  --spec 'cypress/component/createDraftCasefile/dashboard/inputter-dashboard.cy.ts,cypress/component/createDraftCasefile/allRejected/all-rejected.cy.ts,cypress/component/checkAndValidateCase/inputter-monitoring-support.cy.ts,cypress/component/checkAndValidateCase/inputter-monitoring-journey-support.cy.ts'
 corepack yarn exec tsc -p e2e.tsconfig.json --noEmit
 corepack yarn exec tsc -p cypress/tsconfig.json --noEmit
 corepack yarn check:cypress:test-metadata
 corepack yarn find:duplicate:scenarios
 ```
 
-The helper spec checks literal DST/month/year/leap-day calendar expectations and that snapshot/DOM account
-assertions reject missing, extra, reordered, pending or interactive numbers. Its DOM and snapshots are deliberately
-controlled and cannot prove live publication or accessibility. Complete the full local frontend preflight in
+These controlled specs retain dashboard/all-rejected rendering, entry, sorting, paging, native keyboard and Axe
+checks, actor-validation and owned-fixture contracts, literal DST/month/year/leap-day calendar expectations, scanner
+dispatch, and snapshot/DOM account assertions rejecting missing, extra, reordered, pending or interactive numbers.
+Their DOM and snapshots cannot prove live publication, backend authorisation or live third-inputter accessibility.
+Complete the applicable local frontend preflight in
 `docs/SONAR.md`; external CI/Sonar/security/review/QA remain pending without direct evidence. Specialist screen-reader
 announcement/order checks and magnification/reflow checks across populated, empty, paginated, published and denied
 states remain pending on a compatible runtime; strict Axe is partial accessibility evidence and uses no exemptions.
@@ -357,7 +369,7 @@ owner/marker cleanup; retain failed receipts if the runtime cannot return204.
 `@PO10628SubmittedOnly` identifies exactly **four enabled examples**: the SUBMITTED D+7/D+8 outline row, functional
 denial, accessibility genuinely empty tabs and accessibility denial. They create only SUBMITTED records or none;
 they perform no decisions/amendment writes. The tag is attached only to the SUBMITTED Examples block and those
-three scenarios; the overall inventory stays16. It is a selection tag, never a skip or acceptance waiver.
+three scenarios; the overall inventory is 11. It is a selection tag, never a skip or acceptance waiver.
 
 After final review, actual submitted cleanup/authentication/reference-data preflight and explicit live execution
 authorisation, this subset can be attempted independently of transitioned/publication readiness. Exact selection:
@@ -371,11 +383,12 @@ corepack yarn test:functional:leaf --browser=chrome \
   --env 'tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628 and @PO10628SubmittedOnly'
 ```
 
-For **subset discovery only**, replace the wrapper with `corepack yarn exec cypress run --browser chrome`, add `--config-file docs/superpowers/po10628-discovery.config.ts` (created above) and add `dryRun=true,` before lowercase `tags=`;
-expect **4 dry-run examples (2 functional + 2 accessibility)**, with no live evidence. The Task3 implementation agent
-ran no live calls. A future four-example live pass cannot satisfy the remaining12 examples or complete PO-10628.
+For **subset discovery only**, add `dryRun=true,` before lowercase `tags=` and retain the reachable configured URL;
+expect **4 dry-run examples (2 functional + 2 accessibility)**, with no live evidence. A future four-example live
+pass cannot satisfy the remaining 7 retained live examples or the ledger's unverified acceptance; it cannot complete
+PO-10628.
 
-The All rejected accessibility journey uses accessibility-aware owned-row and amendment-location delegates. They
+The retained controlled All rejected traversal uses accessibility-aware owned-row and amendment-location delegates. They
 invoke the same maintained strict scanner as the shared accessibility step on the initial collection page and
 every traversed page, after each ascending/descending sort, and after every search/return pagination transition
 before leaving that state. Functional callers keep their read-only assertions without enabling these additional
@@ -566,8 +579,8 @@ only metadata and bindings; real publication, lifecycle cleanup and full live ac
 
 `CheckerDeletesCasefile.feature` retains five functional examples and
 `CheckerDeletesCasefileAccessibility.feature` adds four independent broad accessibility journeys: successful
-retained deletion, blank/over-limit correction, cancellation, and definite failure with explicit retry. Exactly
-**nine examples** remain enabled, with no skipped or pending scenarios and no scenario retries. Every example
+retained deletion, blank validation with the native hard cap, cancellation, and definite failure with explicit
+retry. Exactly **nine examples** remain enabled, with no skipped or pending scenarios and no scenario retries. Every example
 creates its own synthetic SUBMITTED case through the maintained normal API fixture. The checker must differ from
 the owning inputter and have actual Maintenance BU 44 permission 22; the ACTIVE inputter needs permission 21 in
 BU 44. The maintained fixture defaults to `opal-test@dev.platform.hmcts.net` and
@@ -576,10 +589,12 @@ provisioned independent users. Setup verifies real permissions and environment-v
 grant access or manufacture saved outcomes.
 
 Feature steps state confirmation, cancellation, linked validation, unchanged saved state and retained Deleted
-outcomes explicitly. The functional success reason is exactly 250 characters; over-limit validation types 251.
-The accessibility validation fixture follows blank → 251 → corrected 250 → Cancel, with the canonical accessibility
-step at visible checkpoints and strict intermediate scans before departure. Each independent Given resets its Flow
-state. `CheckerDeletionFlow` owns retry and broad accessibility sequencing; Actions own native controls, linked
+outcomes explicitly. The functional success reason is exactly 250 characters. The hard-cap journey attempts to
+type 251 characters through the native `maxlength=250` textarea and observes exactly 250 characters with zero
+characters remaining, zero application/wire PATCH attempts and no decision-control activation before cancellation.
+The accessibility validation fixture follows blank → attempted over-limit input capped at 250 → Cancel, with the
+canonical accessibility step at visible checkpoints and strict intermediate scans before departure. Each independent
+Given resets its Flow state. `CheckerDeletionFlow` owns retry and broad accessibility sequencing; Actions own native controls, linked
 focus, scans, transport/receipt decoding and saved-state assertions. Validation-only activation never waits for a
 PATCH receipt. Successful confirmation and each explicit retry activation still check lifecycle cleanup; retry
 arms one definite-failure monitor and preserves that same monitor, reason and original ETag for both attempts.
@@ -611,18 +626,26 @@ uncertain outcome or claim that every HTTP 400 originates from the provider.
 Accessibility journeys use native focused Cases/queue/owned-row/delete navigation, normal keyboard text entry,
 native Tab from the reason through the real decision/cancel controls, native Enter and linked error-summary focus.
 The shared strict `accessibilityActions.checkAccessibilityOnly()` scanner has no added exemptions. Scans cover
-entry/review, empty and filled warning, exact blank and 251-character validation errors, corrected 250-character
-input, cancelled review, definite error with retained retry form, success confirmation, every visited outcome
+entry/review, empty and filled warning, exact blank validation and native capped 250-character input,
+cancelled review, definite error with retained retry form, success confirmation, every visited outcome
 pagination page and retained read-only detail. Scanner failure stops subsequent interaction; the same persisted
 business assertions remain required. Automated Axe and keyboard checks provide partial accessibility evidence;
 screen-reader and magnification assessment remains a separate human/specialist check.
 
-The required errors are exactly `Enter reason` and `Reason must be 250 characters or fewer`. The strict over-limit
-journeys type **251 visible characters** and require the complete readback before checking the error and correcting
-to 250. The inspected frontend's native textarea currently has `maxlength=250`, preventing that 251-character
-input through normal typing. This is a **frontend baseline limitation (GAP008)**, not evidence of backend failure
-and not an automatically accepted waiver. Preserve the strict test and report the actual failure; do not force
-input, seed the value, bypass maxlength, accept truncation, patch the product, or silently remove the example.
+The exact blank-input error remains `Enter reason`, including the linked error-summary focus and unchanged saved
+aggregate. The user's explicit hard-cap decision supersedes the former **GAP008** requirement to preserve an
+impossible 251-visible-character journey. Native functional/accessibility journeys now attempt 251 keystrokes,
+observe the 250-character cap and zero PATCH, then cancel and prove the complete saved state is unchanged. The
+existing Angular `cases-draft-delete.component.spec.ts` programmatic 251-value maxLength validator test retains
+`Reason must be 250 characters or fewer` coverage. These evidence levels prove native input prevention and
+programmatic validation separately. No forced value, maxlength bypass or product change is introduced.
+
+The two intentional live scenario renames retain all existing tags and nine total examples:
+
+| Previous name | Native hard-cap replacement |
+| --- | --- |
+| Retain a visibly over-limit deletion reason without a decision | Cap the deletion reason at 250 characters without a decision |
+| Accessibly correct blank and over-limit reasons without changing the saved case | Accessibly validate blank input and enforce the deletion reason hard cap |
 
 Full live selection, only after actual runtime, independent-user and DELETED-cleanup preflight:
 

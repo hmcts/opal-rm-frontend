@@ -17,11 +17,12 @@ Feature: Independent checker deletes a retained casefile
     Then the linked deletion validation says "Enter reason"
     And the saved case remains unchanged without a deletion decision
   @AC2 @PO10624SubmittedOnly
-  Scenario: Retain a visibly over-limit deletion reason without a decision
-    Given my live deletion scenario owns a submitted case for "over-limit"
-    When I confirm deletion with the prepared 251-character reason
-    Then the linked deletion validation says "Reason must be 250 characters or fewer"
-    And the saved case remains unchanged without a deletion decision
+  Scenario: Cap the deletion reason at 250 characters without a decision
+    Given my live deletion scenario owns a submitted case for "hard-cap"
+    When I try to enter a deletion reason longer than 250 characters
+    Then the deletion reason is capped at 250 characters
+    When I cancel deletion
+    Then the saved case remains unchanged without a deletion decision
   @AC2
   Scenario: Retain a definite failed deletion and explicitly retry one real decision
     Given my live deletion scenario owns a submitted case for "retry"

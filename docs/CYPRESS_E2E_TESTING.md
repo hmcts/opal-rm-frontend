@@ -803,50 +803,62 @@ magnification with the same enabled release and provisioned accounts.
 ## PO-10628 live inputter monitoring
 
 The [monitoring suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#po-10628-live-inputter-monitoring)
-contains the AC1–AC6 mapping, exact commands, real prerequisites and external specialist checks for the enabled
-`InputterCasefileMonitoring.feature` and adjacent accessibility feature: **16 examples (11 functional + 5
-accessibility), zero skipped/pending**, with fresh scenario-owned fixtures. All three selectors must agree:
-`TAGS`, `CYPRESS_TAGS` and `--env tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628`.
+contains the AC1–AC6 mapping, exact commands, real prerequisites and specialist checks for
+`InputterCasefileMonitoring.feature` and its accessibility feature: **11 examples (7 functional + 4 accessibility),
+zero skipped/pending**, with fresh scenario-owned fixtures. All three selectors must agree:
+`TAGS`, `CYPRESS_TAGS` and `--env tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628 and not @skip`.
 
-This pack observes real list/count/detail responses without replacing them. Actual persisted lifecycle dates anchor
-D+7/D+8 consultations with **AUT Date only**; ordinary timers/server/database clocks stay real. All rejected includes
-own and second-inputter BU work with no submitter/date restriction. Real PUBLISHED snapshots must provide every
-respondent/applicant/two minor-creditor number as exact read-only text; stable pending must expose none. Native
-keyboard/focus checks and shared strict Axe cover populated/empty tabs, pagination, All rejected/amendment return,
-published rows and denied destination. Full amendment resubmission belongs to PO-10623.
+This live pack observes real list/count/detail responses without replacing them. Actual persisted lifecycle dates
+anchor D+7/D+8 consultations with **AUT Date only**; ordinary timers/server/database clocks stay real. Initial
+approval may already be `PUBLISHED` or still be `PUBLISHING_PENDING`. Final publication still uses bounded polling
+for `PUBLISHED`, and the saved snapshot must supply every respondent/applicant/two minor-creditor account number as
+exact read-only text. Native keyboard/focus checks and strict Axe remain for populated/empty tabs, published rows
+and denied destinations. Full amendment resubmission and the existing two-user amendment/ownership-transfer
+journeys remain in PO-10623.
+
+The [coverage ledger](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#agreed-live-and-controlled-coverage-allocation)
+records the five intentionally retired live examples, their exact names/tags and retained assertions. Empty and
+populated View all rejected entry, other-inputter amendment/return with sorting/paging and its accessibility journey
+remain controlled coverage. Mounted dashboard/all-rejected specs retain rendering, navigation, native keyboard and
+Axe checks; monitoring fixture/flow support retains actor validation and scanner dispatch. Maintained routing
+integration defensively filters own/foreign/wrong-status rows; All rejected uses `not_submitted_by` with no date
+filters. The original AC3 expectation of both own and other-inputter rows remains an unresolved acceptance mismatch.
+Mounted pending coverage excludes both null-number snapshots and supplied-number snapshots while retaining published
+rows; helper checks reject pending completion and incomplete account numbers. These checks do not prove real
+third-inputter backend authorisation or stable-pending duration. Both live acceptance gaps remain unverified.
+No new users, permission assignments, environment flags or publication holds are introduced.
 
 The 23 October inspection of a runtime with migrations only through1.34 and no publication implementation is
 historical. Use a compatible `codex/PO-10626-publication-support` build and its DB/BE dependencies locally, then
-verify actual list/detail/decision permissions and ETags, testing support, create-casefile release, provisioned
-primary/checker/second-inputter/denied identities, reference data, publication and pending/published owner/marker
-cleanup. Neither this monitoring pack nor the updated PO-10626 pack requires an observation migration or
-publication-evidence route. Backend calendar semantics and stable-pending configuration still require verification.
+verify actual list/detail/decision permissions and ETags, testing support, create-casefile release, current
+primary/checker/denied identities, reference data, ordinary publication and pending/published owner/marker cleanup.
+Neither this monitoring pack nor the updated PO-10626 pack requires an observation migration or publication-evidence
+route. Backend calendar semantics still require verification. The standard pack has no third-inputter or
+stable-pending configuration prerequisite; their acceptance gaps are explicitly allocated in the ledger.
 
-`PO10628_SECOND_INPUTTER_EMAIL` must explicitly select an existing independent permission21 actor.
 Fixture setup uses the actual lifecycle APIs and validates persisted status, ownership, ETags and generated
-accounts. No ticket-specific cleanup or publication verification variables are required. The shared `afterEach`
-hook restores the observed cleanup owner and deletes each exact ID/marker through the existing testing-support
-endpoint. Enable `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction backend. Any response other
-than HTTP204 fails cleanup and retains the outstanding receipt; tests never suppress cleanup errors.
-Stable-pending scenarios still require a runtime that keeps the fixture pending; a fast consumer reaching PUBLISHED
-fails the actual status assertion. Empty setup fails on existing personal work without altering it.
+accounts. Controlled actor helpers still validate an explicitly supplied independent actor when invoked. No
+ticket-specific cleanup or publication verification variables are required. The shared `afterEach` hook restores
+the recorded latest submitter and sends authenticated DELETE for each exact observed ID/marker through the original
+testing-support endpoint. Enable existing `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction
+backend. Only HTTP204 clears the receipt; any other response or transport failure retains it and fails cleanup.
+Empty setup fails on existing personal work without altering it.
 
-For safe discovery use the suite's exact command with `dryRun=true` and its ignored discovery config explicitly
-setting `e2e.baseUrl=null` (CLI null overrides retained the configured URL here); this executes no
-browser journey or fixture mutation and provides **no live acceptance evidence**. The separate
-`inputter-monitoring-journey-support.cy.ts` checks calendar/assertion helper boundaries with controlled DOM and
-snapshots. Keep its results separate from live acceptance and retain raw logs/receipts. Until real execution plus
-all remaining Definition of Done checks pass, report **Not Agent Complete**. Screen-reader and magnification checks
-need the specialist setup and expected results documented in the suite guide.
+Use the suite guide's ordinary-config discovery command with `dryRun=true` and a reachable configured URL. It
+executes no browser journey or fixture mutation and provides **no live acceptance evidence**. The four controlled
+specs listed there establish their mounted/helper contracts separately; preserve full names, tags, raw logs and
+receipts before reports are reset. Until live execution and all applicable Definition of Done checks pass, report
+**Not Agent Complete** for the original ticket. Screen-reader and magnification checks need the specialist setup
+and expected results documented in the suite guide; automated Axe is partial accessibility evidence.
 
 A historical read-only capability split found ordinary POST/list/detail/PATCH/PUT plus enabled testing support,
 but only SUBMITTED cleanup on that older runtime. The updated support branch supplies eligible lifecycle and
-exclusive published cleanup; verify its actual deployment before executing those fixtures. The suite's `@PO10628SubmittedOnly` tag selects exactly **4 enabled examples**
-(SUBMITTED boundary row, functional denial, accessibility empty and accessibility denial), preserving16overall.
-Use the suite guide's exact three matching tag selectors and command after final review, actual authentication/
-reference-data/submitted-cleanup preflight and explicit live authorisation. Add `dryRun=true` and baseUrl null for
-discovery only. A four-example pass cannot complete the other12 examples; no REJECTED/DELETED/RESUBMITTED or
-approval fixtures may be created until their own real cleanup capabilities are verified.
+exclusive published cleanup; verify its actual deployment before executing those fixtures. The suite's
+`@PO10628SubmittedOnly` tag still selects exactly **4 enabled examples** (SUBMITTED boundary row, functional denial,
+accessibility empty and accessibility denial), within 11 overall. Use the suite guide's matching selectors after
+actual authentication/reference-data/submitted-cleanup preflight. Add `dryRun=true` for discovery only and retain
+the reachable URL. A four-example pass cannot complete the other 7 retained examples or the ledger's unverified
+acceptance; transitioned/approval fixtures still require their own real cleanup capabilities to be verified.
 
 ## PO-10624 independent checker deletion QA
 
@@ -879,10 +891,13 @@ and prepend `dryRun=true,omitFiltered=true,` to the `--env` value. The installed
 Strict shared Axe scans and native Enter/Tab cover all meaningful visited states and actual pagination pages;
 scan failure must propagate. Persisted GET, provider/DOM collections and retained read-only detail remain mandatory
 business outcomes. The one-shot definite failure is an HTTP 400 before provider dispatch followed by an explicit
-real UI retry using the same monitor and original ETag; it does not prove uncertain-delivery recovery. The visible
-251-character validation contract remains strict. The inspected native frontend textarea's `maxlength=250`
-currently prevents that input: record **frontend GAP008**, preserve the normal typing/readback failure, and do not
-force/seed/bypass the control, accept truncation or assume a backend cause or accepted waiver.
+real UI retry using the same monitor and original ETag; it does not prove uncertain-delivery recovery. The user's
+explicit hard-cap decision supersedes the former **GAP008** strict 251-visible-character requirement. Native
+functional/accessibility journeys attempt 251 keystrokes against `maxlength=250`, observe exactly 250 characters,
+zero remaining and zero application/wire PATCH, then cancel and prove full saved-state equality. Exact `Enter reason`
+validation and valid-250 deletion remain. The unchanged Angular programmatic 251-value maxLength unit test owns
+`Reason must be 250 characters or fewer` validation. Do not force or seed an over-limit native value or bypass the
+control. Controlled and unit evidence remain separate from final live acceptance.
 
 Controlled support and discovery are not passing live deletion. Parent-owned evidence and the delivery report/PR
 must record measured results, interruptions, unrun lifecycle examples and actual marker-owned cleanup receipts.

@@ -19,3 +19,8 @@
 /openapitools.json @hmcts/opal-admins
 /scripts/generate-openapi.cjs @hmcts/opal-admins
 /scripts/postprocess-openapi-merged.cjs @hmcts/opal-admins
+
+# Leave dependency manifests without a Code Owner requirement for all PR authors.
+# Overall approvals and CI still apply; team-review exclusions belong in the ruleset.
+/package.json
+/yarn.lock

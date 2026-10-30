@@ -200,7 +200,8 @@ receipt persistence and owner restoration before DELETE. Journal-specific helper
 removed API/schema; transport, retained-context, saved-state and cleanup checks remain. Cleanup covers 204, 400/401/403/404/409/500/503 and transport
 failure before any deletion or after a 204. These helpers do not prove live backend behavior or browser ordering.
 
-Accessibility examples retain shared Axe checks before and after native keyboard recovery, with no new exemptions.
+Accessibility examples retain shared Axe checks before and after native keyboard recovery, with only the shared
+Fines `aria-allowed-attr` exemption.
 The deletion functional example also uses native Tab/Enter and scans its recovery destination. These are partial
 accessibility results. Full traversal, visible focus, screen-reader announcements and magnification need specialist
 assurance. Native beforeunload dialogs remain suppressed by the existing suite; application discard-confirmation

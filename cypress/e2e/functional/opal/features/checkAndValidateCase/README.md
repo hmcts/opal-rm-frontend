@@ -696,7 +696,7 @@ The `RejectedAmendment.feature` and `RejectedAmendmentAccessibility.feature` pai
 controlled examples and retains **10 independent live examples: five functional and five accessibility**. The
 PO-10623 tag selects exactly those 10, with zero skips, pending cases or scenario retries. The five outcomes are
 same-user correction/resubmission (AC1), cross-user resubmission/self-review prevention (AC1/AC3), definite failure
-and explicit retry (AC2), stale correction/departure protection and no-longer-Rejected denial (AC4). Every
+and explicit retry (AC2), stale conflict recovery and no-longer-Rejected denial (AC4). Every
 accessibility counterpart adds AC5 and retains the same complete business outcome assertions. Foreign-BU denial
 is allocated to controlled coverage below; live cross-BU acceptance remains unverified.
 
@@ -772,17 +772,19 @@ without decision controls or PATCH. The saved aggregate remains unchanged.
 
 Retry uses one **HTTP400 before provider dispatch**, followed by one explicit real PUT200 using the same monitor
 and original ETag. This proves that definite failure boundary; it does not claim every400 is provider-generated.
-Stale uses an actual competing complete PUT200 and actual UI PUT409; native Cancel retains the unsaved correction,
-OK/Back reloads the unchanged winner without replay. The no-longer-Rejected denial first actually resubmits its own
-REJECTED case. The retained non-rejected live entry and controlled foreign-BU entry expose no case/editor/task
-data, dispatch no POST/PUT/PATCH and retain an independently authorised unchanged saved read.
+Stale uses an actual competing complete PUT200 and exactly one original-version UI PUT409, then requires the shared
+safe-conflict page. Recovery uses the actual Cases link, dashboard entry, In review tab and owned row to consult
+the complete unchanged winning aggregate, saved presentation and history without replay. An independent inputter
+provider and saved-detail consultation rechecks that winner after recovery. The no-longer-Rejected denial first
+actually resubmits its own REJECTED case. The retained non-rejected live entry and controlled foreign-BU entry
+expose no case/editor/task data, dispatch no POST/PUT/PATCH and retain an independently authorised unchanged saved read.
 
 Strict `accessibilityActions.checkAccessibilityOnly()` scans have **no exemptions** and run before departure from
 every meaningful visited collection/page/sort, task/history, actual corrected respondent editor, review, definite
-failure/409, Cancel return, confirmation/dismissal, In review, read-only self-review and denial state. Material
-pages also assert horizontal reflow at1280 and320 CSS pixels and restore desktop width. Keyboard paths retain
-native Tab and maintained native Enter on semantic focused controls; native GOV.UK opacity-zero inputs need enabled
-controls and visible associated labels, not a CSS-visibility requirement. These scans and keyboard checks provide
+failure, shared conflict, Cases, recovered dashboard/tab/detail, confirmation/dismissal, In review, read-only
+self-review and denial state. Material pages also assert horizontal reflow at1280 and320 CSS pixels and restore
+desktop width. Keyboard paths retain native Tab and maintained native Enter on semantic focused controls; native
+GOV.UK opacity-zero inputs need enabled controls and visible associated labels, not a CSS-visibility requirement. These scans and keyboard checks provide
 partial WCAG2.2AA evidence. Screen-reader, zoom/magnification, focus appearance and native browser modal rendering
 remain separate manual/specialist checks with the same verified services/users/cleanup setup.
 

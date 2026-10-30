@@ -314,8 +314,9 @@ export class DraftCasefileRecoveryActions {
    * @param id Identifier of the independently owned saved case.
    * @param journey Actor journey determining the dashboard and saved-status tab.
    * @param keyboard Whether recovery uses native keyboard activation.
+   * @param onVisited Optional assertions or scans enqueued before leaving each recovered state.
    */
-  public recoverConflict(id: number, journey: DraftCasefileJourney, keyboard: boolean): void {
+  public recoverConflict(id: number, journey: DraftCasefileJourney, keyboard: boolean, onVisited?: () => void): void {
     cy.intercept('GET', `/opal-maintenance-service/draft-casefiles/${id}`).as('recoveredDraft');
     const targetStatus = journey === 'resubmit' ? 'SUBMITTED,RESUBMITTED' : 'REJECTED';
     cy.intercept('GET', /\/opal-maintenance-service\/draft-casefiles(?:\?|$)/, (request) => {
@@ -328,11 +329,14 @@ export class DraftCasefileRecoveryActions {
       cy.press(Cypress.Keyboard.Keys.ENTER);
     } else cases.click();
     cy.location('pathname').should('equal', '/dashboard/cases');
+    onVisited?.();
     this.activate(journey === 'resubmit' ? D.inputterEntry : D.checkerEntry, keyboard);
     cy.get(D.heading).should('have.text', journey === 'resubmit' ? 'Create cases' : 'Review cases');
+    onVisited?.();
     this.activate(D.tab(journey === 'resubmit' ? 'in-review' : 'rejected'), keyboard);
     cy.wait('@recoveryCollection').its('response.statusCode').should('equal', 200);
     cy.get(`${D.table}, ${D.empty}`).should('be.visible');
+    onVisited?.();
     locateDraftCasefileRow(id, keyboard).within(() => {
       const link = cy.get(D.column('respondent')).find('a').should('be.visible');
       if (keyboard) {
@@ -344,6 +348,7 @@ export class DraftCasefileRecoveryActions {
     cy.get(C.review.heading).should('be.visible');
     cy.get(C.review.decisionContinue).should('not.exist');
     cy.get(C.review.submit).should('not.exist');
+    onVisited?.();
   }
 
   /** Requires complete review details on either the editable or saved review page.

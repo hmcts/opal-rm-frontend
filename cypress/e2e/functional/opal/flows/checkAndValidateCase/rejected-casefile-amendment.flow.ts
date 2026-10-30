@@ -124,7 +124,7 @@ export class RejectedCasefileAmendmentFlow {
     });
   }
 
-  /** Retains stale feedback and native Cancel/OK recovery before consulting the unchanged saved winner. */
+  /** Requires safe-conflict feedback and real saved-case navigation before independently consulting the unchanged winner. */
   public assertStaleRecovery(): void {
     cy.then(() => {
       this.actions.assertStaleFeedback();

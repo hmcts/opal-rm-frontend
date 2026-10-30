@@ -128,7 +128,6 @@ interface Faults {
   lostCorrection?: boolean;
   wrongOrigin?: boolean;
   badReceipt?: boolean;
-  missingWarning?: boolean;
   originStatus?: number;
   malformedOrigin?: boolean;
   overflow?: boolean;
@@ -257,7 +256,7 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
       });
     });
     bind('.govuk-back-link', () => {
-      if (faults.missingWarning || document.defaultView!.confirm('Discard unsaved corrections?')) {
+      if (document.defaultView!.confirm('Discard unsaved corrections?')) {
         state.events.push('confirmed-reload');
         detailResponse = response(state.saved);
         emit('GET', `/opal-maintenance-service/draft-casefiles/${context.owned.id}`, {}, undefined, detailResponse);
@@ -423,9 +422,28 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
       },
     });
     receipts.push({ response: receipt });
-    if (status !== 200) {
+    if (status === 409) {
+      state.error = '';
+      state.requiresReload = true;
+      state.path = '/error/concurrency-failure';
+      document.body.innerHTML =
+        '<div id="primaryNavigation"><a class="moj-primary-navigation__link" href="#cases">Cases</a></div>' +
+        '<opal-lib-concurrency-failure><h1>Something else was changed while you were doing this.</h1>' +
+        '<p>Your changes have not been saved. You will need to start again.</p></opal-lib-concurrency-failure>';
+      bind('#primaryNavigation a', () => {
+        state.events.push('conflict-cases');
+        state.path = '/dashboard/cases';
+        document.body.innerHTML = '<a id="casesCreateCasefileLink" href="#create">Create cases</a>';
+        bind('#casesCreateCasefileLink', () => {
+          state.events.push('conflict-dashboard');
+          state.path = DASHBOARD;
+          state.hash = '#in-review';
+          table('in-review');
+          provider('in-review', false, true);
+        });
+      });
+    } else if (status === 400) {
       state.error = 'The change could not be saved';
-      state.requiresReload = status === 409;
       renderReview(true);
     } else {
       state.path = faults.wrongOrigin ? '/wrong-origin' : kind === 'cross-user' ? REJECTIONS : DASHBOARD;
@@ -539,6 +557,15 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
         earlyOriginResponses.splice(0).forEach((deliver) => deliver());
         return receipt;
       }
+      if (alias === '@recoveryCollection') {
+        const observed = collectionReceipts.get('recoveryCollection')?.shift();
+        if (!observed) throw new Error('Missing controlled recovery collection response');
+        return observed;
+      }
+      if (alias === '@recoveredDraft') {
+        if (!detailResponse) throw new Error('Missing controlled saved detail response');
+        return { response: detailResponse };
+      }
       if (alias === '@amendmentSavedDetail') return { response: detailResponse };
       if (alias === '@amendmentRejected' || alias === '@amendmentInReview') {
         const observed = collectionReceipts.get(alias.slice(1))?.shift();
@@ -593,7 +620,9 @@ function recordScans(state: ReturnType<typeof harness>, removed = false): void {
       if (removed) return;
       const body = doc.body;
       let label = 'list';
-      if (body.querySelector(C.respondentDetails.firstNames)) label = 'editor';
+      if (body.querySelector('opal-lib-concurrency-failure')) label = 'conflict';
+      else if (body.querySelector('#casesCreateCasefileLink')) label = 'cases';
+      else if (body.querySelector(C.respondentDetails.firstNames)) label = 'editor';
       else if (body.querySelector('.moj-alert--error')) label = 'failure';
       else if (body.querySelector(D.success) || body.querySelector(D.allRejectedSuccess)) label = 'confirmation';
       else if (body.querySelector(C.caseDetails.checkCaseButton)) label = 'tasks';
@@ -845,12 +874,13 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       requireFailure();
     },
   );
-  it('AC4. should require the native stale departure warning before reload', { tags: tags() }, () => {
-    harness('stale', { missingWarning: true });
-    mustFail('native departure warning presented');
+  it('AC4. should require the real safe-conflict page before winner recovery', { tags: tags() }, () => {
+    harness('stale');
+    mustFail('opal-lib-concurrency-failure');
     const flow = new RejectedCasefileAmendmentFlow();
     flow.prepare('stale');
     complete(flow, 'stale');
+    cy.get('opal-lib-concurrency-failure').then(($page) => $page.remove());
     assertOutcome(flow, 'stale');
     requireFailure();
   });
@@ -882,12 +912,23 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
                 'editor',
                 'review',
                 'read-only',
-                ...(kind === 'stale' ? ['failure', 'denial'] : ['confirmation']),
+                ...(kind === 'stale' ? ['conflict', 'cases'] : ['confirmation']),
                 ...(kind === 'retry' ? ['failure'] : []),
               ];
           for (const page of required)
             for (const width of [1280, 320])
               expect(state.scans, `strict scan coverage ${page} at ${width}`).to.include(`${page}:${width}`);
+          if (kind === 'stale') {
+            const conflict = state.scans.indexOf('conflict:1280');
+            const cases = state.scans.indexOf('cases:1280');
+            expect(conflict).to.be.greaterThan(-1);
+            expect(cases).to.be.greaterThan(conflict);
+            expect(state.scans.findIndex((label, index) => index > cases && label === 'list:1280')).to.be.greaterThan(
+              cases,
+            );
+            expect(state.events).to.include('conflict-cases');
+            expect(state.events).to.include('conflict-dashboard');
+          }
           if (required.includes('editor')) {
             expect(
               state.native.some((event) => event === `Enter:${C.respondentDetails.returnToCaseDetails.slice(1)}`),

@@ -402,6 +402,7 @@ export class RejectedCasefileJourneyActions {
     cy.wait('@amendmentInReview');
     cy.get(D.tab('in-review')).should('have.attr', 'aria-current', 'page');
     cy.get(D.heading).should('be.visible');
+    cy.get(`${D.table}, ${D.empty}`).should('be.visible');
     cy.then(() => this.assertProvider('SUBMITTED,RESUBMITTED', true));
     this.scan();
     this.firstPage();
@@ -454,16 +455,10 @@ export class RejectedCasefileJourneyActions {
     readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.session.saved!, saved));
   }
 
-  /** Requires native Cancel/OK departure protection, then safe actual saved winner navigation. */
+  /** Requires the shared safe-conflict page and one refused original-version replacement. */
   public assertStaleFeedback(): void {
     const context = this.current();
-    this.recovery.assertFailure('resubmit');
-    this.scan();
-    if (this.session.keyboard) {
-      this.submitReplacement();
-      cy.get(C.globalErrorBanner).should('contain.text', 'Select Back to reload the saved case');
-      this.recovery.assertRetained('resubmit');
-    } else this.recovery.assertReloadRequired('resubmit');
+    this.recovery.assertSafeConflict();
     this.scan();
     cy.then(() => {
       this.assertWrites(1);
@@ -475,39 +470,14 @@ export class RejectedCasefileJourneyActions {
     readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.session.saved!, saved));
   }
 
-  /** Retains native Cancel/OK departure protection and exactly one authoritative reload. */
+  /** Re-enters the complete saved winner through real Cases, dashboard, tab and owned-row controls. */
   public recoverStaleWinner(): void {
     const context = this.current();
-    let reads = 0;
-    cy.intercept('GET', `**/opal-maintenance-service/draft-casefiles/${context.owned.id}`, (request) => {
-      reads++;
-      request.on('response', (response) => {
-        expect(response.statusCode).to.equal(200);
-        assertUnchangedDraft(
-          this.session.saved!,
-          decodeDraftSnapshot(context.owned.id, response.body, response.headers['etag']),
-        );
-      });
-    });
-    for (const discard of [false, true]) {
-      let confirmed = false;
-      cy.then(() =>
-        cy.once('window:confirm', (message) => {
-          confirmed = true;
-          expect(message, 'native unsaved correction warning').to.be.a('string').and.not.be.empty;
-          return discard;
-        }),
-      );
-      this.activate(S.back);
-      cy.then(() => expect(confirmed, 'native departure warning presented').to.equal(true));
-      if (!discard) {
-        this.recovery.assertRetained('resubmit');
-        this.scan();
-        cy.then(() => expect(reads, 'Cancel does not reload').to.equal(0));
-      }
-    }
-    this.assertDeniedEntry();
-    cy.then(() => expect(reads, 'confirmed Back reloads authoritative winner once').to.equal(1));
+    this.recovery.recoverConflict(context.owned.id, 'resubmit', this.session.keyboard, () => this.scan());
+    this.scan();
+    this.winnerReview.assertSavedPresentation(this.session.saved!, false, true);
+    readDraftSnapshot(context.owned.id).then((saved) => assertUnchangedDraft(this.session.saved!, saved));
+    cy.then(() => this.assertWrites(1));
   }
 
   /** Consults the authoritative winner through inputter provider, DOM and complete saved detail. */
@@ -516,6 +486,7 @@ export class RejectedCasefileJourneyActions {
     new InputterDashboardActions().open('in-review');
     cy.wait('@amendmentInReview');
     cy.get(D.heading).should('be.visible');
+    cy.get(`${D.table}, ${D.empty}`).should('be.visible');
     cy.then(() => this.assertProvider('SUBMITTED,RESUBMITTED', true));
     this.scan();
     this.firstPage();

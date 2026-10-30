@@ -89,10 +89,21 @@ describe('Inputter casefile dashboard', () => {
               minor_creditor_accounts: [{ account_number: 'UNPUBLISHED' }],
             },
           }),
+          createCasesDraftSummary({
+            draft_casefile_id: 125,
+            casefile_status: 'PUBLISHING_PENDING',
+            casefile_snapshot: {
+              respondent_account: { account_number: null },
+              applicant_account: { account_number: null },
+              minor_creditor_accounts: [{ account_number: null }],
+            },
+          }),
         ],
       });
       cy.get(S.row(123)).should('exist');
       cy.get(S.row(124)).should('not.exist');
+      cy.get(S.row(125)).should('not.exist');
+      cy.get(S.tableRows).should('have.length', dashboardFixtures.published.length);
       cy.get(S.table).should('not.contain.text', 'UNPUBLISHED');
     },
   );

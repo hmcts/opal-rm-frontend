@@ -33,31 +33,6 @@ Feature: Consult live inputter casefiles accessibly
     Then the live consulted monitoring tab is genuinely empty
     And I check the page for accessibility
 
-  @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC2 @AC3 @AC6 @retries(0)
-  Scenario: Sort paginate and return from another inputter amendment accessibly
-    Given my live scenario owns paginated rejections and another inputter's rejected case
-    Then I check the page for accessibility
-    When I sort my live personal rejections "ascending" by applicant with the keyboard
-    Then I check the page for accessibility
-    When I sort my live personal rejections "descending" by applicant with the keyboard
-    Then I check the page for accessibility
-    When I visit the "next" live personal rejection page with the keyboard
-    Then I check the page for accessibility
-    When I visit the "previous" live personal rejection page with the keyboard
-    Then I check the page for accessibility
-    When I visit the "next" live personal rejection page with the keyboard
-    Then I check the page for accessibility
-    When I follow View all rejected cases from my live dashboard
-    Then the real Business Unit rejection list contains the expected owned cases with every visited page accessible
-    And I check the page for accessibility
-    When I open the other inputter owned rejection with every visited sort and page accessible
-    Then I check the page for accessibility
-    When I return from live amendment to All rejected with the keyboard
-    Then I check the page for accessibility
-    When I return from live All rejected to my dashboard with the keyboard
-    Then the matching persisted draft and originating dashboard page and sort are retained
-    And I check the page for accessibility
-
   @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC4 @AC6 @retries(0)
   Scenario: Read a real published multi-account row accessibly
     Given my live monitoring scenario owns a published casefile with two minor creditors

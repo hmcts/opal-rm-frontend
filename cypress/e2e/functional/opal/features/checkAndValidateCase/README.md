@@ -354,7 +354,7 @@ Their DOM and snapshots cannot prove live publication, backend authorisation or 
 Complete the applicable local frontend preflight in
 `docs/SONAR.md`; external CI/Sonar/security/review/QA remain pending without direct evidence. Specialist screen-reader
 announcement/order checks and magnification/reflow checks across populated, empty, paginated, published and denied
-states remain pending on a compatible runtime; strict Axe is partial accessibility evidence and uses no exemptions.
+states remain pending on a compatible runtime; strict Axe is partial accessibility evidence and uses only the shared `aria-allowed-attr` exemption.
 
 ### Pending specialist verification
 

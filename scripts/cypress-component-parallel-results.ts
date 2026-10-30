@@ -5,7 +5,7 @@ import * as path from 'node:path';
 export function writeComponentParallelResult(
   projectRoot: string,
   spec: Pick<Cypress.Spec, 'relative'>,
-  results: Pick<CypressCommandLine.RunResult, 'error' | 'stats'>,
+  results: Pick<CypressCommandLine.RunResult, 'error' | 'stats'> & Partial<Pick<CypressCommandLine.RunResult, 'tests'>>,
 ): void {
   if (!spec?.relative || !results?.stats || results.error !== null) {
     throw new Error('Missing or failed native component-spec result');
@@ -27,7 +27,18 @@ export function writeComponentParallelResult(
     !Number.isFinite(stats.duration) ||
     stats.duration < 0
   ) {
-    throw new Error('Invalid or empty native component-spec statistics');
+    throw new Error(
+      `Invalid or empty native component-spec statistics: ${JSON.stringify({
+        file,
+        stats,
+        error: results.error,
+        tests: results.tests?.map(({ title, state, attempts }) => ({
+          title,
+          state,
+          attempts: attempts.map((attempt) => attempt.state),
+        })),
+      })}`,
+    );
   }
 
   const directory = path.join(projectRoot, 'runner-results');

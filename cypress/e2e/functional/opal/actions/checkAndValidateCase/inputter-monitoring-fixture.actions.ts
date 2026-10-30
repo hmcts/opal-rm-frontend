@@ -1,3 +1,4 @@
+import { getTestActor } from '../../../../../support/test-actors';
 import { decodeDraftCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/utils/opal-maintenance-draft-casefile-detail';
 import { decodeDraftCasefileList } from 'src/app/flows/cases/services/opal-maintenance-service/utils/opal-maintenance-draft-casefile-response';
 import { performAuthentication } from '../../../../actions/login.actions';
@@ -23,10 +24,7 @@ export class InputterMonitoringFixtureActions {
    * @returns The configured independent inputter identity, validated against BU membership before creation.
    */
   public secondInputter(): string {
-    const inputter: unknown = Cypress.env('PO10628_SECOND_INPUTTER_EMAIL');
-    if (typeof inputter !== 'string' || !inputter.trim())
-      throw new Error('PO10628_SECOND_INPUTTER_EMAIL must identify an existing independent inputter');
-    return inputter.trim();
+    return getTestActor('secondInputter');
   }
 
   /** Fails on conflicting personal data without deleting or mutating any unrelated record. */

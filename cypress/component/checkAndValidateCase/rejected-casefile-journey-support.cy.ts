@@ -129,6 +129,7 @@ interface Faults {
   wrongOrigin?: boolean;
   badReceipt?: boolean;
   originStatus?: number;
+  dashboardReturnStatus?: number;
   malformedOrigin?: boolean;
   overflow?: boolean;
   unreachableReturn?: boolean;
@@ -172,6 +173,7 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
   const collectionReceipts = new Map<string, Record<string, unknown>[]>();
   let document!: Document;
   let detailResponse: Record<string, unknown>;
+  let returnedDashboardReceipt: Record<string, unknown> | undefined;
   const response = (snapshot: IDraftCasefileSnapshot, statusCode = 200) => ({
     statusCode,
     body: structuredClone(snapshot.draft),
@@ -306,7 +308,11 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
         },
         undefined,
         {
-          statusCode: origin ? (faults.originStatus ?? 200) : 200,
+          statusCode: origin
+            ? kind === 'cross-user' && state.path === DASHBOARD
+              ? (faults.dashboardReturnStatus ?? 200)
+              : (faults.originStatus ?? 200)
+            : 200,
           body:
             origin && faults.malformedOrigin ? { count: -1, summaries: [] } : { count: rows.length, summaries: rows },
         },
@@ -346,7 +352,10 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
       state.path = DASHBOARD;
       state.hash = '#rejected';
       table('rejected');
+      (document.querySelector(D.heading) as HTMLElement).focus();
       provider('rejected', false, false);
+      returnedDashboardReceipt = collectionReceipts.get('amendmentRejected')?.pop();
+      state.events.push('dashboard-return');
     });
     bind('th button', () => {
       state.sort = state.sort === 'ascending' ? 'descending' : 'ascending';
@@ -567,6 +576,15 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
         return { response: detailResponse };
       }
       if (alias === '@amendmentSavedDetail') return { response: detailResponse };
+      if (alias === '@amendmentReturnedDashboard') {
+        if (!returnedDashboardReceipt) throw new Error('Missing controlled personal dashboard return');
+        expect(state.path).to.equal(DASHBOARD);
+        expect(state.hash).to.equal('#rejected');
+        return {
+          ...returnedDashboardReceipt,
+          request: { query: { business_unit_id: '44', casefile_status: 'REJECTED', submitted_by: context.amender.id } },
+        };
+      }
       if (alias === '@amendmentRejected' || alias === '@amendmentInReview') {
         const observed = collectionReceipts.get(alias.slice(1))?.shift();
         if (!observed) throw new Error(`Missing exact controlled provider receipt ${alias}`);
@@ -675,6 +693,7 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
           'saved-get:B-id',
           'cleanup:B-id',
           'receipt-decode',
+          'dashboard-return',
           'inputter-saved-detail',
           'checker-saved-detail',
         ];
@@ -690,6 +709,19 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       });
     },
   );
+  it('AC1, AC3. should reject a failed cross-user dashboard return before opening In review', { tags: tags() }, () => {
+    const state = harness('cross-user', { dashboardReturnStatus: 503 });
+    mustFail('returned personal rejected collection', () => {
+      expect(state.events).to.include('dashboard-return');
+      expect(state.events).not.to.include('inputter-saved-detail');
+      expect(state.submissions).to.equal(1);
+    });
+    const flow = new RejectedCasefileAmendmentFlow();
+    flow.prepare('cross-user');
+    flow.resubmit();
+    flow.assertResubmitted();
+    requireFailure();
+  });
   it('AC2. should retain one monitor and original version through the explicit Flow retry', { tags: tags() }, () => {
     const state = harness('retry');
     const definiteFailure = RejectedCasefileJourneyActions.prototype.assertDefiniteFailure;
@@ -987,7 +1019,7 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       requireFailure();
     });
   }
-  it('AC5. should propagate strict Axe failures without exemptions', { tags: tags() }, () => {
+  it('AC5. should propagate strict Axe failures with only the shared exemption', { tags: tags() }, () => {
     const state = harness('denied');
     const inject = cy.stub(cy, 'injectAxe');
     const scan = cy.stub(cy, 'checkA11y').callsFake(() => {
@@ -995,7 +1027,10 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
     });
     mustFail('strict Axe failure', () => {
       expect(inject).to.have.been.called;
-      expect(scan.firstCall.args, 'no Axe exemptions or exclusions').to.deep.equal([]);
+      expect(scan.firstCall.args, 'only the approved shared Axe exemption').to.deep.equal([
+        undefined,
+        { rules: { 'aria-allowed-attr': { enabled: false } } },
+      ]);
       expect(state.submissions).to.equal(0);
     });
     const flow = new RejectedCasefileAmendmentFlow();

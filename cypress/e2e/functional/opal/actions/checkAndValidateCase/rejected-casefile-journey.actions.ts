@@ -383,7 +383,25 @@ export class RejectedCasefileJourneyActions {
     cy.get(cross ? D.allRejectedSuccess : D.success).should('not.exist');
     this.scan();
     if (cross) {
+      cy.intercept({
+        method: 'GET',
+        pathname: '/opal-maintenance-service/draft-casefiles',
+        query: { business_unit_id: '44', casefile_status: 'REJECTED', submitted_by: this.current().amender.id },
+        times: 1,
+      }).as('amendmentReturnedDashboard');
       new AllRejectedActions().returnDashboard();
+      cy.wait('@amendmentReturnedDashboard').then(({ request, response }) => {
+        expect(request.query).not.to.have.property('restrict');
+        expect(response?.statusCode, 'returned personal rejected collection').to.equal(200);
+        const rows = decodeDraftCasefileList(response?.body).summaries;
+        expect(
+          rows.some((row) => row.draft_casefile_id === this.current().owned.id),
+          'resubmitted case left personal Rejected',
+        ).to.equal(false);
+      });
+      cy.location('pathname').should('equal', DASHBOARD);
+      cy.location('hash').should('equal', '#rejected');
+      cy.get(D.heading).should('be.focused');
       this.scan();
     }
   }

@@ -119,6 +119,40 @@ describe('PO-10626 concurrency test support', () => {
     },
   );
   it(
+    'AC1. should preserve native promises for observed and unrelated pass-through calls',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
+    () => {
+      const original = Cypress.sinon.stub();
+      const promise = Promise.resolve(new Response('{}', { status: 409 }));
+      original.returns(promise);
+      const host = { fetch: original, location: window.location };
+      const control = createMutationControl('none');
+      const restore = installDraftCasefileFetchMonitor(host, 101, 'PATCH', 'none', control.monitor);
+      expect(host.fetch('/opal-maintenance-service/draft-casefiles/101', { method: 'PATCH' })).to.equal(promise);
+      expect(control.monitor.applicationAttempts).to.equal(1);
+      expect(host.fetch('/opal-maintenance-service/draft-casefiles/102', { method: 'PATCH' })).to.equal(promise);
+      expect(host.fetch('/opal-maintenance-service/draft-casefiles/101', { method: 'PUT' })).to.equal(promise);
+      expect(control.monitor.applicationAttempts).to.equal(1);
+      restore();
+      expect(host.fetch).to.equal(original);
+    },
+  );
+  it(
+    'AC1. should preserve an unrelated native promise while response loss is armed',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
+    () => {
+      const promise = Promise.resolve(new Response('{}', { status: 200 }));
+      const original = Cypress.sinon.stub().returns(promise);
+      const host = { fetch: original, location: window.location };
+      const control = createMutationControl('lost-response');
+      const restore = installDraftCasefileFetchMonitor(host, 101, 'PATCH', 'lost-response', control.monitor);
+      expect(host.fetch('/opal-maintenance-service/draft-casefiles/102', { method: 'PATCH' })).to.equal(promise);
+      expect(control.monitor.applicationAttempts).to.equal(0);
+      expect(control.monitor.droppedResponses).to.equal(0);
+      restore();
+    },
+  );
+  it(
     'AC1. should lose only the first scoped real successful fetch response and restore the wrapper',
     { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
     () => {

@@ -65,6 +65,28 @@ describe('PO-10626 owned API fixture support', () => {
   );
 
   it(
+    'AC2. should build independent UI-shaped minor creditors without applicant-only privacy fields',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10628'] },
+    () => {
+      const payload = buildSyntheticDraftRequest(marker, 'LIVE01', 101, {
+        minorCreditorCount: 2,
+      });
+      expect(payload.casefile.minor_creditors?.map((item) => item.creditor_sequence)).to.deep.equal([1, 2]);
+      for (const item of payload.casefile.minor_creditors!) {
+        expect(item.party_details.individual_details).to.include({ forenames: 'Synthetic', surname: 'Applicant' });
+        expect(item.party_details.individual_details).not.to.have.property('restrict_personal_information');
+        expect(item.party_details.address.cjs_code).to.equal(101);
+      }
+      payload.casefile.minor_creditors![0].party_details.individual_details!.forenames = 'Changed';
+      expect(payload.casefile.minor_creditors![1].party_details.individual_details!.forenames).to.equal('Synthetic');
+      expect(payload.casefile.applicant.party_details.individual_details!.forenames).to.equal('Synthetic');
+      expect(payload.casefile.applicant.party_details.individual_details!.restrict_personal_information).to.equal(
+        false,
+      );
+    },
+  );
+
+  it(
     'AC1, AC2. should retain cleanup ownership before a malformed creation ETag fails',
     { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
     () => {

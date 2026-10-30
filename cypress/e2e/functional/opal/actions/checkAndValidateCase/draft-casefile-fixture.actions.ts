@@ -1,3 +1,4 @@
+import { getTestActor } from '../../../../../support/test-actors';
 import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import type { IOwnedDraftCasefile } from './interfaces/draft-casefile-owned.interface';
 import type { IDraftCasefileFixtureOptions } from './interfaces/draft-casefile-fixture-options.interface';
@@ -29,7 +30,7 @@ export function requireMembership(permission: number): Cypress.Chainable<{ id: s
  * @returns The existing primary provisioned-account identity.
  */
 export function primaryDraftInputter(): string {
-  return String(Cypress.env('PO10626_INPUTTER_EMAIL') || 'opal-test@dev.platform.hmcts.net');
+  return getTestActor('inputter');
 }
 
 /**
@@ -42,8 +43,7 @@ export function createOwnedSubmittedDraft(
 ): Cypress.Chainable<IOwnedDraftCasefile> {
   const primaryInputter = primaryDraftInputter();
   const inputter = options.inputter ?? primaryInputter;
-  const checker =
-    options.checker ?? String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net');
+  const checker = options.checker ?? getTestActor('checker');
   if (!inputter.trim() || !checker.trim()) throw new Error('Fixture identities must be provisioned accounts');
   let primaryInputterId: string | undefined;
   let checkerId: string;

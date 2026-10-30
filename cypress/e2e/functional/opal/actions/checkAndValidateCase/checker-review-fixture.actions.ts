@@ -1,3 +1,4 @@
+import { getTestActor } from '../../../../../support/test-actors';
 import { performAuthentication } from '../../../../actions/login.actions';
 import { postSyntheticDraft } from './draft-casefile-api.actions';
 import { readDraftSnapshot, versionValue } from './draft-casefile-evidence.actions';
@@ -50,7 +51,7 @@ export class CheckerReviewFixtureActions {
    * @returns A normal Submitted creation owned by that same exact permission-21/22 BU identity.
    */
   public createSelfOwned(): Cypress.Chainable<IOwnedDraftCasefile> {
-    const checker = String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net');
+    const checker = getTestActor('checker');
     let inputterId: string;
     let inputterName: string;
     performAuthentication(checker);

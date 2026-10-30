@@ -13,17 +13,11 @@ describe('PO-10628 owned monitoring fixture support', () => {
   let expectedFailure = false;
   let observedFailure = false;
   let originalEnvironment: Record<string, unknown>;
-  const environmentKeys = [
-    'PO10626_INPUTTER_EMAIL',
-    'PO10626_CHECKER_EMAIL',
-    'PO10628_SECOND_INPUTTER_EMAIL',
-    'draftCasefileCleanupReceipts',
-  ];
+  const environmentKeys = ['RM_TEST_ACTORS', 'draftCasefileCleanupReceipts'];
 
   beforeEach(() => {
     originalEnvironment = Object.fromEntries(environmentKeys.map((key) => [key, Cypress.env(key)]));
-    Cypress.env('PO10626_INPUTTER_EMAIL', 'synthetic-inputter');
-    Cypress.env('PO10626_CHECKER_EMAIL', 'synthetic-checker');
+    Cypress.env('RM_TEST_ACTORS', { inputter: 'synthetic-inputter', checker: 'synthetic-checker' });
     Cypress.env('draftCasefileCleanupReceipts', []);
     expectedFailure = false;
     observedFailure = false;
@@ -266,10 +260,13 @@ describe('PO-10628 owned monitoring fixture support', () => {
       const first = new InputterMonitoringFixtureActions();
       const second = new InputterMonitoringFixtureActions();
       for (const value of [undefined, '', ' ', true]) {
-        Cypress.env({ PO10628_SECOND_INPUTTER_EMAIL: value });
-        expect(() => first.secondInputter()).to.throw('PO10628_SECOND_INPUTTER_EMAIL');
+        Cypress.env('RM_TEST_ACTORS', { ...Cypress.env('RM_TEST_ACTORS'), secondInputter: value });
+        expect(() => first.secondInputter()).to.throw("RM test actor 'secondInputter'");
       }
-      Cypress.env('PO10628_SECOND_INPUTTER_EMAIL', ' synthetic-second-inputter ');
+      Cypress.env('RM_TEST_ACTORS', {
+        ...Cypress.env('RM_TEST_ACTORS'),
+        secondInputter: ' synthetic-second-inputter ',
+      });
       expect(first.secondInputter()).to.equal('synthetic-second-inputter');
       const owned: IOwnedDraftCasefile = {
         id: 101,

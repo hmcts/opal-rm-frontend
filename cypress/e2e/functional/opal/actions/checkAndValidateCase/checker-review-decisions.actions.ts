@@ -1,3 +1,4 @@
+import { getTestActor } from '../../../../../support/test-actors';
 import { setCasefileReason, chooseCasefileDecision } from '../createDraftCasefile/casefile-review-controls.actions';
 import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import {
@@ -561,7 +562,7 @@ export class CheckerReviewActions {
         this.before = saved;
       });
       if (kind === 'denied') {
-        const denied = String(Cypress.env('PO10625_DENIED_EMAIL') || 'opal-test-4@dev.platform.hmcts.net');
+        const denied = getTestActor('deniedUser');
         expect([owned.inputter, owned.checker]).not.to.include(denied);
         performAuthentication(denied);
         cy.request<IOpalUserStateResponse>({ url: '/api/user-state', log: false }).then(({ status, body }) => {

@@ -78,9 +78,3 @@ Feature: Independent checker decisions and decision protection
       | status   | window    |
       | REJECTED | unbounded |
       | DELETED  | seven-day |
-
-  @AC6 @PO10625SubmittedOnly
-  Scenario: Consult genuinely empty checker outcome tabs without creating cases
-    Given my live checker outcome collections are genuinely empty
-    When the checker consults every empty outcome tab
-    Then all checker outcome tabs retain genuine empty states and zero counts

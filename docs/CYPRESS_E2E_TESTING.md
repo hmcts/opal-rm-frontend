@@ -5,6 +5,13 @@ Use this guide when writing or updating Cypress E2E tests and Cucumber feature f
 For Draft Casefile concurrency, response-loss recovery and lifecycle support requirements, see the
 [PO-10626 suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md).
 
+## Shared accessibility exemption
+
+The shared E2E accessibility helper omits only Axe's `aria-allowed-attr` rule, matching the existing Fines
+GOV.UK exemption approved for RM. All other Axe rules still fail the test. This is a testing-policy exemption;
+it does not establish that every omitted ARIA attribute is correct. Component tests calling `cy.checkA11y()`
+directly keep their existing configuration. Do not add further exemptions without an explicit decision.
+
 ## Draft Casefile concurrency and recovery QA (PO-10626)
 
 Use the PO-10611 frontend foundation with current master dependencies (`8cf1f9e6`, common UI `0.0.116`). Build this checkout with independent
@@ -67,7 +74,7 @@ The consumer and pending/published cleanup are delivered on the support branch; 
 not satisfy this verification gate. `PUBLISHING_FAILED` cleanup eligibility does not authorise forcing that state.
 Preserve failed receipts and raw outputs before runner resets. Controlled support checks and discovery establish
 helper behaviour and selection/bindings respectively; live acceptance remains separate. All existing recovery,
-Axe and native keyboard checks remain, with no additional accessibility exemptions.
+Axe and native keyboard checks remain, with only the shared `aria-allowed-attr` exemption.
 
 Full inventory discovery (no browser actions or approval fixture creation):
 
@@ -625,7 +632,7 @@ controls, review, removal confirmation, abandoned removal and removal success. K
 controls, with native Enter for anchors. Axe and these interactions provide partial accessibility evidence.
 Specialist follow-up must check full keyboard traversal and visible focus, screen-reader names and announcements,
 and magnification using the enabled release and provisioned creator; expect reachable controls, correctly announced
-state and no lost content. No further Axe exemptions are introduced.
+state and no lost content. Only the shared `aria-allowed-attr` exemption applies.
 
 ## Order Term creditor QA (PO-10279)
 

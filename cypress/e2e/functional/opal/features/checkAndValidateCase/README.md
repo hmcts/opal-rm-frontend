@@ -42,6 +42,15 @@ the inherited lockfile; a `node_modules` symlink to another checkout can load th
 Keep other local frontend instances running on their existing ports. Local passwordless configuration, approved
 private AAD values and release overrides belong in the isolated process environment, never tracked files.
 
+### Rejected amendment entry readiness
+
+Recovery setup waits for the real saved-case GET, its distinct saved Order Term Result detail requests, and the
+countries/application/major-creditor responses before checking the rendered Check case button. The Angular
+resolver requires all these responses before creating the task list. Network waits use the existing request
+response budget; the DOM timeout is unchanged. Every response must be HTTP200 and the owned case must still be
+REJECTED. No response is stubbed, no retry or sleep is added, and unusable data still fails through the normal
+route/render assertions.
+
 ## Runtime prerequisites
 
 - FE at `TEST_URL` with persisted checker review, deletion and rejected-case amendment foundations. The test-only

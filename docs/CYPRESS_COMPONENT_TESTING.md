@@ -195,6 +195,18 @@ corepack yarn test:component
 corepack yarn test:component:parallel
 ```
 
+Parallel workers write completed-spec counts and millisecond durations from Cypress's native `after:spec` event
+to `runner-results/`. The [results helper](../scripts/cypress-component-parallel-results.ts) rejects missing,
+failed, invalid, empty or duplicate records. Native final-worker counts, spec identities, test titles and attempt
+states are retained separately under `functional-output/component/native-results/`. Preserve both report sets
+before a runner reset; a passing worker or later passing attempt does not resolve an earlier incomplete run.
+
+Run the result-boundary checks with:
+
+```bash
+corepack yarn exec tsx --test scripts/cypress-component-parallel-results.test.ts
+```
+
 Run the repository's current Jira metadata policy for new or changed component tests. Run broader component and unit coverage when shared support, setup helpers, selectors, stores, or application behaviour changed.
 
 Before handoff:

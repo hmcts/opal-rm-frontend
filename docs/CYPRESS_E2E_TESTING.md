@@ -5,6 +5,39 @@ Use this guide when writing or updating Cypress E2E tests and Cucumber feature f
 For Draft Casefile concurrency, response-loss recovery and lifecycle support requirements, see the
 [PO-10626 suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md).
 
+## Shared test actors
+
+Reuse the existing provisioned users through [getTestActor](../cypress/support/test-actors.ts). Actor names describe
+roles, not Jira tickets. Do not introduce ticket-specific actor environment variables or repeat account selection
+in individual fixtures. Shared login still accepts a username, as in Fines; selecting an actor never creates an
+account or grants permissions.
+
+| Role                | Existing default                      | Required live access                                                                                                                  |
+| ------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `inputter`          | `opal-test@dev.platform.hmcts.net`    | ACTIVE Maintenance BU44 permission21                                                                                                  |
+| `checker`           | `opal-test-10@dev.platform.hmcts.net` | ACTIVE Maintenance BU44 permission22; distinct BU identity from the inputter; permission21 also required for ownership-transfer cases |
+| `deniedUser`        | `opal-test-4@dev.platform.hmcts.net`  | ACTIVE Maintenance membership, without the permission being tested                                                                    |
+| `secondInputter`    | None                                  | Explicit existing permission21 actor, distinct from creator and checker                                                               |
+| `foreignBuInputter` | None                                  | Explicit existing permission21 actor in another Maintenance BU, without owning-BU permission21                                        |
+
+The standard live selection uses the existing defaults and needs no actor configuration. Only when an environment
+uses different provisioned users, configure the optional single `RM_TEST_ACTORS` object with the relevant role names;
+omitted defaulted roles retain their defaults. For example, a controlled spec can select its synthetic actors with
+`Cypress.env('RM_TEST_ACTORS', { inputter: 'synthetic-inputter', checker: 'synthetic-checker' })` and must restore the
+whole object afterward. This object contains usernames only, never passwords, tokens or user-state snapshots.
+Blank or invalid selections fail before authentication. Ticket-prefixed actor overrides are no longer read.
+
+Secondary and foreign-BU actors remain optional for retained helpers/controlled coverage; their retired live cases
+are not re-enabled by this convention. Keep all actual permission, distinct-identity and cleanup-owner checks.
+Do not substitute another role or invent a username when an independent actor is unavailable, and do not present
+controlled user-state responses as live authorisation evidence.
+
+## Shared request timeout
+
+The JSON request digest wrapper follows Fines: its callback uses the explicit request timeout, or Cypress's
+configured response timeout. This preserves the HTTP request's time budget instead of applying the shorter DOM
+command timeout while awaiting the response. HTTP errors still fail; no automatic retry is added.
+
 ## Shared accessibility exemption
 
 The shared E2E accessibility helper omits only Axe's `aria-allowed-attr` rule, matching the existing Fines
@@ -806,3 +839,63 @@ Require four passing browser scenarios with none skipped or pending. A dry run c
 only. Preserve and sanitise generated reports before another runner invocation resets output. Specialist follow-up
 must verify native browser Leave/Cancel behaviour, full keyboard traversal, screen-reader announcements and
 magnification with the same enabled release and provisioned accounts.
+
+## PO-10628 live inputter monitoring
+
+The [monitoring suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#po-10628-live-inputter-monitoring)
+contains the AC1–AC6 mapping, exact commands, real prerequisites and specialist checks for
+`InputterCasefileMonitoring.feature` and its accessibility feature: **10 examples (7 functional + 3 accessibility),
+zero skipped/pending**, with fresh scenario-owned fixtures. All three selectors must agree:
+`TAGS`, `CYPRESS_TAGS` and `--env tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628 and not @skip`.
+
+This live pack observes real list/count/detail responses without replacing them. Actual persisted lifecycle dates
+anchor D+7/D+8 consultations with **AUT Date only**; ordinary timers/server/database clocks stay real. Initial
+approval may already be `PUBLISHED` or still be `PUBLISHING_PENDING`. Final publication still uses bounded polling
+for `PUBLISHED`, and the saved snapshot must supply every respondent/applicant/two minor-creditor account number as
+exact read-only text. Native keyboard/focus checks and strict Axe remain for populated/empty tabs, published rows
+and denied destinations. Full amendment resubmission and the existing two-user amendment/ownership-transfer
+journeys remain in PO-10623.
+
+The [coverage ledger](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#agreed-live-and-controlled-coverage-allocation)
+records the five intentionally retired live examples, their exact names/tags and retained assertions. Empty and
+populated View all rejected entry, other-inputter amendment/return with sorting/paging and its accessibility journey
+remain controlled coverage. Mounted dashboard/all-rejected specs retain rendering, navigation, native keyboard and
+Axe checks; monitoring fixture/flow support retains actor validation and scanner dispatch. Maintained routing
+integration defensively filters own/foreign/wrong-status rows; All rejected uses `not_submitted_by` with no date
+filters. The original AC3 expectation of both own and other-inputter rows remains an unresolved acceptance mismatch.
+Mounted pending coverage excludes both null-number snapshots and supplied-number snapshots while retaining published
+rows; helper checks reject pending completion and incomplete account numbers. These checks do not prove real
+third-inputter backend authorisation or stable-pending duration. Both live acceptance gaps remain unverified.
+No new users, permission assignments, environment flags or publication holds are introduced.
+
+The 23 October inspection of a runtime with migrations only through1.34 and no publication implementation is
+historical. Use a compatible `codex/PO-10626-publication-support` build and its DB/BE dependencies locally, then
+verify actual list/detail/decision permissions and ETags, testing support, create-casefile release, current
+primary/checker/denied identities, reference data, ordinary publication and pending/published owner/marker cleanup.
+Neither this monitoring pack nor the updated PO-10626 pack requires an observation migration or publication-evidence
+route. Backend calendar semantics still require verification. The standard pack has no third-inputter or
+stable-pending configuration prerequisite; their acceptance gaps are explicitly allocated in the ledger.
+
+Fixture setup uses the actual lifecycle APIs and validates persisted status, ownership, ETags and generated
+accounts. Controlled actor helpers still validate an explicitly supplied independent actor when invoked. No
+ticket-specific cleanup or publication verification variables are required. The shared `afterEach` hook restores
+the recorded latest submitter and sends authenticated DELETE for each exact observed ID/marker through the original
+testing-support endpoint. Enable existing `TESTING_SUPPORT_ENDPOINTS_ENABLED` on the compatible nonproduction
+backend. Only HTTP204 clears the receipt; any other response or transport failure retains it and fails cleanup.
+Empty setup fails on existing personal work without altering it.
+
+Use the suite guide's ordinary-config discovery command with `dryRun=true` and a reachable configured URL. It
+executes no browser journey or fixture mutation and provides **no live acceptance evidence**. The four controlled
+specs listed there establish their mounted/helper contracts separately; preserve full names, tags, raw logs and
+receipts before reports are reset. Until live execution and all applicable Definition of Done checks pass, report
+**Not Agent Complete** for the original ticket. Screen-reader and magnification checks need the specialist setup
+and expected results documented in the suite guide; automated Axe is partial accessibility evidence.
+
+A historical read-only capability split found ordinary POST/list/detail/PATCH/PUT plus enabled testing support,
+but only SUBMITTED cleanup on that older runtime. The updated support branch supplies eligible lifecycle and
+exclusive published cleanup; verify its actual deployment before executing those fixtures. The suite's
+`@PO10628SubmittedOnly` tag still selects exactly **3 enabled examples** (SUBMITTED boundary row, functional denial
+and accessibility denial), within 10 overall. Use the suite guide's matching selectors after
+actual authentication/reference-data/submitted-cleanup preflight. Add `dryRun=true` for discovery only and retain
+the reachable URL. A three-example pass cannot complete the other 7 retained examples or the ledger's unverified
+acceptance; transitioned/approval fixtures still require their own real cleanup capabilities to be verified.

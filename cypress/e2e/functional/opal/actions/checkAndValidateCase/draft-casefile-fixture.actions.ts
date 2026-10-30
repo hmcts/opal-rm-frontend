@@ -1,5 +1,7 @@
+import { getTestActor } from '../../../../../support/test-actors';
 import type { IOpalUserStateResponse } from '@hmcts/opal-frontend-common/services/opal-user-service/interfaces';
 import type { IOwnedDraftCasefile } from './interfaces/draft-casefile-owned.interface';
+import type { IDraftCasefileFixtureOptions } from './interfaces/draft-casefile-fixture-options.interface';
 import type { IDraftCasefileSnapshot } from './interfaces/draft-casefile-snapshot.interface';
 import { performAuthentication } from '../../../../actions/login.actions';
 import { postSyntheticDraft } from './draft-casefile-api.actions';
@@ -10,7 +12,7 @@ import { readDraftSnapshot } from './draft-casefile-evidence.actions';
  * @param permission Required permission in Maintenance BU 44.
  * @returns The validated result or Cypress chain consumed by the next action.
  */
-function requireMembership(permission: number): Cypress.Chainable<{ id: string; name: string }> {
+export function requireMembership(permission: number): Cypress.Chainable<{ id: string; name: string }> {
   return cy
     .request<IOpalUserStateResponse>({ url: '/api/user-state', failOnStatusCode: false, log: false })
     .then(({ status, body }) => {
@@ -24,13 +26,26 @@ function requireMembership(permission: number): Cypress.Chainable<{ id: string; 
     });
 }
 
+/** Resolves the configured primary consistently for fixture creation and personal baseline checks.
+ * @returns The existing primary provisioned-account identity.
+ */
+export function primaryDraftInputter(): string {
+  return getTestActor('inputter');
+}
+
 /**
  * Uses existing provisioned users only; the checker default is evidenced by User Service migration V1_68.
+ * @param options Provisioned actor overrides and optional synthetic payload variations.
  * @returns The validated result or Cypress chain consumed by the next action.
  */
-export function createOwnedSubmittedDraft(): Cypress.Chainable<IOwnedDraftCasefile> {
-  const inputter = String(Cypress.env('PO10626_INPUTTER_EMAIL') || 'opal-test@dev.platform.hmcts.net');
-  const checker = String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net');
+export function createOwnedSubmittedDraft(
+  options: IDraftCasefileFixtureOptions = {},
+): Cypress.Chainable<IOwnedDraftCasefile> {
+  const primaryInputter = primaryDraftInputter();
+  const inputter = options.inputter ?? primaryInputter;
+  const checker = options.checker ?? getTestActor('checker');
+  if (!inputter.trim() || !checker.trim()) throw new Error('Fixture identities must be provisioned accounts');
+  let primaryInputterId: string | undefined;
   let checkerId: string;
   let inputterId: string;
   let inputterName: string;
@@ -40,13 +55,22 @@ export function createOwnedSubmittedDraft(): Cypress.Chainable<IOwnedDraftCasefi
     checkerId = user.id;
     checkerName = user.name;
   });
+  if (inputter !== primaryInputter) {
+    cy.then(() => performAuthentication(primaryInputter));
+    requireMembership(21).then((user) => {
+      primaryInputterId = user.id;
+      expect(user.id === checkerId, 'primary inputter and checker have independent BU identities').to.equal(false);
+    });
+  }
   cy.then(() => performAuthentication(inputter));
   requireMembership(21).then((user) => {
     inputterId = user.id;
     inputterName = user.name;
+    if (primaryInputterId !== undefined)
+      expect(inputterId === primaryInputterId, 'both inputters have independent BU identities').to.equal(false);
     expect(inputterId === checkerId, 'inputter and checker have independent BU identities').to.equal(false);
   });
-  return postSyntheticDraft(inputter).then(({ id, marker, etag }) => {
+  return postSyntheticDraft(inputter, options).then(({ id, marker, etag }) => {
     const owned: IOwnedDraftCasefile = {
       id,
       marker,

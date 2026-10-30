@@ -1,3 +1,4 @@
+import { getTestActor } from '../../support/test-actors';
 import { createPersistedCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { DraftCasefileConcurrencyFlow } from '../../e2e/functional/opal/flows/checkAndValidateCase/draft-casefile-concurrency.flow';
 import { DraftCasefileRecoveryActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-recovery.actions';
@@ -61,6 +62,28 @@ describe('PO-10626 owned API fixture support', () => {
       ).to.equal(1);
       expect(DRAFT_CASEFILE_RECOVERY_REQUEST.casefile.applicant.party_details.address.cjs_code).to.equal(1);
       expect(() => buildSyntheticDraftRequest('bad-marker', 'LIVE01', 101)).to.throw('run marker');
+    },
+  );
+
+  it(
+    'AC2. should build independent UI-shaped minor creditors without applicant-only privacy fields',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10628'] },
+    () => {
+      const payload = buildSyntheticDraftRequest(marker, 'LIVE01', 101, {
+        minorCreditorCount: 2,
+      });
+      expect(payload.casefile.minor_creditors?.map((item) => item.creditor_sequence)).to.deep.equal([1, 2]);
+      for (const item of payload.casefile.minor_creditors!) {
+        expect(item.party_details.individual_details).to.include({ forenames: 'Synthetic', surname: 'Applicant' });
+        expect(item.party_details.individual_details).not.to.have.property('restrict_personal_information');
+        expect(item.party_details.address.cjs_code).to.equal(101);
+      }
+      payload.casefile.minor_creditors![0].party_details.individual_details!.forenames = 'Changed';
+      expect(payload.casefile.minor_creditors![1].party_details.individual_details!.forenames).to.equal('Synthetic');
+      expect(payload.casefile.applicant.party_details.individual_details!.forenames).to.equal('Synthetic');
+      expect(payload.casefile.applicant.party_details.individual_details!.restrict_personal_information).to.equal(
+        false,
+      );
     },
   );
 
@@ -386,6 +409,36 @@ describe('PO-10626 owned API fixture support', () => {
     },
   );
 
+  it(
+    'AC1, AC4. should pass optional creditor/name seeds through the normal POST without changing cleanup ownership',
+    { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10628'] },
+    () => {
+      const calls: Cypress.RequestOptions[] = [];
+      stubLedger();
+      stubRequests(referenceReplies(), calls);
+      postSyntheticDraft('synthetic-second-inputter', { uniqueNames: true, minorCreditorCount: 2 }).then((created) => {
+        const posts = calls.filter(({ method }) => method === 'POST');
+        expect(posts).to.have.length(1);
+        expect(posts[0].url).to.equal(draftsPath);
+        const payload = posts[0].body as ReturnType<typeof buildSyntheticDraftRequest>;
+        expect(payload.casefile.minor_creditors?.map(({ creditor_sequence }) => creditor_sequence)).to.deep.equal([
+          1, 2,
+        ]);
+        expect(payload.casefile.applicant.party_details.individual_details!.surname).to.include(
+          created.marker.slice(4),
+        );
+        expect(Cypress.env('draftCasefileCleanupReceipts')).to.deep.equal([
+          {
+            id: created.id,
+            testRunReference: created.marker,
+            cleanupActor: 'synthetic-second-inputter',
+            cleanupPolicy: 'required',
+          },
+        ]);
+      });
+    },
+  );
+
   const prerequisites: { name: string; path: string; body: unknown; error: string }[] = [
     {
       name: 'missing country dataset',
@@ -549,8 +602,8 @@ describe('PO-10626 owned API fixture support', () => {
       `AC1, AC2. should prepare ${journey} using only normal APIs and retain its cleanup receipt`,
       { tags: ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'] },
       () => {
-        const inputter = String(Cypress.env('PO10626_INPUTTER_EMAIL') || 'opal-test@dev.platform.hmcts.net');
-        const checker = String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net');
+        const inputter = getTestActor('inputter');
+        const checker = getTestActor('checker');
         let actor = '';
         let version = '"1"';
         const calls: Cypress.RequestOptions[] = [];

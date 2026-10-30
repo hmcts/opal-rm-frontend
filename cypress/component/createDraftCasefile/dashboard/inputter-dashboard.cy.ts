@@ -28,6 +28,12 @@ describe('Inputter casefile dashboard', () => {
       cy.get(S.tabs).find('a').should('have.length', 4);
       if (tab === 'rejected') cy.get(S.allRejected).should('be.visible');
       else cy.get(S.allRejected).should('not.exist');
+      cy.get(S.table).should('not.exist');
+      cy.get(S.tab(tab)).focus().should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.tab(tab)).should('not.be.focused');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
     }),
   );
   it('AC1. should render header button and permanent tabs in order', { tags: buildTags() }, () => {
@@ -72,17 +78,41 @@ describe('Inputter casefile dashboard', () => {
     cy.get(S.pageStatus).should('contain.text', 'Create cases, page 2 of 2');
     cy.get('@listRequest').should('have.been.calledOnce');
   });
-  it('AC2. should exclude queued publishing rows', { tags: buildTags() }, () => {
-    setupInputterDashboard({
-      tab: 'approved',
-      rows: [
-        ...dashboardFixtures.published,
-        createCasesDraftSummary({ draft_casefile_id: 124, casefile_status: 'PUBLISHING_PENDING' }),
-      ],
-    });
-    cy.get(S.row(123)).should('exist');
-    cy.get(S.row(124)).should('not.exist');
-  });
+  it(
+    'AC2. should exclude queued publishing rows even with supplied snapshot account numbers',
+    { tags: buildTags() },
+    () => {
+      setupInputterDashboard({
+        tab: 'approved',
+        rows: [
+          ...dashboardFixtures.published,
+          createCasesDraftSummary({
+            draft_casefile_id: 124,
+            casefile_status: 'PUBLISHING_PENDING',
+            casefile_snapshot: {
+              respondent_account: { account_number: 'UNPUBLISHED' },
+              applicant_account: { account_number: 'UNPUBLISHED' },
+              minor_creditor_accounts: [{ account_number: 'UNPUBLISHED' }],
+            },
+          }),
+          createCasesDraftSummary({
+            draft_casefile_id: 125,
+            casefile_status: 'PUBLISHING_PENDING',
+            casefile_snapshot: {
+              respondent_account: { account_number: null },
+              applicant_account: { account_number: null },
+              minor_creditor_accounts: [{ account_number: null }],
+            },
+          }),
+        ],
+      });
+      cy.get(S.row(123)).should('exist');
+      cy.get(S.row(124)).should('not.exist');
+      cy.get(S.row(125)).should('not.exist');
+      cy.get(S.tableRows).should('have.length', dashboardFixtures.published.length);
+      cy.get(S.table).should('not.contain.text', 'UNPUBLISHED');
+    },
+  );
   it('AC4. should expose all rejected cases with populated results', { tags: buildTags() }, () => {
     setupInputterDashboard({ tab: 'rejected', rows: [createCasesDraftSummary({ casefile_status: 'REJECTED' })] });
     const expected = '/' + CASES_DRAFT_ROUTING_PATHS.root + '/' + CASES_DRAFT_ROUTING_PATHS.children.rejections;

@@ -30,7 +30,7 @@ Feature: Inputter casefile dashboard
       | populated |
 
   @JIRA-STORY:PO-10605 @JIRA-EPIC:PO-10817
-  Scenario: Published accounts remain read-only while queued work is absent
+  Scenario: Published accounts remain read-only while queued accounts are hidden
     Given my approved collection contains a published case and an unexpected pending case
     When I select Approved cases
     Then I see only the published account numbers as text

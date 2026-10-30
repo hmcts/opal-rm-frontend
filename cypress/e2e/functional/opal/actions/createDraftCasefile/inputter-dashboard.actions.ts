@@ -245,7 +245,7 @@ export class InputterDashboardActions {
     this.assertNoPersistence();
   }
 
-  /** Supplies published multi-account rows plus a defensive unexpected pending result. */
+  /** Supplies published multi-account rows plus a pending result. */
   public approved(): void {
     this.available();
     this.stubCollection('approved', PUBLISHED_ROWS);
@@ -257,7 +257,7 @@ export class InputterDashboardActions {
     pressDashboardEnter();
     cy.get(S.table).should('be.visible');
   }
-  /** Checks read-only account sequence, missing-value fallback and pending exclusion. */
+  /** Checks read-only account sequence and fallback for missing snapshot numbers. */
   public expectPublished(): void {
     this.expectDashboard('approved');
     cy.get(S.row(1)).should('contain.text', '000123A').and('contain.text', 'A010');

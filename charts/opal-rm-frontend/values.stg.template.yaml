@@ -42,6 +42,8 @@ opal-maintenance-service:
             alias: SERVICEBUS_SHARED_ACCESS_KEY
           - name: servicebus-logging-pdpl-queue-name
             alias: SERVICEBUS_LOGGING_PDPL_QUEUE_NAME
+          - name: servicebus-rm-publish-draft-casefile-queue-name
+            alias: SERVICEBUS_RM_PUBLISH_DRAFT_CASEFILE_QUEUE_NAME
     environment:
       OPAL_MAINTENANCE_DB_HOST: "{{ .Release.Name }}-postgresql"
       OPAL_MAINTENANCE_DB_NAME: opal

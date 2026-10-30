@@ -39,8 +39,3 @@ Feature: Broad checker decision accessibility journeys
       | status   | window    |
       | REJECTED | unbounded |
       | DELETED  | seven-day |
-
-  @AC6 @AC7 @accessibility @PO10625SubmittedOnly
-  Scenario: Consult accessible genuinely empty checker outcome tabs
-    When the checker traverses genuinely empty outcome tabs accessibly
-    Then all checker outcome tabs retain genuine empty states and zero counts

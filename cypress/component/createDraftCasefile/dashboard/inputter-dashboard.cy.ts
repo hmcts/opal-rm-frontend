@@ -28,6 +28,12 @@ describe('Inputter casefile dashboard', () => {
       cy.get(S.tabs).find('a').should('have.length', 4);
       if (tab === 'rejected') cy.get(S.allRejected).should('be.visible');
       else cy.get(S.allRejected).should('not.exist');
+      cy.get(S.table).should('not.exist');
+      cy.get(S.tab(tab)).focus().should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.tab(tab)).should('not.be.focused');
+      cy.injectAxe({ axeCorePath: 'node_modules/axe-core/axe.min.js' });
+      cy.checkA11y();
     }),
   );
   it('AC1. should render header button and permanent tabs in order', { tags: buildTags() }, () => {

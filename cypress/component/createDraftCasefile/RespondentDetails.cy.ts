@@ -100,8 +100,17 @@ describe('Create Casefile Respondent Details', () => {
         .should('have.value', 'ABCD')
         .type('{home}{rightArrow}{rightArrow}')
         .should('have.prop', 'selectionStart', 2)
-        .type('xy')
-        .should('have.value', 'ABXYCD');
+        .type('x')
+        .should('have.value', 'ABXCD')
+        .and('have.prop', 'selectionStart', 3)
+        .and('have.prop', 'selectionEnd', 3);
+
+      // Check the transformed value and caret before issuing the next keystroke.
+      cy.get(Page.respondentDetails.lastName)
+        .type('y')
+        .should('have.value', 'ABXYCD')
+        .and('have.prop', 'selectionStart', 4)
+        .and('have.prop', 'selectionEnd', 4);
       cy.get(Page.respondentDetails.returnToCaseDetails).click();
 
       assertRouterPath(taskListPath);

@@ -188,11 +188,37 @@ export class DraftCasefileRecoveryActions {
   /**
    * Saves a respondent correction through its contextual review action.
    * @param value Explicit synthetic correction or validated journey value.
+   * @param keyboard Use native activation and Tab from the corrected field.
+   * @param onEditor Optional strict scan while the corrected editor remains rendered.
    */
-  public correctRespondent(value: string): void {
-    cy.get(C.review.change('respondent')).click();
-    cy.get(C.respondentDetails.firstNames).clear().type(value);
-    cy.get(C.respondentDetails.returnToCaseDetails).click();
+  public correctRespondent(value: string, keyboard = false, onEditor?: () => void): void {
+    this.activate(C.review.change('respondent'), keyboard);
+    if (keyboard) cy.get(C.respondentDetails.firstNames).focus().should('be.focused');
+    cy.get(C.respondentDetails.firstNames).should('be.enabled').clear().type(value);
+    if (onEditor) cy.then(() => onEditor());
+    if (keyboard) {
+      cy.get(C.respondentDetails.firstNames).should('be.focused');
+      // The actual editor includes other fields before Return; traverse them without pointer/focus shortcuts.
+      const tabToReturn = (remaining: number): void => {
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.focused().then((focused) => {
+          expect(focused[0].matches('a[href], button, input, select, textarea'), 'semantic editor focus').to.equal(
+            true,
+          );
+          cy.wrap(focused).should('not.be.disabled');
+          if (focused.is('input[type="checkbox"], input[type="radio"]'))
+            cy.get(`label[for="${focused[0].id}"]`).should('be.visible');
+          if (focused.is(C.respondentDetails.returnToCaseDetails)) return;
+          expect(remaining, 'Return is reachable in native tab order').to.be.greaterThan(0);
+          tabToReturn(remaining - 1);
+        });
+      };
+      cy.document().then((document) =>
+        tabToReturn(document.querySelectorAll('a[href], button, input, select, textarea').length),
+      );
+      cy.get(C.respondentDetails.returnToCaseDetails).should('be.enabled').and('be.focused');
+      pressDashboardEnter();
+    } else this.activate(C.respondentDetails.returnToCaseDetails, false);
     cy.get(C.review.heading).should('be.visible');
     cy.get(C.review.section('respondent')).should('contain.text', value);
   }
@@ -313,8 +339,9 @@ export class DraftCasefileRecoveryActions {
    * @param id Identifier of the independently owned saved case.
    * @param journey Actor journey determining the dashboard and saved-status tab.
    * @param keyboard Whether recovery uses native keyboard activation.
+   * @param onVisited Optional assertions or scans enqueued before leaving each recovered state.
    */
-  public recoverConflict(id: number, journey: DraftCasefileJourney, keyboard: boolean): void {
+  public recoverConflict(id: number, journey: DraftCasefileJourney, keyboard: boolean, onVisited?: () => void): void {
     cy.intercept('GET', `/opal-maintenance-service/draft-casefiles/${id}`).as('recoveredDraft');
     const targetStatus = journey === 'resubmit' ? 'SUBMITTED,RESUBMITTED' : 'REJECTED';
     cy.intercept('GET', /\/opal-maintenance-service\/draft-casefiles(?:\?|$)/, (request) => {
@@ -327,11 +354,14 @@ export class DraftCasefileRecoveryActions {
       cy.press(Cypress.Keyboard.Keys.ENTER);
     } else cases.click();
     cy.location('pathname').should('equal', '/dashboard/cases');
+    onVisited?.();
     this.activate(journey === 'resubmit' ? D.inputterEntry : D.checkerEntry, keyboard);
     cy.get(D.heading).should('have.text', journey === 'resubmit' ? 'Create cases' : 'Review cases');
+    onVisited?.();
     this.activate(D.tab(journey === 'resubmit' ? 'in-review' : 'rejected'), keyboard);
     cy.wait('@recoveryCollection').its('response.statusCode').should('equal', 200);
     cy.get(`${D.table}, ${D.empty}`).should('be.visible');
+    onVisited?.();
     locateDraftCasefileRow(id, keyboard).within(() => {
       const link = cy.get(D.column('respondent')).find('a').should('be.visible');
       if (keyboard) {
@@ -343,15 +373,14 @@ export class DraftCasefileRecoveryActions {
     cy.get(C.review.heading).should('be.visible');
     cy.get(C.review.decisionContinue).should('not.exist');
     cy.get(C.review.submit).should('not.exist');
+    onVisited?.();
   }
 
-  /**
-   * Requires the recovered page to present the saved case and history, rather than an empty or denied route.
-   * @param snapshot Independently read authoritative state after recovery.
-   * @param original Whether the competing winner retained the original pre-edit aggregate.
-   * @param inputter Whether the recovered review is rendered for the inputter.
+  /** Requires complete review details on either the editable or saved review page.
+   * @param snapshot Independently read authoritative case.
+   * @param original Whether the original pre-edit rendering is expected.
    */
-  public assertSavedPresentation(snapshot: IDraftCasefileSnapshot, original = false, inputter = false): void {
+  public assertReviewDetails(snapshot: IDraftCasefileSnapshot, original = false): void {
     const draft = snapshot.draft;
     const individual = draft.casefile.respondent_account.respondent.party_details.individual_details;
     if (!individual?.forenames) throw new Error('Synthetic recovery presentation requires an individual');
@@ -359,7 +388,6 @@ export class DraftCasefileRecoveryActions {
     cy.get(C.review.section('respondent'))
       .should('contain.text', individual.forenames)
       .and('contain.text', individual.surname);
-    cy.get(C.review.status).should('have.text', savedStatusLabel(draft.casefile_status, inputter));
     const expected = original ? this.originalReview : this.savedReview;
     cy.get(S.reviewSections)
       .should('be.visible')
@@ -367,6 +395,16 @@ export class DraftCasefileRecoveryActions {
         const actual = this.reviewData($sections);
         assertRecoveredReviewSections(actual, expected);
       });
+    cy.get(C.globalErrorBanner).should('not.exist');
+  }
+
+  /** Requires the saved lifecycle and complete history on a task-list or saved review page.
+   * @param snapshot Independently read authoritative case.
+   * @param inputter Whether the page is rendered for the inputter.
+   */
+  public assertSavedHistory(snapshot: IDraftCasefileSnapshot, inputter = false): void {
+    const draft = snapshot.draft;
+    cy.get(C.review.status).should('have.text', savedStatusLabel(draft.casefile_status, inputter));
     cy.get(S.history).within(() => {
       cy.get(S.timelineItem).should('have.length', draft.timeline_data.length);
       for (const event of draft.timeline_data) {
@@ -374,7 +412,16 @@ export class DraftCasefileRecoveryActions {
         if (event.reason_text) cy.root().should('contain.text', event.reason_text);
       }
     });
-    cy.get(C.globalErrorBanner).should('not.exist');
+  }
+
+  /** Requires the recovered saved page to present the complete case, lifecycle and history.
+   * @param snapshot Independently read authoritative state after recovery.
+   * @param original Whether the competing winner retained the original pre-edit aggregate.
+   * @param inputter Whether the recovered review is rendered for the inputter.
+   */
+  public assertSavedPresentation(snapshot: IDraftCasefileSnapshot, original = false, inputter = false): void {
+    this.assertReviewDetails(snapshot, original);
+    this.assertSavedHistory(snapshot, inputter);
   }
 
   /**
@@ -442,7 +489,7 @@ export class DraftCasefileRecoveryActions {
   private activate(selector: string, keyboard: boolean): void {
     if (keyboard) {
       cy.get(selector).should('be.visible').focus().should('be.focused');
-      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pressDashboardEnter();
     } else {
       cy.get(selector).should('be.visible').click();
     }

@@ -31,3 +31,33 @@ Feature: Accessible rejected casefile correction
     When I go Back and choose to keep my corrections
     Then my corrections remain and no replacement request is replayed
     And the rejected amendment state is accessible at 320 CSS pixels
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC1 @AC5 @retries(0)
+  Scenario: Accessibly correct and resubmit my rejected case
+    Given an owned rejected case is ready for the accessible "same-user" amendment outcome
+    When I resubmit the complete corrected rejected case
+    Then the corrected case returns to review with its original identifier and the originating rejection list no longer contains the case
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC1 @AC3 @AC5 @retries(0)
+  Scenario: Accessibly resubmit another inputter's case and inspect self-review prevention
+    Given an owned rejected case is ready for the accessible "cross-user" amendment outcome
+    When I resubmit the complete corrected rejected case
+    Then the corrected case returns to review with its original identifier, leaves the originating rejection list, and the correcting inputter becomes latest submitter and cannot review that case
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC2 @AC5 @retries(0)
+  Scenario: Accessibly retain a definite failure and explicitly retry resubmission
+    Given an owned rejected case is ready for the accessible "retry" amendment outcome
+    When I explicitly retry the complete correction after a definite failure
+    Then the corrected case returns to review with its original identifier and the originating rejection list no longer contains the case
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @AC5 @retries(0)
+  Scenario: Accessibly recover a stale amendment without replay
+    Given an owned rejected case is ready for the accessible "stale" amendment outcome
+    When I submit my old correction after another correction has returned the case to review
+    Then I recover the saved winning correction without replay
+
+  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @AC5 @retries(0)
+  Scenario: Accessibly deny amendment after a real resubmission
+    Given an owned rejected case is ready for the accessible "non-rejected" amendment outcome
+    When I attempt to amend the protected rejected case
+    Then amendment is denied without exposing or changing the case

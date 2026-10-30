@@ -700,6 +700,182 @@ interruptions, unrun examples and exact owned cleanup receipts in parent-owned i
 report/PR; keep these instructions reusable. Do not claim full acceptance or Agent Complete when an applicable
 required check fails. Draft production and handoff do not require publication or a separate approval-state gate.
 
+## PO-10623 owned rejected amendment
+
+The `RejectedAmendment.feature` and `RejectedAmendmentAccessibility.feature` pair preserves its inherited
+controlled examples and retains **10 independent live examples: five functional and five accessibility**. The
+PO-10623 tag selects exactly those 10, with zero skips, pending cases or scenario retries. The five outcomes are
+same-user correction/resubmission (AC1), cross-user resubmission/self-review prevention (AC1/AC3), definite failure
+and explicit retry (AC2), stale conflict recovery and no-longer-Rejected denial (AC4). Every
+accessibility counterpart adds AC5 and retains the same complete business outcome assertions. Foreign-BU denial
+is allocated to controlled coverage below; live cross-BU acceptance remains unverified.
+
+Each example creates fresh data through normal POST, uses two minor creditors and unique synthetic names, and
+requires an actual REJECTED prerequisite with the exact rejection marker/history. A is the immutable original
+inputter (ACTIVE Maintenance BU44 permission21). Independent B rejects with actual permission22 in BU44; the
+cross-user amender B also needs permission21 there. The original `owned` record and current `amender` remain
+separate. Cleanup authority changes only after an independent saved GET establishes the actual latest submitter,
+and the maintained cleanup receipt is persisted immediately before later outcome assertions. Do not create roles,
+reuse ambient cases, relabel A, share fixtures between functional/accessibility examples, or mock live user,
+reference, collection, detail or successful lifecycle responses.
+
+Amendment entry verifies the saved `Rejected` status and complete timeline on the task-list page before opening
+editable Check case details. Editable review presents the case details without a status tag or history; the
+subsequent saved read-only views still require the complete details, saved status and timeline. The controlled
+journey harness follows this page boundary and rejects an incorrect task-list status or missing timeline event.
+
+The normal live selection uses the existing A/B identities and does not require a foreign-BU inputter.
+The retained `RejectedCasefileFixtureActions.foreignActor()` helper still requires an explicit
+`RM_TEST_ACTORS.foreignBuInputter` selection when invoked: ACTIVE permission21 in another Maintenance BU and no permission21
+in BU44. Controlled specs supply synthetic membership and reject missing or incompatible identities. No new user,
+permission assignment, skip or configuration flag is introduced. A global role denial does not prove this
+Business Unit boundary.
+
+### Foreign-BU coverage allocation (ledger items 6–7)
+
+Only the following two live examples are retired because the existing users do not provide an independent
+foreign-BU inputter. Their feature metadata was `@R1CRmCreateCaseFiles @JIRA-LABEL:create-draft-casefile
+@functional`; both also had `@JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @retries(0)`. The accessibility example
+additionally had `@accessibility`. Neither had an external `@JIRA-TEST-KEY` identity.
+
+| Retired live scenario | AC tags | Retained controlled evidence | Unverified live acceptance |
+| --- | --- | --- | --- |
+| Deny rejected amendment to an inputter from another Business Unit | `@AC4` | `rejected-casefile-support.cy.ts` validates foreign identity/membership and rejects inactive, owning-BU or missing-other-BU permission21; `rejected-casefile-journey-support.cy.ts` retains the native `denied` flow with independent saved evidence and zero mutation checks. | An actual independently authenticated foreign-BU inputter cannot view or resubmit the case through deployed services. |
+| Accessibly deny amendment from another Business Unit | `@AC4 @AC5` | The same fixture checks plus the journey spec's material `denied` state scans at 1280/320 CSS pixels and strict scanner failure propagation. | The actual foreign-BU denial route, data isolation and accessibility outcome using deployed services. |
+
+`RejectedCasefileFixtureActions.foreignActor()` and both `denied` Flow consumers remain unchanged. The maintained
+`cases-draft-casefile-permissions.spec.ts` checks amendment rejection for another BU, and
+`cases-create-casefile-amendment.integration.spec.ts` covers routed denial before hydration. These synthetic
+fixture/Flow and frontend permission/routing checks do **not** establish deployed cross-BU API authorisation or
+complete WCAG conformance. Restoring live acceptance requires an existing ACTIVE permission21 actor in another
+Maintenance BU with no permission21 in BU44, compatible services and strict marker-owned cleanup; do not create
+users or permissions for the standard pack.
+
+The same-user, cross-user/latest-submitter, retry, stale and actual no-longer-Rejected functional/accessibility
+pairs retain their names, steps and tags. PO-10623 selection changes from 12 to 10 expanded live examples;
+including the inherited controlled examples, this feature pair changes from 26 to 24. Combined with the parent
+monitoring allocation, full functional inventory is 372 examples, with 345 selected and the existing 27 exclusions
+unchanged. Counts are supported by the parsed name/tag delta; discovery establishes bindings only.
+
+Before live work, verify the frontend checkout/build/process, enabled `release-1c-rm-create-case-files`, running
+services and **actual compiled Maintenance backend artifact/revision**, normal POST/GET/list/detail/PUT routes,
+lossless opaque ETags, real rejection/resubmission/409/permission behavior and marker-owned lifecycle cleanup.
+A source checkout or ticket status does not establish these contracts. Testing support must be enabled in that
+runtime. PO-10623 has no publication, publication-evidence registration, observation migration or publication
+consumer dependency.
+
+Rejected and resubmitted fixtures require lifecycle cleanup using the persisted latest submitter, including
+cross-user transfer. The fixture records the independently observed actor against the original ID/marker receipt;
+automatic teardown authenticates as that actor. Unknown owners, failed transitions and failed cleanup remain
+explicit failures with outstanding receipts retained.
+
+Success requires real UI PUT200, a matching complete independent GET, full aggregate preservation except respondent
+forenames `Corrected`, preserved applicant/minor snapshots and null account identifiers, advanced ETag and exactly
+one Resubmitted event with the actual amender/time. Both actual provider results and every DOM page must omit the
+owned ID from its original Rejected collection and include it in inputter In review with corrected name/latest
+actor. Cross-user All rejected consultations use `not_submitted_by` with the actual amender's BU identity;
+personal consultations use `submitted_by`. Completion waits and provider assertions require that exact scope.
+Require the exact owned `You have submitted {corrected respondent name}'s case for review.` banner at the
+original personal `#rejected` or All rejected destination, dismissal focus and no replay. Cross-user B must be
+excluded by the actual checker To review provider and every DOM page, and direct self-review must be read-only
+without decision controls or PATCH. The saved aggregate remains unchanged.
+
+Retry uses one **HTTP400 before provider dispatch**, followed by one explicit real PUT200 using the same monitor
+and original ETag. This proves that definite failure boundary; it does not claim every400 is provider-generated.
+Stale uses an actual competing complete PUT200 and exactly one original-version UI PUT409, then requires the shared
+safe-conflict page. Recovery uses the actual Cases link, dashboard entry, In review tab and owned row to consult
+the complete unchanged winning aggregate, saved presentation and history without replay. An independent inputter
+provider and saved-detail consultation rechecks that winner after recovery. The no-longer-Rejected denial first
+actually resubmits its own REJECTED case. The retained non-rejected live entry and controlled foreign-BU entry
+expose no case/editor/task data, dispatch no POST/PUT/PATCH and retain an independently authorised unchanged saved read.
+
+Strict `accessibilityActions.checkAccessibilityOnly()` scans use only the shared **`aria-allowed-attr`** exemption and run before departure from
+every meaningful visited collection/page/sort, task/history, actual corrected respondent editor, review, definite
+failure, shared conflict, Cases, recovered dashboard/tab/detail, confirmation/dismissal, In review, read-only
+self-review and denial state. Material pages also assert horizontal reflow at1280 and320 CSS pixels and restore
+desktop width. Keyboard paths retain native Tab and maintained native Enter on semantic focused controls; native
+GOV.UK opacity-zero inputs need enabled controls and visible associated labels, not a CSS-visibility requirement. These scans and keyboard checks provide
+partial WCAG2.2AA evidence. Screen-reader, zoom/magnification, focus appearance and native browser modal rendering
+remain separate manual/specialist checks with the same verified services/users/cleanup setup.
+
+Exact 10-example discovery, with no application actions or fixture creation:
+
+```bash
+TEST_URL=http://localhost:5100 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendment*.feature' \
+  --env 'dryRun=true,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip'
+```
+
+Live selection against a compatible lifecycle/cleanup backend:
+
+```bash
+TEST_URL=http://localhost:5100 \
+TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
+CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
+corepack yarn test:functional:leaf --browser=chrome \
+  --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendment*.feature' \
+  --env 'dryRun=false,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip'
+```
+
+Configure existing provisioned actor addresses in the runner and enable the backend testing-support endpoints.
+Retain exact commands,
+compiled revisions, selected counts, runtime prerequisites, actual failures, cleanup outcomes and safe marker/ID-only evidence.
+Never store names, case bodies, cookies, credentials or tokens in evidence. Controlled orchestration verification:
+
+```bash
+corepack yarn test:component:leaf --browser=chrome \
+  --spec 'cypress/component/checkAndValidateCase/rejected-casefile-journey-support.cy.ts'
+```
+
+Discovery proves selection/bindings only. Controlled support proves scanner/keyboard/reflow/orchestration failure
+sensitivity against synthetic boundaries. Neither is passing live acceptance or proof of deployed permissions,
+cleanup compatibility or complete WCAG conformance. Run the preserved inherited caller regression separately.
+
+### Status assertion fix verification — 29 October 2026
+
+The task-list status/history check and separate editable-review details check passed controlled regression using
+Node 24.22.1, Yarn 4.18.1, Cypress 15.21.1 and headless Chrome 156, serial execution and no scenario retries.
+All 46 existing rejected-amendment support examples retain their names and tags; two negative examples additionally
+prove that a wrong task-list status and a missing timeline event stop entry before editing or submission.
+The feature files, expanded scenario identities, tags and Examples rows are unchanged.
+
+```bash
+corepack yarn test:component:leaf --browser=chrome \
+  --spec 'cypress/component/checkAndValidateCase/rejected-casefile-journey-support.cy.ts,cypress/component/checkAndValidateCase/concurrency-support.cy.ts,cypress/component/checkAndValidateCase/checker-deletion-journey-support.cy.ts,cypress/component/checkAndValidateCase/rejected-casefile-support.cy.ts,cypress/component/createDraftCasefile/review/rejected-amendment.cy.ts'
+```
+
+Result: **225 passed, zero failed/pending/skipped** across all five specs, including all 48 amendment journey
+support examples. The exact 12-example discovery command above also passed all six functional and six accessibility
+examples; discovery does not execute application actions. `corepack yarn test` passed **3,711 tests in 171 files**.
+`corepack yarn prettier`, `corepack yarn lint:cypress`, `corepack yarn lint:ng`,
+`corepack yarn exec tsc --project e2e.tsconfig.json --noEmit`, `corepack yarn check:cypress:test-metadata`,
+`corepack yarn find:duplicate:scenarios`, `corepack yarn build` and `git diff --check` passed. Changed TypeScript
+files also passed scoped formatting/lint checks after the final negative-test correction.
+
+The first sandboxed Cypress launch aborted before running tests. The first unrestricted focused run passed 47 of
+48 examples: the new missing-event negative test expected different Cypress error wording. Correcting only that
+error expectation produced the final passing run above. Logs retain both attempts; no assertion, timeout, retry
+policy or existing scenario was removed to obtain a pass. Existing Cypress environment-deprecation and jsdom
+navigation/scroll warnings remain.
+
+Final agent review against the repository review guidelines found no blocking findings. The changed files are
+Cypress assertions, their synthetic harness and this guide. Application UI/accessibility changes, before/after UI
+screenshots, dependency/vulnerability changes, unit-coverage changes and Sonar New Code coverage are not applicable:
+no application or dependency files changed, and Sonar sources/tests are configured under `src/`. The synthetic
+fixtures introduce no credentials or real participant data; there are no new security exceptions or CVE suppressions.
+
+Live acceptance remains unverified until the real journeys and automatic cleanup pass against a compatible backend.
+Use the independently verified runtime/users/cleanup prerequisites and live command above to rerun all 12 examples;
+expect the status/history check on the task list, complete editable-review details and the existing successful,
+retry, stale and denial outcomes. Full release/smoke suites and the full component suite were not run for this
+focused assertion correction; the five affected support/component specs were run instead. CI, external Sonar,
+reviewer approval and QA sign-off remain pending. This evidence establishes the source fix and controlled regression,
+not completion of the full PO-10623 acceptance pack.
+
+
 ### Empty dashboard coverage (CI isolation repair, 30 October 2026)
 
 Following Fines' mounted dashboard approach, three whole-collection empty live examples are allocated to

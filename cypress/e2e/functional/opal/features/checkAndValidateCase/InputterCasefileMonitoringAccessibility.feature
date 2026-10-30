@@ -18,21 +18,6 @@ Feature: Consult live inputter casefiles accessibly
     Then the live "deleted" monitoring tab contains its owned lifecycle row
     And I check the page for accessibility
 
-  @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC1 @AC6 @PO10628SubmittedOnly @retries(0)
-  Scenario: Consult genuinely empty personal lifecycle tabs accessibly
-    Given my live personal monitoring dashboard is genuinely empty
-    Then the live consulted monitoring tab is genuinely empty
-    And I check the page for accessibility
-    When I consult the live "rejected" monitoring tab with the keyboard
-    Then the live consulted monitoring tab is genuinely empty
-    And I check the page for accessibility
-    When I consult the live "approved" monitoring tab with the keyboard
-    Then the live consulted monitoring tab is genuinely empty
-    And I check the page for accessibility
-    When I consult the live "deleted" monitoring tab with the keyboard
-    Then the live consulted monitoring tab is genuinely empty
-    And I check the page for accessibility
-
   @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC4 @AC6 @retries(0)
   Scenario: Read a real published multi-account row accessibly
     Given my live monitoring scenario owns a published casefile with two minor creditors

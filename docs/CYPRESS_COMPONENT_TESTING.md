@@ -197,9 +197,7 @@ corepack yarn test:component:parallel
 
 Parallel workers write completed-spec counts and millisecond durations from Cypress's native `after:spec` event
 to `runner-results/`. The [results helper](../scripts/cypress-component-parallel-results.ts) rejects missing,
-failed, invalid, empty or duplicate records. Native final-worker counts, spec identities, test titles and attempt
-states are retained separately under `functional-output/component/native-results/`. Preserve both report sets
-before a runner reset; a passing worker or later passing attempt does not resolve an earlier incomplete run.
+failed, invalid, empty or duplicate records. Preserve the standard runner reports before resetting outputs.
 
 Run the result-boundary checks with:
 

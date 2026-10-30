@@ -907,11 +907,12 @@ check; failed applicable checks still mean Not Agent Complete.
 ## PO-10623 owned rejected amendment
 
 The `RejectedAmendment.feature` and `RejectedAmendmentAccessibility.feature` pair preserves its inherited
-controlled examples and appends **12 independent live examples: six functional and six accessibility**. The
-PO-10623 tag selects exactly those 12, with zero skips, pending cases or scenario retries. The six outcomes are
+controlled examples and retains **10 independent live examples: five functional and five accessibility**. The
+PO-10623 tag selects exactly those 10, with zero skips, pending cases or scenario retries. The five outcomes are
 same-user correction/resubmission (AC1), cross-user resubmission/self-review prevention (AC1/AC3), definite failure
-and explicit retry (AC2), stale correction/departure protection, foreign-BU denial and no-longer-Rejected denial
-(AC4). Every accessibility counterpart adds AC5 and retains the same complete business outcome assertions.
+and explicit retry (AC2), stale correction/departure protection and no-longer-Rejected denial (AC4). Every
+accessibility counterpart adds AC5 and retains the same complete business outcome assertions. Foreign-BU denial
+is allocated to controlled coverage below; live cross-BU acceptance remains unverified.
 
 `RejectedCasefileAmendmentFlow` owns fixture preparation, authentication handoffs and the order of origin,
 inputter In review and checker visits. Each prepare creates one fresh `IRejectedAmendmentSession`, shared with its
@@ -932,9 +933,17 @@ and the maintained cleanup receipt is persisted immediately before later outcome
 reuse ambient cases, relabel A, share fixtures between functional/accessibility examples, or mock live user,
 reference, collection, detail or successful lifecycle responses.
 
-Foreign-BU denial additionally requires an existing `PO10623_FOREIGN_BU_INPUTTER_EMAIL`: ACTIVE permission21 in
-another Maintenance BU and no permission21 in BU44. Missing or incompatible users are fixture failures. A global
-role denial does not prove this Business Unit boundary.
+The normal live selection uses the existing A/B identities and does not require a foreign-BU inputter.
+The retained `RejectedCasefileFixtureActions.foreignActor()` helper still requires an explicit
+`PO10623_FOREIGN_BU_INPUTTER_EMAIL` when invoked: ACTIVE permission21 in another Maintenance BU and no permission21
+in BU44. Controlled specs supply synthetic membership and reject missing or incompatible identities. No new user,
+permission assignment, skip or configuration flag is introduced. A global role denial does not prove this
+Business Unit boundary.
+
+The suite [foreign-BU coverage ledger](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#foreign-bu-coverage-allocation-ledger-items-67)
+records the two retired names, AC4/AC5 tags and controlled replacements. The retained fixture/Flow and frontend
+permission/routing checks do not prove deployed cross-BU API authorisation; that live acceptance remains unverified.
+Same-user, cross-user/latest-submitter, retry, stale and actual no-longer-Rejected live pairs remain enabled.
 
 Before live work, verify the frontend checkout/build/process, enabled `release-1c-rm-create-case-files`, running
 services and **actual compiled Maintenance backend artifact/revision**, normal POST/GET/list/detail/PUT routes,
@@ -961,8 +970,8 @@ Retry uses one **HTTP400 before provider dispatch**, followed by one explicit re
 and original ETag. This proves that definite failure boundary; it does not claim every400 is provider-generated.
 Stale uses an actual competing complete PUT200 and actual UI PUT409; native Cancel retains the unsaved correction,
 OK/Back reloads the unchanged winner without replay. The no-longer-Rejected denial first actually resubmits its own
-REJECTED case. Both canonical denial entries expose no case/editor/task data, dispatch no POST/PUT/PATCH and retain
-an independently authorised unchanged saved read.
+REJECTED case. The retained non-rejected live entry and controlled foreign-BU entry expose no case/editor/task
+data, dispatch no POST/PUT/PATCH and retain an independently authorised unchanged saved read.
 
 Strict `accessibilityActions.checkAccessibilityOnly()` scans have **no exemptions** and run before departure from
 every meaningful visited collection/page/sort, task/history, actual corrected respondent editor, review, definite
@@ -973,14 +982,14 @@ controls and visible associated labels, not a CSS-visibility requirement. These 
 partial WCAG2.2AA evidence. Screen-reader, zoom/magnification, focus appearance and native browser modal rendering
 remain separate manual/specialist checks with the same verified services/users/cleanup setup.
 
-Exact 12-example discovery, with no application actions or fixture creation:
+Exact 10-example discovery, with no application actions or fixture creation:
 
 ```bash
+TEST_URL=http://localhost:5100 \
 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
 CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip' \
 corepack yarn test:functional:leaf --browser=chrome \
   --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/RejectedAmendment*.feature' \
-  --config '{"baseUrl":null}' \
   --env 'dryRun=true,omitFiltered=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10623 and not @skip'
 ```
 

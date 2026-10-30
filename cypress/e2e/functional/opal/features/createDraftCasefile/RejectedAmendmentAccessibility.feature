@@ -57,12 +57,6 @@ Feature: Accessible rejected casefile correction
     Then I recover the saved winning correction without replay
 
   @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @AC5 @retries(0)
-  Scenario: Accessibly deny amendment from another Business Unit
-    Given an owned rejected case is ready for the accessible "denied" amendment outcome
-    When I attempt to amend the protected rejected case
-    Then amendment is denied without exposing or changing the case
-
-  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @AC5 @retries(0)
   Scenario: Accessibly deny amendment after a real resubmission
     Given an owned rejected case is ready for the accessible "non-rejected" amendment outcome
     When I attempt to amend the protected rejected case

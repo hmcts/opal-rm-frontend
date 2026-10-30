@@ -76,12 +76,6 @@ Feature: Correct and resubmit rejected casefiles
     Then I recover the saved winning correction without replay
 
   @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @retries(0)
-  Scenario: Deny rejected amendment to an inputter from another Business Unit
-    Given an owned rejected case is ready for the "denied" amendment outcome
-    When I attempt to amend the protected rejected case
-    Then amendment is denied without exposing or changing the case
-
-  @JIRA-STORY:PO-10623 @JIRA-EPIC:PO-10817 @AC4 @retries(0)
   Scenario: Deny amendment after the rejected case has actually returned to review
     Given an owned rejected case is ready for the "non-rejected" amendment outcome
     When I attempt to amend the protected rejected case

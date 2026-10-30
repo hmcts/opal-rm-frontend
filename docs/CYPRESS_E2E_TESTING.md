@@ -891,10 +891,13 @@ and prepend `dryRun=true,omitFiltered=true,` to the `--env` value. The installed
 Strict shared Axe scans and native Enter/Tab cover all meaningful visited states and actual pagination pages;
 scan failure must propagate. Persisted GET, provider/DOM collections and retained read-only detail remain mandatory
 business outcomes. The one-shot definite failure is an HTTP 400 before provider dispatch followed by an explicit
-real UI retry using the same monitor and original ETag; it does not prove uncertain-delivery recovery. The visible
-251-character validation contract remains strict. The inspected native frontend textarea's `maxlength=250`
-currently prevents that input: record **frontend GAP008**, preserve the normal typing/readback failure, and do not
-force/seed/bypass the control, accept truncation or assume a backend cause or accepted waiver.
+real UI retry using the same monitor and original ETag; it does not prove uncertain-delivery recovery. The user's
+explicit hard-cap decision supersedes the former **GAP008** strict 251-visible-character requirement. Native
+functional/accessibility journeys attempt 251 keystrokes against `maxlength=250`, observe exactly 250 characters,
+zero remaining and zero application/wire PATCH, then cancel and prove full saved-state equality. Exact `Enter reason`
+validation and valid-250 deletion remain. The unchanged Angular programmatic 251-value maxLength unit test owns
+`Reason must be 250 characters or fewer` validation. Do not force or seed an over-limit native value or bypass the
+control. Controlled and unit evidence remain separate from final live acceptance.
 
 Controlled support and discovery are not passing live deletion. Parent-owned evidence and the delivery report/PR
 must record measured results, interruptions, unrun lifecycle examples and actual marker-owned cleanup receipts.

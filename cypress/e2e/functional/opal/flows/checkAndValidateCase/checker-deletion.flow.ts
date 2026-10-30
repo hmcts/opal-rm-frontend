@@ -49,11 +49,21 @@ export class CheckerDeletionFlow {
    * @param length Exact business boundary visible in the scenario.
    */
   public enterReasonWithLength(length: number): void {
-    if (length !== 250 && length !== 251) throw new Error('Unsupported deletion reason boundary');
+    if (length !== 250) throw new Error('Unsupported deletion reason boundary');
     cy.then(() => {
       this.actions.enterReason('D'.repeat(length));
-      if (length === 250) this.actions.assertCorrectedReason();
+      this.actions.assertCorrectedReason();
     });
+  }
+
+  /** Attempts native over-limit input after the independent review is ready. */
+  public attemptOverLimitReason(): void {
+    cy.then(() => this.actions.attemptOverLimitReason());
+  }
+
+  /** Observes the native cap and no-write evidence without retyping the value. */
+  public assertReasonHardCap(): void {
+    cy.then(() => this.actions.assertCorrectedReason());
   }
 
   /** Proves the saved aggregate and original version remain unchanged. */
@@ -87,16 +97,12 @@ export class CheckerDeletionFlow {
     else this.assertUnchanged();
   }
 
-  /** Exercises blank, visible 251 and corrected 250 states before native cancellation. */
+  /** Exercises blank validation and the native hard cap before cancellation. */
   private validateAccessibly(): void {
     this.submitValidation();
     this.assertValidation('Enter reason');
     this.actions.scan();
-    this.enterReasonWithLength(251);
-    this.submitValidation();
-    this.assertValidation('Reason must be 250 characters or fewer');
-    this.actions.scan();
-    this.enterReasonWithLength(250);
+    this.attemptOverLimitReason();
     this.actions.scan();
     this.cancel();
   }

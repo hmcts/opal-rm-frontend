@@ -202,7 +202,12 @@ function controlledReview() {
   };
   cy.document().then((document) => {
     document.body.innerHTML =
-      '<div id="create_casefile_delete_identity">Synthetic Respondent</div><label for="create_casefile_delete_reason">Reason</label><textarea id="create_casefile_delete_reason"></textarea><button id="create_casefile_delete_submit" class="govuk-button--warning">Delete</button>';
+      '<div id="create_casefile_delete_reason_field"><span class="govuk-character-count__status">You have 250 characters remaining</span></div><div id="create_casefile_delete_identity">Synthetic Respondent</div><label for="create_casefile_delete_reason">Reason</label><textarea id="create_casefile_delete_reason" maxlength="250"></textarea><button id="create_casefile_delete_submit" class="govuk-button--warning">Delete</button>';
+    const field = document.querySelector(C.deletion.reason) as HTMLTextAreaElement;
+    field.addEventListener('input', () => {
+      document.querySelector(C.deletion.counter)!.textContent =
+        'You have ' + (250 - field.value.length) + ' characters remaining';
+    });
   });
   const prepare = cy.stub(CheckerReviewActions.prototype, 'prepareSubmittedReview').callsFake((ready) => {
     cy.then(() => ready(session));
@@ -231,7 +236,7 @@ describe('PO-10624 deletion journey safety boundaries', () => {
     expect(prepare).not.to.have.been.called;
     expect(create).not.to.have.been.called;
   });
-  for (const kind of ['success', 'cancel', 'blank', 'over-limit', 'retry']) {
+  for (const kind of ['success', 'cancel', 'blank', 'hard-cap', 'retry']) {
     it(`AC2. should prepare ${kind} with the actual typed reason`, { tags: buildTags() }, () => {
       const { session, prepare } = controlledReview();
       const actions = new CheckerDeletionActions();
@@ -241,11 +246,9 @@ describe('PO-10624 deletion journey safety boundaries', () => {
         const expected =
           kind === 'success'
             ? boundaryReason
-            : kind === 'over-limit'
-              ? 'D'.repeat(251)
-              : kind === 'blank'
-                ? ''
-                : 'Synthetic concurrency decision';
+            : kind === 'hard-cap' || kind === 'blank'
+              ? ''
+              : 'Synthetic concurrency decision';
         cy.get(C.deletion.reason).should('have.value', expected);
         expect(session.recovery.capture).to.have.been.calledOnceWithExactly('delete');
       });
@@ -276,7 +279,7 @@ describe('PO-10624 deletion boundary rejection evidence', () => {
   });
   afterEach(() => expect(observedBoundaryFailure, 'required boundary failure observed').to.equal(true));
 
-  for (const kind of ['cancel', 'blank', 'over-limit']) {
+  for (const kind of ['cancel', 'blank', 'hard-cap']) {
     for (const fault of ['missing monitor', 'wire PATCH', 'application PATCH']) {
       it(`AC2. should reject ${kind} evidence with ${fault}`, { tags: buildTags() }, () => {
         const { session } = controlledReview();
@@ -530,7 +533,23 @@ function validationDocument(message: string, reason: string, counter: string) {
 }
 
 describe('PO-10624 validation-only Flow activation', () => {
-  for (const kind of ['blank', 'over-limit']) {
+  it('AC2. should cap native input without activating or dispatching deletion', { tags: buildTags() }, () => {
+    const { session } = controlledReview();
+    const activated = cy.stub();
+    cy.get(C.deletion.submit).then(($button) => {
+      $button[0].addEventListener('click', () => activated());
+    });
+    const flow = new CheckerDeletionFlow();
+    flow.prepare('hard-cap');
+    flow.attemptOverLimitReason();
+    flow.assertReasonHardCap();
+    cy.then(() => {
+      expect(activated).not.to.have.been.called;
+      expect(session.monitor.attempts).to.equal(0);
+      expect(session.monitor.applicationAttempts).to.equal(0);
+    });
+  });
+  for (const kind of ['blank']) {
     it(
       `AC3. should activate the ${kind} warning without waiting for or dispatching PATCH`,
       { tags: buildTags() },
@@ -549,7 +568,7 @@ describe('PO-10624 validation-only Flow activation', () => {
           expect(wait, 'validation must not await a PATCH receipt').not.to.have.been.called;
           expect(session.monitor.applicationAttempts).to.equal(0);
           expect(session.monitor.attempts).to.equal(0);
-          cy.get(C.deletion.reason).should('have.value', kind === 'blank' ? '' : 'D'.repeat(251));
+          cy.get(C.deletion.reason).should('have.value', '');
         });
       },
     );
@@ -557,7 +576,7 @@ describe('PO-10624 validation-only Flow activation', () => {
 });
 
 describe('PO-10624 linked validation evidence', () => {
-  for (const kind of ['blank', 'over-limit']) {
+  for (const kind of ['blank']) {
     it(
       `AC3. should require exact ${kind} copy and native linked focus on the retained field`,
       { tags: buildTags() },
@@ -565,12 +584,8 @@ describe('PO-10624 linked validation evidence', () => {
         controlledReview();
         const actions = new CheckerDeletionActions();
         actions.prepare(kind);
-        const message = kind === 'blank' ? 'Enter reason' : 'Reason must be 250 characters or fewer';
-        validationDocument(
-          message,
-          kind === 'blank' ? '' : 'D'.repeat(251),
-          kind === 'blank' ? 'You have 250 characters remaining' : 'You have 1 character too many',
-        );
+        const message = 'Enter reason';
+        validationDocument(message, '', 'You have 250 characters remaining');
         // Call the real validation boundary without navigating away in the later outcome checks.
         actions.assertValidation(message);
         cy.get(C.deletion.reason).should('be.focused');
@@ -618,7 +633,7 @@ describe('PO-10624 independent accessibility composition', () => {
 function nativeWarning() {
   const context = controlledReview();
   cy.document().then((document) => {
-    document.body.innerHTML = `<h1 id="review-heading" tabindex="-1">Check case details</h1><a id="create_casefile_review_delete" href="#warning">Delete case</a><div id="create_casefile_delete_page" hidden><h1 id="create_casefile_delete_heading" tabindex="-1">Are you sure you want to delete this case?</h1><div id="create_casefile_delete_identity">Synthetic Respondent</div><label for="create_casefile_delete_reason">Reason</label><textarea id="create_casefile_delete_reason"></textarea><button id="create_casefile_delete_submit" class="govuk-button--warning">Yes - delete</button><opal-lib-govuk-cancel-link><a class="govuk-link" href="#cancel">No - cancel</a></opal-lib-govuk-cancel-link></div>`;
+    document.body.innerHTML = `<h1 id="review-heading" tabindex="-1">Check case details</h1><a id="create_casefile_review_delete" href="#warning">Delete case</a><div id="create_casefile_delete_page" hidden><h1 id="create_casefile_delete_heading" tabindex="-1">Are you sure you want to delete this case?</h1><div id="create_casefile_delete_identity">Synthetic Respondent</div><label for="create_casefile_delete_reason">Reason</label><textarea id="create_casefile_delete_reason" maxlength="250"></textarea><button id="create_casefile_delete_submit" class="govuk-button--warning">Yes - delete</button><opal-lib-govuk-cancel-link><a class="govuk-link" href="#cancel">No - cancel</a></opal-lib-govuk-cancel-link></div>`;
     (document.querySelector(C.review.heading) as HTMLElement).focus();
     document.querySelector(C.review.delete)!.addEventListener('click', (event) => {
       event.preventDefault();
@@ -701,7 +716,7 @@ describe('PO-10624 native accessible warning activation', () => {
     },
   );
 
-  it('AC4. should scan blank and visible 251 errors then corrected 250 with zero PATCH', { tags: buildTags() }, () => {
+  it('AC4. should scan blank validation and capped 250 input with zero PATCH', { tags: buildTags() }, () => {
     const { session } = nativeWarning();
     const scans: string[] = [];
     const submit = cy.stub(session.recovery, 'submit');
@@ -754,13 +769,7 @@ describe('PO-10624 native accessible warning activation', () => {
     });
     new CheckerDeletionFlow().accessible('validation');
     cy.then(() => {
-      expect(scans).to.deep.equal([
-        '0:',
-        '0:',
-        '0:Enter reason',
-        '251:Reason must be 250 characters or fewer',
-        '250:Reason must be 250 characters or fewer',
-      ]);
+      expect(scans).to.deep.equal(['0:', '0:', '0:Enter reason', '250:Enter reason', '250:Enter reason']);
       expect(session.monitor.applicationAttempts).to.equal(0);
       expect(session.monitor.attempts).to.equal(0);
       expect(submit).not.to.have.been.called;

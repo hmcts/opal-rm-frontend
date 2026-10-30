@@ -9,7 +9,8 @@ Given('my accessible deletion scenario owns a submitted case for {string}', (kin
 );
 When('I confirm deletion with the prepared 250-character reason', () => flow.confirm());
 When('I confirm deletion without a reason', () => flow.submitValidation());
-When('I confirm deletion with the prepared 251-character reason', () => flow.submitValidation());
+When('I try to enter a deletion reason longer than 250 characters', () => flow.attemptOverLimitReason());
+Then('the deletion reason is capped at 250 characters', () => flow.assertReasonHardCap());
 When('I enter a {int}-character deletion reason', (length: number) => flow.enterReasonWithLength(length));
 When('I cancel deletion', () => flow.cancel());
 When('I explicitly retry deletion after a definite failure', () => flow.retry());

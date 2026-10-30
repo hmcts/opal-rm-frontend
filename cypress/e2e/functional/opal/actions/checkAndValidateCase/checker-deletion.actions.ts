@@ -33,7 +33,7 @@ export class CheckerDeletionActions {
    * @param kind Explicit business outcome.
    */
   public prepare(kind: string): void {
-    if (!['success', 'cancel', 'blank', 'over-limit', 'retry'].includes(kind))
+    if (!['success', 'cancel', 'blank', 'hard-cap', 'retry'].includes(kind))
       throw new Error('Unsupported deletion kind');
     this.kind = kind as CheckerDeletionKind;
     this.review.prepareSubmittedReview((session) => {
@@ -63,18 +63,27 @@ export class CheckerDeletionActions {
    */
   private reasonFor(kind: string, session: ICheckerPreparedReview): string {
     if (kind === 'success') return 'D'.repeat(250);
-    if (kind === 'over-limit') return 'D'.repeat(251);
+    if (kind === 'hard-cap') return '';
     if (kind === 'blank') return '';
     if (this.scanning) return 'Synthetic concurrency decision';
     return session.recovery.expectedReason();
   }
 
-  /** Types through the native field and requires the entire requested value, including 251 characters.
+  /** Types through the native field and requires the entire requested value.
    * @param reason Exact untruncated input.
    */
   public enterReason(reason: string): void {
     this.reason = reason;
     setCasefileReason(C.deletion.reason, reason);
+  }
+
+  /** Attempts native over-limit input without activating a deletion decision. */
+  public attemptOverLimitReason(): void {
+    this.context();
+    cy.get(C.deletion.reason).should('have.attr', 'maxlength', '250').clear().type('D'.repeat(251));
+    this.reason = 'D'.repeat(250);
+    this.assertCorrectedReason();
+    this.scan();
   }
 
   /** Requires the corrected visible boundary while the original case still has no mutation. */
@@ -142,7 +151,7 @@ export class CheckerDeletionActions {
   public submitValidation(): void {
     cy.then(() => {
       this.context();
-      if (this.reason !== '' && this.reason.length !== 251) throw new Error('Invalid deletion validation reason');
+      if (this.reason !== '') throw new Error('Invalid deletion validation reason');
       this.activateWarningSubmit();
     });
   }
@@ -250,7 +259,7 @@ export class CheckerDeletionActions {
   public assertValidation(expectedMessage?: string): void {
     cy.then(() => {
       const deletion = C.deletion;
-      const message = this.reason === '' ? 'Enter reason' : 'Reason must be 250 characters or fewer';
+      const message = 'Enter reason';
       if (expectedMessage !== undefined) expect(expectedMessage, 'selected validation contract').to.equal(message);
       cy.get(deletion.summary).should('be.visible').and('be.focused');
       cy.get(deletion.reasonError)
@@ -260,15 +269,10 @@ export class CheckerDeletionActions {
       pressDashboardEnter();
       cy.get(C.deletion.reason)
         .should('be.focused')
-        .and('have.value', this.reason)
+        .and('have.value', '')
         .and('have.attr', 'aria-describedby')
         .and('include', 'create_casefile_delete_reason-error-message');
-      cy.get(deletion.counter)
-        .should('be.visible')
-        .and(
-          'contain.text',
-          this.reason === '' ? 'You have 250 characters remaining' : 'You have 1 character too many',
-        );
+      cy.get(deletion.counter).should('be.visible').and('contain.text', 'You have 250 characters remaining');
       assertCheckerNoPatch(this.context().monitor);
     });
   }

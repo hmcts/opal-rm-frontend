@@ -579,8 +579,8 @@ only metadata and bindings; real publication, lifecycle cleanup and full live ac
 
 `CheckerDeletesCasefile.feature` retains five functional examples and
 `CheckerDeletesCasefileAccessibility.feature` adds four independent broad accessibility journeys: successful
-retained deletion, blank/over-limit correction, cancellation, and definite failure with explicit retry. Exactly
-**nine examples** remain enabled, with no skipped or pending scenarios and no scenario retries. Every example
+retained deletion, blank validation with the native hard cap, cancellation, and definite failure with explicit
+retry. Exactly **nine examples** remain enabled, with no skipped or pending scenarios and no scenario retries. Every example
 creates its own synthetic SUBMITTED case through the maintained normal API fixture. The checker must differ from
 the owning inputter and have actual Maintenance BU 44 permission 22; the ACTIVE inputter needs permission 21 in
 BU 44. The maintained fixture defaults to `opal-test@dev.platform.hmcts.net` and
@@ -589,10 +589,12 @@ provisioned independent users. Setup verifies real permissions and environment-v
 grant access or manufacture saved outcomes.
 
 Feature steps state confirmation, cancellation, linked validation, unchanged saved state and retained Deleted
-outcomes explicitly. The functional success reason is exactly 250 characters; over-limit validation types 251.
-The accessibility validation fixture follows blank → 251 → corrected 250 → Cancel, with the canonical accessibility
-step at visible checkpoints and strict intermediate scans before departure. Each independent Given resets its Flow
-state. `CheckerDeletionFlow` owns retry and broad accessibility sequencing; Actions own native controls, linked
+outcomes explicitly. The functional success reason is exactly 250 characters. The hard-cap journey attempts to
+type 251 characters through the native `maxlength=250` textarea and observes exactly 250 characters with zero
+characters remaining, zero application/wire PATCH attempts and no decision-control activation before cancellation.
+The accessibility validation fixture follows blank → attempted over-limit input capped at 250 → Cancel, with the
+canonical accessibility step at visible checkpoints and strict intermediate scans before departure. Each independent
+Given resets its Flow state. `CheckerDeletionFlow` owns retry and broad accessibility sequencing; Actions own native controls, linked
 focus, scans, transport/receipt decoding and saved-state assertions. Validation-only activation never waits for a
 PATCH receipt. Successful confirmation and each explicit retry activation still check lifecycle cleanup; retry
 arms one definite-failure monitor and preserves that same monitor, reason and original ETag for both attempts.
@@ -624,18 +626,26 @@ uncertain outcome or claim that every HTTP 400 originates from the provider.
 Accessibility journeys use native focused Cases/queue/owned-row/delete navigation, normal keyboard text entry,
 native Tab from the reason through the real decision/cancel controls, native Enter and linked error-summary focus.
 The shared strict `accessibilityActions.checkAccessibilityOnly()` scanner has no added exemptions. Scans cover
-entry/review, empty and filled warning, exact blank and 251-character validation errors, corrected 250-character
-input, cancelled review, definite error with retained retry form, success confirmation, every visited outcome
+entry/review, empty and filled warning, exact blank validation and native capped 250-character input,
+cancelled review, definite error with retained retry form, success confirmation, every visited outcome
 pagination page and retained read-only detail. Scanner failure stops subsequent interaction; the same persisted
 business assertions remain required. Automated Axe and keyboard checks provide partial accessibility evidence;
 screen-reader and magnification assessment remains a separate human/specialist check.
 
-The required errors are exactly `Enter reason` and `Reason must be 250 characters or fewer`. The strict over-limit
-journeys type **251 visible characters** and require the complete readback before checking the error and correcting
-to 250. The inspected frontend's native textarea currently has `maxlength=250`, preventing that 251-character
-input through normal typing. This is a **frontend baseline limitation (GAP008)**, not evidence of backend failure
-and not an automatically accepted waiver. Preserve the strict test and report the actual failure; do not force
-input, seed the value, bypass maxlength, accept truncation, patch the product, or silently remove the example.
+The exact blank-input error remains `Enter reason`, including the linked error-summary focus and unchanged saved
+aggregate. The user's explicit hard-cap decision supersedes the former **GAP008** requirement to preserve an
+impossible 251-visible-character journey. Native functional/accessibility journeys now attempt 251 keystrokes,
+observe the 250-character cap and zero PATCH, then cancel and prove the complete saved state is unchanged. The
+existing Angular `cases-draft-delete.component.spec.ts` programmatic 251-value maxLength validator test retains
+`Reason must be 250 characters or fewer` coverage. These evidence levels prove native input prevention and
+programmatic validation separately. No forced value, maxlength bypass or product change is introduced.
+
+The two intentional live scenario renames retain all existing tags and nine total examples:
+
+| Previous name | Native hard-cap replacement |
+| --- | --- |
+| Retain a visibly over-limit deletion reason without a decision | Cap the deletion reason at 250 characters without a decision |
+| Accessibly correct blank and over-limit reasons without changing the saved case | Accessibly validate blank input and enforce the deletion reason hard cap |
 
 Full live selection, only after actual runtime, independent-user and DELETED-cleanup preflight:
 

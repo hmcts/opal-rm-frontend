@@ -3,7 +3,7 @@ import type { IDraftCasefileSnapshot } from './interfaces/draft-casefile-snapsho
 import type { IOwnedDraftCasefile } from './interfaces/draft-casefile-owned.interface';
 import type { IDraftCasefileMonitor } from './interfaces/draft-casefile-monitor.interface';
 
-export type CheckerDeletionKind = 'success' | 'cancel' | 'blank' | 'over-limit' | 'retry';
+export type CheckerDeletionKind = 'success' | 'cancel' | 'blank' | 'hard-cap' | 'retry';
 
 /** Requires a retained owned aggregate and precisely one independent deletion event.
  * @param before Authoritative pre-decision aggregate.

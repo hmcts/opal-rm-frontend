@@ -354,7 +354,7 @@ Their DOM and snapshots cannot prove live publication, backend authorisation or 
 Complete the applicable local frontend preflight in
 `docs/SONAR.md`; external CI/Sonar/security/review/QA remain pending without direct evidence. Specialist screen-reader
 announcement/order checks and magnification/reflow checks across populated, empty, paginated, published and denied
-states remain pending on a compatible runtime; strict Axe is partial accessibility evidence and uses no exemptions.
+states remain pending on a compatible runtime; strict Axe is partial accessibility evidence and uses only the shared `aria-allowed-attr` exemption.
 
 ### Pending specialist verification
 
@@ -780,7 +780,7 @@ provider and saved-detail consultation rechecks that winner after recovery. The 
 actually resubmits its own REJECTED case. The retained non-rejected live entry and controlled foreign-BU entry
 expose no case/editor/task data, dispatch no POST/PUT/PATCH and retain an independently authorised unchanged saved read.
 
-Strict `accessibilityActions.checkAccessibilityOnly()` scans have **no exemptions** and run before departure from
+Strict `accessibilityActions.checkAccessibilityOnly()` scans use only the shared **`aria-allowed-attr`** exemption and run before departure from
 every meaningful visited collection/page/sort, task/history, actual corrected respondent editor, review, definite
 failure, shared conflict, Cases, recovered dashboard/tab/detail, confirmation/dismissal, In review, read-only
 self-review and denial state. Material pages also assert horizontal reflow at1280 and320 CSS pixels and restore

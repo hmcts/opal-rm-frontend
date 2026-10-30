@@ -15,8 +15,10 @@ export function setCasefileReason(selector: string, reason: string): void {
  * @param keyboard Whether to use the maintained native Enter helper.
  */
 export function activateCasefileControl(selector: string, keyboard: boolean): void {
+  cy.get(selector).should('be.visible').and('not.be.disabled');
+  // Requery before activation so focus and click receive the current DOM element.
   if (keyboard) {
-    cy.get(selector).should('be.visible').and('not.be.disabled').focus().should('be.focused');
+    cy.get(selector).focus().should('be.focused');
     pressDashboardEnter();
-  } else cy.get(selector).should('be.visible').and('not.be.disabled').click();
+  } else cy.get(selector).click();
 }

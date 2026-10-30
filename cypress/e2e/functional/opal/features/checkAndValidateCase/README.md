@@ -210,8 +210,8 @@ unexecuted acceptance evidence pending.
 ## PO-10628 live inputter monitoring
 
 `InputterCasefileMonitoring.feature` contains **7 enabled functional examples** (four scenarios, including one
-outline expanded to four examples). `InputterCasefileMonitoringAccessibility.feature` contains **4 enabled broad
-accessibility scenarios**: **11 enabled examples in total**. All carry `@R1CRmCreateCaseFiles`, `@functional`,
+outline expanded to four examples). `InputterCasefileMonitoringAccessibility.feature` contains **3 enabled broad
+accessibility scenarios**: **10 enabled examples in total**. All carry `@R1CRmCreateCaseFiles`, `@functional`,
 `@JIRA-LABEL:create-draft-casefile`, `@JIRA-STORY:PO-10628`, `@JIRA-EPIC:PO-10817`, appropriate `@AC1`–`@AC6` tags
 and `@retries(0)`. There are no pending/skip tags. Each scenario constructs fresh flow/actions/fixture state.
 
@@ -222,7 +222,7 @@ and `@retries(0)`. There are no pending/skip tags. Each scenario constructs fres
 | AC3 | Controlled collection, actor and traversal checks remain; live third-inputter amendment entry and consultation restoration are unverified. The original own/other-row acceptance mismatch also remains (see ledger). |
 | AC4 | Actual PUBLISHED detail supplies positive IDs and all respondent/applicant/two minor-creditor numbers, rendered in creditor sequence as exact read-only text. Pending exclusion remains controlled coverage; backend stable-pending duration is unverified. |
 | AC5 | Successful authorised entry precedes an existing ACTIVE denied user's direct dashboard attempt; no counts, rows, collection GETs or writes are exposed. |
-| AC6 | Four live scenarios retain strict Axe checks: populated tabs, genuinely empty tabs, published multi-account row and actual denied destination. Native keyboard/focus checks remain on those journeys; third-inputter sorting/paging/amendment/return accessibility remains controlled coverage. |
+| AC6 | Three live scenarios retain strict Axe checks: populated tabs, published multi-account row and actual denied destination. Empty tabs use mounted controlled coverage. Native keyboard/focus checks remain on those journeys; third-inputter sorting/paging/amendment/return accessibility remains controlled coverage. |
 
 Setup uses `InputterMonitoringFixtureActions`, normal authenticated POST and fresh-ETag lifecycle changes with a
 distinct checker. Every successfully created ID immediately has required owner/marker cleanup, including setup
@@ -279,8 +279,8 @@ Before live execution, an operator must verify:
   `RM_TEST_ACTORS.inputter` / `RM_TEST_ACTORS.checker` overrides select provisioned identities. The shared `deniedUser`
   role defaults to the already provisioned `opal-test-4@dev.platform.hmcts.net`; verify ACTIVE Maintenance
   membership and absence of BU44 permission21. Tests never grant permissions or create users.
-- Live active unique UK CJS Country, Create Casefile application and compatible MAT Order Term metadata. Empty
-  examples need genuinely empty own collections. Fail conflicting prerequisites without deleting unrelated data.
+- Live active unique UK CJS Country, Create Casefile application and compatible MAT Order Term metadata.
+  Empty collections are allocated to controlled dashboard coverage; live setup preserves unrelated work.
 - The backend's inclusive calendar-date/timezone semantics agree with AUT local calendar consultation. Date-window
   examples read actual lifecycle timestamps and advance only AUT Date; timers and server/database clocks stay real.
 
@@ -328,7 +328,7 @@ corepack yarn test:functional:leaf --browser=chrome \
   --env 'dryRun=true,tags=@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10628 and not @skip'
 ```
 
-Expected discovery inventory is **11 examples (7 functional + 4 accessibility), zero skipped/pending**, with no
+Expected discovery inventory is **10 examples (7 functional + 3 accessibility), zero skipped/pending**, with no
 undefined or ambiguous bindings. Discovery is no browser or live acceptance evidence. For live acceptance after
 runtime verification, remove only `dryRun=true,` from `--env`; retain the identical tag selectors and ordinary
 configuration. This invokes real authentication, owned creation, decisions, bounded publication polling, dashboard
@@ -367,10 +367,10 @@ owner/marker cleanup; retain failed receipts if the runtime cannot return204.
 
 ### Submitted-only capability selection
 
-`@PO10628SubmittedOnly` identifies exactly **four enabled examples**: the SUBMITTED D+7/D+8 outline row, functional
-denial, accessibility genuinely empty tabs and accessibility denial. They create only SUBMITTED records or none;
+`@PO10628SubmittedOnly` identifies exactly **three enabled examples**: the SUBMITTED D+7/D+8 outline row, functional
+denial and accessibility denial. They create only SUBMITTED records or none;
 they perform no decisions/amendment writes. The tag is attached only to the SUBMITTED Examples block and those
-three scenarios; the overall inventory is 11. It is a selection tag, never a skip or acceptance waiver.
+two scenarios; the overall inventory is 10. It is a selection tag, never a skip or acceptance waiver.
 
 After final review, actual submitted cleanup/authentication/reference-data preflight and explicit live execution
 authorisation, this subset can be attempted independently of transitioned/publication readiness. Exact selection:
@@ -385,7 +385,7 @@ corepack yarn test:functional:leaf --browser=chrome \
 ```
 
 For **subset discovery only**, add `dryRun=true,` before lowercase `tags=` and retain the reachable configured URL;
-expect **4 dry-run examples (2 functional + 2 accessibility)**, with no live evidence. A future four-example live
+expect **3 dry-run examples (2 functional + 1 accessibility)**, with no live evidence. A future three-example live
 pass cannot satisfy the remaining 7 retained live examples or the ledger's unverified acceptance; it cannot complete
 PO-10628.
 
@@ -395,3 +395,11 @@ every traversed page, after each ascending/descending sort, and after every sear
 before leaving that state. Functional callers keep their read-only assertions without enabling these additional
 scans. Controlled support dispatch checks prove state-by-state scanner invocation and stop-on-failure behavior;
 they do not establish live Axe acceptance.
+
+### Empty dashboard coverage (CI isolation repair, 30 October 2026)
+
+Following Fines, `Consult genuinely empty personal lifecycle tabs accessibly` (PO-10628, AC1, AC6,
+PO10628SubmittedOnly, retries(0)) is allocated to `dashboard/inputter-dashboard.cy.ts`: all four exact
+empty messages, absent table, native keyboard departure and strict Axe. Shared live collections cannot
+remain empty while other workers create authorised cases. Live empty-list API acceptance is unverified;
+owned populated live journeys remain enabled. No unrelated records are deleted.

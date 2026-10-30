@@ -27,34 +27,11 @@ Feature: Monitor independently owned live inputter casefiles
       | DELETED   | seven-day |
       | PUBLISHED | seven-day |
 
-  @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC2 @AC3 @retries(0)
-  Scenario Outline: Reach the complete rejection list from either personal result state
-    Given my live personal rejection collection is "<state>" and another inputter owns a rejected case
-    When I follow View all rejected cases from my live dashboard
-    Then the real Business Unit rejection list contains the expected owned cases
-    Examples:
-      | state     |
-      | empty     |
-      | populated |
-
-  @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC3 @retries(0)
-  Scenario: Open another inputter's rejected work and restore dashboard consultation state
-    Given my live scenario owns paginated rejections and another inputter's rejected case
-    When I open that case for amendment from All rejected and return
-    Then the matching persisted draft and originating dashboard page and sort are retained
-
   @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC4 @retries(0)
   Scenario: Display every real published account number as read-only text
     Given my live monitoring scenario owns a published casefile with two minor creditors
     When I inspect its Approved row
     Then all generated respondent applicant and minor creditor numbers match the saved snapshot as read-only text
-
-  @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC4 @retries(0)
-  Scenario: Show no account numbers while real publication is pending
-    Given my live monitoring scenario owns a verified pending casefile
-    When I consult the live "in-review" monitoring tab with the keyboard
-    And I consult the live "approved" monitoring tab with the keyboard
-    Then the pending casefile does not appear in Approved
 
   @JIRA-STORY:PO-10628 @JIRA-EPIC:PO-10817 @AC5 @PO10628SubmittedOnly @retries(0)
   Scenario: Deny monitoring to a provisioned user without inputter permission

@@ -31,11 +31,20 @@ export function buildSyntheticDraftRequest(
     request.casefile.applicant.party_details.individual_details!.surname += ` ${suffix}`;
   }
   if (options.minorCreditorCount === 2) {
-    request.casefile.minor_creditors = [1, 2].map((creditor_sequence) => ({
-      creditor_sequence,
-      party_details: structuredClone(request.casefile.applicant.party_details),
-      bank_account_details: { bank_account_type: 'None or not applicable' },
-    }));
+    request.casefile.minor_creditors = [1, 2].map((creditor_sequence) => {
+      const party_details = structuredClone(request.casefile.applicant.party_details);
+      const individual = party_details.individual_details!;
+      party_details.individual_details = {
+        title: individual.title,
+        forenames: individual.forenames,
+        surname: individual.surname,
+      };
+      return {
+        creditor_sequence,
+        party_details,
+        bank_account_details: { bank_account_type: 'None or not applicable' },
+      };
+    });
     const term = structuredClone(request.casefile.respondent_account.order_details.order_terms[0]);
     request.casefile.respondent_account.order_details.order_terms.push(
       { ...structuredClone(term), creditor_type: 'Minor Creditor', minor_creditor_sequence: 1 },

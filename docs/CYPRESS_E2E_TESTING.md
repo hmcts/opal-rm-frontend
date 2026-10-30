@@ -38,6 +38,13 @@ The JSON request digest wrapper follows Fines: its callback uses the explicit re
 configured response timeout. This preserves the HTTP request's time budget instead of applying the shorter DOM
 command timeout while awaiting the response. HTTP errors still fail; no automatic retry is added.
 
+## Shared accessibility exemption
+
+The shared E2E accessibility helper omits only Axe's `aria-allowed-attr` rule, matching the existing Fines
+GOV.UK exemption approved for RM. All other Axe rules still fail the test. This is a testing-policy exemption;
+it does not establish that every omitted ARIA attribute is correct. Component tests calling `cy.checkA11y()`
+directly keep their existing configuration. Do not add further exemptions without an explicit decision.
+
 ## Draft Casefile concurrency and recovery QA (PO-10626)
 
 Use the PO-10611 frontend foundation with current master dependencies (`8cf1f9e6`, common UI `0.0.116`). Build this checkout with independent
@@ -100,7 +107,7 @@ The consumer and pending/published cleanup are delivered on the support branch; 
 not satisfy this verification gate. `PUBLISHING_FAILED` cleanup eligibility does not authorise forcing that state.
 Preserve failed receipts and raw outputs before runner resets. Controlled support checks and discovery establish
 helper behaviour and selection/bindings respectively; live acceptance remains separate. All existing recovery,
-Axe and native keyboard checks remain, with no additional accessibility exemptions.
+Axe and native keyboard checks remain, with only the shared `aria-allowed-attr` exemption.
 
 Full inventory discovery (no browser actions or approval fixture creation):
 
@@ -658,7 +665,7 @@ controls, review, removal confirmation, abandoned removal and removal success. K
 controls, with native Enter for anchors. Axe and these interactions provide partial accessibility evidence.
 Specialist follow-up must check full keyboard traversal and visible focus, screen-reader names and announcements,
 and magnification using the enabled release and provisioned creator; expect reachable controls, correctly announced
-state and no lost content. No further Axe exemptions are introduced.
+state and no lost content. Only the shared `aria-allowed-attr` exemption applies.
 
 ## Order Term creditor QA (PO-10279)
 
@@ -1008,7 +1015,7 @@ provider and saved-detail consultation rechecks that winner after recovery. The 
 actually resubmits its own REJECTED case. The retained non-rejected live entry and controlled foreign-BU entry
 expose no case/editor/task data, dispatch no POST/PUT/PATCH and retain an independently authorised unchanged saved read.
 
-Strict `accessibilityActions.checkAccessibilityOnly()` scans have **no exemptions** and run before departure from
+Strict `accessibilityActions.checkAccessibilityOnly()` scans use only the shared **`aria-allowed-attr`** exemption and run before departure from
 every meaningful visited collection/page/sort, task/history, actual corrected respondent editor, review, definite
 failure, shared conflict, Cases, recovered dashboard/tab/detail, confirmation/dismissal, In review, read-only
 self-review and denial state. Material pages also assert horizontal reflow at1280 and320 CSS pixels and restore

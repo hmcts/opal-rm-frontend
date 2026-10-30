@@ -1,3 +1,4 @@
+import { getTestActor } from '../../../../../support/test-actors';
 import { CASES_DRAFT_CHECKER_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
 import type { CasesDraftCheckerTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import type { IOpalMaintenanceDraftCasefileSummary } from 'src/app/flows/cases/services/opal-maintenance-service/interfaces/opal-maintenance-draft-casefile-summary.interface';
@@ -288,7 +289,7 @@ export class CheckerDashboardWindowActions {
 
   /** Authenticates the checker and proves real empty collections/counts without creating or deleting anything. */
   public prepareEmpty(): void {
-    performAuthentication(String(Cypress.env('PO10626_CHECKER_EMAIL') || 'opal-test-10@dev.platform.hmcts.net'));
+    performAuthentication(getTestActor('checker'));
     requireMembership(22).then(({ id }) => {
       const calendar = monitoringCalendar(new Date().toISOString(), 0);
       for (const tab of Object.keys(TABS) as CasesDraftCheckerTab[]) {

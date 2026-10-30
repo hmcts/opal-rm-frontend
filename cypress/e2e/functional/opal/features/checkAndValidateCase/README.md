@@ -53,8 +53,9 @@ private AAD values and release overrides belong in the isolated process environm
   migration, publication-evidence endpoint or evidence-response schema.
 - Existing synthetic inputter `opal-test@dev.platform.hmcts.net`: ACTIVE, Maintenance BU 44 permission 21.
 - Existing synthetic checker `opal-test-10@dev.platform.hmcts.net`: ACTIVE, Maintenance BU 44 permission 22, with a
-  distinct BU user ID. Optional `PO10626_INPUTTER_EMAIL` and `PO10626_CHECKER_EMAIL` select other already-provisioned
-  synthetic users. Setup verifies actual permissions and distinct IDs without creating users or changing access.
+  distinct BU user ID. Both come from the shared `inputter` / `checker` actor roles. Optional `RM_TEST_ACTORS`
+  overrides select other already-provisioned synthetic users; see the [shared actor convention](../../../../../../docs/CYPRESS_E2E_TESTING.md#shared-test-actors).
+  Setup verifies actual permissions and distinct IDs without creating users or changing access.
 - Reference data valid for the target environment. Setup uses the existing active United Kingdom Country,
   Create Casefile Application and MAT metadata; do not copy integration-test IDs into a live environment.
 
@@ -274,9 +275,9 @@ Before live execution, an operator must verify:
   complete generated IDs/numbers for one respondent, one applicant and two sequenced minor creditors. Independently
   verify existing ID/marker cleanup returns HTTP204 for pending/published graphs; HTTP409 is a failure.
 - Existing synthetic ACTIVE Maintenance BU44 permission21 inputter and independent permission22 checker. Defaults
-  remain `opal-test@dev.platform.hmcts.net` / `opal-test-10@dev.platform.hmcts.net`; established
-  `PO10626_INPUTTER_EMAIL` / `PO10626_CHECKER_EMAIL` overrides select provisioned identities. The denied account
-  defaults to the already provisioned `opal-test-4@dev.platform.hmcts.net` (`PO10628_DENIED_EMAIL` override); verify ACTIVE Maintenance
+  remain `opal-test@dev.platform.hmcts.net` / `opal-test-10@dev.platform.hmcts.net`; shared
+  `RM_TEST_ACTORS.inputter` / `RM_TEST_ACTORS.checker` overrides select provisioned identities. The shared `deniedUser`
+  role defaults to the already provisioned `opal-test-4@dev.platform.hmcts.net`; verify ACTIVE Maintenance
   membership and absence of BU44 permission21. Tests never grant permissions or create users.
 - Live active unique UK CJS Country, Create Casefile application and compatible MAT Order Term metadata. Empty
   examples need genuinely empty own collections. Fail conflicting prerequisites without deleting unrelated data.
@@ -409,7 +410,7 @@ No example is skipped or pending.
 
 Every Given creates fresh data with the exact E2E marker and required cleanup receipt. Positive fixtures require
 independent ACTIVE BU 44 inputter permission 21 and checker permission 22 identities. The self-review negative
-alone uses the same dual-role identity. Denied tests authenticate `PO10625_DENIED_EMAIL` (default provisioned
+alone uses the same dual-role identity. Denied tests authenticate the shared `deniedUser` role (default provisioned
 `opal-test-4@dev.platform.hmcts.net`), verify its actual user-state lacks BU 44 permission 22, require the actual
 access-denied route and absence of case data, then restore the owner before independent GET and cleanup.
 

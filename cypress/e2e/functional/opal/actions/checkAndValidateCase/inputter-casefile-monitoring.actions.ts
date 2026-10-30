@@ -379,12 +379,8 @@ export class InputterCasefileMonitoringActions {
     cy.get(S.tableRows).then((rows) => {
       this.rejectionIds = [...rows].map((row) => Number(row.getAttribute('data-draft-id')));
     });
-    cy.get(S.row(owned.id))
-      .find('a')
-      .should('have.length', 1)
-      .and('not.have.attr', 'target')
-      .focus()
-      .should('be.focused');
+    cy.get(S.row(owned.id)).find('a').should('have.length', 1).and('not.have.attr', 'target');
+    cy.get(S.row(owned.id)).find('a').focus().should('be.focused');
     pressDashboardEnter();
     cy.wait('@monitoringSelectedDetail');
     cy.location('pathname').should(

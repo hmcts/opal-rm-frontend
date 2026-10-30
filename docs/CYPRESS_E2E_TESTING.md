@@ -899,3 +899,47 @@ and accessibility denial), within 10 overall. Use the suite guide's matching sel
 actual authentication/reference-data/submitted-cleanup preflight. Add `dryRun=true` for discovery only and retain
 the reachable URL. A three-example pass cannot complete the other 7 retained examples or the ledger's unverified
 acceptance; transitioned/approval fixtures still require their own real cleanup capabilities to be verified.
+
+## PO-10624 independent checker deletion QA
+
+The [deletion suite guide](../cypress/e2e/functional/opal/features/checkAndValidateCase/README.md#po-10624-independent-checker-deletion)
+records the runtime prerequisites and evidence contract for **nine independent examples: five functional and four
+broad accessibility**. All remain enabled with scenario retries disabled. Each creates a fresh normal-API
+SUBMITTED fixture using distinct ACTIVE inputter permission 21 and checker permission 22 identities in
+Maintenance BU 44. Require `release-1c-rm-create-case-files`, Maintenance testing-support enablement, the actual
+compiled backend revision/running services and compatible persisted deletion/list/detail/cleanup contracts.
+Publication and its consumer are not deletion prerequisites.
+
+Deletion success/retry scenarios require a backend supporting DELETED owner/marker cleanup. Every executed
+example uses required automatic cleanup; failed cleanup retains the exact receipt. The five
+`@PO10624SubmittedOnly` examples create only SUBMITTED records and remain a diagnostic subset.
+
+Full live selection after runtime and cleanup preflight:
+
+```bash
+TAGS='@JIRA-STORY:PO-10624 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10624 and not @skip' \
+yarn test:functional:leaf --browser=chrome --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerDeletesCasefile*.feature' \
+--env 'tags=@JIRA-STORY:PO-10624 and not @skip'
+```
+
+Use the verified frontend `TEST_URL`. Add `and @PO10624SubmittedOnly` to **TAGS, CYPRESS_TAGS and lowercase tags**
+for the five-example safe selection. For discovery only, use the same command with `--config '{"baseUrl":null}'`
+and prepend `dryRun=true,omitFiltered=true,` to the `--env` value. The installed v26 preprocessor supports
+`dryRun=true`; `cucumberOnlyMissingSteps` does not provide this evidence. Require full **9 (5+4)** and subset
+**5 (3+2)** discovery, with no undefined/ambiguous/skipped/pending examples.
+
+Strict shared Axe scans and native Enter/Tab cover all meaningful visited states and actual pagination pages;
+scan failure must propagate. Persisted GET, provider/DOM collections and retained read-only detail remain mandatory
+business outcomes. The one-shot definite failure is an HTTP 400 before provider dispatch followed by an explicit
+real UI retry using the same monitor and original ETag; it does not prove uncertain-delivery recovery. The user's
+explicit hard-cap decision supersedes the former **GAP008** strict 251-visible-character requirement. Native
+functional/accessibility journeys attempt 251 keystrokes against `maxlength=250`, observe exactly 250 characters,
+zero remaining and zero application/wire PATCH, then cancel and prove full saved-state equality. Exact `Enter reason`
+validation and valid-250 deletion remain. The unchanged Angular programmatic 251-value maxLength unit test owns
+`Reason must be 250 characters or fewer` validation. Do not force or seed an over-limit native value or bypass the
+control. Controlled and unit evidence remain separate from final live acceptance.
+
+Controlled support and discovery are not passing live deletion. Parent-owned evidence and the delivery report/PR
+must record measured results, interruptions, unrun lifecycle examples and actual marker-owned cleanup receipts.
+These reusable instructions make no live-pass claim. Draft handoff does not require publication or an approval-state
+check; failed applicable checks still mean Not Agent Complete.

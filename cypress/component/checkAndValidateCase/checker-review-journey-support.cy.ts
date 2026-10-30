@@ -15,6 +15,10 @@ import {
   assertCheckerHistory,
 } from '../../e2e/functional/opal/actions/checkAndValidateCase/checker-review-decisions.actions';
 import { createPersistedCasefileDetail } from '../../../src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
+import { CheckerReviewFixtureActions } from '../../e2e/functional/opal/actions/checkAndValidateCase/checker-review-fixture.actions';
+import { CasesDraftSelectors as D } from '../../shared/selectors/cases-draft.selectors';
+import type { IDraftCasefileSnapshot } from '../../e2e/functional/opal/actions/checkAndValidateCase/interfaces/draft-casefile-snapshot.interface';
+import type { IOwnedDraftCasefile } from '../../e2e/functional/opal/actions/checkAndValidateCase/interfaces/draft-casefile-owned.interface';
 import type { IDraftCasefileMonitor } from '../../e2e/functional/opal/actions/checkAndValidateCase/interfaces/draft-casefile-monitor.interface';
 
 const buildTags = (): string[] => [
@@ -481,6 +485,203 @@ describe('PO-10625 real recovery form activation support', () => {
         },
       );
     }
+  }
+});
+
+// Narrow fixture/navigation seams leave the maintained session and queue traversal under test.
+interface CheckerReviewSeam {
+  owned?: IOwnedDraftCasefile;
+  before?: IDraftCasefileSnapshot;
+  monitor?: IDraftCasefileMonitor;
+  recovery: DraftCasefileRecoveryActions;
+  rows: { draft_casefile_id: number }[];
+  checkerObservation: boolean;
+  openQueue(): void;
+  openOwned(): void;
+  observeQueue(owned: IOwnedDraftCasefile): void;
+  changeQueuePage(direction: 'next' | 'previous'): void;
+}
+
+const deletionTags = (): string[] => [
+  '@R1CRmCreateCaseFiles',
+  '@JIRA-STORY:PO-10624',
+  '@JIRA-EPIC:PO-10817',
+  '@JIRA-LABEL:create-draft-casefile',
+  '@retries(0)',
+];
+
+function setupPreparedReview(
+  actions: CheckerReviewActions,
+  events: string[],
+  missing?: 'owned' | 'before' | 'monitor',
+) {
+  const seam = actions as unknown as CheckerReviewSeam;
+  const expectedMonitor = monitor();
+  const saved = snapshot();
+  const create = cy.stub(CheckerReviewFixtureActions.prototype, 'create').callsFake(() => {
+    events.push('create');
+    return cy.wrap(owned, { log: false });
+  });
+  cy.stub(cy, 'request').callsFake(() =>
+    cy.wrap({ status: 200, body: saved.draft, headers: { etag: saved.etag } }, { log: false }),
+  );
+  // Authentication and queue/detail navigation are outside this controlled composition test.
+  cy.stub(cy, 'session');
+  cy.stub(cy, 'visit');
+  cy.document().then((document) => {
+    document.body.innerHTML =
+      '<nav aria-label="Account navigation"><a class="moj-header__navigation-link" href="#signout">Sign out</a></nav>';
+  });
+  cy.stub(seam, 'observeQueue');
+  cy.stub(seam, 'openQueue');
+  cy.stub(seam, 'openOwned').callsFake(() => {
+    cy.then(() => {
+      seam.monitor = expectedMonitor;
+      events.push('monitor installed');
+      if (missing) seam[missing] = undefined;
+    });
+  });
+  return { seam, saved, expectedMonitor, create };
+}
+
+describe('PO-10624 prepared checker review support', () => {
+  it('AC1. should prepare a complete session after fixture and monitor setup', { tags: deletionTags() }, () => {
+    const actions = new CheckerReviewActions();
+    const events: string[] = [];
+    const { seam, saved, expectedMonitor, create } = setupPreparedReview(actions, events);
+    actions.prepareSubmittedReview((session) => {
+      events.push('ready');
+      expect(session.owned).to.equal(owned);
+      expect(session.before).to.equal(seam.before);
+      expect(session.before).to.deep.equal(saved);
+      expect(session.recovery).to.equal(seam.recovery);
+      expect(session.monitor).to.equal(expectedMonitor);
+    });
+    cy.then(() => {
+      expect(create).to.have.been.calledOnceWithExactly('SUBMITTED', false);
+      expect(events).to.deep.equal(['create', 'monitor installed', 'ready']);
+    });
+  });
+
+  it(
+    'AC1. should return through maintained queue navigation and release its old observation',
+    { tags: deletionTags() },
+    () => {
+      const actions = new CheckerReviewActions();
+      const seam = actions as unknown as CheckerReviewSeam;
+      const open = cy.stub(seam, 'openQueue');
+      actions.returnToQueue();
+      expect(open).to.have.been.calledOnce;
+      expect(seam.checkerObservation).to.equal(true);
+      actions.releaseQueueObservation();
+      expect(seam.checkerObservation).to.equal(false);
+    },
+  );
+});
+
+describe('PO-10624 incomplete prepared checker session support', () => {
+  let observedFailure: boolean;
+  beforeEach(() => {
+    observedFailure = false;
+  });
+  afterEach(() => expect(observedFailure, 'required incomplete session failure observed').to.equal(true));
+
+  for (const missing of ['owned', 'before', 'monitor'] as const) {
+    it(
+      `AC1. should reject a prepared review with missing ${missing} before calling ready`,
+      { tags: deletionTags() },
+      () => {
+        const actions = new CheckerReviewActions();
+        setupPreparedReview(actions, [], missing);
+        const errors = {
+          owned: 'Checker fixture missing',
+          before: 'Checker baseline missing',
+          monitor: 'Prepared checker monitor missing',
+        };
+        let ready = false;
+        cy.once('fail', (error) => {
+          if (!error.message.includes(errors[missing])) throw error;
+          expect(ready, 'incomplete session must not reach its consumer').to.equal(false);
+          observedFailure = true;
+          return false;
+        });
+        actions.prepareSubmittedReview(() => {
+          ready = true;
+        });
+      },
+    );
+  }
+});
+
+describe('PO-10624 complete checker queue absence support', () => {
+  let expectedFailure: string;
+  let observedFailure: boolean;
+  beforeEach(() => {
+    expectedFailure = '';
+    observedFailure = false;
+  });
+  afterEach(() => {
+    if (expectedFailure) expect(observedFailure, 'required queue failure observed').to.equal(true);
+  });
+
+  for (const fault of ['none', 'provider', 'later DOM', 'strict scan'] as const) {
+    it(
+      `AC1. should inspect the provider and every actual queue page with ${fault}`,
+      { tags: deletionTags(), defaultCommandTimeout: 100 },
+      () => {
+        const actions = new CheckerReviewActions();
+        const seam = actions as unknown as CheckerReviewSeam;
+        seam.owned = owned;
+        seam.rows = fault === 'provider' ? [{ draft_casefile_id: owned.id }] : [];
+        const state = { page: 2 };
+        const scans: number[] = [];
+        const visits: number[] = [];
+        cy.document().then((document) => {
+          const render = () => {
+            const row = fault === 'later DOM' && state.page === 3 ? owned.id : 999;
+            document.body.innerHTML = `<app-cases-draft-table><table><tbody><tr data-draft-id="${row}"><td>Controlled respondent</td></tr></tbody></table></app-cases-draft-table><nav id="cases-draft-pagination">${state.page > 1 ? '<a rel="prev" href="#prev">Previous</a>' : ''}${state.page < 3 ? '<a rel="next" href="#next">Next</a>' : ''}</nav>`;
+            visits.push(state.page);
+          };
+          cy.stub(seam, 'changeQueuePage').callsFake((direction) => {
+            cy.then(() => {
+              state.page += direction === 'next' ? 1 : -1;
+              render();
+            });
+          });
+          render();
+        });
+        cy.stub(cy, 'wait').callsFake((alias) => {
+          expect(alias).to.equal('@checkerQueue');
+          return cy.wrap({}, { log: false });
+        });
+        cy.stub(accessibilityActions, 'checkAccessibilityOnly').callsFake(() => {
+          cy.then(() => {
+            scans.push(state.page);
+            if (fault === 'strict scan') throw new Error('Controlled strict queue scan');
+          });
+        });
+        if (fault !== 'none') {
+          expectedFailure = {
+            provider: 'owned case left provider To review',
+            'later DOM': 'not to exist',
+            'strict scan': 'Controlled strict queue scan',
+          }[fault];
+          cy.once('fail', (error) => {
+            if (!error.message.includes(expectedFailure)) throw error;
+            observedFailure = true;
+            if (fault === 'later DOM') expect(state.page).to.equal(3);
+            return false;
+          });
+        }
+        actions.enableAccessibility();
+        actions.assertOwnedAbsentFromQueue();
+        cy.then(() => {
+          expect(visits).to.deep.equal([2, 1, 2, 3]);
+          expect(scans).to.deep.equal([1, 1, 2, 3]);
+          cy.get(D.row(owned.id)).should('not.exist');
+        });
+      },
+    );
   }
 });
 

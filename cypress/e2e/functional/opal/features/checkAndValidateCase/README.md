@@ -585,6 +585,121 @@ Run the six-example selection separately before any parent-authorised self-only 
 assertions, guards, Cucumber hooks, cleanup or timeouts to turn the failure into a pass. Selector discovery proves
 only metadata and bindings; real publication, lifecycle cleanup and full live acceptance remain outstanding.
 
+## PO-10624 independent checker deletion
+
+`CheckerDeletesCasefile.feature` retains five functional examples and
+`CheckerDeletesCasefileAccessibility.feature` adds four independent broad accessibility journeys: successful
+retained deletion, blank validation with the native hard cap, cancellation, and definite failure with explicit
+retry. Exactly **nine examples** remain enabled, with no skipped or pending scenarios and no scenario retries. Every example
+creates its own synthetic SUBMITTED case through the maintained normal API fixture. The checker must differ from
+the owning inputter and have actual Maintenance BU 44 permission 22; the ACTIVE inputter needs permission 21 in
+BU 44. The maintained fixture defaults to `opal-test@dev.platform.hmcts.net` and
+`opal-test-10@dev.platform.hmcts.net`; the shared `RM_TEST_ACTORS` inputter/checker roles select other already
+provisioned independent users. Setup verifies real permissions and environment-valid reference data. It does not
+grant access or manufacture saved outcomes.
+
+Feature steps state confirmation, cancellation, linked validation, unchanged saved state and retained Deleted
+outcomes explicitly. The functional success reason is exactly 250 characters. The hard-cap journey attempts to
+type 251 characters through the native `maxlength=250` textarea and observes exactly 250 characters with zero
+characters remaining, zero application/wire PATCH attempts and no decision-control activation before cancellation.
+The accessibility validation fixture follows blank → attempted over-limit input capped at 250 → Cancel, with the
+canonical accessibility step at visible checkpoints and strict intermediate scans before departure. Each independent
+Given resets its Flow state. `CheckerDeletionFlow` owns retry and broad accessibility sequencing; Actions own native controls, linked
+focus, scans, transport/receipt decoding and saved-state assertions. Validation-only activation never waits for a
+PATCH receipt. Successful confirmation and each explicit retry activation still check lifecycle cleanup; retry
+arms one definite-failure monitor and preserves that same monitor, reason and original ETag for both attempts.
+The final outcome assertion reads persisted evidence without initiating another mutation.
+
+Enable `release-1c-rm-create-case-files` in the frontend and
+`TESTING_SUPPORT_ENDPOINTS_ENABLED=true` in the actual Maintenance runtime. Before execution, verify the frontend
+process/build belongs to this checkout and record the actual compiled backend revision and running services.
+Require compatible real POST/GET/PATCH/list/detail routes, opaque ETags, permission enforcement, retained deletion,
+exact Deleted history and marker-owned cleanup; a source checkout or an issue's status does not establish the
+compiled runtime contract. Deletion does **not** require publication, a publication consumer or publication
+evidence registration.
+
+Deletion success/retry scenarios require a backend supporting DELETED owner/marker cleanup. Every executed
+example uses required automatic cleanup; failed cleanup retains the exact receipt. The five
+`@PO10624SubmittedOnly` examples create only SUBMITTED records and remain a diagnostic subset.
+
+Success requires the exact owned `You have deleted {respondentName}’s case.` banner and To review destination,
+a fresh actual GET proving retained DELETED state, advanced ETag, all saved casefile/snapshot/validation fields and
+prior history, and exactly one new Deleted event with the exact independent checker and typed reason. It also
+requires absence from the actual To review provider collection and every DOM page, inclusion in both actual
+Deleted provider and paginated DOM results, and retained read-only detail without decision controls. Cancellation
+and validation require zero application/wire PATCH and a fresh unchanged aggregate/ETag/history, plus the same
+saved review and actual To review inclusion. Definite failure uses the maintained **one-shot HTTP 400 before
+provider dispatch**. It proves that definite-rejection boundary only; the explicit real UI retry retains the same
+monitor, reason and original opaque ETag and requires one acknowledged provider success. It does not model an
+uncertain outcome or claim that every HTTP 400 originates from the provider.
+
+Accessibility journeys use native focused Cases/queue/owned-row/delete navigation, normal keyboard text entry,
+native Tab from the reason through the real decision/cancel controls, native Enter and linked error-summary focus.
+The shared strict `accessibilityActions.checkAccessibilityOnly()` scanner has no added exemptions. Scans cover
+entry/review, empty and filled warning, exact blank validation and native capped 250-character input,
+cancelled review, definite error with retained retry form, success confirmation, every visited outcome
+pagination page and retained read-only detail. Scanner failure stops subsequent interaction; the same persisted
+business assertions remain required. Automated Axe and keyboard checks provide partial accessibility evidence;
+screen-reader and magnification assessment remains a separate human/specialist check.
+
+The exact blank-input error remains `Enter reason`, including the linked error-summary focus and unchanged saved
+aggregate. The user's explicit hard-cap decision supersedes the former **GAP008** requirement to preserve an
+impossible 251-visible-character journey. Native functional/accessibility journeys now attempt 251 keystrokes,
+observe the 250-character cap and zero PATCH, then cancel and prove the complete saved state is unchanged. The
+existing Angular `cases-draft-delete.component.spec.ts` programmatic 251-value maxLength validator test retains
+`Reason must be 250 characters or fewer` coverage. These evidence levels prove native input prevention and
+programmatic validation separately. No forced value, maxlength bypass or product change is introduced.
+
+The two intentional live scenario renames retain all existing tags and nine total examples:
+
+| Previous name | Native hard-cap replacement |
+| --- | --- |
+| Retain a visibly over-limit deletion reason without a decision | Cap the deletion reason at 250 characters without a decision |
+| Accessibly correct blank and over-limit reasons without changing the saved case | Accessibly validate blank input and enforce the deletion reason hard cap |
+
+Full live selection, only after actual runtime, independent-user and DELETED-cleanup preflight:
+
+```bash
+TAGS='@JIRA-STORY:PO-10624 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10624 and not @skip' \
+yarn test:functional:leaf --browser=chrome --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerDeletesCasefile*.feature' \
+--env 'tags=@JIRA-STORY:PO-10624 and not @skip'
+```
+
+Set `TEST_URL` to the verified live frontend URL. For the safe SUBMITTED-only selection, add
+`and @PO10624SubmittedOnly` to **all three selectors**; expect exactly **five examples**:
+
+```bash
+TAGS='@JIRA-STORY:PO-10624 and not @skip and @PO10624SubmittedOnly' \
+CYPRESS_TAGS='@JIRA-STORY:PO-10624 and not @skip and @PO10624SubmittedOnly' \
+yarn test:functional:leaf --browser=chrome --spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerDeletesCasefile*.feature' \
+--env 'tags=@JIRA-STORY:PO-10624 and not @skip and @PO10624SubmittedOnly'
+```
+
+Discovery uses the installed v26 preprocessor's actual `dryRun=true` setting, a null base URL and matching
+selectors. It runs no live fixture or browser actions; `cucumberOnlyMissingSteps` is not an effective discovery
+control in this version:
+
+```bash
+TAGS='@JIRA-STORY:PO-10624 and not @skip' CYPRESS_TAGS='@JIRA-STORY:PO-10624 and not @skip' \
+yarn test:functional:leaf --browser=chrome --config '{"baseUrl":null}' \
+--spec 'cypress/e2e/functional/opal/features/checkAndValidateCase/CheckerDeletesCasefile*.feature' \
+--env 'dryRun=true,omitFiltered=true,tags=@JIRA-STORY:PO-10624 and not @skip'
+```
+
+Repeat discovery with `and @PO10624SubmittedOnly` in all three selectors for five examples; full discovery requires
+nine, with zero undefined/ambiguous/skipped/pending cases. Controlled support is:
+
+```bash
+yarn test:component:leaf --browser=chrome \
+--spec 'cypress/component/checkAndValidateCase/checker-deletion-journey-support.cy.ts'
+```
+
+Controlled support verifies helper contracts and failure propagation. Discovery verifies names, tags, counts and
+bindings. Neither is passing live deletion evidence. Preserve measured native execution counts, failures,
+interruptions, unrun examples and exact owned cleanup receipts in parent-owned ignored evidence and the delivery
+report/PR; keep these instructions reusable. Do not claim full acceptance or Agent Complete when an applicable
+required check fails. Draft production and handoff do not require publication or a separate approval-state gate.
+
 ### Empty dashboard coverage (CI isolation repair, 30 October 2026)
 
 Following Fines' mounted dashboard approach, three whole-collection empty live examples are allocated to

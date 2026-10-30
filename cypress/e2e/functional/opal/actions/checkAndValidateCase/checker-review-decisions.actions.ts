@@ -136,6 +136,14 @@ export function assertCheckerHistory(
   if (decision === 'reject') expect(additions[0].reason_text).to.equal(reason);
 }
 
+/** Complete owned review context retained across validation, deletion and explicit retry. */
+export interface ICheckerPreparedReview {
+  owned: IOwnedDraftCasefile;
+  before: IDraftCasefileSnapshot;
+  recovery: DraftCasefileRecoveryActions;
+  monitor: IDraftCasefileMonitor;
+}
+
 /** Owns actual navigation and pass-through observation. Each new Given creates a fresh instance. */
 export class CheckerReviewActions {
   private readonly fixture = new CheckerReviewFixtureActions();
@@ -213,9 +221,37 @@ export class CheckerReviewActions {
     });
   }
 
+  /** Prepares Submitted through the maintained checker journey before exposing its installed monitor.
+   * @param ready Consumer scheduled after fixture, baseline, review capture and monitor installation.
+   */
+  public prepareSubmittedReview(ready: (session: ICheckerPreparedReview) => void): void {
+    this.prepare('SUBMITTED', 'validation');
+    cy.then(() => {
+      if (!this.monitor) throw new Error('Prepared checker monitor missing');
+      ready({ owned: this.requireOwned(), before: this.baseline(), recovery: this.recovery, monitor: this.monitor });
+    });
+  }
+
   /** Enables strict scans at the maintained navigation and pagination boundaries. */
   public enableAccessibility(): void {
     this.scanning = true;
+  }
+
+  /** Returns through the actual Cases entry and checker queue controls. */
+  public returnToQueue(): void {
+    this.openQueue();
+  }
+
+  /** Waits for the refreshed provider queue and requires absence on every rendered page. */
+  public assertOwnedAbsentFromQueue(): void {
+    const owned = this.requireOwned();
+    cy.wait('@checkerQueue');
+    this.assertQueueAbsence(owned.id);
+  }
+
+  /** Releases this queue observer before another maintained dashboard observer takes ownership. */
+  public releaseQueueObservation(): void {
+    this.checkerObservation = false;
   }
 
   /** Observes provider-owned checker collection/count responses without replacing them.
@@ -415,14 +451,7 @@ export class CheckerReviewActions {
       this.assertAddedEvent(saved, chosen);
       this.saved = saved;
     });
-    cy.then(() =>
-      expect(
-        this.rows.some((row) => row.draft_casefile_id === owned.id),
-        'owned case left provider To review',
-      ).to.equal(false),
-    );
-    this.firstQueuePage();
-    this.assertAbsentFromPages(owned.id);
+    this.assertQueueAbsence(owned.id);
     if (chosen === 'reject') this.inputterRejection();
   }
 
@@ -432,6 +461,20 @@ export class CheckerReviewActions {
    */
   private assertAddedEvent(saved: IDraftCasefileSnapshot, decision: 'approve' | 'reject'): void {
     assertCheckerHistory(this.baseline(), saved, this.requireOwned(), decision, this.recovery.expectedReason());
+  }
+
+  /** Requires provider and complete DOM absence after an already awaited queue refresh.
+   * @param id Scenario-owned case that must have left To review.
+   */
+  private assertQueueAbsence(id: number): void {
+    cy.then(() =>
+      expect(
+        this.rows.some((row) => row.draft_casefile_id === id),
+        'owned case left provider To review',
+      ).to.equal(false),
+    );
+    this.firstQueuePage();
+    this.assertAbsentFromPages(id);
   }
 
   /** Returns through actual pagination so absence is checked over the whole collection. */

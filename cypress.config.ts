@@ -4,7 +4,7 @@ import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
-import { writeComponentParallelResult } from './scripts/cypress-component-parallel-results';
+import { writeComponentParallelResult, writeComponentParallelRun } from './scripts/cypress-component-parallel-results';
 import {
   addCucumberPreprocessorPlugin,
   afterRunHandler,
@@ -317,7 +317,10 @@ export default defineConfig({
         });
       });
 
-      on('after:run', () => {
+      on('after:run', (results) => {
+        if (process.env.CYPRESS_THREAD) {
+          writeComponentParallelRun(config.projectRoot, process.env.CYPRESS_THREAD, results);
+        }
         mergeZephyrReports({
           rootDir: 'functional-output',
           dedupe: true,

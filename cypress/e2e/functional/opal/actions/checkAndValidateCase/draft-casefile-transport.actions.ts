@@ -60,7 +60,7 @@ export function installDraftCasefileFetchMonitor(
 ): () => void {
   const original = window.fetch;
   const pathname = `/opal-maintenance-service/draft-casefiles/${id}`;
-  const monitored: typeof window.fetch = async function (input, options) {
+  const monitored: typeof window.fetch = function (input, options) {
     let inputUrl: string;
     if (typeof input === 'string') inputUrl = input;
     else inputUrl = input instanceof URL ? input.href : input.url;
@@ -69,8 +69,10 @@ export function installDraftCasefileFetchMonitor(
     const target =
       url.origin === window.location.origin && url.pathname === pathname && requestMethod.toUpperCase() === method;
     const first = target && ++monitor.applicationAttempts === 1;
-    const response = await original.call(window, input, options);
-    if (first && fault === 'lost-response' && response.status === 200) {
+    const pending = original.call(window, input, options);
+    if (!first || fault !== 'lost-response') return pending;
+    return pending.then((response) => {
+      if (response.status !== 200) return response;
       if (
         monitor.upstreamSuccesses !== 1 ||
         !monitor.upstreamEtag ||
@@ -80,8 +82,7 @@ export function installDraftCasefileFetchMonitor(
       }
       monitor.droppedResponses++;
       throw new TypeError('Failed to fetch');
-    }
-    return response;
+    });
   };
   window.fetch = monitored;
   return () => {

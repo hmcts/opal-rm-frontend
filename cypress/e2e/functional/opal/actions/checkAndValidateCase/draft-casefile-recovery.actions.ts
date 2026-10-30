@@ -1,3 +1,4 @@
+import { decodeDraftSnapshot } from './draft-casefile-evidence.actions';
 import {
   setCasefileReason,
   activateCasefileControl,
@@ -112,7 +113,31 @@ export class DraftCasefileRecoveryActions {
     this.savedReview = [];
     this.originalReview = [];
     if (journey === 'resubmit') {
+      // The router renders this task list only after its detail and reference requests complete.
+      cy.intercept('GET', `/opal-maintenance-service/draft-casefiles/${id}`).as('amendmentEntryDraft');
+      for (const resource of ['countries', 'maintenance-applications', 'major-creditors'])
+        cy.intercept({ method: 'GET', pathname: `/opal-maintenance-service/${resource}` }).as(
+          `amendmentEntry-${resource}`,
+        );
+      cy.intercept({ method: 'GET', pathname: '/opal-maintenance-service/results/*' }, (request) => {
+        const resultId = decodeURIComponent(new URL(request.url).pathname.split('/').pop()!);
+        request.alias = `amendmentEntryResult-${resultId}`;
+        request.continue();
+      });
       cy.visit(`/${CREATE.root}/${CREATE.children.taskList}/${id}`);
+      cy.wait('@amendmentEntryDraft').then(({ response }) => {
+        if (!response) throw new Error('Amendment entry did not receive its saved case');
+        expect(response.statusCode, 'amendment entry saved case').to.equal(200);
+        const { draft } = decodeDraftSnapshot(id, response.body, response.headers['etag'] ?? response.headers['ETag']);
+        expect(draft.casefile_status, 'amendment entry is still Rejected').to.equal('REJECTED');
+        const resultIds = new Set(
+          draft.casefile.respondent_account.order_details.order_terms.map((term) => term.result_id),
+        );
+        for (const resultId of resultIds)
+          cy.wait(`@amendmentEntryResult-${resultId}`).its('response.statusCode').should('equal', 200);
+      });
+      for (const resource of ['countries', 'maintenance-applications', 'major-creditors'])
+        cy.wait(`@amendmentEntry-${resource}`).its('response.statusCode').should('equal', 200);
       cy.get(C.caseDetails.checkCaseButton).should('be.enabled').click();
     } else {
       cy.visit(`/${CHECKER.root}/${CHECKER.children.review}/${id}`);

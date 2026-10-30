@@ -300,10 +300,33 @@ export class CheckerReviewActions {
     });
   }
 
-  /** Opens only the exact owned queue row and requires the real matching detail GET. */
+  /** Opens the exact owned queue row and awaits its saved detail and required references before review. */
   private openOwned(): void {
     const owned = this.requireOwned();
+    const prefix = Cypress._.uniqueId('checkerEntry');
+    const lookupReads: `@${string}`[] = [];
+    const resultIds = new Set<string>();
+    // Common lookups may be cached; only wait for requests actually made during this entry.
+    cy.intercept(
+      {
+        method: 'GET',
+        url: /\/opal-maintenance-service\/(?:countries|maintenance-applications|major-creditors)(?:\?|$)/,
+        middleware: true,
+      },
+      (request) => {
+        const alias = Cypress._.uniqueId(`${prefix}Lookup-`);
+        lookupReads.push(`@${alias}`);
+        request.alias = alias;
+      },
+    );
     cy.then(() => {
+      for (const term of this.baseline().draft.casefile.respondent_account.order_details.order_terms)
+        resultIds.add(term.result_id);
+      for (const resultId of resultIds)
+        cy.intercept({
+          method: 'GET',
+          pathname: `/opal-maintenance-service/results/${encodeURIComponent(resultId)}`,
+        }).as(`${prefix}Result-${encodeURIComponent(resultId)}`);
       const matches = this.rows.filter((row) => row.draft_casefile_id === owned.id);
       expect(matches, 'owned queue response identity').to.have.length(1);
       expect(matches[0].submitted_by).to.equal(owned.inputterId);
@@ -325,7 +348,16 @@ export class CheckerReviewActions {
       .find(D.column('submittedByName'))
       .should((cell) => expect(cell.text().trim()).to.equal(owned.inputterName));
     this.enter(`${D.row(owned.id)} ${D.column('respondent')} a`);
-    cy.wait('@checkerDetail');
+    cy.wait('@checkerDetail').then(() => {
+      // Results are always fetched; wait for them before collecting the resolver's uncached lookups.
+      for (const resultId of resultIds)
+        cy.wait(`@${prefix}Result-${encodeURIComponent(resultId)}`)
+          .its('response.statusCode')
+          .should('equal', 200);
+      cy.then(() => {
+        for (const alias of lookupReads) cy.wait(alias).its('response.statusCode').should('equal', 200);
+      });
+    });
     cy.location('pathname').should('equal', `/${PATHS.root}/${PATHS.children.review}/${owned.id}`);
     cy.get(C.review.heading).should('be.visible');
     this.recovery.capture('approve');

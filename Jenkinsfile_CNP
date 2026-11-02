@@ -5,7 +5,7 @@ import uk.gov.hmcts.contino.GithubAPI
 import uk.gov.hmcts.contino.Kubectl
 import uk.gov.hmcts.pipeline.AKSSubscriptions
 
-@Library('Infrastructure@2.13.4')
+@Library('Infrastructure@2.13.5')
 
 // Pipeline identifiers
 String opalName = 'opal'

@@ -38,7 +38,18 @@ python3 scripts/test-staging-publication-queue.py
 
 These checks render the real dependency charts and verify queue/backend name
 agreement, per-build isolation, direct namespace reference, and absence of queue
-provisioning in the durable configuration. They do not provision Azure resources.
+provisioning in the durable configuration. They also render the raw staging values
+template, matching the shared pipeline's chart-publication schema validation, and
+check that missing or malformed build numbers are rejected. They do not provision
+Azure resources.
+
+The shared pipeline validates `values.stg.template.yaml` before environment
+substitution. The queue template therefore accepts the exact `${BUILD_NUMBER}`
+placeholder as well as numeric build numbers, so validation receives the complete
+staging manifests. Jenkins substitutes the actual build number before deployment.
+An empty or malformed value still fails rendering; an unsubstituted placeholder
+cannot be installed because it is not a valid Kubernetes resource name. There is
+no fallback queue name.
 
 The staging pipeline still needs to verify operator permissions, queue Ready,
 successful end-to-end publication while durable consumers are active, and Azure

@@ -17,6 +17,7 @@
 /tsconfig*.json @hmcts/opal-admins
 /Dockerfile* @hmcts/opal-admins
 /Jenkinsfile* @hmcts/opal-admins
+# Chart.yaml remains admin-owned; frontend and QA review exclusions are in the ruleset.
 /charts/** @hmcts/opal-admins
 /config/** @hmcts/opal-admins
 /.github/** @hmcts/opal-admins

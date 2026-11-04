@@ -217,18 +217,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular-devkit/architect@npm:0.2102.29":
-  version: 0.2102.29
-  resolution: "@angular-devkit/architect@npm:0.2102.29"
-  dependencies:
-    "@angular-devkit/core": "npm:21.2.29"
-    rxjs: "npm:7.8.2"
-  bin:
-    architect: bin/cli.js
-  checksum: 10/dce3637ccdff0a145ea15d8913af6fd8a9584b343b570bbbd179b5dfbac92d899bc6bb8466aa24b6e125ef7c116d93d52f6334a59c39e5202736551b1dae6fcf
-  languageName: node
-  linkType: hard
-
 "@angular-devkit/architect@npm:>= 0.2100.0 < 0.2200.0":
   version: 0.2102.7
   resolution: "@angular-devkit/architect@npm:0.2102.7"
@@ -363,25 +351,6 @@ __metadata:
     webpack: ^5.30.0
     webpack-dev-server: ^5.0.2
   checksum: 10/d47bd5fde65626afcf8c69bfd2fcd053b787fb9d96cf77de94de33ad686970fd92eeb607bf3cabc6e8c0e2b4e67e6341569b91fb20cac49b09a37f37b99c40fe
-  languageName: node
-  linkType: hard
-
-"@angular-devkit/core@npm:21.2.29":
-  version: 21.2.29
-  resolution: "@angular-devkit/core@npm:21.2.29"
-  dependencies:
-    ajv: "npm:8.18.0"
-    ajv-formats: "npm:3.0.1"
-    jsonc-parser: "npm:3.3.1"
-    picomatch: "npm:4.0.4"
-    rxjs: "npm:7.8.2"
-    source-map: "npm:0.7.6"
-  peerDependencies:
-    chokidar: ^5.0.0
-  peerDependenciesMeta:
-    chokidar:
-      optional: true
-  checksum: 10/5425cd91d3f10719ddcc1d67b404c3c1b75ba54b5a0856cc3d1ed12d92bcba0bb0ef5d00f626cf33e09a2d4b721b96e8b15acc5b2defd356d94fe36cc799ccd3
   languageName: node
   linkType: hard
 

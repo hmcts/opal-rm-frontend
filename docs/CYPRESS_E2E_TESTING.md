@@ -229,6 +229,49 @@ a successful runner exit alone does not prove a complete passing suite.
 Apply [test-maintenance evidence](CONTRIBUTING.md#test-maintenance-evidence) to shared fixture/step changes and runtime
 claims, including failed or incomplete parallel attempts and the final executed selection.
 
+## Pipeline report retention
+
+Nightly finalizers snapshot only recognized final `cucumber-report.json` and `cypress-report-1.json` files
+from the shared staging directory, then archive the attempted stage immediately before another suite starts:
+
+| Stage          | Shared source              | Stage snapshot directory                                      |
+| -------------- | -------------------------- | ------------------------------------------------------------- |
+| Component      | `functional-output/zephyr` | `functional-output/component/${browserToRun}/zephyr`          |
+| Smoke          | `smoke-output/zephyr`      | `smoke-output/prod/${browserToRun}/zephyr`                    |
+| Functional     | `functional-output/zephyr` | `functional-output/prod/${browserToRun}/zephyr`               |
+| UAT-Technical  | `functional-output/zephyr` | `functional-output/prod/${browserToRun}/uat-technical/zephyr` |
+| Legacy         | `functional-output/zephyr` | `functional-output/prod/${browserToRun}/legacy/zephyr`        |
+| Chrome/Firefox | `functional-output/zephyr` | `functional-output/prod/${stageConfig.browserToRun}/zephyr`   |
+
+Before each enabled nightly suite, remove its shared Zephyr staging directory and current generated source
+reports. Clear UAT's source HTML, NDJSON, shard XML and merged JUnit, plus its old `uat-technical` directory,
+before health/auth/test attempts. Apply the same freshness rule when a browser/mode output directory is reused.
+Account-evidence ledgers and unrelated stage paths remain intact. Disabled/skipped stages do not snapshot or
+publish another stage's results. Temporary Zephyr shards are not final reports.
+
+A later runner reset can remove local snapshots, so Jenkins archives each stage immediately. Component evidence
+is archived before functional `--reset`. CNP retains whole-root `functional-output/**` archives and also archives
+`smoke-output/zephyr/*.json` and `smoke-output/**` in both dev and staging functional finalizers. These raw
+archives precede HTML publication, retaining interrupted-merge inputs and screenshots even if publication fails.
+
+UAT-Technical preparation runs in its finalizer on success or failure. It copies merged outputs when present,
+all Cucumber NDJSON shards and `opal-mode-test-output-*.xml` into
+`functional-output/prod/${browserToRun}/uat-technical/`. Its dedicated HTML entry point is
+`cucumber/uat-technical-report.html`. Archiving is attempted after preparation errors, and LaunchDarkly restoration
+runs even when preparation, archiving or publication fails. Original attempt failures are logged and remain failures.
+
+Before each HTML publication, `scripts/test-report-artifacts.cjs` preserves existing real HTML. If raw JSON,
+NDJSON or XML (including component `junit/*.xml`) exists without merged HTML, it creates an explanatory page stating **Results are incomplete: the
+merged HTML report was not generated.** and **This page does not indicate a passing test run.** It does not
+reconstruct test outcomes or include raw report contents. Absent/skipped suites retain `allowMissing: true`;
+without raw output no fallback is created. A helper error is logged and marks the build failed while still
+attempting the existing publisher; it cannot turn a failed run into a pass.
+
+JSON generation and Jira/Zephyr upload are separate operations. An archived JSON file establishes generation,
+not successful Jira publication. Retention leaves Jira project `33305` and the existing explicit-or-Friday
+Zephyr selection for supported nightly stages unchanged; it enables no additional uploads. Verify upload
+outcomes independently from HTML/report generation.
+
 ## Running a Feature
 
 Run a single feature file with:

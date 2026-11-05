@@ -216,6 +216,30 @@ Before handoff:
 Use [test-maintenance evidence](CONTRIBUTING.md#test-maintenance-evidence) when changing shared helpers, moving
 coverage, or reporting runtime improvements. A passing serial rerun does not establish that a parallel failure is fixed.
 
+## Pipeline report retention
+
+Component HTML is generated at `functional-output/component/${browserToRun}/html/component-report.html`.
+The nightly component finalizer snapshots recognized final Zephyr JSON from `functional-output/zephyr/` into
+`functional-output/component/${browserToRun}/zephyr/` and immediately archives
+`functional-output/component/${browserToRun}/**`. CNP archives the whole `functional-output/**` root in its
+component finalizer. Both archives happen before a later functional `--reset` can remove local output.
+A local snapshot can also be removed by that reset; the Jenkins archive retains the attempted stage's evidence.
+
+Before each enabled nightly suite, clear only its shared Zephyr staging directory and current generated report
+files so a failed preflight cannot publish a previous suite's results. Preserve account-evidence ledgers and
+unrelated stage paths. Skipped stages do not snapshot or publish prior results.
+
+Before HTML publication, `scripts/test-report-artifacts.cjs` preserves real HTML and creates a fallback only when
+raw JSON, NDJSON or XML exists, including component `junit/*.xml` without JSON. It says **Results are incomplete: the merged HTML report was not generated.**
+and **This page does not indicate a passing test run.** Raw results are archived before publishing; a fallback
+helper failure is logged, marks the build failed and still attempts publication. Genuinely absent suites retain
+`allowMissing: true` and do not receive fabricated reports.
+
+Generating `cypress-report-1.json` is separate from uploading it to Jira/Zephyr. A retained JSON file proves
+report generation, not a successful upload. The nightly pipeline keeps its existing explicit-or-Friday Zephyr
+selection for supported stages; retention does not enable additional uploads. See the
+[E2E report contract](CYPRESS_E2E_TESTING.md#pipeline-report-retention) for all stage destinations.
+
 ## Real product defects
 
 - If a component test exposes a real product defect, do not change application behaviour merely to force the test to pass.

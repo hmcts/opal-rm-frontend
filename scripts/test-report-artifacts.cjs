@@ -1,6 +1,25 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+// Only generated report areas are reset: evidence, receipts and unknown root data survive.
+// No caller-supplied delete paths are accepted. Filesystem failures propagate to the pipeline guard.
+function prepareReportAttempt() {
+  for (const generated of [
+    'functional-output/component',
+    'functional-output/prod',
+    'functional-output/screenshots',
+    'functional-output/zephyr',
+    'smoke-output/prod',
+    'smoke-output/screenshots',
+    'smoke-output/zephyr',
+  ]) {
+    fs.rmSync(generated, { recursive: true, force: true });
+  }
+  for (const alias of ['cypress/reports/smokeXmlReport.html', 'cypress/reports/functionalXmlReport.html']) {
+    fs.rmSync(alias, { force: true });
+  }
+}
+
 function snapshotZephyrReports(sourceRoot, targetRoot) {
   const source = path.resolve(sourceRoot, 'zephyr');
   const target = path.resolve(targetRoot, 'zephyr');
@@ -55,10 +74,14 @@ function ensureHtmlReport(reportDir, reportFile, title) {
   return true;
 }
 
-module.exports = { snapshotZephyrReports, ensureHtmlReport };
+module.exports = { prepareReportAttempt, snapshotZephyrReports, ensureHtmlReport };
 if (require.main === module) {
   const [mode, ...args] = process.argv.slice(2);
-  if (mode === 'snapshot' && args.length === 2) snapshotZephyrReports(...args);
+  if (mode === 'prepare' && args.length === 0) prepareReportAttempt();
+  else if (mode === 'snapshot' && args.length === 2) snapshotZephyrReports(...args);
   else if (mode === 'fallback' && args.length === 3) ensureHtmlReport(...args);
-  else throw new Error('Expected snapshot <sourceRoot> <targetRoot> or fallback <reportDir> <reportFile> <title>');
+  else
+    throw new Error(
+      'Expected prepare or snapshot <sourceRoot> <targetRoot> or fallback <reportDir> <reportFile> <title>',
+    );
 }

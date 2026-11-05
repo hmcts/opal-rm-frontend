@@ -145,3 +145,68 @@ test('component JUnit-only evidence permits an incomplete report', (t) => {
   assert.equal(ensureHtmlReport(html, 'component-report.html', 'Incomplete component results'), true);
   assert.match(fs.readFileSync(path.join(html, 'component-report.html'), 'utf8'), /incomplete/i);
 });
+
+for (const attempt of ['component', 'functional']) {
+  test(`prepare ${attempt} removes only known generated reports and is repeatable`, (t) => {
+    const { spawnSync } = require('node:child_process');
+    const root = temporary(t);
+    const stale =
+      attempt === 'component'
+        ? [
+            'functional-output/component/edge/html/component-report.html',
+            'functional-output/component/edge/junit/result.xml',
+            'functional-output/component/edge/json/result.json',
+            'functional-output/screenshots/edge/old.png',
+            'functional-output/zephyr/cypress-report-1.json',
+          ]
+        : [
+            'functional-output/prod/edge/cucumber/edge-report.html',
+            'functional-output/prod/edge/cucumber/OPAL-report-1.ndjson',
+            'functional-output/prod/edge/result.xml',
+            'functional-output/screenshots/edge/old.png',
+            'functional-output/zephyr/cucumber-report.json',
+            'smoke-output/prod/edge/cucumber/smoke-report.html',
+            'smoke-output/prod/edge/result.xml',
+            'smoke-output/screenshots/old.png',
+            'smoke-output/zephyr/cucumber-report.json',
+          ];
+    stale.push('cypress/reports/smokeXmlReport.html', 'cypress/reports/functionalXmlReport.html');
+    const preserved = [
+      'functional-output/account_evidence/created-accounts.json',
+      'functional-output/cleanup-receipts.json',
+      'functional-output/creation-ledger.json',
+      'functional-output/unknown/data.json',
+      'smoke-output/component/nonreport.txt',
+      'smoke-output/unknown/data.json',
+      'archives/previous-stage/report.html',
+      'cypress/parallel/weights/weights.json',
+      'cypress/reports/unknown.html',
+      'node_modules/private-html/index.html',
+      'logs/run.log',
+    ];
+    for (const name of [...stale, ...preserved]) {
+      fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+      fs.writeFileSync(path.join(root, name), name);
+    }
+    for (let repeat = 0; repeat < 2; repeat++) {
+      const result = spawnSync(process.execPath, [require.resolve('./test-report-artifacts.cjs'), 'prepare'], {
+        cwd: root,
+        encoding: 'utf8',
+      });
+      assert.equal(result.status, 0, result.stderr);
+      for (const name of stale) assert.equal(fs.existsSync(path.join(root, name)), false, name);
+      for (const name of preserved) assert.equal(fs.readFileSync(path.join(root, name), 'utf8'), name);
+    }
+  });
+}
+
+test('prepare rejects arbitrary paths and filesystem errors fail closed', (t) => {
+  const { spawnSync } = require('node:child_process');
+  const root = temporary(t);
+  const command = require.resolve('./test-report-artifacts.cjs');
+  fs.symlinkSync('functional-output', path.join(root, 'functional-output'));
+  for (const args of [['prepare', '../outside'], ['prepare', 'component', 'outside'], ['prepare']]) {
+    assert.notEqual(spawnSync(process.execPath, [command, ...args], { cwd: root }).status, 0);
+  }
+  assert.equal(fs.readlinkSync(path.join(root, 'functional-output')), 'functional-output');
+});

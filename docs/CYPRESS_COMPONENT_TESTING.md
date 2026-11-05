@@ -244,6 +244,23 @@ coverage, or reporting runtime improvements. A passing serial rerun does not est
 
 ## Pipeline report retention
 
+CNP establishes a new report attempt **before** the metadata and reporting gates for component, dev functional
+and staging functional hooks. `node scripts/test-report-artifacts.cjs prepare` removes only the known generated
+`functional-output/{component,prod,screenshots,zephyr}` and `smoke-output/{prod,screenshots,zephyr}` directories.
+The generated compatibility aliases `cypress/reports/smokeXmlReport.html` and
+`cypress/reports/functionalXmlReport.html` are also removed, without clearing other Cypress files.
+Earlier stage reports are archived by their existing finalizers before the next reset. Account evidence,
+root creation/cleanup ledgers, unknown nonreport data, weights and compiler inputs are preserved. Skipping
+component tests leaves reports untouched and runs no gates. If preparation fails, the attempt's finalizer does
+not snapshot, archive or publish its reports. If either gate fails, the fresh empty report areas cannot publish
+an earlier attempt's HTML or JSON, and the build retains its failure status.
+
+The portable `scripts/cnp-gate-freshness.test.groovy` regression extracts and executes the actual CNP hooks and
+packaging methods against temporary seeded files. Run it with a caller-provided Groovy 4 classpath:
+`java -cp "$GROOVY_JAR" groovy.ui.GroovyMain scripts/cnp-gate-freshness.test.groovy`.
+It requires no Jenkins/browser installation or additional project dependency; it verifies local Groovy hook
+control flow, not Jenkins CPS or shared-library execution.
+
 For parallel component runs, the shared runner clears `functional-output/zephyr/` once before starting workers.
 It passes `OPAL_COMPONENT_REPORTS_MANAGED=true` to its leaf processes so their Cypress hooks emit raw shards
 without cleaning shared staging or merging an incomplete result. After all workers exit, the parent builds HTML

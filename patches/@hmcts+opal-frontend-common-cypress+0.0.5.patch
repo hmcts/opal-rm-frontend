@@ -1,14 +1,50 @@
 diff --git a/node_modules/@hmcts/opal-frontend-common-cypress/dist/runner/opal-suite-runner.js b/node_modules/@hmcts/opal-frontend-common-cypress/dist/runner/opal-suite-runner.js
-index 9c5a164..5b645e7 100644
+index 9c5a164..1ee3434 100644
 --- a/node_modules/@hmcts/opal-frontend-common-cypress/dist/runner/opal-suite-runner.js
 +++ b/node_modules/@hmcts/opal-frontend-common-cypress/dist/runner/opal-suite-runner.js
-@@ -244,7 +244,8 @@ function executeSuite(suite, options, cwd, baseEnv) {
+@@ -190,6 +190,17 @@ function buildCucumberReports(config, cwd, env, dryRun) {
+ function buildComponentReport(browser, cwd, env, dryRun) {
+     return runCommand(nodeCommand, [node_path_1.default.resolve(__dirname, '../bin/build-component-report.js'), `--browser=${browser}`], cwd, env, dryRun);
+ }
++// Resolve Zephyr from the consuming project; its published entry uses extensionless ESM re-exports.
++function runComponentZephyr(action, cwd, env, dryRun) {
++    const script = `const path = require('node:path');
++const entry = require.resolve('@hmcts/zephyr-automation-nodejs', { paths: [process.cwd()] });
++const zephyr = require(path.join(path.dirname(entry), 'cypress/zephyr-automation.js'));
++zephyr.${action}({ rootDir: 'functional-output', dedupe: true });
++if ('${action}' === 'mergeZephyrReports' && !require('node:fs').existsSync('functional-output/zephyr/cypress-report-1.json')) {
++    throw new Error('Component Zephyr merge did not produce cypress-report-1.json');
++}`;
++    return runCommand(nodeCommand, ['-e', script], cwd, { ...env, CYPRESS_THREAD: '1' }, dryRun);
++}
+ function createComponentParallelReporterConfig(config) {
+     const reporterConfigPath = node_path_1.default.join(node_os_1.default.tmpdir(), `opal-component-parallel-${config.browser}.json`);
+     const reporterConfig = {
+@@ -237,6 +248,14 @@ function executeSuite(suite, options, cwd, baseEnv) {
+         return 0;
+     }
+     const parallel = resolveParallelMode(suite, options.parallel);
++    const managedComponentReports = config.isComponent && parallel && env.OPAL_COMPONENT_REPORTS_MANAGED !== 'true';
++    if (managedComponentReports) {
++        env.OPAL_COMPONENT_REPORTS_MANAGED = 'true';
++        const cleanExitCode = runComponentZephyr('cleanZephyrReports', cwd, env, options.dryRun);
++        if (cleanExitCode !== 0) {
++            return cleanExitCode;
++        }
++    }
+     const testExitCode = parallel
+         ? runParallelSuite(config, cwd, env, options.passthroughArgs, options.dryRun)
+         : runSerialSuite(config, cwd, env, options.passthroughArgs, options.dryRun);
+@@ -244,7 +263,11 @@ function executeSuite(suite, options, cwd, baseEnv) {
          return testExitCode;
      }
      if (config.isComponent) {
 -        return testExitCode || buildComponentReport(browser, cwd, env, options.dryRun) || 0;
 +        const componentReportExitCode = buildComponentReport(browser, cwd, env, options.dryRun);
-+        return testExitCode || componentReportExitCode || 0;
++        const zephyrExitCode = managedComponentReports
++            ? runComponentZephyr('mergeZephyrReports', cwd, env, options.dryRun)
++            : 0;
++        return testExitCode || componentReportExitCode || zephyrExitCode || 0;
      }
      const { hasNdjson, hasXml } = getSuiteArtifacts(config, cwd);
      const hasTagFiltering = Boolean(String(env.CYPRESS_TAGS || env.TAGS || '').trim());

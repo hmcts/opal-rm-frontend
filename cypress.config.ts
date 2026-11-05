@@ -305,12 +305,14 @@ export default defineConfig({
       require('cypress-mochawesome-reporter/plugin')(on);
 
       on('before:run', () => {
+        if (process.env.OPAL_COMPONENT_REPORTS_MANAGED === 'true') return;
         cleanZephyrReports({
           rootDir: 'functional-output',
         });
       });
 
       on('after:run', () => {
+        if (process.env.OPAL_COMPONENT_REPORTS_MANAGED === 'true') return;
         mergeZephyrReports({
           rootDir: 'functional-output',
           dedupe: true,

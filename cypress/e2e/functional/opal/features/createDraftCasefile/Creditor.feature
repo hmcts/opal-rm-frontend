@@ -20,7 +20,7 @@ Feature: Capture a creditor for an order term
     Then I reach Order Terms Summary without creating a draft casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
-  Scenario: Require a creditor choice
+  Scenario: Recover from missing creditor choices and retain a Major creditor by ID
     Given active non-Central-Authority Major creditors are available
     And Countries are available for minor creditor details
     And I open the Order Terms Summary for a new casefile
@@ -32,33 +32,9 @@ Feature: Capture a creditor for an order term
     Then the creditor page is ready with the scoped Major creditor query
     When I continue from creditor selection
     Then the creditor validation summary links to the required choice
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
-  Scenario: Require a Major creditor selection
-    Given active non-Central-Authority Major creditors are available
-    And Countries are available for minor creditor details
-    And I open the Order Terms Summary for a new casefile
-    When I start adding an order term
-    And I choose order term "MAT"
-    And I continue from order term selection
-    And I enter order term amount "12.30"
-    And I continue from order term input
-    Then the creditor page is ready with the scoped Major creditor query
     When I choose the Major creditor type
     And I continue from creditor selection
     Then the Major creditor validation summary links to the required selection
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
-  Scenario: Accept an active Major creditor by ID
-    Given active non-Central-Authority Major creditors are available
-    And Countries are available for minor creditor details
-    And I open the Order Terms Summary for a new casefile
-    When I start adding an order term
-    And I choose order term "MAT"
-    And I continue from order term selection
-    And I enter order term amount "12.30"
-    And I continue from order term input
-    Then the creditor page is ready with the scoped Major creditor query
     When I choose a Major creditor
     Then the selected Major creditor remains identified by ID
     When I continue from creditor selection
@@ -81,7 +57,7 @@ Feature: Capture a creditor for an order term
     Then I return to Creditor without a selected creditor
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
-  Scenario: Decline cancellation with a local edit
+  Scenario: Retain the creditor edit on declined cancellation and discard it on acceptance
     Given active non-Central-Authority Major creditors are available
     And Countries are available for minor creditor details
     And I open the Order Terms Summary for a new casefile
@@ -94,19 +70,6 @@ Feature: Capture a creditor for an order term
     When I choose the applicant as creditor
     And I cancel creditor selection and decline the warning
     Then my Applicant creditor edit remains selected
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
-  Scenario: Accept cancellation with a local edit
-    Given active non-Central-Authority Major creditors are available
-    And Countries are available for minor creditor details
-    And I open the Order Terms Summary for a new casefile
-    When I start adding an order term
-    And I choose order term "MAT"
-    And I continue from order term selection
-    And I enter order term amount "12.30"
-    And I continue from order term input
-    Then the creditor page is ready with the scoped Major creditor query
-    When I choose the applicant as creditor
     And I cancel creditor selection and accept the warning
     Then I reach Order Terms Summary without creating a draft casefile
 

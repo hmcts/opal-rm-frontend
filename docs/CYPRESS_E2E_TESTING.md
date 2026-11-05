@@ -649,8 +649,9 @@ are failed verification. Local passwordless authentication and live local APIs d
 Axe and the scenario keyboard interactions provide partial accessibility evidence. Specialist follow-up should verify
 keyboard-only navigation and visible focus across every page, screen-reader announcements and accessible names on
 expanded controls, and magnification behavior, using the same enabled release and provisioned authorised account.
-Required metadata checks still apply to the full configured scope; missing confirmed Jira identifiers must be resolved
-from authoritative ticket context rather than guessed or excluded.
+Required metadata checks apply to the full component and E2E roots, with only the seven existing identity-bound
+platform shell/authentication exceptions documented below. All new cases require confirmed Jira identifiers from
+authoritative ticket context; do not guess identifiers or add exemptions.
 
 ## Order Terms QA (PO-10278)
 
@@ -811,7 +812,8 @@ This regression includes retained Order Term input/summary validation, failure, 
 Minor Creditor bank/review/removal cases, creditor choices, Order Details, mandatory parties and all fifteen permission
 routes. Complete the local pre-flight in [SONAR.md](SONAR.md), E2E TypeScript, the full configured Jira metadata policy
 and duplicate-scenario scan. A passing createDraftCasefile-only metadata check supplements the full policy result;
-missing authoritative Jira identifiers in other configured features remain an unmet required check. Do not invent
+missing authoritative Jira identifiers outside the seven documented existing shell/authentication exceptions remain
+an unmet required check. Do not invent
 identifiers or add exclusions to produce a pass.
 
 Creditor changes/removals cover locally saved review state; acceptance into a stable Order Term and same-order reuse
@@ -1106,3 +1108,15 @@ second native activation. These helper results count separately from actual rout
 Discovery proves selection/bindings only. Controlled support proves scanner/keyboard/reflow/orchestration failure
 sensitivity against synthetic boundaries. Neither is passing live acceptance or proof of deployed permissions,
 cleanup compatibility or complete WCAG conformance. Run the preserved inherited caller regression separately.
+
+## Whole-suite Jira metadata policy
+
+`corepack yarn check:cypress:test-metadata` validates all metadata units under `cypress/component` and
+`cypress/e2e` using the published shared Jira validator. It reports checked, validated, exempt and failed counts.
+The only exceptions are seven existing unticketed platform shell/authentication cases listed by exact file path and
+full title, with reasons, in `scripts/cypress-test-metadata-baseline.json`. This preserves RM's existing ticketless
+convention without inventing Jira ownership. New cases, including additions in those files, must meet normal Jira
+policy. Do not add exceptions to bypass missing confirmed identifiers. Renamed, removed, duplicate or newly mapped
+baseline cases fail the check and require deliberate baseline maintenance. The obsolete dummy-feature exclusion has
+been removed. The validator groups Scenario Outline Examples blocks; metadata counts do not prove expanded browser
+selection or execution.

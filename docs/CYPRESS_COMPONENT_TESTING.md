@@ -56,6 +56,16 @@ it('AC3. should save the valid selection and request onward navigation', { tags:
 
 ## Jira tags
 
+`corepack yarn check:cypress:test-metadata` validates all metadata units under `cypress/component` and
+`cypress/e2e` using the published shared Jira validator. It reports checked, validated, exempt and failed counts.
+The only exceptions are seven existing unticketed platform shell/authentication cases listed by exact file path and
+full title, with reasons, in `scripts/cypress-test-metadata-baseline.json`. This preserves RM's existing ticketless
+convention without inventing Jira ownership. New cases, including additions in those files, must meet normal Jira
+policy. Do not add exceptions to bypass missing confirmed identifiers. Renamed, removed, duplicate or newly mapped
+baseline cases fail the check and require deliberate baseline maintenance. The obsolete dummy-feature exclusion has
+been removed. The validator groups Scenario Outline Examples blocks; metadata counts do not prove expanded browser
+selection or execution.
+
 - Every `it(...)` must own its tag configuration. Do not rely only on tags attached to `describe(...)`.
 - Define stable Story and Epic tags once and include them through a local `buildTags(...)` helper.
 - Pass scenario-specific metadata, such as `@JIRA-TEST-KEY`, into `buildTags(...)` when the Jira test key exists. Do not invent a test key or placeholder.

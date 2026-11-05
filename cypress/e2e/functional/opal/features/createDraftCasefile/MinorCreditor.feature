@@ -12,17 +12,12 @@ Feature: Capture minor creditor details
     Then I reach Minor Creditor Summary without creating a draft casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9809
-  Scenario: Keep entered values after declining Cancel
+  Scenario: Retain unsaved creditor details on declined cancellation and discard them on acceptance
     Given I am adding a minor creditor to an accepted order term
     When I enter an unsaved minor creditor name
     And I cancel minor creditor details and decline the warning
     Then my minor creditor name remains on the details page
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9809
-  Scenario: Discard unsaved creditor details after accepting Cancel
-    Given I am adding a minor creditor to an accepted order term
-    When I enter an unsaved minor creditor name
-    And I cancel minor creditor details and accept the warning
+    When I cancel minor creditor details and accept the warning
     Then I return to Creditor without a new minor creditor
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9810 @JIRA-STORY:PO-9813

@@ -25,24 +25,14 @@ Feature: Review order terms
     Then both original orders remain on the summary
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10278
-  Scenario: Changing one Order Term preserves its sibling
-    Given I have the live RM casefile permission
-    And I have two applicant Order Terms
-    When I amend only the second Order Term
-    Then the two Order Terms retain amounts "10" and "25"
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10278
-  Scenario: Confirming Order Term removal preserves its sibling
-    Given I have the live RM casefile permission
-    And I have two applicant Order Terms
-    When I open removal for Order Term "secondTerm"
-    And I confirm removal of Order Term "secondTerm"
-    Then Order Term "firstTerm" retains amount "10"
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10278
-  Scenario: Abandoning Order Term removal retains both terms
+  Scenario: Preserve sibling Order Terms through abandoned removal amendment and confirmed removal
     Given I have the live RM casefile permission
     And I have two applicant Order Terms
     When I open removal for Order Term "secondTerm"
     And I abandon Order Term removal
     Then the two Order Terms retain amounts "10" and "20"
+    When I amend only the second Order Term
+    Then the two Order Terms retain amounts "10" and "25"
+    When I open removal for Order Term "secondTerm"
+    And I confirm removal of Order Term "secondTerm"
+    Then Order Term "firstTerm" retains amount "10"

@@ -233,7 +233,9 @@ It passes `OPAL_COMPONENT_REPORTS_MANAGED=true` to its leaf processes so their C
 without cleaning shared staging or merging an incomplete result. After all workers exit, the parent builds HTML
 and uses the installed Zephyr merger with deduplication to write `functional-output/zephyr/cypress-report-1.json`,
 including records from failed workers. Test failures take precedence over HTML or Zephyr generation failures;
-a generation failure also fails an otherwise successful command. `--no-reports` omits parent finalization.
+a generation failure also fails an otherwise successful command. The parent checks the final native Zephyr
+report for failed outcomes, so a zero dispatcher exit cannot hide failed workers. Missing, malformed or
+inconsistent final failure totals fail the command. `--no-reports` omits parent finalization.
 Serial and direct Cypress runs retain their existing cleanup and merge hooks. The lifecycle regression is covered
 by `corepack yarn test:reporting`, using temporary real Zephyr shards and a deliberately early incomplete merge.
 A full parallel verification must also reconcile final test identities and status totals against all raw shards.

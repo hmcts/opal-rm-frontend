@@ -762,6 +762,8 @@ Environment: ${env.EXECUTION_ENVIRONMENT}
 Description: ${env.EXECUTION_CYCLE_DESCRIPTION}
 """.stripIndent()
     }
+    yarnBuilder.yarn('check:cypress:test-metadata')
+    yarnBuilder.yarn('test:reporting')
     runComponentStage(
       params.Component,
       failureResult,

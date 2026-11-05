@@ -562,6 +562,8 @@ withPipeline(type, product, component) {
       } else {
                 echo 'Running opal component tests (no skip label present)'
                 try {
+                    yarnBuilder.yarn('check:cypress:test-metadata')
+                    yarnBuilder.yarn('test:reporting')
                     yarnBuilder.yarn('test:component')
         } catch (hudson.AbortException e) {
                     echo "Opal component tests failed: ${e}"
@@ -577,6 +579,16 @@ withPipeline(type, product, component) {
                 }
             }
         }
+    }
+
+    // Validate test metadata and reporting before either functional browser stage.
+    before(stageFunctionalDev) {
+        yarnBuilder.yarn('check:cypress:test-metadata')
+        yarnBuilder.yarn('test:reporting')
+    }
+    before(stageFunctionalStg) {
+        yarnBuilder.yarn('check:cypress:test-metadata')
+        yarnBuilder.yarn('test:reporting')
     }
 
     // Archive smoke/functional weights and reports after dev functional run

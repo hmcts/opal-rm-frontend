@@ -60,6 +60,7 @@
     "check:steps": "cypress run --env cucumberOnlyMissingSteps=true",
     "find:duplicate:scenarios": "FEATURE_GLOB=\"cypress/e2e/functional/opal/features\" node scripts/find-duplicate-scenarios.js",
     "check:cypress:test-metadata": "node scripts/check-cypress-test-metadata.cjs",
+    "test:reporting": "node --test scripts/test-report-runner.test.cjs scripts/test-report-artifacts.test.cjs scripts/check-cypress-test-metadata.test.cjs",
     "check:create-casefile-field-identifiers": "node scripts/check-create-casefile-field-identifiers.mjs",
     "test:create-casefile-field-identifiers": "node --test scripts/check-create-casefile-field-identifiers.test.mjs",
     "reset-test-outputs": "tsx ./scripts/reset-test-outputs.ts",

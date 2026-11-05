@@ -191,6 +191,22 @@ Component Webpack uses named module IDs to keep references stable as Cypress rec
 Caching remains enabled; preserve the configured isolation and retry policy when comparing runs.
 The component path resolver uses the repository root for inherited TypeScript aliases, including fresh-cache runs.
 
+Managed parallel workers (`OPAL_COMPONENT_REPORTS_MANAGED=true` with a positive integer `CYPRESS_THREAD`)
+use an absolute `indexHtmlFile` pointing to a byte-identical copy of `cypress/support/component-index.html` in
+an OS temporary directory. Every configuration instance creates its own private directory, including repeated
+runs of the same worker. Cypress JIT compilation touches this watched HTML input when specs change; private
+copies prevent a worker's transition from invalidating sibling compilers. The tracked template stays unchanged.
+Copies remain available for the compiler lifetime and use normal OS temporary-file cleanup. Direct and serial
+runs retain the original relative template path, as do managed markers without a valid worker identity.
+
+`corepack yarn test:reporting` checks path isolation, exact template bytes, source/sibling modification times,
+and retained bundler settings without launching browsers. Runtime verification must additionally show each
+worker invalidates only its own copy, the source template modification time stays unchanged, and all expected
+specs/tests register and reconcile across raw JSON, JUnit and Zephyr, with genuine command status. For the current
+45-spec inventory this includes all 1224 tests and the 41 rejected-casefile journey support tests. Preserve earlier
+failed and incomplete runs. Removing the observed shared HTML trigger does not prove cache corruption or the
+complete cause of earlier chunk-loading failures; a passing run alone does not establish that root cause.
+
 Run a single component spec directly with the Cypress executable:
 
 ```bash

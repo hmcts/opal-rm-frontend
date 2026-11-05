@@ -48,8 +48,7 @@ const zephyr = require(
   path.join(path.dirname(require.resolve('@hmcts/zephyr-automation-nodejs')), 'cypress/zephyr-automation.js'),
 );
 
-function componentHooks(managed) {
-  const events = {};
+function loadComponentConfig(env = {}) {
   const calls = [];
   const module = { exports: {} };
   const source = ts.transpileModule(fs.readFileSync('cypress.config.ts', 'utf8'), {
@@ -59,7 +58,7 @@ function componentHooks(managed) {
     exports: module.exports,
     module,
     __dirname: process.cwd(),
-    process: { env: { OPAL_COMPONENT_REPORTS_MANAGED: managed } },
+    process: { env },
     require(name) {
       if (name === 'cypress') return { defineConfig: (config) => config };
       if (name === 'tsconfig-paths-webpack-plugin') return class {};
@@ -74,7 +73,13 @@ function componentHooks(managed) {
       return require(name);
     },
   });
-  module.exports.default.component.setupNodeEvents(
+  return { config: module.exports.default, calls };
+}
+
+function componentHooks(managed) {
+  const events = {};
+  const { config, calls } = loadComponentConfig({ OPAL_COMPONENT_REPORTS_MANAGED: managed });
+  config.component.setupNodeEvents(
     (name, handler) => {
       events[name] = handler;
     },
@@ -89,6 +94,80 @@ test('component worker hooks defer shared cleanup and merge to parent; direct ho
   assert.deepEqual(componentHooks('true'), []);
   assert.deepEqual(componentHooks(undefined), ['clean', 'merge']);
   assert.deepEqual(componentHooks('false'), ['clean', 'merge']);
+});
+
+test('component HTML retains the source path outside a valid managed worker', () => {
+  const sourcePath = 'cypress/support/component-index.html';
+  for (const env of [
+    {},
+    { CYPRESS_THREAD: '1' },
+    { OPAL_COMPONENT_REPORTS_MANAGED: 'false', CYPRESS_THREAD: '1' },
+    ...[
+      undefined,
+      '',
+      '0',
+      '-1',
+      '1.5',
+      '01',
+      '1e0',
+      'Infinity',
+      '9007199254740992',
+      '../1',
+      '1/../../escape',
+      ' 1',
+      '1\n',
+    ].map((thread) => ({
+      OPAL_COMPONENT_REPORTS_MANAGED: 'true',
+      CYPRESS_THREAD: thread,
+    })),
+  ]) {
+    assert.equal(loadComponentConfig(env).config.component.indexHtmlFile, sourcePath, JSON.stringify(env));
+  }
+});
+
+test('managed workers own byte-identical private HTML inputs across threads and repeated runs', (t) => {
+  const sourcePath = path.resolve('cypress/support/component-index.html');
+  const originalBytes = fs.readFileSync(sourcePath);
+  const sourceStat = fs.statSync(sourcePath, { bigint: true });
+  const copies = [];
+  t.after(() => {
+    for (const copy of copies) fs.rmSync(path.dirname(copy), { recursive: true, force: true });
+  });
+  for (const thread of ['1', '2', '3', '1']) {
+    const { config } = loadComponentConfig({ OPAL_COMPONENT_REPORTS_MANAGED: 'true', CYPRESS_THREAD: thread });
+    const copy = config.component.indexHtmlFile;
+    assert.equal(path.isAbsolute(copy), true);
+    assert.notEqual(copy, sourcePath);
+    copies.push(copy);
+    assert.deepEqual(fs.readFileSync(copy), originalBytes);
+  }
+  assert.equal(new Set(copies).size, 4);
+  assert.equal(new Set(copies.map((copy) => path.dirname(copy))).size, 4);
+  const siblingStat = fs.statSync(copies[1], { bigint: true });
+  const changedTime = new Date(Number(fs.statSync(copies[0]).mtimeMs) + 10000);
+  fs.utimesSync(copies[0], changedTime, changedTime);
+  assert.notEqual(fs.statSync(copies[0], { bigint: true }).mtimeNs, siblingStat.mtimeNs);
+  assert.equal(fs.statSync(copies[1], { bigint: true }).mtimeNs, siblingStat.mtimeNs);
+  assert.equal(fs.statSync(sourcePath, { bigint: true }).mtimeNs, sourceStat.mtimeNs);
+  assert.deepEqual(fs.readFileSync(sourcePath), originalBytes);
+});
+
+test('managed HTML isolation preserves component build, cache, retry and port configuration', (t) => {
+  const direct = loadComponentConfig({ CYPRESS_THREAD: '2' }).config;
+  const managed = loadComponentConfig({ OPAL_COMPONENT_REPORTS_MANAGED: 'true', CYPRESS_THREAD: '2' }).config;
+  if (path.isAbsolute(managed.component.indexHtmlFile)) {
+    t.after(() => fs.rmSync(path.dirname(managed.component.indexHtmlFile), { recursive: true, force: true }));
+  }
+  // JSON normalizes VM realm prototypes while retaining the effective webpack/build settings.
+  const normalized = (value) => JSON.parse(JSON.stringify(value));
+  assert.deepEqual(normalized(managed.component.devServer), normalized(direct.component.devServer));
+  assert.equal(managed.component.devServer.webpackConfig.devServer.port, 8092);
+  assert.equal(managed.component.devServer.webpackConfig.optimization.moduleIds, 'named');
+  assert.equal(Object.hasOwn(managed.component.devServer.webpackConfig, 'cache'), false);
+  assert.equal(Object.hasOwn(managed.component, 'justInTimeCompile'), false);
+  assert.equal(Object.hasOwn(managed.component, 'retries'), false);
+  assert.equal(Object.hasOwn(managed, 'retries'), false);
+  assert.deepEqual(normalized(managed.e2e.retries), { runMode: 1, openMode: 0 });
 });
 
 for (const [testCode, hasFailures, htmlCode, expectedCode] of [

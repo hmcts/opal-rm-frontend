@@ -2,8 +2,10 @@
 /* groovylint-disable CompileStatic */
 import groovy.transform.Field
 import uk.gov.hmcts.contino.GithubAPI
+import uk.gov.hmcts.contino.Kubectl
+import uk.gov.hmcts.pipeline.AKSSubscriptions
 
-@Library('Infrastructure@2.13.4')
+@Library('Infrastructure@2.13.5')
 
 // Pipeline identifiers
 String opalName = 'opal'
@@ -617,6 +619,25 @@ withPipeline(type, product, component) {
             archiveArtifact("${pipelineWeightsDir}/${functionalWeights}")
             archiveArtifact(smokeXmlReport)
             archiveArtifact(functionalXmlReport)
+        }
+    }
+
+    // Helm does not wait for ASO custom-resource readiness before running tests.
+    [stageFunctionalStg, 'fullFunctionalTest:stg'].each { stageName ->
+        before(stageName) {
+            withAksClient(env.NONPROD_SUBSCRIPTION_NAME ?: 'nonprod', 'stg', product) {
+                def aksSubscription = new AKSSubscriptions(this).aat.name
+                new Kubectl(this, env.NONPROD_SUBSCRIPTION_NAME ?: 'nonprod',
+                    env.TEAM_NAMESPACE, aksSubscription).login()
+                withEnv(["RM_PUBLICATION_QUEUE=${product}-${component}-staging-rm-publish-${env.BUILD_NUMBER}"]) {
+                    sh '''
+                      set -eu
+                      kubectl wait --namespace "$TEAM_NAMESPACE" \
+                        --for=condition=Ready --timeout=300s \
+                        "namespacesqueues.servicebus.azure.com/$RM_PUBLICATION_QUEUE"
+                    '''
+                }
+            }
         }
     }
 

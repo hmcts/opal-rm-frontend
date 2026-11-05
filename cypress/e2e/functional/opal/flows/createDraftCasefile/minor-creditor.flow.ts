@@ -44,6 +44,11 @@ export class MinorCreditorFlow {
     this.actions.assertSummaryWithoutDraftWrite();
   }
 
+  /** Checks the reviewed Organisation survived cancellation without a draft write. */
+  public assertReviewedCreditorRetained(): void {
+    this.actions.assertReviewedCreditorRetained();
+  }
+
   /**
    * Activates the selected minor creditor review action.
    * @param action The review action to perform.

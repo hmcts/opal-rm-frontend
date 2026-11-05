@@ -334,7 +334,8 @@ describe('Persisted case details', () => {
     setupReview({ resolved });
     spyCompletion();
     cy.get(S.decisionReject).check();
-    cy.get(S.rejectionReason).type('R'.repeat(251));
+    cy.get(S.rejectionReason).invoke('val', 'R'.repeat(249)).trigger('input');
+    cy.get(S.rejectionReason).type('RR');
     cy.get(S.rejectionReasonCount).should('contain.text', 'You have 1 character too many');
     cy.get(S.decisionContinue).click();
     assertSummaryError('Reason for rejection must be 250 characters or fewer');
@@ -525,10 +526,11 @@ describe('Persisted case details', () => {
       second.casefile_status = 'RESUBMITTED';
       second.casefile.respondent_account.order_details.order_terms[0].result_responses[0].response = '200.00';
       const resolvedB = createPersistedCasefileResolved({ draft: second });
-      setupReview({ resolved: createPersistedCasefileResolved() });
+      setupReview({
+        resolved: createPersistedCasefileResolved(),
+        decision: { choice: 'reject', reason: 'R'.repeat(251) },
+      });
       cy.get(S.heading).should('have.text', 'Synthetic Respondent');
-      cy.get(S.decisionReject).check();
-      cy.get(S.rejectionReason).type('R'.repeat(251));
       cy.get(S.decisionContinue).click();
       assertSummaryError('Reason for rejection must be 250 characters or fewer');
       cy.get<BehaviorSubject<Data>>('@reviewRouteData').then((data) =>

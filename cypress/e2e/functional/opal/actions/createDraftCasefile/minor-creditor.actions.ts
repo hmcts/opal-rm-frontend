@@ -53,6 +53,12 @@ export class MinorCreditorActions {
     cy.get('@draftCreation').should('not.have.been.called');
   }
 
+  /** Checks cancellation retained the reviewed Organisation without writing a draft casefile. */
+  public assertReviewedCreditorRetained(): void {
+    cy.get(S.minorCreditorSummary.rowValue('Name')).should('have.text', M.organisationName);
+    cy.get('@draftCreation').should('not.have.been.called');
+  }
+
   /**
    * Activates the selected minor creditor review action.
    * @param action The review action to perform.

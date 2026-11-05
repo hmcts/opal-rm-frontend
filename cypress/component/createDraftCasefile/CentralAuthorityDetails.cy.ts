@@ -114,27 +114,28 @@ describe('Create Casefile Central authority details', () => {
     });
   });
 
-  for (const [input, value, error, message] of [
-    [Page.remoReference, 'x'.repeat(21), Page.remoReferenceError, CENTRAL_AUTHORITY_ERRORS.remoReference],
-    [
-      Page.centralAuthorityReference,
-      'x'.repeat(51),
-      Page.centralAuthorityReferenceError,
+  it('AC4. should show both over-limit reference errors and focus each field', { tags: buildTags() }, () => {
+    setupCentralAuthorityDetails();
+
+    cy.get(Page.remoReference).type('x'.repeat(21));
+    cy.get(Page.centralAuthorityReference).type('x'.repeat(51));
+    cy.get(Page.returnToCaseDetails).click();
+
+    cy.get(Page.remoReferenceError).should('contain.text', CENTRAL_AUTHORITY_ERRORS.remoReference);
+    cy.get(Page.centralAuthorityReferenceError).should(
+      'contain.text',
       CENTRAL_AUTHORITY_ERRORS.centralAuthorityReference,
-    ],
-  ] as const) {
-    it(`AC4. should show and focus the exact error for ${input}`, { tags: buildTags() }, () => {
-      setupCentralAuthorityDetails();
+    );
+    cy.get(Page.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
+    cy.get(Page.errorSummaryLinks).should('have.length', 2);
+    cy.get(Page.errorSummaryLinks).contains(CENTRAL_AUTHORITY_ERRORS.remoReference).should('exist');
+    cy.get(Page.errorSummaryLinks).contains(CENTRAL_AUTHORITY_ERRORS.centralAuthorityReference).should('exist');
 
-      cy.get(input).type(value);
-      cy.get(Page.returnToCaseDetails).click();
-
-      cy.get(error).should('contain.text', message);
-      cy.get(Page.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
-      cy.get(Page.errorSummaryLinks).contains(message).click();
-      cy.get(input).should('be.focused').and('have.value', value.toUpperCase());
-    });
-  }
+    cy.get(Page.errorSummaryLinks).contains(CENTRAL_AUTHORITY_ERRORS.remoReference).click();
+    cy.get(Page.remoReference).should('be.focused').and('have.value', 'X'.repeat(21));
+    cy.get(Page.errorSummaryLinks).contains(CENTRAL_AUTHORITY_ERRORS.centralAuthorityReference).click();
+    cy.get(Page.centralAuthorityReference).should('be.focused').and('have.value', 'X'.repeat(51));
+  });
 
   it('AC3. should replace and then remove a restored selection', { tags: buildTags() }, () => {
     setupCentralAuthorityDetails({ savedDetails: SAVED_DETAILS_WITH_STALE_COPY });

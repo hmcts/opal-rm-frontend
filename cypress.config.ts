@@ -2,8 +2,7 @@ import { defineConfig } from 'cypress';
 import { mergeZephyrReports, cleanZephyrReports } from '@hmcts/zephyr-automation-nodejs';
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 import { createHash } from 'node:crypto';
-import { copyFileSync, mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import {
   addCucumberPreprocessorPlugin,
@@ -65,26 +64,6 @@ const componentProjectConfig = {
     styles: [path.relative(__dirname, componentStylesPath)],
   },
 };
-
-function resolveComponentIndexHtmlFile(): string {
-  const source = 'cypress/support/component-index.html';
-  const thread = process.env.CYPRESS_THREAD;
-  const worker = Number(thread);
-  if (
-    process.env.OPAL_COMPONENT_REPORTS_MANAGED !== 'true' ||
-    !Number.isSafeInteger(worker) ||
-    worker < 1 ||
-    String(worker) !== thread
-  ) {
-    return source;
-  }
-
-  // JIT compilation touches this watched input; each managed worker must own its copy.
-  const directory = mkdtempSync(path.join(tmpdir(), `opal-component-worker-${thread}-`));
-  const destination = path.join(directory, 'component-index.html');
-  copyFileSync(path.resolve(__dirname, source), destination);
-  return destination;
-}
 
 function setupBrowserLaunch(on: Cypress.PluginEvents): void {
   on('before:browser:launch', (browser: Cypress.Browser, launchOptions: Cypress.BeforeBrowserLaunchOptions) => {
@@ -265,7 +244,7 @@ export default defineConfig({
   component: {
     specPattern: 'cypress/component/**/*.cy.ts',
     supportFile: 'cypress/support/component.ts',
-    indexHtmlFile: resolveComponentIndexHtmlFile(),
+    indexHtmlFile: 'cypress/support/component-index.html',
     reporter: 'cypress-multi-reporters',
     reporterOptions: {
       reporterEnabled:
@@ -326,14 +305,12 @@ export default defineConfig({
       require('cypress-mochawesome-reporter/plugin')(on);
 
       on('before:run', () => {
-        if (process.env.OPAL_COMPONENT_REPORTS_MANAGED === 'true') return;
         cleanZephyrReports({
           rootDir: 'functional-output',
         });
       });
 
       on('after:run', () => {
-        if (process.env.OPAL_COMPONENT_REPORTS_MANAGED === 'true') return;
         mergeZephyrReports({
           rootDir: 'functional-output',
           dedupe: true,

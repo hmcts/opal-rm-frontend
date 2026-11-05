@@ -3380,7 +3380,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hmcts/opal-frontend-common-cypress@npm:0.0.5":
+"@hmcts/opal-frontend-common-cypress@npm:^0.0.5":
   version: 0.0.5
   resolution: "@hmcts/opal-frontend-common-cypress@npm:0.0.5"
   peerDependencies:

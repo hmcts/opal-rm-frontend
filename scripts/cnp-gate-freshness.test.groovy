@@ -24,6 +24,10 @@ source.AST.statementBlock.visit(new CodeVisitorSupport() {
             arguments[0].text in ['stageTest', 'stageFunctionalDev', 'stageFunctionalStg']) {
             hooks["${method}:${arguments[0].text}".toString()] = extract(call)
         }
+        // Evaluate the real registration loop too: later before callbacks replace earlier ones in Infrastructure.
+        if (method == 'each' && call.objectExpression.text == '[stageFunctionalStg, fullFunctionalTest:stg]') {
+            hooks['stagingRegistration'] = extract(call)
+        }
         super.visitMethodCallExpression(call)
     }
 })
@@ -37,6 +41,16 @@ def loader = new GroovyClassLoader(getClass().classLoader)
 loader.parseClass('''package hudson
 class AbortException extends RuntimeException {
     AbortException(String message) { super(message) }
+}''')
+loader.parseClass('''package uk.gov.hmcts.pipeline
+class AKSSubscriptions {
+    AKSSubscriptions(Object script) { }
+    def aat = [name: 'aat']
+}''')
+loader.parseClass('''package uk.gov.hmcts.contino
+class Kubectl {
+    Kubectl(Object... arguments) { }
+    void login() { }
 }''')
 def abort = { message -> loader.loadClass('hudson.AbortException').getConstructor(String).newInstance(message) }
 int scenarios = 0
@@ -69,6 +83,10 @@ for (String stage : ['stageTest', 'stageFunctionalDev', 'stageFunctionalStg']) {
             List events = []; List published = []; List archived = []; Map registered = [:]
             Map build = [result: 'SUCCESS']; def caught
             def execute = { String command ->
+                if (command.contains('kubectl wait')) {
+                    events << 'readiness'
+                    return 0
+                }
                 events << (command.endsWith(' prepare') ? 'prepare' : 'packaging')
                 if (command.endsWith(' prepare') && failure == 'prepare') {
                     new File(workspace, 'functional-output/zephyr').deleteDir()
@@ -101,7 +119,8 @@ for (String stage : ['stageTest', 'stageFunctionalDev', 'stageFunctionalStg']) {
                 if (gate == failure) throw abort(gate)
             }
             Binding binding = new Binding([
-                yarnBuilder: new Expando(yarn: yarn), env: [BROWSER_TO_RUN: 'edge', SKIP_SMOKE: 'false'],
+                yarnBuilder: new Expando(yarn: yarn), env: [BROWSER_TO_RUN: 'edge', SKIP_SMOKE: 'false',
+                    TEAM_NAMESPACE: 'opal', BUILD_NUMBER: '123'], product: 'opal', component: 'rm-frontend',
                 currentBuild: build, projectLabels: failure == 'skip' ? ['skip_opal_component'] : [],
                 stageTest: 'test', stageFunctionalDev: 'dev', stageFunctionalStg: 'stg',
                 skipLabelComponent: 'skip_opal_component', functionalArtifactsGlob: 'functional-output/**',
@@ -111,6 +130,8 @@ for (String stage : ['stageTest', 'stageFunctionalDev', 'stageFunctionalStg']) {
                 before: { name, closure -> registered["before:${name}".toString()] = closure },
                 afterAlways: { name, closure -> registered["afterAlways:${name}".toString()] = closure },
                 script: { closure -> closure() }, echo: { message -> },
+                withAksClient: { subscription, environment, productName, closure -> closure() },
+                withEnv: { values, closure -> closure() },
                 sh: { command -> execute(command instanceof Map ? command.script.toString() : command.toString()) },
                 archiveArtifacts: { Map options ->
                     events << 'archive'
@@ -127,6 +148,7 @@ for (String stage : ['stageTest', 'stageFunctionalDev', 'stageFunctionalStg']) {
             ])
             // Start with an earlier attempt marked prepared to prove failure resets the guard.
             String preamble = 'import groovy.transform.Field\n' +
+                'import uk.gov.hmcts.contino.Kubectl\nimport uk.gov.hmcts.pipeline.AKSSubscriptions\n' +
                 '@Field Map reportAttemptsPrepared = [component:true, functional:true]\n'
             new GroovyShell(loader, binding).evaluate(preamble + methods + '\n' + hooks.values().join('\n'))
             String name = stage == 'stageTest' ? 'test' : stage == 'stageFunctionalDev' ? 'dev' : 'stg'
@@ -149,7 +171,9 @@ for (String stage : ['stageTest', 'stageFunctionalDev', 'stageFunctionalStg']) {
             } else {
                 assert events[0] == 'prepare' : "${stage}/${failure}: ${events}"
                 if (failure == 'none') {
-                    assert events.take(4) == ['prepare', 'metadata', 'reporting', 'browser']
+                    List expected = ['prepare', 'metadata', 'reporting'] +
+                        (stage == 'stageFunctionalStg' ? ['readiness'] : []) + ['browser']
+                    assert events.take(expected.size()) == expected
                     assert published.size() == (stage == 'stageTest' ? 1 : 2)
                     assert published.every { it == 'FRESH' }
                     assert archived.contains('FRESH')
@@ -159,11 +183,17 @@ for (String stage : ['stageTest', 'stageFunctionalDev', 'stageFunctionalStg']) {
                         assert snapshot.text == 'FRESH'
                     }
                     assert build.result == 'SUCCESS'
+                    if (stage == 'stageFunctionalStg') {
+                        int previousEvents = events.size()
+                        registered['before:fullFunctionalTest:stg']()
+                        assert events.drop(previousEvents) == ['readiness']
+                    }
                 } else {
                     assert events.take(failure == 'prepare' ? 1 : failure == 'metadata' ? 2 : 3) ==
                         (failure == 'prepare' ? ['prepare'] : failure == 'metadata' ? ['prepare', 'metadata'] :
                             ['prepare', 'metadata', 'reporting'])
                     assert !events.contains('browser')
+                    assert !events.contains('readiness')
                     assert published.empty : "stale published: ${published}"
                     assert !archived.contains('STALE')
                     assert build.result == 'FAILURE'

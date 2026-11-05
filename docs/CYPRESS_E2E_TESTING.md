@@ -231,25 +231,17 @@ claims, including failed or incomplete parallel attempts and the final executed 
 
 ## Pipeline report retention
 
-CNP establishes a new report attempt **before** the metadata and reporting gates for component, dev functional
-and staging functional hooks. `node scripts/test-report-artifacts.cjs prepare` removes only the known generated
-`functional-output/{component,prod,screenshots,zephyr}` and `smoke-output/{prod,screenshots,zephyr}` directories.
-The generated compatibility aliases `cypress/reports/smokeXmlReport.html` and
-`cypress/reports/functionalXmlReport.html` are also removed, without clearing other Cypress files.
-Earlier stage reports are archived by their existing finalizers before the next reset. Account evidence,
-root creation/cleanup ledgers, unknown nonreport data, weights and compiler inputs are preserved. Skipping
-component tests leaves reports untouched and runs no gates. If preparation fails, the attempt's finalizer does
-not snapshot, archive or publish its reports. If either gate fails, the fresh empty report areas cannot publish
-an earlier attempt's HTML or JSON, and the build retains its failure status.
+CNP prepares fresh generated report areas before the component and dev/staging functional gates. Preparation
+preserves account evidence, root creation/cleanup ledgers, unknown data, weights and compiler inputs; see the
+[component report contract](CYPRESS_COMPONENT_TESTING.md#pipeline-report-retention) for the exact cleanup
+scope and local Groovy freshness harness. `corepack yarn test:reporting` verifies RM artifact packaging.
+The metadata gate calls the existing published shared CLI directly, retaining its configured
+`cypress/component/createDraftCasefile` and `cypress/e2e/functional/opal/features` scope. It does not establish
+whole-suite component, login or smoke metadata coverage. Broader validation with precise existing-case
+exceptions is deferred to shared-library support; no Jira ownership is invented.
 
-The portable `scripts/cnp-gate-freshness.test.groovy` regression extracts and executes the actual CNP hooks and
-packaging methods against temporary seeded files. Run it with a caller-provided Groovy 4 classpath:
-`java -cp "$GROOVY_JAR" groovy.ui.GroovyMain scripts/cnp-gate-freshness.test.groovy`.
-It requires no Jenkins/browser installation or additional project dependency; it verifies local Groovy hook
-control flow, not Jenkins CPS or shared-library execution.
-
-Nightly finalizers snapshot only recognized final `cucumber-report.json` and `cypress-report-1.json` files
-from the shared staging directory, then archive the attempted stage immediately before another suite starts:
+Nightly finalizers copy only recognized final `cucumber-report.json` and `cypress-report-1.json` files from
+shared staging into the attempted stage's artifact directory, then archive it before the next suite starts:
 
 | Stage          | Shared source              | Stage snapshot directory                                      |
 | -------------- | -------------------------- | ------------------------------------------------------------- |
@@ -260,34 +252,22 @@ from the shared staging directory, then archive the attempted stage immediately 
 | Legacy         | `functional-output/zephyr` | `functional-output/prod/${browserToRun}/legacy/zephyr`        |
 | Chrome/Firefox | `functional-output/zephyr` | `functional-output/prod/${stageConfig.browserToRun}/zephyr`   |
 
-Before each enabled nightly suite, remove its shared Zephyr staging directory and current generated source
-reports. Clear UAT's source HTML, NDJSON, shard XML and merged JUnit, plus its old `uat-technical` directory,
-before health/auth/test attempts. Apply the same freshness rule when a browser/mode output directory is reused.
-Account-evidence ledgers and unrelated stage paths remain intact. Disabled/skipped stages do not snapshot or
-publish another stage's results. Temporary Zephyr shards are not final reports.
+Before each enabled nightly suite, clear its shared Zephyr staging and current generated source reports.
+Clear UAT's source HTML, NDJSON, shard XML, merged JUnit and previous `uat-technical` directory before
+health/auth/test attempts. Preserve account-evidence ledgers and unrelated stage paths. Skipped stages do
+not snapshot or publish prior results. CNP retains functional and smoke raw outputs before HTML publication.
 
-A later runner reset can remove local snapshots, so Jenkins archives each stage immediately. Component evidence
-is archived before functional `--reset`. CNP retains whole-root `functional-output/**` archives and also archives
-`smoke-output/zephyr/*.json` and `smoke-output/**` in both dev and staging functional finalizers. These raw
-archives precede HTML publication, retaining interrupted-merge inputs and screenshots even if publication fails.
+UAT prepares its artifacts in `finally`, retaining raw NDJSON and XML after failed runs. Its existing
+LaunchDarkly restoration also runs if artifact preparation, archiving or publication fails. These lifecycle
+changes do not enable a stage, add an upload or change release/tag selection.
 
-UAT-Technical preparation runs in its finalizer on success or failure. It copies merged outputs when present,
-all Cucumber NDJSON shards and `opal-mode-test-output-*.xml` into
-`functional-output/prod/${browserToRun}/uat-technical/`. Its dedicated HTML entry point is
-`cucumber/uat-technical-report.html`. Archiving is attempted after preparation errors, and LaunchDarkly restoration
-runs even when preparation, archiving or publication fails. Original attempt failures are logged and remain failures.
+HTML publication preserves real reports and adds an explicitly incomplete fallback only when raw JSON,
+NDJSON or XML exists. The fallback directs readers to archived raw results and console output; it is not a
+merged result or a passing test report. Shared-runner fixes for component failure reporting and complete
+parallel merging/status handling remain deferred, and snapshots do not repair those results.
 
-Before each HTML publication, `scripts/test-report-artifacts.cjs` preserves existing real HTML. If raw JSON,
-NDJSON or XML (including component `junit/*.xml`) exists without merged HTML, it creates an explanatory page stating **Results are incomplete: the
-merged HTML report was not generated.** and **This page does not indicate a passing test run.** It does not
-reconstruct test outcomes or include raw report contents. Absent/skipped suites retain `allowMissing: true`;
-without raw output no fallback is created. A helper error is logged and marks the build failed while still
-attempting the existing publisher; it cannot turn a failed run into a pass.
-
-JSON generation and Jira/Zephyr upload are separate operations. An archived JSON file establishes generation,
-not successful Jira publication. Retention leaves Jira project `33305` and the existing explicit-or-Friday
-Zephyr selection for supported nightly stages unchanged; it enables no additional uploads. Verify upload
-outcomes independently from HTML/report generation.
+Jira/Zephyr upload is separate from generation and retention. Project `33305` and the existing
+explicit-or-Friday upload selection remain unchanged. An archived JSON file does not prove a successful upload.
 
 ## Running a Feature
 
@@ -666,9 +646,8 @@ are failed verification. Local passwordless authentication and live local APIs d
 Axe and the scenario keyboard interactions provide partial accessibility evidence. Specialist follow-up should verify
 keyboard-only navigation and visible focus across every page, screen-reader announcements and accessible names on
 expanded controls, and magnification behavior, using the same enabled release and provisioned authorised account.
-Required metadata checks apply to the full component and E2E roots, with only the seven existing identity-bound
-platform shell/authentication exceptions documented below. All new cases require confirmed Jira identifiers from
-authoritative ticket context; do not guess identifiers or add exemptions.
+Required metadata checks still apply to the full configured scope; missing confirmed Jira identifiers must be resolved
+from authoritative ticket context rather than guessed or excluded.
 
 ## Order Terms QA (PO-10278)
 
@@ -829,8 +808,7 @@ This regression includes retained Order Term input/summary validation, failure, 
 Minor Creditor bank/review/removal cases, creditor choices, Order Details, mandatory parties and all fifteen permission
 routes. Complete the local pre-flight in [SONAR.md](SONAR.md), E2E TypeScript, the full configured Jira metadata policy
 and duplicate-scenario scan. A passing createDraftCasefile-only metadata check supplements the full policy result;
-missing authoritative Jira identifiers outside the seven documented existing shell/authentication exceptions remain
-an unmet required check. Do not invent
+missing authoritative Jira identifiers in other configured features remain an unmet required check. Do not invent
 identifiers or add exclusions to produce a pass.
 
 Creditor changes/removals cover locally saved review state; acceptance into a stable Order Term and same-order reuse
@@ -1125,15 +1103,3 @@ second native activation. These helper results count separately from actual rout
 Discovery proves selection/bindings only. Controlled support proves scanner/keyboard/reflow/orchestration failure
 sensitivity against synthetic boundaries. Neither is passing live acceptance or proof of deployed permissions,
 cleanup compatibility or complete WCAG conformance. Run the preserved inherited caller regression separately.
-
-## Whole-suite Jira metadata policy
-
-`corepack yarn check:cypress:test-metadata` validates all metadata units under `cypress/component` and
-`cypress/e2e` using the published shared Jira validator. It reports checked, validated, exempt and failed counts.
-The only exceptions are seven existing unticketed platform shell/authentication cases listed by exact file path and
-full title, with reasons, in `scripts/cypress-test-metadata-baseline.json`. This preserves RM's existing ticketless
-convention without inventing Jira ownership. New cases, including additions in those files, must meet normal Jira
-policy. Do not add exceptions to bypass missing confirmed identifiers. Renamed, removed, duplicate or newly mapped
-baseline cases fail the check and require deliberate baseline maintenance. The obsolete dummy-feature exclusion has
-been removed. The validator groups Scenario Outline Examples blocks; metadata counts do not prove expanded browser
-selection or execution.

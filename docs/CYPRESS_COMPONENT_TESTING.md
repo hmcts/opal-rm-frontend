@@ -56,15 +56,11 @@ it('AC3. should save the valid selection and request onward navigation', { tags:
 
 ## Jira tags
 
-`corepack yarn check:cypress:test-metadata` validates all metadata units under `cypress/component` and
-`cypress/e2e` using the published shared Jira validator. It reports checked, validated, exempt and failed counts.
-The only exceptions are seven existing unticketed platform shell/authentication cases listed by exact file path and
-full title, with reasons, in `scripts/cypress-test-metadata-baseline.json`. This preserves RM's existing ticketless
-convention without inventing Jira ownership. New cases, including additions in those files, must meet normal Jira
-policy. Do not add exceptions to bypass missing confirmed identifiers. Renamed, removed, duplicate or newly mapped
-baseline cases fail the check and require deliberate baseline maintenance. The obsolete dummy-feature exclusion has
-been removed. The validator groups Scenario Outline Examples blocks; metadata counts do not prove expanded browser
-selection or execution.
+`corepack yarn check:cypress:test-metadata` calls the published shared Jira validator directly. Its existing
+scope is `cypress/component/createDraftCasefile` and `cypress/e2e/functional/opal/features`; it does not validate
+the entire component, login or smoke suite. CNP runs this check before component and functional execution,
+and nightly runs it before suite dispatch. Whole-suite validation with identity-bound exceptions for existing
+unticketed shell/authentication cases is deferred until the shared validator supports that contract.
 
 - Every `it(...)` must own its tag configuration. Do not rely only on tags attached to `describe(...)`.
 - Define stable Story and Epic tags once and include them through a local `buildTags(...)` helper.
@@ -191,22 +187,6 @@ Component Webpack uses named module IDs to keep references stable as Cypress rec
 Caching remains enabled; preserve the configured isolation and retry policy when comparing runs.
 The component path resolver uses the repository root for inherited TypeScript aliases, including fresh-cache runs.
 
-Managed parallel workers (`OPAL_COMPONENT_REPORTS_MANAGED=true` with a positive integer `CYPRESS_THREAD`)
-use an absolute `indexHtmlFile` pointing to a byte-identical copy of `cypress/support/component-index.html` in
-an OS temporary directory. Every configuration instance creates its own private directory, including repeated
-runs of the same worker. Cypress JIT compilation touches this watched HTML input when specs change; private
-copies prevent a worker's transition from invalidating sibling compilers. The tracked template stays unchanged.
-Copies remain available for the compiler lifetime and use normal OS temporary-file cleanup. Direct and serial
-runs retain the original relative template path, as do managed markers without a valid worker identity.
-
-`corepack yarn test:reporting` checks path isolation, exact template bytes, source/sibling modification times,
-and retained bundler settings without launching browsers. Runtime verification must additionally show each
-worker invalidates only its own copy, the source template modification time stays unchanged, and all expected
-specs/tests register and reconcile across raw JSON, JUnit and Zephyr, with genuine command status. For the current
-45-spec inventory this includes all 1224 tests and the 41 rejected-casefile journey support tests. Preserve earlier
-failed and incomplete runs. Removing the observed shared HTML trigger does not prove cache corruption or the
-complete cause of earlier chunk-loading failures; a passing run alone does not establish that root cause.
-
 Run a single component spec directly with the Cypress executable:
 
 ```bash
@@ -247,53 +227,45 @@ coverage, or reporting runtime improvements. A passing serial rerun does not est
 CNP establishes a new report attempt **before** the metadata and reporting gates for component, dev functional
 and staging functional hooks. `node scripts/test-report-artifacts.cjs prepare` removes only the known generated
 `functional-output/{component,prod,screenshots,zephyr}` and `smoke-output/{prod,screenshots,zephyr}` directories.
-The generated compatibility aliases `cypress/reports/smokeXmlReport.html` and
-`cypress/reports/functionalXmlReport.html` are also removed, without clearing other Cypress files.
-Earlier stage reports are archived by their existing finalizers before the next reset. Account evidence,
-root creation/cleanup ledgers, unknown nonreport data, weights and compiler inputs are preserved. Skipping
-component tests leaves reports untouched and runs no gates. If preparation fails, the attempt's finalizer does
-not snapshot, archive or publish its reports. If either gate fails, the fresh empty report areas cannot publish
-an earlier attempt's HTML or JSON, and the build retains its failure status.
+It also removes the generated compatibility aliases `cypress/reports/smokeXmlReport.html` and
+`cypress/reports/functionalXmlReport.html`. Account evidence, root creation/cleanup ledgers, unknown data,
+weights and compiler inputs are preserved. Earlier stage reports are archived before the next reset.
+Skipping component tests runs no gates and leaves output untouched. A failed preparation prevents its
+finalizer from snapshotting, archiving or publishing reports; a failed gate cannot publish an earlier attempt.
+The staging gates share the existing queue-readiness callback because Infrastructure registers only one
+`before` callback per stage. Gates run before the queue wait; the full-functional staging hook retains its
+existing readiness-only behavior.
 
-The portable `scripts/cnp-gate-freshness.test.groovy` regression extracts and executes the actual CNP hooks and
-packaging methods against temporary seeded files. Run it with a caller-provided Groovy 4 classpath:
-`java -cp "$GROOVY_JAR" groovy.ui.GroovyMain scripts/cnp-gate-freshness.test.groovy`.
-It requires no Jenkins/browser installation or additional project dependency; it verifies local Groovy hook
-control flow, not Jenkins CPS or shared-library execution.
+Component HTML, when generated by the shared runner, is at
+`functional-output/component/${browserToRun}/html/component-report.html`. The nightly component finalizer
+copies recognized final Zephyr JSON into `functional-output/component/${browserToRun}/zephyr/` and archives
+`functional-output/component/${browserToRun}/**` before a later suite can reset it. CNP archives
+`functional-output/**` in its component finalizer. Snapshots retain files supplied by the runner; they do not
+repair missing or incomplete merged results.
 
-For parallel component runs, the shared runner clears `functional-output/zephyr/` once before starting workers.
-It passes `OPAL_COMPONENT_REPORTS_MANAGED=true` to its leaf processes so their Cypress hooks emit raw shards
-without cleaning shared staging or merging an incomplete result. After all workers exit, the parent builds HTML
-and uses the installed Zephyr merger with deduplication to write `functional-output/zephyr/cypress-report-1.json`,
-including records from failed workers. Test failures take precedence over HTML or Zephyr generation failures;
-a generation failure also fails an otherwise successful command. The parent checks the final native Zephyr
-report for failed outcomes, so a zero dispatcher exit cannot hide failed workers. Missing, malformed or
-inconsistent final failure totals fail the command. `--no-reports` omits parent finalization.
-Serial and direct Cypress runs retain their existing cleanup and merge hooks. The lifecycle regression is covered
-by `corepack yarn test:reporting`, using temporary real Zephyr shards and a deliberately early incomplete merge.
-A full parallel verification must also reconcile final test identities and status totals against all raw shards.
+Before HTML publication, the RM artifact helper preserves real HTML and creates an explicitly incomplete
+fallback only when raw JSON, NDJSON or XML exists, including component `junit/*.xml`. Raw results are archived
+first. A fallback failure marks the build failed and still attempts publication. An absent suite receives no
+fabricated report. The fallback is an explanation, not a merged test report or evidence of a passing run.
 
-Component HTML is generated at `functional-output/component/${browserToRun}/html/component-report.html`.
-The nightly component finalizer snapshots recognized final Zephyr JSON from `functional-output/zephyr/` into
-`functional-output/component/${browserToRun}/zephyr/` and immediately archives
-`functional-output/component/${browserToRun}/**`. CNP archives the whole `functional-output/**` root in its
-component finalizer. Both archives happen before a later functional `--reset` can remove local output.
-A local snapshot can also be removed by that reset; the Jenkins archive retains the attempted stage's evidence.
+`corepack yarn test:reporting` verifies this RM filesystem packaging only. The portable
+`scripts/cnp-gate-freshness.test.groovy` additionally executes actual CNP hooks against temporary seeded files:
 
-Before each enabled nightly suite, clear only its shared Zephyr staging directory and current generated report
-files so a failed preflight cannot publish a previous suite's results. Preserve account-evidence ledgers and
-unrelated stage paths. Skipped stages do not snapshot or publish prior results.
+```bash
+java -cp "$GROOVY_JAR" groovy.ui.GroovyMain scripts/cnp-gate-freshness.test.groovy
+```
 
-Before HTML publication, `scripts/test-report-artifacts.cjs` preserves real HTML and creates a fallback only when
-raw JSON, NDJSON or XML exists, including component `junit/*.xml` without JSON. It says **Results are incomplete: the merged HTML report was not generated.**
-and **This page does not indicate a passing test run.** Raw results are archived before publishing; a fallback
-helper failure is logged, marks the build failed and still attempts publication. Genuinely absent suites retain
-`allowMissing: true` and do not receive fabricated reports.
+Supply a Groovy 4 jar on that classpath. The harness requires no Jenkins/browser installation and does not
+establish Jenkins CPS or shared-library execution.
 
-Generating `cypress-report-1.json` is separate from uploading it to Jira/Zephyr. A retained JSON file proves
-report generation, not a successful upload. The nightly pipeline keeps its existing explicit-or-Friday Zephyr
-selection for supported stages; retention does not enable additional uploads. See the
-[E2E report contract](CYPRESS_E2E_TESTING.md#pipeline-report-retention) for all stage destinations.
+The shared runner remains unpatched. Generating complete HTML after failed component runs, parent-owned
+parallel Zephyr merging, authoritative failure-status checks and parallel worker HTML isolation are deferred
+to a shared-library release. This PR does not establish parallel report completeness or resolve those runner
+failures. Existing serial/direct/parallel Cypress configuration is unchanged.
+
+Generating JSON is separate from uploading it to Jira/Zephyr. The existing explicit-or-Friday nightly upload
+selection is unchanged; no additional uploads are enabled. See the
+[E2E report contract](CYPRESS_E2E_TESTING.md#pipeline-report-retention) for other stage destinations.
 
 ## Real product defects
 

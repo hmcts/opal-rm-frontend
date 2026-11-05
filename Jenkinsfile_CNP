@@ -600,12 +600,6 @@ withPipeline(type, product, component) {
         yarnBuilder.yarn('check:cypress:test-metadata')
         yarnBuilder.yarn('test:reporting')
     }
-    before(stageFunctionalStg) {
-        prepareReportAttempt('functional')
-        yarnBuilder.yarn('check:cypress:test-metadata')
-        yarnBuilder.yarn('test:reporting')
-    }
-
     // Archive smoke/functional weights and reports after dev functional run
     afterSuccess(stageFunctionalDev) {
         script {
@@ -625,6 +619,12 @@ withPipeline(type, product, component) {
     // Helm does not wait for ASO custom-resource readiness before running tests.
     [stageFunctionalStg, 'fullFunctionalTest:stg'].each { stageName ->
         before(stageName) {
+            // Infrastructure stores one before callback per stage; retain gates and queue readiness together.
+            if (stageName == stageFunctionalStg) {
+                prepareReportAttempt('functional')
+                yarnBuilder.yarn('check:cypress:test-metadata')
+                yarnBuilder.yarn('test:reporting')
+            }
             withAksClient(env.NONPROD_SUBSCRIPTION_NAME ?: 'nonprod', 'stg', product) {
                 def aksSubscription = new AKSSubscriptions(this).aat.name
                 new Kubectl(this, env.NONPROD_SUBSCRIPTION_NAME ?: 'nonprod',

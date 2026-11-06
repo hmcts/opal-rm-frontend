@@ -410,10 +410,8 @@ describe('Persisted case details', () => {
           }),
         ),
       ).as('decisionPatch');
-      setupReview({ resolved });
+      setupReview({ resolved, decision: { choice: decision, reason } });
       spyCompletion();
-      cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
-      if (decision === 'reject') cy.get(S.rejectionReason).type(reason);
       cy.get(S.decisionContinue).click().should('be.enabled');
       cy.get(S.decisionApprove).should('be.enabled');
       cy.get(S.decisionReject).should('be.enabled');
@@ -461,14 +459,12 @@ describe('Persisted case details', () => {
             body: accepted,
             headers: { ETag: '"1"' },
           }).as('decisionPatch');
-          setupReview({ resolved, failNavigation: true });
+          setupReview({ resolved, failNavigation: true, decision: { choice: decision, reason } });
           spyCompletion();
           if (failure === 'rejected')
             cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
               navigate.rejects(new Error('Synthetic navigation rejection')),
             );
-          cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
-          if (decision === 'reject') cy.get(S.rejectionReason).type(reason);
           cy.get(S.decisionContinue).click();
           cy.wait('@decisionPatch').then(({ request }) => {
             expect(request.headers['if-match']).to.equal('"0"');

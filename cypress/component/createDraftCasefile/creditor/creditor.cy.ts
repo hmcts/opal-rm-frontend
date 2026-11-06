@@ -1,3 +1,4 @@
+import { seedMinorCreditorForm } from '../minorCreditor/setup/seed-minor-creditor-form';
 import { Router } from '@angular/router';
 import { GENERIC_HTTP_ERROR_MESSAGE } from '@hmcts/opal-frontend-common/interceptors/http-error/constants';
 import { Subject } from 'rxjs';
@@ -12,7 +13,7 @@ import {
 } from '../../../shared/constants/create-casefile-test-copy.constant';
 import { CREDITOR_VALIDATION_COPY } from '../../../shared/constants/creditor-copy.constant';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
-import { CREDITOR_MAJOR_RESPONSE, CREDITOR_MINOR_CREDITORS } from './mocks/creditor.mock';
+import { CREDITOR_MAJOR_RESPONSE, CREDITOR_MINOR_CREDITORS, NEW_CREDITOR_FORM } from './mocks/creditor.mock';
 import { setupCreditor, type CreditorStore } from './setup/creditor.setup';
 import { COUNTRIES_RESPONSE, EMPTY_COUNTRIES_RESPONSE } from '../mocks/countries.mock';
 
@@ -43,15 +44,9 @@ const openMinorCreditor = (): void => {
   cy.get(S.creditor.addNew).check();
   cy.get(S.creditor.continueButton).click();
 };
-const selectCountry = (name: string): void => {
-  cy.get(S.minorCreditor.countryAutocomplete).click();
-  cy.get(S.minorCreditor.countryOptions).contains(name).click();
-};
 const enterMinimalOrganisation = (): void => {
   cy.get(S.minorCreditor.organisation).check();
-  cy.get(S.minorCreditor.organisationName).type('Example creditor');
-  cy.get(S.minorCreditor.addressLine1).type('1 Test Street');
-  selectCountry('United Kingdom');
+  seedMinorCreditorForm(NEW_CREDITOR_FORM);
   cy.get(S.minorCreditor.bankNone).check();
 };
 const assertPendingMinorCreditor = (): void => {

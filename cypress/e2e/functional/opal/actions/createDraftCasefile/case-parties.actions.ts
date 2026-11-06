@@ -269,7 +269,9 @@ export class CasePartiesActions {
       cy.get(options).should((items) => {
         expect([...items].map((item) => item.textContent?.trim())).to.deep.equal(expectedNames);
       });
-      cy.get(input).type('United Kingdom').type('{downArrow}{enter}');
+      cy.get(input).type('United Kingdom', { delay: 0 });
+      cy.get(options).should('have.length', 1).and('be.visible').and('contain.text', 'United Kingdom');
+      cy.get(input).type('{downArrow}{enter}');
       cy.get(input).should('have.value', 'United Kingdom');
     });
   }

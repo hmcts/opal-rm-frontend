@@ -21,6 +21,7 @@ import {
 } from '../../shared/constants/create-casefile-test-copy.constant';
 import {
   SAVED_APPLICANT_ORGANISATION,
+  STALE_NON_UK_ORGANISATION_FORM,
   VALID_NONE_APPLICANT_ORGANISATION,
   NON_UK_BIC_APPLICANT_ORGANISATION_BEFORE_SAVE,
   NON_UK_IBAN_APPLICANT_ORGANISATION_BEFORE_SAVE,
@@ -29,7 +30,7 @@ import {
   VALID_UK_APPLICANT_ORGANISATION,
 } from './mocks/applicant-organisation.mock';
 import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
-import { setupApplicantOrganisation } from './setup/applicant-organisation.setup';
+import { seedApplicantOrganisationForm, setupApplicantOrganisation } from './setup/applicant-organisation.setup';
 import type { CasesCreateCasefileStoreInstance, GlobalStoreInstance } from './setup/applicant-organisation.setup';
 
 const STORY_TAG = '@JIRA-STORY:PO-9803';
@@ -347,13 +348,7 @@ describe('Create Casefile Applicant Organisation', () => {
       Page.applicantOrganisation.nonUkBankBranchSortCode,
       Page.applicantOrganisation.nonUkBankAccountNumber,
     ]);
-    cy.get(Page.applicantOrganisation.nonUkBankNameOnAccount).type('Stale non-UK name');
-    cy.get(Page.applicantOrganisation.nonUkBankBicSwiftCode).type('EXAMGB2L');
-    cy.get(Page.applicantOrganisation.nonUkBankIban).type('GB29NWBK60161331926819');
-    cy.get(Page.applicantOrganisation.nonUkBankPaymentReference).type('STALE-NONUK');
-    cy.get(Page.applicantOrganisation.nonUkBankName).type('Stale Bank');
-    cy.get(Page.applicantOrganisation.nonUkBankBranchSortCode).type('123456');
-    cy.get(Page.applicantOrganisation.nonUkBankAccountNumber).type('STALE123');
+    seedApplicantOrganisationForm(STALE_NON_UK_ORGANISATION_FORM);
 
     cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).check();
     cy.get(Page.applicantOrganisation.ukBankConditional).should('be.visible');

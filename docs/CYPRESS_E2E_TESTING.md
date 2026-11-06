@@ -295,6 +295,40 @@ three-worker regression passed 334 examples across 45 specs in 480.99 seconds wi
 503 failures prevented a valid full-suite baseline median, so no full-suite or scheduling speed improvement, or
 provider repair, is established. Fewer scenarios alone prove neither faster execution nor preserved acceptance coverage.
 
+## Typing without incidental waits
+
+Use per-call `{ delay: 0 }` for ordinary E2E text entry when typing cadence is not the behaviour under test.
+Keep `.type()` so input events, validation, formatting and native length limits still run. Do not replace keyboard
+activation with a click or apply a global command overwrite. The installed Cypress binary determines the default
+keystroke delay; unversioned website defaults are not evidence of the installed behaviour.
+
+Autocomplete needs explicit readiness after entering the query. For these unique queries, require a single visible
+option matching the query or captured live label, then requery the input before Down/Enter. Keep existing lookup query/status/order assertions,
+selection retention and live-service boundaries. Keystroke delay is not a substitute for waiting for options or
+an asynchronous response. Do not wait for a second request when the journey legitimately caches a lookup.
+
+The typing follow-up adds zero delay to 56 E2E text calls across party and Minor Creditor details, Central Authority
+references, Order Details, Order Terms, comments/notes, review reasons, correction and recovery. The nine previously
+optimised party inputs and three authentication inputs retain their options. Keyboard-only commands retain their
+existing defaults; no positive delay is required as a readiness mechanism. Component tests follow the separate
+[component setup policy](CYPRESS_COMPONENT_TESTING.md#efficient-form-setup): seed setup-only state and retain actual
+input, validation, dirty-state and keyboard behaviour. No component zero-delay workaround is introduced.
+
+A separate 6 November typing comparison used seven Central Authority functional/accessibility examples in the same
+two ordered specs, one worker, Chrome 157, Node 24.22.2 and unchanged retries, with warmups excluded. Baseline
+46.73/47.55/47.63s and final 35.95/36.64/37.00s give medians 47.55 and 36.64s: an observed 10.91s (22.94%) saving
+for that selection only. All measured browser runs passed without retries. After the second final browser run
+completed successfully, a local recording-shell edit caused exit 127; that exit and successful browser events are
+retained, and the third sample ran separately. Host load/cache warmth limit attribution. This is separate from the
+earlier consolidation benchmark and establishes no additional whole-suite, component or CI runtime saving.
+
+Final follow-up verification passed the normal three-worker functional selection: 334 examples across 45 specs,
+zero retries and 67 empty current owned cleanup receipts. Full components passed 1,239 tests across 45 specs;
+current raw reporters were isolated from historical merged inputs. Earlier full attempts remain disclosed: stale
+leaf reports first failed merging, then two live approvals returned HTTP 503. The affected checker feature later
+passed 12 cases in isolation before the final parallel pass. These passes establish neither a cause nor a provider
+repair. The 17 filesystem reporting tests and 13 Groovy hook-freshness scenarios also passed.
+
 ## Pipeline report retention
 
 CNP prepares fresh generated report areas before the component and dev/staging functional gates. Preparation
@@ -331,6 +365,12 @@ HTML publication preserves real reports and adds an explicitly incomplete fallba
 NDJSON or XML exists. The fallback directs readers to archived raw results and console output; it is not a
 merged result or a passing test report. Shared-runner fixes for component failure reporting and complete
 parallel merging/status handling remain deferred, and snapshots do not repair those results.
+
+For local leaf or `--no-reset` runs, snapshot raw results before changing selections. Before a full parallel run,
+archive earlier generated Cucumber NDJSON so the shared merger sees only current worker sources; a retained leaf
+file can otherwise duplicate a feature source and fail report generation after browser cases pass. Preserve cleanup
+receipts, account evidence and complete weights independently. Do not count stale or merged duplicate inputs as
+current execution evidence.
 
 Jira/Zephyr upload is separate from generation and retention. Project `33305` and the existing
 explicit-or-Friday upload selection remain unchanged. An archived JSON file does not prove a successful upload.

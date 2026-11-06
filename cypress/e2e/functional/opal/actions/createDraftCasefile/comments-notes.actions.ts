@@ -19,15 +19,15 @@ export class CommentsNotesActions {
 
   /** Enters controlled synthetic values into both optional fields. */
   public fill(): void {
-    cy.get(S.commentsAndNotes.comment).clear().type(DATA.commentsAndNotes.comment);
-    cy.get(S.commentsAndNotes.note).clear().type(DATA.commentsAndNotes.note);
+    cy.get(S.commentsAndNotes.comment).clear().type(DATA.commentsAndNotes.comment, { delay: 0 });
+    cy.get(S.commentsAndNotes.note).clear().type(DATA.commentsAndNotes.note, { delay: 0 });
   }
 
   /** Saves optional comments and notes using native Tab navigation and Space activation of the submit button. */
   public saveUsingKeyboard(): void {
-    cy.get(S.commentsAndNotes.comment).focus().should('be.focused').type(DATA.commentsAndNotes.comment);
+    cy.get(S.commentsAndNotes.comment).focus().should('be.focused').type(DATA.commentsAndNotes.comment, { delay: 0 });
     cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(S.commentsAndNotes.note).should('be.focused').type(DATA.commentsAndNotes.note);
+    cy.get(S.commentsAndNotes.note).should('be.focused').type(DATA.commentsAndNotes.note, { delay: 0 });
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.commentsAndNotes.returnToCaseDetails).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.SPACE);

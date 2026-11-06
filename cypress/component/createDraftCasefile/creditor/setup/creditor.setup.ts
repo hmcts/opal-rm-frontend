@@ -164,6 +164,7 @@ export function setupCreditor({
     }).then(({ fixture }) => {
       TestBed.inject(GlobalStore).setAuthenticated(true);
       const router = TestBed.inject(Router);
+      cy.wrap(fixture, { log: false }).as('casefileFixture');
       cy.wrap(store).as('casesCreateCasefileStore');
       cy.wrap(TestBed.inject(GlobalStore)).as('globalStore');
       cy.wrap(router).as('angularRouter');

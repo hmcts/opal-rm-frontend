@@ -85,7 +85,7 @@ export class CheckerDeletionActions {
   /** Attempts native over-limit input without activating a deletion decision. */
   public attemptOverLimitReason(): void {
     this.context();
-    cy.get(C.deletion.reason).should('have.attr', 'maxlength', '250').clear().type('D'.repeat(251));
+    cy.get(C.deletion.reason).should('have.attr', 'maxlength', '250').clear().type('D'.repeat(251), { delay: 0 });
     this.reason = 'D'.repeat(250);
     this.assertCorrectedReason();
     this.scan();

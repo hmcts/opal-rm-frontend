@@ -192,7 +192,7 @@ export class OrderTermsManagementActions {
    * @param amount Synthetic amount to enter or expect.
    */
   public fillInput(amount: string): void {
-    cy.get(S.orderTermsInput.amount).clear().type(amount);
+    cy.get(S.orderTermsInput.amount).clear().type(amount, { delay: 0 });
     cy.get<boolean>('@matInputIsNew').then((isNew) => {
       if (isNew) this.fillSupplementaryInput();
     });
@@ -204,11 +204,12 @@ export class OrderTermsManagementActions {
     cy.get<IResultParameter[]>('@matParameters').then((parameters) => {
       const names = parameters.map((field) => field.name.toLowerCase());
       this.supplementaryText().forEach(({ name, value }) => {
-        if (names.includes(name)) cy.get(S.orderTermsInput.field(name)).type(value);
+        if (names.includes(name)) cy.get(S.orderTermsInput.field(name)).type(value, { delay: 0 });
       });
       const payment = parameters.find((field) => field.name.toLowerCase() === 'payment');
       if (payment) cy.get(S.orderTermsInput.fieldRadios(payment.name)).check(this.courtOption(payment));
-      if (names.includes('commencement')) cy.get(S.orderTermsInput.field('commencement')).type('01/01/2026');
+      if (names.includes('commencement'))
+        cy.get(S.orderTermsInput.field('commencement')).type('01/01/2026', { delay: 0 });
     });
   }
 

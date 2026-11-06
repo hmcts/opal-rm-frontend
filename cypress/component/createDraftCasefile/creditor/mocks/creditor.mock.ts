@@ -1,3 +1,4 @@
+import type { ICasesCreateCasefileMinorCreditorFormData } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-minor-creditor-details/interfaces/cases-create-casefile-minor-creditor-form-data.interface';
 import type { ICasesCreateCasefileAcceptedOrderTerm } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-accepted-order-term.interface';
 import type { ICasesCreateCasefileMinorCreditor } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-minor-creditor.interface';
 import { MINOR_CREDITOR_DETAILS_MOCK } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-minor-creditor-details/mocks/cases-create-casefile-minor-creditor.mock';
@@ -96,3 +97,9 @@ export const CREDITOR_ACCEPTED_TERMS: ICasesCreateCasefileAcceptedOrderTerm[] = 
     presentation: maintenancePresentation,
   },
 ];
+
+export const NEW_CREDITOR_FORM = {
+  create_casefile_minor_creditor_organisation_name: 'Example creditor',
+  create_casefile_minor_creditor_address_line_1: '1 Test Street',
+  create_casefile_minor_creditor_country_id: 826,
+} satisfies Partial<ICasesCreateCasefileMinorCreditorFormData>;

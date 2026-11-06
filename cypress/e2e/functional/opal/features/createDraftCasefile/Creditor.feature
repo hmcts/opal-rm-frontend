@@ -5,13 +5,6 @@ Feature: Capture a creditor for an order term
     Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
-  Scenario: Accept the applicant as creditor locally
-    Given I am choosing a creditor for a controlled "MAT" order term of "12.30"
-    When I choose the applicant as creditor
-    And I continue from creditor selection
-    Then I reach Order Terms Summary without creating a draft casefile
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
   Scenario: Recover from missing creditor choices and retain a Major creditor by ID
     Given I am choosing a creditor for a controlled "MAT" order term of "12.30"
     When I continue from creditor selection
@@ -25,12 +18,15 @@ Feature: Capture a creditor for an order term
     Then I reach Order Terms Summary without creating a draft casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
-  Scenario: Cancel pending minor creditor details without creating a creditor
+  Scenario: Cancel pending Minor Creditor details and continue with the Applicant
     Given I am choosing a creditor for a controlled "MAT" order term of "12.30"
     When I choose to add a new minor creditor
     And I continue from creditor selection
     And I cancel minor creditor details without edits
     Then I return to Creditor without a selected creditor
+    When I choose the applicant as creditor
+    And I continue from creditor selection
+    Then I reach Order Terms Summary without creating a draft casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9808
   Scenario: Retain the creditor edit on declined cancellation and discard it on acceptance

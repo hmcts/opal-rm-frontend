@@ -284,11 +284,16 @@ retains both outcomes and does not reduce the six live PO-10280 outcomes.
 The additional creditor/Order Terms consolidation retains these identities and boundaries; external Jira/Zephyr
 Test mappings remain unverified, and Story tags do not establish Test IDs.
 
-| Original names                                                                 | Retained name                                                 | Story tags       | Retained assertion boundary                                                                                                                                              |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Save an international creditor without BIC or IBAN; Accept a reviewed creditor | Save and accept an international creditor without BIC or IBAN | PO-9809, PO-9810 | Non-UK Organisation input with BIC/IBAN blank; Minor Creditor Summary route/no draft write, then acceptance route/no draft write; no creditor payload-equality assertion |
+| Original names                                                                                              | Retained name                                                         | Story tags       | Retained assertion boundary                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Save an international creditor without BIC or IBAN; Accept a reviewed creditor                              | Save and accept an international creditor without BIC or IBAN         | PO-9809, PO-9810 | Non-UK Organisation input with BIC/IBAN blank; Minor Creditor Summary route/no draft write, then acceptance route/no draft write; no creditor payload-equality assertion                                                    |
+| Cancel pending minor creditor details without creating a creditor; Accept the applicant as creditor locally | Cancel pending Minor Creditor details and continue with the Applicant | PO-9808          | Clean cancel rejects confirmation; Creditor route/visible fieldset, enabled unchecked Applicant/Major/Add-new, absent Minor option/no write; then Applicant Continue to Summary/no write, without a saved-payload assertion |
 
-Current consolidated counts are functional 33, accessibility 17 and capability 50. These counts do not establish a
+Applicant acceptance now follows clean cancellation. Fresh acceptance remains independently covered by the unchanged
+Creditor component test `AC1, AC4. should accept Applicant locally without persistence` and the live PO-10279
+`Retain the applicant for a Order Term` scenario.
+
+Current consolidated counts are functional 32, accessibility 17 and capability 49. These counts do not establish a
 runtime improvement; the historical 60-to-51 benchmark below measures the earlier selection only.
 
 The installed runner caches authentication across specs and runs functional tests with three workers. Its ignored

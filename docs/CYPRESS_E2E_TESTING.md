@@ -288,12 +288,18 @@ Test mappings remain unverified, and Story tags do not establish Test IDs.
 | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Save an international creditor without BIC or IBAN; Accept a reviewed creditor                              | Save and accept an international creditor without BIC or IBAN         | PO-9809, PO-9810 | Non-UK Organisation input with BIC/IBAN blank; Minor Creditor Summary route/no draft write, then acceptance route/no draft write; no creditor payload-equality assertion                                                    |
 | Cancel pending minor creditor details without creating a creditor; Accept the applicant as creditor locally | Cancel pending Minor Creditor details and continue with the Applicant | PO-9808          | Clean cancel rejects confirmation; Creditor route/visible fieldset, enabled unchecked Applicant/Major/Add-new, absent Minor option/no write; then Applicant Continue to Summary/no write, without a saved-payload assertion |
+| Return from removal without removing an order; Amend one of two maintenance orders                          | Return from removal and then amend only the second maintenance order  | PO-9811          | After abandoned removal: stable £10/£20 cards and exactly two terms; amendment input initially 20.00 and Applicant selected; afterward stable £10/£25 cards and exactly two terms/no draft write                            |
 
 Applicant acceptance now follows clean cancellation. Fresh acceptance remains independently covered by the unchanged
 Creditor component test `AC1, AC4. should accept Applicant locally without persistence` and the live PO-10279
 `Retain the applicant for a Order Term` scenario.
 
-Current consolidated counts are functional 32, accessibility 17 and capability 49. These counts do not establish a
+Amendment now follows abandoned removal. The unchanged routed amendment component test
+`changes the second repeated Result while the first accepted term remains unchanged` retains fresh amendment
+coverage. The live PO-10278 journey and shared-minor amendment cancellation scenario are unchanged.
+
+Current functional expanded examples are Creditor 9, Minor Creditor 10, Order Terms Input 1, Order Terms Summary 3,
+cancellation 3 and Payments 5: functional 31, accessibility 17 and capability 48. These counts do not establish a
 runtime improvement; the historical 60-to-51 benchmark below measures the earlier selection only.
 
 The installed runner caches authentication across specs and runs functional tests with three workers. Its ignored

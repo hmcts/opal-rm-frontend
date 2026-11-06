@@ -295,6 +295,46 @@ three-worker regression passed 334 examples across 45 specs in 480.99 seconds wi
 503 failures prevented a valid full-suite baseline median, so no full-suite or scheduling speed improvement, or
 provider repair, is established. Fewer scenarios alone prove neither faster execution nor preserved acceptance coverage.
 
+## Pipeline report retention
+
+CNP prepares fresh generated report areas before the component and dev/staging functional gates. Preparation
+preserves account evidence, root creation/cleanup ledgers, unknown data, weights and compiler inputs; see the
+[component report contract](CYPRESS_COMPONENT_TESTING.md#pipeline-report-retention) for the exact cleanup
+scope and local Groovy freshness harness. `corepack yarn test:reporting` verifies RM artifact packaging.
+The metadata gate calls the existing published shared CLI directly, retaining its configured
+`cypress/component/createDraftCasefile` and `cypress/e2e/functional/opal/features` scope. It does not establish
+whole-suite component, login or smoke metadata coverage. Broader validation with precise existing-case
+exceptions is deferred to shared-library support; no Jira ownership is invented.
+
+Nightly finalizers copy only recognized final `cucumber-report.json` and `cypress-report-1.json` files from
+shared staging into the attempted stage's artifact directory, then archive it before the next suite starts:
+
+| Stage          | Shared source              | Stage snapshot directory                                      |
+| -------------- | -------------------------- | ------------------------------------------------------------- |
+| Component      | `functional-output/zephyr` | `functional-output/component/${browserToRun}/zephyr`          |
+| Smoke          | `smoke-output/zephyr`      | `smoke-output/prod/${browserToRun}/zephyr`                    |
+| Functional     | `functional-output/zephyr` | `functional-output/prod/${browserToRun}/zephyr`               |
+| UAT-Technical  | `functional-output/zephyr` | `functional-output/prod/${browserToRun}/uat-technical/zephyr` |
+| Legacy         | `functional-output/zephyr` | `functional-output/prod/${browserToRun}/legacy/zephyr`        |
+| Chrome/Firefox | `functional-output/zephyr` | `functional-output/prod/${stageConfig.browserToRun}/zephyr`   |
+
+Before each enabled nightly suite, clear its shared Zephyr staging and current generated source reports.
+Clear UAT's source HTML, NDJSON, shard XML, merged JUnit and previous `uat-technical` directory before
+health/auth/test attempts. Preserve account-evidence ledgers and unrelated stage paths. Skipped stages do
+not snapshot or publish prior results. CNP retains functional and smoke raw outputs before HTML publication.
+
+UAT prepares its artifacts in `finally`, retaining raw NDJSON and XML after failed runs. Its existing
+LaunchDarkly restoration also runs if artifact preparation, archiving or publication fails. These lifecycle
+changes do not enable a stage, add an upload or change release/tag selection.
+
+HTML publication preserves real reports and adds an explicitly incomplete fallback only when raw JSON,
+NDJSON or XML exists. The fallback directs readers to archived raw results and console output; it is not a
+merged result or a passing test report. Shared-runner fixes for component failure reporting and complete
+parallel merging/status handling remain deferred, and snapshots do not repair those results.
+
+Jira/Zephyr upload is separate from generation and retention. Project `33305` and the existing
+explicit-or-Friday upload selection remain unchanged. An archived JSON file does not prove a successful upload.
+
 ## Running a Feature
 
 Run a single feature file with:

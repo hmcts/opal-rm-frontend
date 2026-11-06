@@ -212,8 +212,19 @@ void archiveArtifact(String path) {
   archiveArtifacts artifacts: path, allowEmptyArchive: true
 }
 
+// Retain final Zephyr JSON before a later suite resets shared output.
+void snapshotZephyrReports(String sourceRoot, String targetRoot) {
+  sh "node scripts/test-report-artifacts.cjs snapshot '${sourceRoot}' '${targetRoot}'"
+}
+
 // Publish an HTML report directory with Jenkins HTML Publisher.
 void publishHtmlReport(String dir, String files, String name) {
+  int fallbackStatus = sh(returnStatus: true,
+    script: "node scripts/test-report-artifacts.cjs fallback '${dir}' '${files}' '${name}'")
+  if (fallbackStatus != 0) {
+    echo "Fallback report generation failed with exit ${fallbackStatus}"
+    currentBuild.result = 'FAILURE'
+  }
   publishHTML target: [
     allowMissing         : true,
     alwaysLinkToLastBuild: true,
@@ -380,6 +391,14 @@ void prepareUatTechnicalArtifacts(String browserToRun) {
     if [ -f "\$SOURCE_JUNIT_PATH" ]; then
       cp "\$SOURCE_JUNIT_PATH" "\$UAT_DIR/uat-technical-test-result.xml"
     fi
+    for raw in "\$SOURCE_CUCUMBER_DIR"/*.ndjson; do
+      [ -f "\$raw" ] || continue
+      cp "\$raw" "\$UAT_CUCUMBER_DIR/"
+    done
+    for raw in 'functional-output/prod/${browserToRun}'/opal-mode-test-output-*.xml; do
+      [ -f "\$raw" ] || continue
+      cp "\$raw" "\$UAT_DIR/"
+    done
   """
 }
 
@@ -393,8 +412,14 @@ void runComponentStage(
 ) {
   runNightlyStage(enabled, 'Component Tests', failureResultValue, 'Component tests failed') {
     try {
+      sh 'rm -rf functional-output/zephyr'
+      sh """
+        rm -rf functional-output/component/${browserToRun}/json functional-output/component/${browserToRun}/html
+        rm -rf functional-output/component/${browserToRun}/junit
+      """
       builder.yarn(shouldRunWithZephyr ? 'zephyr:test:component' : 'test:component')
     } finally {
+      snapshotZephyrReports('functional-output', "functional-output/component/${browserToRun}")
       archiveArtifact("functional-output/component/${browserToRun}/**")
       publishHtmlReport(
         "functional-output/component/${browserToRun}/html/",
@@ -415,6 +440,14 @@ void runUatTechnicalStage(
     boolean launchDarklyFlagPatched = false
 
     try {
+      sh 'rm -rf functional-output/zephyr'
+      sh """
+        rm -f functional-output/prod/${browserToRun}/cucumber/*.ndjson \\
+              functional-output/prod/${browserToRun}/cucumber/*.html \\
+              functional-output/prod/${browserToRun}/opal-mode-test-output-*.xml \\
+              functional-output/prod/${browserToRun}/${browserToRun}-test-result.xml
+        rm -rf functional-output/prod/${browserToRun}/uat-technical
+      """
       echo "Running UAT-Technical scenarios with TAGS=${uatTechnicalTagFilter}"
       patchLaunchDarklyFlagState(
         true,
@@ -434,25 +467,37 @@ void runUatTechnicalStage(
       ]) {
         sh 'node scripts/run-yarn-sequence.js test:functional:tags'
       }
-
-      prepareUatTechnicalArtifacts(browserToRun)
+    } catch (Exception failure) {
+      echo "UAT-Technical attempt failed: ${failure}"
+      throw failure
     } finally {
-      archiveArtifact(functionalProdArtifactsPath)
-      archiveArtifact('functional-output/account_evidence/created-accounts.json')
-      archiveArtifact('functional-output/account_evidence/**')
-      archiveArtifact("functional-output/screenshots/${browserToRun}/**")
-      archiveArtifact("functional-output/prod/${browserToRun}/uat-technical/**")
-      publishHtmlReport(
-        "functional-output/prod/${browserToRun}/uat-technical/cucumber/",
-        'uat-technical-report.html',
-        "UAT-Technical Functional Test Report (${browserToRun})"
-      )
-      if (launchDarklyFlagPatched) {
-        patchLaunchDarklyFlagState(
-          true,
-          launchDarklyOpalVariationName,
-          'Restoring LaunchDarkly flag to opal for staging...'
-        )
+      try {
+        try {
+          prepareUatTechnicalArtifacts(browserToRun)
+          snapshotZephyrReports('functional-output', "functional-output/prod/${browserToRun}/uat-technical")
+        } catch (Exception failure) {
+          echo "UAT-Technical artifact preparation failed: ${failure}"
+          throw failure
+        } finally {
+          archiveArtifact(functionalProdArtifactsPath)
+          archiveArtifact('functional-output/account_evidence/created-accounts.json')
+          archiveArtifact('functional-output/account_evidence/**')
+          archiveArtifact("functional-output/screenshots/${browserToRun}/**")
+          archiveArtifact("functional-output/prod/${browserToRun}/uat-technical/**")
+          publishHtmlReport(
+            "functional-output/prod/${browserToRun}/uat-technical/cucumber/",
+            'uat-technical-report.html',
+            "UAT-Technical Functional Test Report (${browserToRun})"
+          )
+        }
+      } finally {
+        if (launchDarklyFlagPatched) {
+          patchLaunchDarklyFlagState(
+            true,
+            launchDarklyOpalVariationName,
+            'Restoring LaunchDarkly flag to opal for staging...'
+          )
+        }
       }
     }
   }
@@ -474,8 +519,16 @@ void runSmokeStage(
 
   runNightlyStage(enabled, smokeStageName, failureResultValue, 'Smoke tests failed') {
     try {
+      sh 'rm -rf smoke-output/zephyr'
+      sh """
+        rm -f smoke-output/prod/${browserToRun}/cucumber/*.ndjson \\
+              smoke-output/prod/${browserToRun}/cucumber/*.html \\
+              smoke-output/prod/${browserToRun}/opal-mode-test-output-*.xml \\
+              smoke-output/prod/${browserToRun}/${browserToRun}-test-result.xml
+      """
       builder.yarn('test:smoke')
     } finally {
+      snapshotZephyrReports('smoke-output', "smoke-output/prod/${browserToRun}")
       archiveArtifact('smoke-output/prod/**')
       archiveArtifact("smoke-output/screenshots/${browserToRun}/**")
       publishHtmlReport(
@@ -497,8 +550,16 @@ void runFunctionalStage(
 ) {
   runNightlyStage(enabled, 'Functional Tests', failureResultValue, 'Functional tests failed') {
     try {
+      sh 'rm -rf functional-output/zephyr'
+      sh """
+        rm -f functional-output/prod/${browserToRun}/cucumber/*.ndjson \\
+              functional-output/prod/${browserToRun}/cucumber/*.html \\
+              functional-output/prod/${browserToRun}/opal-mode-test-output-*.xml \\
+              functional-output/prod/${browserToRun}/${browserToRun}-test-result.xml
+      """
       builder.yarn(shouldRunWithZephyr ? 'zephyr:test:functional' : 'test:functional')
     } finally {
+      snapshotZephyrReports('functional-output', "functional-output/prod/${browserToRun}")
       archiveArtifact(functionalProdArtifactsPath)
       archiveArtifact("functional-output/screenshots/${browserToRun}/**")
       publishHtmlReport(
@@ -520,8 +581,16 @@ void runLegacyStage(
 ) {
   runNightlyStage(enabled, 'Legacy Tests', failureResultValue, 'Legacy tests failed') {
     try {
+      sh 'rm -rf functional-output/zephyr'
+      sh """
+        rm -f functional-output/prod/${browserToRun}/legacy/cucumber/*.ndjson \\
+              functional-output/prod/${browserToRun}/legacy/cucumber/*.html \\
+              functional-output/prod/${browserToRun}/legacy/legacy-mode-test-output-*.xml \\
+              functional-output/prod/${browserToRun}/legacy/legacy-test-result.xml
+      """
       builder.yarn('test:functional --mode=legacy')
     } finally {
+      snapshotZephyrReports('functional-output', "functional-output/prod/${browserToRun}/legacy")
       archiveArtifact("functional-output/prod/${browserToRun}/legacy/**")
       archiveArtifact("functional-output/screenshots/${browserToRun}/legacy/**")
       publishHtmlReport(
@@ -543,8 +612,16 @@ void runBrowserStage(
 ) {
   runNightlyStage(enabled, stageConfig.stageName, failureResultValue, failureMessage) {
     try {
+      sh 'rm -rf functional-output/zephyr'
+      sh """
+        rm -f functional-output/prod/${stageConfig.browserToRun}/cucumber/*.ndjson \\
+              functional-output/prod/${stageConfig.browserToRun}/cucumber/*.html \\
+              functional-output/prod/${stageConfig.browserToRun}/opal-mode-test-output-*.xml \\
+              functional-output/prod/${stageConfig.browserToRun}/${stageConfig.browserToRun}-test-result.xml
+      """
       builder.yarn(stageConfig.yarnCommand)
     } finally {
+      snapshotZephyrReports('functional-output', "functional-output/prod/${stageConfig.browserToRun}")
       archiveArtifact("functional-output/prod/${stageConfig.browserToRun}/**")
       archiveArtifact("functional-output/screenshots/${stageConfig.browserToRun}/**")
       publishHtmlReport(
@@ -685,6 +762,8 @@ Environment: ${env.EXECUTION_ENVIRONMENT}
 Description: ${env.EXECUTION_CYCLE_DESCRIPTION}
 """.stripIndent()
     }
+    yarnBuilder.yarn('check:cypress:test-metadata')
+    yarnBuilder.yarn('test:reporting')
     runComponentStage(
       params.Component,
       failureResult,

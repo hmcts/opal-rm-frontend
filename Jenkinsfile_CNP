@@ -19,6 +19,7 @@ String component = 'rm-frontend'
 @Field String stringTrue = String.valueOf(true)
 @Field String stringFalse = String.valueOf(false)
 @Field List<String> cachedPrLabels = []
+@Field Map<String, Boolean> reportAttemptsPrepared = [component: false, functional: false]
 
 // Secret key for KeyVault lookups
 String secretKey = 'opal-$'.concat('{env}')
@@ -118,8 +119,26 @@ void archiveArtifact(String path) {
     archiveArtifacts artifacts: path, allowEmptyArchive: true
 }
 
+// A failed/partial reset must not let unconditional finalizers reuse an earlier attempt.
+void prepareReportAttempt(String attempt) {
+    reportAttemptsPrepared[attempt] = false
+    sh 'node scripts/test-report-artifacts.cjs prepare'
+    reportAttemptsPrepared[attempt] = true
+}
+
+// Retain final Zephyr JSON before a later suite resets shared output.
+void snapshotZephyrReports(String sourceRoot, String targetRoot) {
+    sh "node scripts/test-report-artifacts.cjs snapshot '${sourceRoot}' '${targetRoot}'"
+}
+
 // Publish an HTML report directory with Jenkins HTML Publisher
 void publishHtmlReport(String dir, String files, String name) {
+    int fallbackStatus = sh(returnStatus: true,
+      script: "node scripts/test-report-artifacts.cjs fallback '${dir}' '${files}' '${name}'")
+    if (fallbackStatus != 0) {
+      echo "Fallback report generation failed with exit ${fallbackStatus}"
+      currentBuild.result = 'FAILURE'
+    }
     publishHTML target: [
     allowMissing         : true,
     alwaysLinkToLastBuild: true,
@@ -553,22 +572,34 @@ withPipeline(type, product, component) {
       } else {
                 echo 'Running opal component tests (no skip label present)'
                 try {
+                    prepareReportAttempt('component')
+                    yarnBuilder.yarn('check:cypress:test-metadata')
+                    yarnBuilder.yarn('test:reporting')
                     yarnBuilder.yarn('test:component')
         } catch (hudson.AbortException e) {
                     echo "Opal component tests failed: ${e}"
                     currentBuild.result = 'FAILURE'
         } finally {
-                    archiveArtifact(functionalArtifactsGlob)
-                    publishHtmlReport(
-                    "functional-output/component/${resolvedBrowserToRun()}/html/",
-                    'component-report.html',
-                    "Component Test Report (${resolvedBrowserToRun()})"
-                  )
+                    if (reportAttemptsPrepared.component) {
+                        snapshotZephyrReports('functional-output', "functional-output/component/${resolvedBrowserToRun()}")
+                        archiveArtifact(functionalArtifactsGlob)
+                        publishHtmlReport(
+                        "functional-output/component/${resolvedBrowserToRun()}/html/",
+                        'component-report.html',
+                        "Component Test Report (${resolvedBrowserToRun()})"
+                      )
+                    }
                 }
             }
         }
     }
 
+    // Validate test metadata and reporting before either functional browser stage.
+    before(stageFunctionalDev) {
+        prepareReportAttempt('functional')
+        yarnBuilder.yarn('check:cypress:test-metadata')
+        yarnBuilder.yarn('test:reporting')
+    }
     // Archive smoke/functional weights and reports after dev functional run
     afterSuccess(stageFunctionalDev) {
         script {
@@ -588,6 +619,12 @@ withPipeline(type, product, component) {
     // Helm does not wait for ASO custom-resource readiness before running tests.
     [stageFunctionalStg, 'fullFunctionalTest:stg'].each { stageName ->
         before(stageName) {
+            // Infrastructure stores one before callback per stage; retain gates and queue readiness together.
+            if (stageName == stageFunctionalStg) {
+                prepareReportAttempt('functional')
+                yarnBuilder.yarn('check:cypress:test-metadata')
+                yarnBuilder.yarn('test:reporting')
+            }
             withAksClient(env.NONPROD_SUBSCRIPTION_NAME ?: 'nonprod', 'stg', product) {
                 def aksSubscription = new AKSSubscriptions(this).aat.name
                 new Kubectl(this, env.NONPROD_SUBSCRIPTION_NAME ?: 'nonprod',
@@ -622,43 +659,50 @@ withPipeline(type, product, component) {
 
     // Publish HTML and JSON artifacts for staging functional runs
     afterAlways(stageFunctionalStg) {
-        publishHtmlReport(
-        functionalOutputDir(),
-        functionalReportFile(),
-        functionalReportName()
-      )
-        archiveArtifact(functionalArtifactsGlob)
-        archiveArtifact(accountArtifactPath)
-        archiveArtifact(accountEvidenceArtifacts)
-        if (shouldPublishSmokeReport()) {
+        if (reportAttemptsPrepared.functional) {
+            archiveArtifact(functionalArtifactsGlob)
+            archiveArtifact(accountArtifactPath)
+            archiveArtifact(accountEvidenceArtifacts)
+            archiveArtifact('smoke-output/zephyr/*.json')
+            archiveArtifact('smoke-output/**')
             publishHtmlReport(
-            smokeOutputDir(),
-            smokeReportFile(),
-            smokeReportName()
+            functionalOutputDir(),
+            functionalReportFile(),
+            functionalReportName()
           )
-        } else {
-            echo "Skipping smoke report publishing because SKIP_SMOKE=${env.SKIP_SMOKE}"
+            if (shouldPublishSmokeReport()) {
+                publishHtmlReport(
+                smokeOutputDir(),
+                smokeReportFile(),
+                smokeReportName()
+              )
+            } else {
+                echo "Skipping smoke report publishing because SKIP_SMOKE=${env.SKIP_SMOKE}"
+            }
         }
     }
     // Publish HTML and JSON artifacts for dev functional runs
     afterAlways(stageFunctionalDev) {
-        publishHtmlReport(
-        functionalOutputDir(),
-        functionalReportFile(),
-        functionalReportName()
-      )
-        archiveArtifact(functionalArtifactsGlob)
-        archiveArtifact(accountArtifactPath)
-        archiveArtifact(accountEvidenceArtifacts)
-
-        if (shouldPublishSmokeReport()) {
+        if (reportAttemptsPrepared.functional) {
+            archiveArtifact(functionalArtifactsGlob)
+            archiveArtifact(accountArtifactPath)
+            archiveArtifact(accountEvidenceArtifacts)
+            archiveArtifact('smoke-output/zephyr/*.json')
+            archiveArtifact('smoke-output/**')
             publishHtmlReport(
-            smokeOutputDir(),
-            smokeReportFile(),
-            smokeReportName()
+            functionalOutputDir(),
+            functionalReportFile(),
+            functionalReportName()
           )
-        } else {
-            echo "Skipping smoke report publishing because SKIP_SMOKE=${env.SKIP_SMOKE}"
+            if (shouldPublishSmokeReport()) {
+                publishHtmlReport(
+                smokeOutputDir(),
+                smokeReportFile(),
+                smokeReportName()
+              )
+            } else {
+                echo "Skipping smoke report publishing because SKIP_SMOKE=${env.SKIP_SMOKE}"
+            }
         }
     }
 }

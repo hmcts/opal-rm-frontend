@@ -28,6 +28,7 @@ import {
   UK_APPLICANT_ORGANISATION_BEFORE_SAVE,
   VALID_UK_APPLICANT_ORGANISATION,
 } from './mocks/applicant-organisation.mock';
+import { POSTAL_OR_ZIP_CODE_MOCK } from './mocks/postal-or-zip-code.mock';
 import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
 import { setupApplicantOrganisation } from './setup/applicant-organisation.setup';
 import type { CasesCreateCasefileStoreInstance, GlobalStoreInstance } from './setup/applicant-organisation.setup';
@@ -123,6 +124,25 @@ const assertCanonicalIdentifierContract = (
 };
 
 describe('Create Casefile Applicant Organisation', () => {
+  it(
+    'AC1, AC2, AC3, AC4, AC6. should trim the applicant organisation postal value on blur and save it',
+    { tags: buildTags('@JIRA-STORY:PO-11470') },
+    () => {
+      setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT_ORGANISATION });
+      cy.get(Page.applicantOrganisation.postalOrZipCode).clear().type(POSTAL_OR_ZIP_CODE_MOCK.padded).blur();
+      cy.get(Page.applicantOrganisation.postalOrZipCode).should('have.value', POSTAL_OR_ZIP_CODE_MOCK.uppercased);
+      cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
+
+      assertRouterPath(taskListPath);
+      cy.get('@casesCreateCasefileStore').should((store: CasesCreateCasefileStoreInstance) => {
+        expect(store.applicantDetails()).to.have.nested.property(
+          'contactDetails.address.postalOrZipCode',
+          POSTAL_OR_ZIP_CODE_MOCK.uppercased,
+        );
+      });
+    },
+  );
+
   it(
     'AC2, AC4. should uppercase typed organisation, foreign reference and postcode while preserving contact text on save',
     { tags: buildTags() },

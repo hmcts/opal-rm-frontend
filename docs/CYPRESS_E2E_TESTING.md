@@ -316,6 +316,55 @@ three-worker regression passed 334 examples across 45 specs in 480.99 seconds wi
 503 failures prevented a valid full-suite baseline median, so no full-suite or scheduling speed improvement, or
 provider repair, is established. Fewer scenarios alone prove neither faster execution nor preserved acceptance coverage.
 
+A separate 6 November additional-consolidation comparison used the capability selection in the same twelve ordered
+specs, one worker, Chrome 157.0.8103.39, Cypress 15.21.1, Node 24.22.2 and Yarn 4.18.1, with the existing
+run-mode retry limit of one. Baseline 302.55/301.62/297.54s and final 282.58/286.00/283.25s give medians
+301.62 and 283.25s: an observed 18.37s (6.09%) lower duration for the intentionally changed 51-to-48-example
+workload. Baseline warm-up 303.32s and final warm-up 285.76s are excluded. Every baseline/final measured run
+passed its complete selection without retries, failures, skips or pending examples. The frontend used this
+checkout's Angular SSR development watcher on local port 5000; the backend compiled revision was not independently
+verified. Host load and cache warmth were uncontrolled. This observation does not establish a strict causal saving
+or an additional full-suite, scheduling or CI improvement.
+
+Final static checks passed Prettier, Cypress lint, E2E TypeScript, test metadata, duplicate scenario names and diff
+whitespace. Registry discovery passed 34 affected examples, 48 capability examples, 331 release-on examples across
+45 specs, 26 release-off examples and one smoke example, with no undefined or ambiguous binding. Expanded capability
+inventories confirm only the six named originals become the three retained names above; all other names, expanded
+rows and tags match. The five controlled Creditor feature callers and one Minor Creditor Flow caller remain separate
+from live setup. The unchanged Creditor and routed amendment component specs passed 35 and 24 tests; focused final
+Minor Creditor, Creditor and Summary browser pairs passed 17, 13 and four examples respectively.
+
+The first final normal three-worker functional attempt executed the complete 331-example/45-spec selection in
+372.38s: worker results were 68/76, 152/152 and 103/103 passing, with eight failures and no skips or pending cases.
+Five rejected-amendment accessibility examples and three checker-decision examples failed real fixture permission
+preflight with HTTP 401 instead of 200. Runtime logs also contained missing/expired-token diagnostics during the
+attempt, without request-level correlation establishing the exact cause. Report generation separately failed on
+stale duplicate sources after processing 351 current and historical XML files. Current-only JUnit inventories match
+all 331 discovered expanded names and multiplicities; 59 current cleanup receipts were empty. A fresh serial
+invocation of those two unchanged feature specs then passed 20 examples without retries in 80.79s. That serial
+pass does not establish the cause, pre-existence or repair of the parallel failures. All attempts are retained.
+
+After preserving every attempt and using the existing generated-report preparation workflow, the final normal
+three-worker regression passed all 331 examples across 45 specs in 359.90s, with worker totals 152, 76 and 103.
+One configured retry was required: `Retain a completed draft on return and start fresh after confirmed cancellation`
+initially expected the Order Terms Summary route but observed the task-list route; its retry passed. Final outcomes
+had zero failed, skipped or pending examples. All three distinct worker Cucumber files and 45 current JUnit files
+were inspected; expanded names, rows and tags exactly match release-on discovery. All 67 current owned cleanup
+receipts were empty. Report generation succeeded with three worker inputs. The earlier undefined-thread report was
+a stale serial leaf artifact, not evidence of worker-file collision. No assertion, timeout, retry setting or runtime
+configuration changed. The initial 401 cause and cancellation timing failure remain unproven; these passes establish
+neither a provider repair nor a new full-suite runtime gain.
+
+Sanitised inventories, attempt summaries, exact commands, timings, draft PR/Security Vulnerability Assessment and
+per-criterion Definition of Done are retained locally under ignored
+`docs/superpowers/evidence/2026-11-06-creditor-order-terms/`. Pre-final weights contained 45 entries but their
+originating successful full run was not independently verified; they were preserved rather than relabelled as a
+proven baseline. The final successful full-run weights are separately archived. No production UI, executable,
+dependency or coverage exclusion changed: production unit coverage, Sonar new-application-code coverage, Angular
+build/lint, full component regression and new manual UI screenshots/screen-reader/zoom checks are not applicable
+to this scope. Automated Axe, focus and keyboard results remain partial WCAG evidence. External Test mappings,
+reviewer approval, QA, CI, deployment and ticket closure remain pending unless separately evidenced.
+
 ## Typing without incidental waits
 
 Use per-call `{ delay: 0 }` for ordinary E2E text entry when typing cadence is not the behaviour under test.

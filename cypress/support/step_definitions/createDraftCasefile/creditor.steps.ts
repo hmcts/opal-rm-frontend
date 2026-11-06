@@ -3,6 +3,11 @@ import { CreditorFlow } from '../../../e2e/functional/opal/flows/createDraftCase
 
 const flow = new CreditorFlow();
 
+Given(
+  /^I am choosing a creditor for a controlled "(MAT)" order term of "(\d+\.\d{2})"$/,
+  (orderTerm: 'MAT', amount: string) => flow.openControlledChoice(orderTerm, amount),
+);
+
 Given('active non-Central-Authority Major creditors are available', () => flow.prepareMajorCreditors());
 Given('Countries are available for minor creditor details', () => flow.prepareCountries());
 Then('the creditor page is ready with the scoped Major creditor query', () => flow.assertReady());

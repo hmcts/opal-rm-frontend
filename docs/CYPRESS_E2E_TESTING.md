@@ -275,11 +275,21 @@ none of these examples has an external Test-ID tag. Preserve the intermediate as
 | A completed draft remains available after returning from cancellation; Confirming cancellation starts a genuinely fresh browser journey              | Retain a completed draft on return and start fresh after confirmed cancellation         | PO-9818, PO-10284, PO-10605 | Controlled complete draft; retained review, then discard/reset/history/no mutation                                |
 | Retain court payments without changing interest and indexation; Retain direct payments without changing interest and indexation                      | Retain court payments then direct payments without changing interest and indexation     | PO-10281                    | Live setup; each arrangement save/reopen, retained Yes/CPI and Provided tasks/no write                            |
 
-Current functional expanded examples are Creditor 10 (previously 13), Minor Creditor 11 (12), Order Terms Input 1 (2),
+Historical functional expanded examples after the earlier consolidation were Creditor 10 (previously 13), Minor Creditor 11 (12), Order Terms Input 1 (2),
 Order Terms Summary 4 (6), cancellation 3 (4) and Payments 5 (6). All seventeen capability accessibility examples
-remain unchanged: 60 examples become 51 through nine fewer repeated setups, not nine fewer AC outcomes. The inherited
+remained unchanged: 60 examples became 51 through nine fewer repeated setups, not nine fewer AC outcomes. The inherited
 Minor Creditor removal allocation is separate from this reduction; its controlled abandonment/confirmation sequence
 retains both outcomes and does not reduce the six live PO-10280 outcomes.
+
+The additional creditor/Order Terms consolidation retains these identities and boundaries; external Jira/Zephyr
+Test mappings remain unverified, and Story tags do not establish Test IDs.
+
+| Original names                                                                 | Retained name                                                 | Story tags       | Retained assertion boundary                                                                                                                                              |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Save an international creditor without BIC or IBAN; Accept a reviewed creditor | Save and accept an international creditor without BIC or IBAN | PO-9809, PO-9810 | Non-UK Organisation input with BIC/IBAN blank; Minor Creditor Summary route/no draft write, then acceptance route/no draft write; no creditor payload-equality assertion |
+
+Current consolidated counts are functional 33, accessibility 17 and capability 50. These counts do not establish a
+runtime improvement; the historical 60-to-51 benchmark below measures the earlier selection only.
 
 The installed runner caches authentication across specs and runs functional tests with three workers. Its ignored
 timing weights are generated locally; targeted runs can overwrite them. Preserve complete successful local snapshots

@@ -4,12 +4,14 @@ Feature: Capture minor creditor details
   Background:
     Given I am authenticated with email "opal-test@dev.platform.hmcts.net"
 
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9809
-  Scenario: Save an international creditor without BIC or IBAN
+  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9809 @JIRA-STORY:PO-9810
+  Scenario: Save and accept an international creditor without BIC or IBAN
     Given I am adding a minor creditor to an accepted order term
     When I provide valid organisation creditor details with a non-UK bank and no international identifiers
     And I save the minor creditor details
     Then I reach Minor Creditor Summary without creating a draft casefile
+    When I accept the reviewed minor creditor
+    Then the reviewed minor creditor is accepted without creating a draft casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9809
   Scenario: Retain unsaved creditor details on declined cancellation and discard them on acceptance
@@ -42,14 +44,6 @@ Feature: Capture minor creditor details
     And I save the minor creditor details
     And I cancel minor creditor review
     Then I return to Creditor without a new minor creditor
-
-  @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-9810
-  Scenario: Accept a reviewed creditor
-    Given I am adding a minor creditor to an accepted order term
-    When I provide valid organisation creditor details with a non-UK bank and no international identifiers
-    And I save the minor creditor details
-    And I accept the reviewed minor creditor
-    Then the reviewed minor creditor is accepted without creating a draft casefile
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10280
   Scenario Outline: Create and retain a <kind> Minor Creditor

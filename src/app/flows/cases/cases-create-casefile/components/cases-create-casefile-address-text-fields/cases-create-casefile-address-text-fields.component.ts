@@ -4,11 +4,12 @@ import { AbstractNestedFormBaseComponent } from '@hmcts/opal-frontend-common/com
 import type { IAbstractFormControlErrorMessage } from '@hmcts/opal-frontend-common/components/abstract/interfaces';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { CapitalisationDirective } from '@hmcts/opal-frontend-common/directives/capitalisation';
+import { TrimLeadingTrailingWhitespaceDirective } from '@hmcts/opal-frontend-common/directives/trim-leading-trailing-whitespace';
 import type { ICasesCreateCasefileAddressTextFieldNames } from './interfaces/cases-create-casefile-address-text-field-names.interface';
 
 @Component({
   selector: 'app-cases-create-casefile-address-text-fields',
-  imports: [GovukTextInputComponent, CapitalisationDirective],
+  imports: [GovukTextInputComponent, CapitalisationDirective, TrimLeadingTrailingWhitespaceDirective],
   templateUrl: './cases-create-casefile-address-text-fields.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -19,17 +19,27 @@ export class OrderDetailsActions {
     cy.get(S.applicantType).select('Individual');
     cy.get(S.continueButton).click();
     cy.get(S.caseDetails.respondentLink).click();
-    cy.get(S.respondentDetails.firstNames).type('Synthetic');
-    cy.get(S.respondentDetails.lastName).type('Respondent');
-    cy.get(S.respondentDetails.addressLine1).type('1 Test Street');
-    cy.get(S.respondentDetails.countryAutocomplete).type('United Kingdom').type('{downArrow}{enter}');
+    cy.get(S.respondentDetails.firstNames).type('Synthetic', { delay: 0 });
+    cy.get(S.respondentDetails.lastName).type('Respondent', { delay: 0 });
+    cy.get(S.respondentDetails.addressLine1).type('1 Test Street', { delay: 0 });
+    cy.get(S.respondentDetails.countryAutocomplete).type('United Kingdom', { delay: 0 });
+    cy.get(S.respondentDetails.countryOptions)
+      .should('have.length', 1)
+      .and('be.visible')
+      .and('contain.text', 'United Kingdom');
+    cy.get(S.respondentDetails.countryAutocomplete).type('{downArrow}{enter}');
     cy.get(S.respondentDetails.returnToCaseDetails).click();
     cy.get(S.caseDetails.respondentStatus).should('contain.text', 'Provided');
     cy.get(S.caseDetails.applicantLink).click();
-    cy.get(S.applicantIndividual.firstNames).type('Synthetic');
-    cy.get(S.applicantIndividual.lastName).type('Applicant');
-    cy.get(S.applicantIndividual.addressLine1).type('2 Test Street');
-    cy.get(S.applicantIndividual.countryAutocomplete).type('United Kingdom').type('{downArrow}{enter}');
+    cy.get(S.applicantIndividual.firstNames).type('Synthetic', { delay: 0 });
+    cy.get(S.applicantIndividual.lastName).type('Applicant', { delay: 0 });
+    cy.get(S.applicantIndividual.addressLine1).type('2 Test Street', { delay: 0 });
+    cy.get(S.applicantIndividual.countryAutocomplete).type('United Kingdom', { delay: 0 });
+    cy.get(S.applicantIndividual.countryOptions)
+      .should('have.length', 1)
+      .and('be.visible')
+      .and('contain.text', 'United Kingdom');
+    cy.get(S.applicantIndividual.countryAutocomplete).type('{downArrow}{enter}');
     cy.get(S.applicantIndividual.bankTypeRadio('none')).check();
     cy.get(S.applicantIndividual.returnToCaseDetails).click();
     cy.get(S.caseDetails.applicantStatus).should('contain.text', 'Provided');
@@ -47,10 +57,12 @@ export class OrderDetailsActions {
   }
   /** Saves the application, payment frequency and both required dates. */
   public saveRequiredDetails(): void {
-    cy.get(S.orderDetails.application).type('TEST01').type('{downArrow}{enter}');
+    cy.get(S.orderDetails.application).type('TEST01', { delay: 0 });
+    cy.get(S.orderDetails.applicationOptions).should('have.length', 1).and('be.visible').and('contain.text', 'TEST01');
+    cy.get(S.orderDetails.application).type('{downArrow}{enter}');
     cy.get(S.orderDetails.frequencyOptions).check('Monthly');
-    cy.get(S.orderDetails.dateArrearsLastUpdated).type('01/01/2026');
-    cy.get(S.orderDetails.dateOrderMade).type('01/01/2026');
+    cy.get(S.orderDetails.dateArrearsLastUpdated).type('01/01/2026', { delay: 0 });
+    cy.get(S.orderDetails.dateOrderMade).type('01/01/2026', { delay: 0 });
     cy.get(S.orderDetails.returnButton).click();
   }
   /** Checks task availability and absence of draft creation. */
@@ -173,13 +185,18 @@ export class OrderDetailsActions {
   /** Saves the live application and associated information using keyboard submission. */
   public saveLiveDetails(): void {
     cy.get('@liveApplicationLabel').then((label) => {
-      cy.get(S.orderDetails.application).type(String(label)).type('{downArrow}{enter}');
+      cy.get(S.orderDetails.application).type(String(label), { delay: 0 });
+      cy.get(S.orderDetails.applicationOptions)
+        .should('have.length', 1)
+        .and('be.visible')
+        .and('contain.text', String(label));
+      cy.get(S.orderDetails.application).type('{downArrow}{enter}');
       cy.get(S.orderDetails.application).should('have.value', String(label));
     });
-    cy.get(S.orderDetails.court).type('Synthetic Court');
+    cy.get(S.orderDetails.court).type('Synthetic Court', { delay: 0 });
     cy.get(S.orderDetails.frequencyOptions).check('Monthly');
-    cy.get(S.orderDetails.dateOrderMade).type('01/01/2026');
-    cy.get(S.orderDetails.dateArrearsLastUpdated).type('01/01/2026');
+    cy.get(S.orderDetails.dateOrderMade).type('01/01/2026', { delay: 0 });
+    cy.get(S.orderDetails.dateArrearsLastUpdated).type('01/01/2026', { delay: 0 });
     cy.get(S.orderDetails.returnButton).focus().should('be.focused').type('{enter}');
   }
 

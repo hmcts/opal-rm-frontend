@@ -15,7 +15,12 @@ import {
 import type { ICheckerPreparedReview } from './checker-review-decisions.actions';
 import { assertDeletedAggregate, assertDeletionRetry } from './checker-deletion-evidence.actions';
 import type { CheckerDeletionKind } from './checker-deletion-evidence.actions';
-import { assertUnchangedDraft, decodeDraftSnapshot, readDraftSnapshot } from './draft-casefile-evidence.actions';
+import {
+  assertObservedUnchangedDraft,
+  assertUnchangedDraft,
+  decodeDraftSnapshot,
+  readDraftSnapshot,
+} from './draft-casefile-evidence.actions';
 import { armDraftCasefileMutation } from './draft-casefile-transport.actions';
 import type { IDraftCasefileSnapshot } from './interfaces/draft-casefile-snapshot.interface';
 
@@ -80,7 +85,7 @@ export class CheckerDeletionActions {
   /** Attempts native over-limit input without activating a deletion decision. */
   public attemptOverLimitReason(): void {
     this.context();
-    cy.get(C.deletion.reason).should('have.attr', 'maxlength', '250').clear().type('D'.repeat(251));
+    cy.get(C.deletion.reason).should('have.attr', 'maxlength', '250').clear().type('D'.repeat(251), { delay: 0 });
     this.reason = 'D'.repeat(250);
     this.assertCorrectedReason();
     this.scan();
@@ -229,11 +234,7 @@ export class CheckerDeletionActions {
       } else cancel.click();
       cy.wait('@deletionCancelledDetail').then(({ response }) => {
         if (!response) throw new Error('Cancelled review receipt missing');
-        expect(response.statusCode).to.equal(200);
-        assertUnchangedDraft(
-          session.before,
-          decodeDraftSnapshot(session.owned.id, response.body, response.headers['etag']),
-        );
+        return assertObservedUnchangedDraft(session.before, response);
       });
       cy.location('pathname').should('equal', `/${PATHS.root}/${PATHS.children.review}/${session.owned.id}`);
       session.recovery.assertSavedPresentation(session.before);

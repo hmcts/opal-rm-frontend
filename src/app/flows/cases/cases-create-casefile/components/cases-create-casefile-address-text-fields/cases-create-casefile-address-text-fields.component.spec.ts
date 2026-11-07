@@ -1,6 +1,6 @@
 import { By } from '@angular/platform-browser';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { provideRouter } from '@angular/router';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -127,5 +127,56 @@ describe('CasesCreateCasefileAddressTextFieldsComponent', () => {
     form.get(fieldNames.postalOrZipCode)?.setValue('ab1 2cd');
     fixture.detectChanges();
     expect(form.get(fieldNames.postalOrZipCode)?.value).toBe('ab1 2cd');
+  });
+
+  it.each([
+    { entered: '  SW1A 1AA  ', trimmed: 'SW1A 1AA', valid: true },
+    { entered: '  sw1a  1aa  ', trimmed: 'sw1a  1aa', valid: true },
+    { entered: '\t H0H 0H0 \t', trimmed: 'H0H 0H0', valid: true },
+    { entered: '  12345-6789  ', trimmed: '12345-6789', valid: true },
+    { entered: '  ab 12-3456  ', trimmed: 'ab 12-3456', valid: true },
+    { entered: '  12345678901  ', trimmed: '12345678901', valid: false },
+    { entered: '           ', trimmed: '', valid: true },
+    { entered: '', trimmed: '', valid: true },
+  ])('trims "$entered" on leaving the postal field and revalidates the displayed value', (example) => {
+    const control = form.controls[fieldNames.postalOrZipCode];
+    control.setValidators(Validators.maxLength(10));
+    fixture.detectChanges();
+    const postal = fixture.nativeElement.querySelector(`#${fieldNames.postalOrZipCode}`) as HTMLInputElement;
+    postal.value = example.entered;
+    postal.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(control.hasError('maxlength')).toBe(example.entered.length > 10);
+
+    postal.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
+    expect(postal.value).toBe(example.trimmed);
+    expect(control.value).toBe(example.trimmed);
+    expect(control.valid).toBe(example.valid);
+  });
+
+  it('keeps a null optional postal control empty and valid when leaving the field', () => {
+    const control = form.controls[fieldNames.postalOrZipCode];
+    control.setValidators(Validators.maxLength(10));
+    fixture.detectChanges();
+    const postal = fixture.nativeElement.querySelector(`#${fieldNames.postalOrZipCode}`) as HTMLInputElement;
+
+    postal.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
+    expect(postal.value).toBe('');
+    expect(control.value).toBeNull();
+    expect(control.valid).toBe(true);
+  });
+
+  it('retains opted-in capitalisation and internal spaces when trimming on blur', () => {
+    component.capitalisePostalOrZipCode = true;
+    fixture.detectChanges();
+    const postal = fixture.nativeElement.querySelector(`#${fieldNames.postalOrZipCode}`) as HTMLInputElement;
+    postal.value = '  ab  12cd  ';
+    postal.dispatchEvent(new Event('input', { bubbles: true }));
+
+    postal.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
+    expect(postal.value).toBe('AB  12CD');
+    expect(form.controls[fieldNames.postalOrZipCode].value).toBe('AB  12CD');
   });
 });

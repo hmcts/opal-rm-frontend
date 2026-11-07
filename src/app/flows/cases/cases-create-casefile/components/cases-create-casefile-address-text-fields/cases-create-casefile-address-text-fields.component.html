@@ -41,6 +41,7 @@
   [inputId]="fieldNames.postalOrZipCode"
   [inputName]="fieldNames.postalOrZipCode"
   inputClasses="govuk-input--width-10"
+  [opalLibTrimLeadingTrailingWhitespace]="form.controls[fieldNames.postalOrZipCode]"
   [control]="form.get(fieldNames.postalOrZipCode)"
   [errors]="formControlErrorMessages[fieldNames.postalOrZipCode]"
 />

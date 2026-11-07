@@ -34,10 +34,16 @@ import {
   MINOR_CREDITOR_VALID_FORMATS,
 } from './mocks/minor-creditor-validation.mock';
 import { MINOR_CREDITOR_ERROR_MESSAGES as COPY } from './constants/minor-creditor-errors.constant';
+import { POSTAL_OR_ZIP_CODE_MOCK } from '../mocks/postal-or-zip-code.mock';
 import { setupCreditor, type CreditorStore } from '../creditor/setup/creditor.setup';
 import { setupMinorCreditor, type MinorCreditorStore } from './setup/minor-creditor.setup';
 
-const buildTags = (): string[] => ['@JIRA-STORY:PO-9809', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
+const buildTags = (...tags: string[]): string[] => [
+  ...tags,
+  '@JIRA-STORY:PO-9809',
+  '@JIRA-EPIC:PO-6506',
+  '@JIRA-LABEL:create-draft-casefile',
+];
 const route = (child: string): string => '/' + PATHS.root + '/' + child;
 const error = (field: keyof typeof F, key: string): string => COPY[field][key];
 
@@ -102,6 +108,23 @@ const scan = (): void => {
 };
 
 describe('Minor creditor details', () => {
+  it(
+    'AC1, AC2, AC3, AC4, AC6. should trim the minor-creditor postal value on blur and save its existing case',
+    { tags: buildTags('@JIRA-STORY:PO-11470') },
+    () => {
+      setupMinorCreditor({ details: MINOR_CREDITOR_UK_MOCK });
+      cy.get(S.minorCreditor.postalOrZipCode).clear().type(POSTAL_OR_ZIP_CODE_MOCK.padded).blur();
+      cy.get(S.minorCreditor.postalOrZipCode).should('have.value', POSTAL_OR_ZIP_CODE_MOCK.originalCase);
+      cy.get(S.minorCreditor.save).click();
+
+      cy.get<MinorCreditorStore>('@casesCreateCasefileStore').should((store) => {
+        expect(store.creditorDraft()?.details?.address.postalOrZipCode).to.equal(POSTAL_OR_ZIP_CODE_MOCK.originalCase);
+        expect(store.unsavedChanges()).to.equal(false);
+      });
+      cy.get('@routerNavigate').should('have.been.calledWith', route(PATHS.children.minorCreditorSummary));
+    },
+  );
+
   for (const bank of [
     { type: 'UK', details: MINOR_CREDITOR_UK_MOCK, paymentReference: S.minorCreditor.ukPaymentReference },
     { type: 'non-UK', details: MINOR_CREDITOR_NON_UK_MOCK, paymentReference: S.minorCreditor.nonUkPaymentReference },

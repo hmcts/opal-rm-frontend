@@ -85,6 +85,38 @@ describe('CasesCreateCasefileRespondentDetailsFormComponent', () => {
   });
 
   it.each([
+    { entered: '  SW1A 1AA  ', expected: 'SW1A 1AA', valid: true },
+    { entered: '  k1a  0b1  ', expected: 'K1A  0B1', valid: true },
+    { entered: '  ab  12-345  ', expected: 'AB  12-345', valid: true },
+    { entered: '  12345678901  ', expected: '12345678901', valid: false },
+    { entered: '           ', expected: '', valid: true },
+    { entered: '', expected: '', valid: true },
+    { entered: null, expected: null, valid: true },
+  ])('trims employer postal value $entered on blur and revalidates it', (example) => {
+    component.initialFormData = {
+      ...CASES_CREATE_CASEFILE_RESPONDENT_DETAILS_MOCKS.validFormData,
+      create_casefile_respondent_details_add_employer_details: true,
+      create_casefile_respondent_details_employer_name: 'Example employer',
+      create_casefile_respondent_details_employer_address_line_1: '3 Test Street',
+      create_casefile_respondent_details_employer_country_id: 1,
+      create_casefile_respondent_details_employer_postal_or_zip_code: null,
+    };
+    fixture.detectChanges();
+    const fieldName = 'create_casefile_respondent_details_employer_postal_or_zip_code';
+    const input = fixture.nativeElement.querySelector(`#${fieldName}`) as HTMLInputElement;
+    if (example.entered !== null) {
+      input.value = example.entered;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
+    expect(input.value).toBe(example.expected ?? '');
+    expect(component.form.get(fieldName)?.value).toBe(example.expected);
+    expect(component.form.get(fieldName)?.valid).toBe(example.valid);
+  });
+
+  it.each([
     ['create_casefile_respondent_details_last_name', 'McRespondent', 'MCRESPONDENT'],
     ['create_casefile_respondent_details_national_insurance_number', 'ab123456c', 'AB123456C'],
     ['create_casefile_respondent_details_postal_or_zip_code', 'sw1a 1aa', 'SW1A 1AA'],

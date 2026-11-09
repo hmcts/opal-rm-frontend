@@ -55,12 +55,7 @@ export class CasesCreateCasefileComponent implements OnDestroy {
   }
 
   public canDeactivate(): CanDeactivateTypes {
-    return (
-      !this.store.unsavedChanges() &&
-      !this.store.stateChanges() &&
-      this.store.creditorDraft() === null &&
-      this.store.orderTermAmendment() === null
-    );
+    return this.handleBeforeUnload();
   }
 
   public ngOnDestroy(): void {

@@ -13144,7 +13144,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:^5.2.2, js-yaml@npm:^5.4.0":
+"js-yaml@npm:^5.4.0, js-yaml@npm:^5.4.1":
   version: 5.5.0
   resolution: "js-yaml@npm:5.5.0"
   dependencies:
@@ -15240,30 +15240,30 @@ __metadata:
   linkType: hard
 
 "openapi-merge-cli@npm:^2.0.0":
-  version: 2.0.2
-  resolution: "openapi-merge-cli@npm:2.0.2"
+  version: 2.0.3
+  resolution: "openapi-merge-cli@npm:2.0.3"
   dependencies:
     "@atlassian/atlassian-openapi": "npm:^1.0.6"
     ajv: "npm:8"
     ajv-formats: "npm:^3.0.1"
     commander: "npm:^15.0.0"
-    js-yaml: "npm:^5.2.2"
-    openapi-merge: "npm:^2.0.2"
+    js-yaml: "npm:^5.4.1"
+    openapi-merge: "npm:^2.0.3"
   bin:
     openapi-merge-cli: dist/cli.js
-  checksum: 10/0b3143ff4fd772c204d337e1ea9723be3527c65a7b5b6785478599f7f78323b44d589911f6c969bd41b96cc51f688732fe292ba0ca2ff5fc56e92c5830f10950
+  checksum: 10/be1eb68143a91dfd4844a71f17e6f9b893f82b03bbf65402897c79fc11078b041b5af12e9e399d283eaf7aa232c0b72fc40564f646d1a654c8635ce5da328642
   languageName: node
   linkType: hard
 
-"openapi-merge@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "openapi-merge@npm:2.0.2"
+"openapi-merge@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "openapi-merge@npm:2.0.3"
   dependencies:
     "@atlassian/atlassian-openapi": "npm:^1.0.6"
     jsonpointer: "npm:^5.0.1"
     lodash: "npm:^4.17.15"
     ts-is-present: "npm:^1.1.1"
-  checksum: 10/4611c54eb46e3db5d653cc32b766fe482ebfae45fae63fcd1e4f0048d37cdd13a9b694d7028aa34805f12a69058eaee7adb322e5cd481e778a539de375360fd1
+  checksum: 10/535c7269960fc8477f3c2bab65325cec03c60f82a8fa43bf102436392b71f3af20e7f9bb7235794d63b3c053bab343a6c005bfb0b498e27507462305ff719589
   languageName: node
   linkType: hard
 

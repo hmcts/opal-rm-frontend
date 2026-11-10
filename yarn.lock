@@ -9751,15 +9751,15 @@ __metadata:
   linkType: hard
 
 "cypress-multi-reporters@npm:^2.0.0":
-  version: 2.0.5
-  resolution: "cypress-multi-reporters@npm:2.0.5"
+  version: 2.1.0
+  resolution: "cypress-multi-reporters@npm:2.1.0"
   dependencies:
     debug: "npm:^4.4.0"
     lodash: "npm:^4.17.21"
     semver: "npm:^7.6.3"
   peerDependencies:
     mocha: ">=3.1.2"
-  checksum: 10/f0af22ef415cd065964b6ccd72cdafe8753da3fbeb94dbbb347f2935cd3ee919c6040f8228252c29328e1c8479bdf042af200e32e2af9ed9e7cb1a7a7c89ef53
+  checksum: 10/f6f712124c678baeb6969e6d8325456cc9d840ec7bb3d179d6e967d53541ca158d5624922e5914d4adbea3b88f5c2aaa4e33c0083b6d107b56c863fe651ef96b
   languageName: node
   linkType: hard
 

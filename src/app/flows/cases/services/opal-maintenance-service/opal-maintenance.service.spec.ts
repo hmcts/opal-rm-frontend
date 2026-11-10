@@ -54,6 +54,22 @@ describe('OpalMaintenanceService', () => {
       }
     ).majorCreditorsCache.clear();
 
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClientTesting(),
+        { provide: GlobalStore, useValue: new GlobalStore() },
+        { provide: AppInsightsService, useValue: { logException: () => undefined } },
+      ],
+    });
+    service = TestBed.inject(OpalMaintenanceService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => http.verify());
+
   it('loads the selected resource and preserves quoted zero ETag', async () => {
     const body = createPersistedCasefileDetail();
     const loaded = firstValueFrom(service.getDraftCasefile(17));
@@ -265,22 +281,6 @@ describe('OpalMaintenanceService', () => {
     await failed;
     http.expectNone('/opal-maintenance-service/draft-casefiles/17');
   });
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        provideHttpClient(withInterceptors([httpErrorInterceptor])),
-        provideHttpClientTesting(),
-        { provide: GlobalStore, useValue: new GlobalStore() },
-        { provide: AppInsightsService, useValue: { logException: () => undefined } },
-      ],
-    });
-    service = TestBed.inject(OpalMaintenanceService);
-    http = TestBed.inject(HttpTestingController);
-  });
-
-  afterEach(() => http.verify());
 
   describe('draft casefile collections', () => {
     const params = {

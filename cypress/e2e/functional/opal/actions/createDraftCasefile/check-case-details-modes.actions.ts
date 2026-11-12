@@ -289,7 +289,9 @@ export class CheckCaseDetailsModesActions {
     cy.get(D.submit).should('be.disabled');
     cy.get(D.recovery)
       .should('be.visible')
-      .and('have.attr', 'role', 'status')
+      .and('match', 'output')
+      .and('have.attr', 'aria-live', 'polite')
+      .and('have.attr', 'aria-atomic', 'true')
       .and(
         'contain.text',
         'The deletion outcome is not confirmed. Select No - cancel to reload the saved case before trying again.',

@@ -385,9 +385,11 @@ describe('CasesDraftDeleteComponent', () => {
       expect(component.form.controls.create_casefile_delete_reason.value).toBe('Synthetic retained reason');
       expect(component.form.controls.create_casefile_delete_reason.enabled).toBe(true);
       expect(fixture.nativeElement.querySelector('#create_casefile_delete_submit').disabled).toBe(true);
-      expect(fixture.nativeElement.querySelector('#create_casefile_delete_recovery')?.textContent).toContain(
-        'Select No - cancel to reload the saved case before trying again.',
-      );
+      const recovery = fixture.nativeElement.querySelector('#create_casefile_delete_recovery') as HTMLElement;
+      expect(recovery.tagName).toBe('OUTPUT');
+      expect(recovery.getAttribute('aria-live')).toBe('polite');
+      expect(recovery.getAttribute('aria-atomic')).toBe('true');
+      expect(recovery.textContent).toContain('Select No - cancel to reload the saved case before trying again.');
       expect(fixture.nativeElement.querySelector('opal-lib-govuk-cancel-link')).not.toBeNull();
       expect(globalStore.bannerError().message).toBe('Synthetic shared detail');
     },

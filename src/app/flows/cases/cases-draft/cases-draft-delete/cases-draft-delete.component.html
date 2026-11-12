@@ -17,9 +17,14 @@
         [maxCharacterLimit]="250"
       />
       @if (requiresReload()) {
-        <p id="create_casefile_delete_recovery" class="govuk-body" role="status">
+        <output
+          id="create_casefile_delete_recovery"
+          class="govuk-body govuk-!-display-block"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           The deletion outcome is not confirmed. Select No - cancel to reload the saved case before trying again.
-        </p>
+        </output>
       }
       <div class="govuk-button-group">
         @if (deleted()) {

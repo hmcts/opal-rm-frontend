@@ -26,6 +26,7 @@ import {
   UK_APPLICANT_INDIVIDUAL_BEFORE_SAVE,
   VALID_UK_APPLICANT_INDIVIDUAL,
 } from './mocks/applicant-individual.mock';
+import { POSTAL_OR_ZIP_CODE_MOCK } from './mocks/postal-or-zip-code.mock';
 import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
 import { UPPERCASE_ALIAS_SCENARIOS } from './mocks/uppercase-fields.mock';
 import { setupApplicantIndividual } from './setup/applicant-individual.setup';
@@ -110,6 +111,34 @@ const assertCanonicalIdentifierContract = (
   });
 };
 describe('Create Casefile Applicant Individual', () => {
+  it(
+    'AC1, AC2, AC3, AC4, AC6. should trim applicant individual postal values on blur and save them',
+    { tags: buildTags('@JIRA-STORY:PO-11470') },
+    () => {
+      setupApplicantIndividual({ savedApplicant: SAVED_APPLICANT_INDIVIDUAL });
+      for (const input of [
+        Page.applicantIndividual.postalOrZipCode,
+        Page.applicantIndividual.thirdPartyPostalOrZipCode,
+      ]) {
+        cy.get(input).clear().type(POSTAL_OR_ZIP_CODE_MOCK.padded).blur();
+        cy.get(input).should('have.value', POSTAL_OR_ZIP_CODE_MOCK.uppercased);
+      }
+      cy.get(Page.applicantIndividual.returnToCaseDetails).click();
+
+      assertRouterPath(taskListPath);
+      cy.get('@casesCreateCasefileStore').should((store: CasesCreateCasefileStoreInstance) => {
+        expect(store.applicantDetails()).to.have.nested.property(
+          'contactDetails.address.postalOrZipCode',
+          POSTAL_OR_ZIP_CODE_MOCK.uppercased,
+        );
+        expect(store.applicantDetails()).to.have.nested.property(
+          'thirdParty.address.postalOrZipCode',
+          POSTAL_OR_ZIP_CODE_MOCK.uppercased,
+        );
+      });
+    },
+  );
+
   it(
     'AC2, AC4. should uppercase typed surnames in every newly added alias and save them',
     { tags: buildTags() },

@@ -15,6 +15,7 @@ import {
   RESPONDENT_DETAILS_ERROR_MESSAGES,
   RESPONDENT_DETAILS_REQUIRED_ERROR_SUMMARY,
 } from './constants/respondent-details-errors.constant';
+import { POSTAL_OR_ZIP_CODE_MOCK } from './mocks/postal-or-zip-code.mock';
 import { createCountriesUnavailableProblem, EMPTY_COUNTRIES_RESPONSE } from './mocks/countries.mock';
 import { REQUIRED_RESPONDENT, SAVED_RESPONDENT, VALID_EXPANDED_RESPONDENT } from './mocks/respondent-details.mock';
 import { UPPERCASE_ALIAS_SCENARIOS } from './mocks/uppercase-fields.mock';
@@ -88,6 +89,31 @@ const assertCanonicalIdentifierContract = (
   });
 };
 describe('Create Casefile Respondent Details', () => {
+  it(
+    'AC1, AC2, AC3, AC4, AC6. should trim respondent postal values on blur and save them',
+    { tags: buildTags('@JIRA-STORY:PO-11470') },
+    () => {
+      setupRespondentDetails({ savedRespondent: SAVED_RESPONDENT });
+      for (const input of [
+        Page.respondentDetails.postalOrZipCode,
+        Page.respondentDetails.thirdPartyPostalOrZipCode,
+        Page.respondentDetails.employerPostalOrZipCode,
+      ]) {
+        cy.get(input).clear().type(POSTAL_OR_ZIP_CODE_MOCK.padded).blur();
+        cy.get(input).should('have.value', POSTAL_OR_ZIP_CODE_MOCK.uppercased);
+      }
+      cy.get(Page.respondentDetails.returnToCaseDetails).click();
+
+      assertRouterPath(taskListPath);
+      cy.get('@casesCreateCasefileStore').should((store: CasesCreateCasefileStoreInstance) => {
+        const respondent = store.respondentDetails();
+        expect(respondent?.contactDetails.address.postalOrZipCode).to.equal(POSTAL_OR_ZIP_CODE_MOCK.uppercased);
+        expect(respondent?.thirdParty?.address.postalOrZipCode).to.equal(POSTAL_OR_ZIP_CODE_MOCK.uppercased);
+        expect(respondent?.employer?.address.postalOrZipCode).to.equal(POSTAL_OR_ZIP_CODE_MOCK.uppercased);
+      });
+    },
+  );
+
   it(
     'AC2, AC4. should retain mid-string surname insertion while uppercasing and saving it',
     { tags: buildTags() },

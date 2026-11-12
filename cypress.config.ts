@@ -14,6 +14,8 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const webpackPreprocessor = require('@cypress/webpack-preprocessor');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { resetExecutionResults, recordExecutionResults } = require('./scripts/cypress-execution-report.cjs');
 
 interface IAngularWorkspaceProjectBuildOptions {
   tsConfig?: string;
@@ -175,6 +177,7 @@ async function setupE2eNodeEvents(
   setupBrowserLaunch(on);
 
   on('before:run', async () => {
+    resetExecutionResults(config.env.messagesOutput);
     await beforeRunHandler(config);
   });
 
@@ -183,6 +186,7 @@ async function setupE2eNodeEvents(
   });
 
   on('after:spec', async (spec, results) => {
+    recordExecutionResults(config.env.messagesOutput, spec, results);
     await afterSpecHandler(config, spec, results);
   });
 

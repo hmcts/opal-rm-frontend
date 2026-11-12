@@ -431,10 +431,26 @@ UAT prepares its artifacts in `finally`, retaining raw NDJSON and XML after fail
 LaunchDarkly restoration also runs if artifact preparation, archiving or publication fails. These lifecycle
 changes do not enable a stage, add an upload or change release/tag selection.
 
-HTML publication preserves real reports and adds an explicitly incomplete fallback only when raw JSON,
-NDJSON or XML exists. The fallback directs readers to archived raw results and console output; it is not a
-merged result or a passing test report. Shared-runner fixes for component failure reporting and complete
-parallel merging/status handling remain deferred, and snapshots do not repair those results.
+E2E `before:run` and `after:spec` handlers retain native Cypress stats, final-attempt errors and retry counts
+in worker-specific `<messagesOutput>.results.json` files, independently of Cucumber. They contain test metadata
+and redacted diagnostics, with no request/session capture. Native counts include pending and skipped tests:
+Cucumber can discard entire features after a native hook failure, while JUnit can omit the skipped testcase entries.
+Each worker resets its own results at run start; nightly removes all old worker results for the attempted suite.
+
+At HTML publication, `scripts/cypress-execution-report.cjs` writes `execution-summary.html` and adds a visible
+summary/link to the existing Cucumber page. Native Cypress totals are preferred; JUnit supplies additional hook
+failures. Without native results, the page explicitly distinguishes declared JUnit totals from recorded testcases
+and does not infer passes from missing cases. Merged XML is preferred over shards to avoid double counting.
+Counts cover reported specs, so interrupted/missing workers can still leave incomplete evidence. The original
+Cucumber details remain available. Missing Cucumber HTML receives an incomplete entry page linking to the summary.
+Malformed evidence fails publication preparation and marks the build failed; test failures keep their original exit
+status. Component reports retain the existing raw-evidence fallback.
+
+CNP and nightly archive the enriched report directory after generation. Nightly also archives outstanding
+`functional-output/draft-casefile-cleanup/**` receipts for live functional/browser/UAT runs. UAT copies native worker
+results into its dedicated report directory alongside the raw NDJSON/XML. `corepack yarn test:reporting` covers
+hook failures, worker isolation, skipped counts, retries, XML-only fallback, escaping/redaction, malformed evidence
+and repeated publication. Shared-runner component/merging behaviour remains outside this change.
 
 For local leaf or `--no-reset` runs, snapshot raw results before changing selections. Before a full parallel run,
 archive earlier generated Cucumber NDJSON so the shared merger sees only current worker sources; a retained leaf

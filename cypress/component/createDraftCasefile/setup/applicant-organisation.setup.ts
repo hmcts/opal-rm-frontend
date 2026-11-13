@@ -1,7 +1,10 @@
 import { CasesDraftCasefileStore } from 'src/app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { Component } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, type ComponentFixture } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { CasesCreateCasefileApplicantOrganisationFormComponent } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-applicant-organisation/cases-create-casefile-applicant-organisation-form/cases-create-casefile-applicant-organisation-form.component';
+import type { ICasesCreateCasefileApplicantOrganisationFormData } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-applicant-organisation/interfaces/cases-create-casefile-applicant-organisation-form-data.interface';
 import { provideRouter, Router, RouterOutlet } from '@angular/router';
 import type { Routes } from '@angular/router';
 import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
@@ -102,10 +105,11 @@ export const setupApplicantOrganisation = ({
           },
         },
       ],
-    }).then(() => {
+    }).then(({ fixture }) => {
       const router = TestBed.inject(Router);
       const initialUrl = '/' + CASES_CREATE_CASEFILE_ROUTING_PATHS.root + '/' + initialChildPath;
 
+      cy.wrap(fixture, { log: false }).as('applicantOrganisationFixture');
       cy.wrap(store).as('casesCreateCasefileStore');
       cy.wrap(globalStore).as('globalStore');
       cy.wrap(router).as('angularRouter');
@@ -113,3 +117,14 @@ export const setupApplicantOrganisation = ({
     });
   });
 };
+
+/** Seeds setup-only values on the currently rendered form while preserving later UI transitions. */
+export function seedApplicantOrganisationForm(values: Partial<ICasesCreateCasefileApplicantOrganisationFormData>) {
+  return cy.get<ComponentFixture<unknown>>('@applicantOrganisationFixture').then((fixture) => {
+    const form = fixture.debugElement.query(By.directive(CasesCreateCasefileApplicantOrganisationFormComponent))
+      ?.componentInstance as CasesCreateCasefileApplicantOrganisationFormComponent | undefined;
+    if (!form) throw new Error('Applicant Organisation seed requires the rendered form');
+    form.form.patchValue(structuredClone(values));
+    fixture.detectChanges();
+  });
+}

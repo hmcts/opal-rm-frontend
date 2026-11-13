@@ -1,8 +1,29 @@
+import { OrderTermsFlow } from './order-terms.flow';
 import { CreditorActions } from '../../actions/createDraftCasefile/creditor.actions';
 
 /** Composes creditor selection journey verbs for Cucumber steps. */
 export class CreditorFlow {
+  private readonly orderTerms = new OrderTermsFlow();
   private readonly actions = new CreditorActions();
+
+  /** Opens controlled creditor selection for a maintenance amount.
+   * @param orderTerm Supported controlled Result ID.
+   * @param amount Maintenance amount entered through the real form.
+   */
+  public openControlledChoice(orderTerm: 'MAT', amount: string): void {
+    if (orderTerm !== 'MAT' || !/^\d+\.\d{2}$/.test(amount)) {
+      throw new Error('Controlled creditor setup requires MAT and an amount with two decimal places');
+    }
+    this.prepareMajorCreditors();
+    this.prepareCountries();
+    this.orderTerms.openSummary();
+    this.orderTerms.startAdd();
+    this.orderTerms.choose(orderTerm);
+    this.orderTerms.continue();
+    this.orderTerms.enterAmount(amount);
+    this.orderTerms.continueInput();
+    this.assertReady();
+  }
 
   /** Prepares the controlled Major source. */
   public prepareMajorCreditors(): void {

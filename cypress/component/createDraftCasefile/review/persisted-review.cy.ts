@@ -334,7 +334,8 @@ describe('Persisted case details', () => {
     setupReview({ resolved });
     spyCompletion();
     cy.get(S.decisionReject).check();
-    cy.get(S.rejectionReason).type('R'.repeat(251));
+    cy.get(S.rejectionReason).invoke('val', 'R'.repeat(249)).trigger('input');
+    cy.get(S.rejectionReason).type('RR');
     cy.get(S.rejectionReasonCount).should('contain.text', 'You have 1 character too many');
     cy.get(S.decisionContinue).click();
     assertSummaryError('Reason for rejection must be 250 characters or fewer');
@@ -409,10 +410,8 @@ describe('Persisted case details', () => {
           }),
         ),
       ).as('decisionPatch');
-      setupReview({ resolved });
+      setupReview({ resolved, decision: { choice: decision, reason } });
       spyCompletion();
-      cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
-      if (decision === 'reject') cy.get(S.rejectionReason).type(reason);
       cy.get(S.decisionContinue).click().should('be.enabled');
       cy.get(S.decisionApprove).should('be.enabled');
       cy.get(S.decisionReject).should('be.enabled');
@@ -460,14 +459,12 @@ describe('Persisted case details', () => {
             body: accepted,
             headers: { ETag: '"1"' },
           }).as('decisionPatch');
-          setupReview({ resolved, failNavigation: true });
+          setupReview({ resolved, failNavigation: true, decision: { choice: decision, reason } });
           spyCompletion();
           if (failure === 'rejected')
             cy.get<Cypress.Agent<sinon.SinonStub>>('@routerNavigate').then((navigate) =>
               navigate.rejects(new Error('Synthetic navigation rejection')),
             );
-          cy.get(decision === 'approve' ? S.decisionApprove : S.decisionReject).check();
-          if (decision === 'reject') cy.get(S.rejectionReason).type(reason);
           cy.get(S.decisionContinue).click();
           cy.wait('@decisionPatch').then(({ request }) => {
             expect(request.headers['if-match']).to.equal('"0"');
@@ -525,10 +522,11 @@ describe('Persisted case details', () => {
       second.casefile_status = 'RESUBMITTED';
       second.casefile.respondent_account.order_details.order_terms[0].result_responses[0].response = '200.00';
       const resolvedB = createPersistedCasefileResolved({ draft: second });
-      setupReview({ resolved: createPersistedCasefileResolved() });
+      setupReview({
+        resolved: createPersistedCasefileResolved(),
+        decision: { choice: 'reject', reason: 'R'.repeat(251) },
+      });
       cy.get(S.heading).should('have.text', 'Synthetic Respondent');
-      cy.get(S.decisionReject).check();
-      cy.get(S.rejectionReason).type('R'.repeat(251));
       cy.get(S.decisionContinue).click();
       assertSummaryError('Reason for rejection must be 250 characters or fewer');
       cy.get<BehaviorSubject<Data>>('@reviewRouteData').then((data) =>

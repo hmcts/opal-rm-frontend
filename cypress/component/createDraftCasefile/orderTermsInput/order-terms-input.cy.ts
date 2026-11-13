@@ -819,12 +819,11 @@ describe('Order term input regressions', () => {
     'AC1. should display the latest frequency without copying it to draft or accepted parameters',
     { tags: buildTags() },
     () => {
-      openInput();
+      setupOrderTerms({ savedId: 'MAT', initialChild: inputPath(), draftValues: { amount: '5' } });
       cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
         store.setOrderDetails({ ...store.orderDetails()!, paymentFrequency: 'Monthly' }),
       );
       cy.get(S.orderTermsInput.frequency).should('contain.text', 'Monthly');
-      cy.get(S.orderTermsInput.amount).type('5');
       cy.get<OrderTermsStore>('@casesCreateCasefileStore').then((store) =>
         expect(store.orderTermDraft()?.values).not.to.have.property('frequency'),
       );
@@ -850,9 +849,9 @@ describe('Order term input regressions', () => {
   }
 
   it('AC4. should protect accepted terms from reload', { tags: buildTags() }, () => {
-    openInput();
-    cy.get(S.orderTermsInput.amount).type('10');
+    setupOrderTerms({ savedId: 'MAT', initialChild: inputPath(), draftValues: { amount: '10' } });
     cy.get(S.orderTermsInput.continueButton).click();
+    assertTerms({ amount: '10.00' });
     cy.get<CasesCreateCasefileComponent>('@journeyComponent').then((component) =>
       expect(component.handleBeforeUnload()).to.eq(false),
     );
@@ -860,8 +859,7 @@ describe('Order term input regressions', () => {
 
   it('AC5. should reflow Creditor at 320 CSS pixels', { tags: buildTags() }, () => {
     cy.viewport(320, 900);
-    setupOrderTerms({ shell: true, savedId: 'MAT', initialChild: inputPath() });
-    cy.get(S.orderTermsInput.amount).type('10');
+    setupOrderTerms({ shell: true, savedId: 'MAT', initialChild: inputPath(), draftValues: { amount: '10' } });
     cy.get(S.orderTermsInput.continueButton).click();
     cy.get(S.creditor.applicant).should('exist').and('be.enabled');
     cy.get(S.creditor.continueButton).should('be.visible');

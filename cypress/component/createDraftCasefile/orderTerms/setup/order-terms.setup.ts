@@ -176,6 +176,7 @@ export function setupOrderTerms({
     }).then(({ fixture }) => {
       TestBed.inject(GlobalStore).setAuthenticated(true);
       const router = TestBed.inject(Router);
+      cy.wrap(fixture, { log: false }).as('casefileFixture');
       cy.wrap(store).as('casesCreateCasefileStore');
       cy.wrap(router).as('angularRouter');
       return cy.wrap(router.navigateByUrl('/' + PATHS.root + '/' + initialChild)).then(() => {

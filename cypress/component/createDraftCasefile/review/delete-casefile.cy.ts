@@ -23,7 +23,7 @@ describe('Delete casefile shared form', () => {
     cy.intercept('PATCH', scenario.url, { statusCode: 200, body: scenario.deleted, headers: { ETag: '"1"' } }).as(
       'deletePatch',
     );
-    setupReview({ resolved: scenario.resolved, deleteScreen: true });
+    setupReview({ resolved: scenario.resolved, deleteScreen: true, deleteReason: 'R'.repeat(249) });
     cy.get(D.reason)
       .should('have.attr', 'maxlength', '250')
       .and('have.attr', 'aria-describedby', 'create_casefile_delete_reason-with-hint-info');
@@ -31,10 +31,8 @@ describe('Delete casefile shared form', () => {
       .find('label')
       .should('have.attr', 'for', 'create_casefile_delete_reason')
       .and('contain.text', 'Reason');
-    cy.get(D.counter)
-      .should('have.attr', 'aria-hidden', 'true')
-      .and('contain.text', 'You have 250 characters remaining');
-    cy.get(D.reason).type('R'.repeat(251));
+    cy.get(D.counter).should('have.attr', 'aria-hidden', 'true').and('contain.text', 'You have 1 character remaining');
+    cy.get(D.reason).type('RR');
     cy.get(D.reason).should('have.value', 'R'.repeat(250));
     cy.get(D.counter).should('contain.text', 'You have 0 characters remaining');
     cy.get('@deletePatch.all').should('have.length', 0);
@@ -87,6 +85,8 @@ describe('Delete casefile shared form', () => {
   it('AC2. should support keyboard submit and the linked error target', { tags: buildTags() }, () => {
     const scenario = createDeletionScenario();
     setupReview({ resolved: scenario.resolved, deleteScreen: true });
+    cy.get(D.reason).should('have.value', '');
+    cy.get(D.counter).should('contain.text', 'You have 250 characters remaining');
     cy.get(D.heading).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(D.reason).should('be.focused');

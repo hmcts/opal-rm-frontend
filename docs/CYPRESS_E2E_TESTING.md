@@ -38,6 +38,20 @@ The JSON request digest wrapper follows Fines: its callback uses the explicit re
 configured response timeout. This preserves the HTTP request's time budget instead of applying the shorter DOM
 command timeout while awaiting the response. HTTP errors still fail; no automatic retry is added.
 
+### Cached saved-detail evidence
+
+The maintained [draft evidence helper](../cypress/e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-evidence.actions.ts)
+decodes an actual browser HTTP 200's complete body and strong ETag. A browser HTTP 304 is accepted only with the
+matching strong ETag from the expected saved snapshot, followed by a mandatory independent authenticated HTTP 200
+read and complete saved-state equality. HTTP 200 browser responses themselves supply the complete decoded state
+comparison. Keep rendered state, record identity, focus, native keyboard and no-write
+assertions alongside that network proof. Never mutate conditional headers, stub live saved responses or disable
+caching to obtain a pass. The [fixture support](../cypress/component/checkAndValidateCase/api-fixture-support.cy.ts),
+[deletion support](../cypress/component/checkAndValidateCase/checker-deletion-journey-support.cy.ts) and
+[amendment support](../cypress/component/checkAndValidateCase/rejected-casefile-journey-support.cy.ts) verify these
+controlled contracts separately from live browser outcomes. The nine deletion and ten live rejected-amendment
+examples remain independent.
+
 ## Shared accessibility exemption
 
 The shared E2E accessibility helper omits only Axe's `aria-allowed-attr` rule, matching the existing Fines
@@ -229,6 +243,162 @@ a successful runner exit alone does not prove a complete passing suite.
 Apply [test-maintenance evidence](CONTRIBUTING.md#test-maintenance-evidence) to shared fixture/step changes and runtime
 claims, including failed or incomplete parallel attempts and the final executed selection.
 
+#### Consolidating repeated journey setup
+
+A short related recovery/cancellation sequence may share setup when every intermediate outcome stays explicit.
+Each retained scenario owns independent mutable state. Preserve error links/focus, retained data, stable record
+identities, confirmation messages, no-write observations and native keyboard activation. Keep live-service and
+controlled contracts separate, and retain Axe checks for meaningful states.
+
+Record exact old-to-retained names, tags, external identities and assertion mappings for intentional consolidation.
+Unknown Jira/Zephyr Test identities remain explicitly unverified; Story tags do not establish external Test IDs.
+Component tests retain independent fresh-state and exhaustive validation coverage. For example,
+[Creditor](../cypress/component/createDraftCasefile/creditor/creditor.cy.ts),
+[Minor Creditor](../cypress/component/createDraftCasefile/minorCreditor/minor-creditor.cy.ts),
+[Order Term input](../cypress/component/createDraftCasefile/orderTermsInput/order-terms-input.cy.ts) and
+[Managing Payments](../cypress/component/createDraftCasefile/payments/ManagingPayments.cy.ts) keep their own setup.
+Payment coverage retains four fresh interest/indexation combinations; the combined court-to-direct journey keeps
+fresh direct selection in accessibility and independent court/direct component saves. If ticket AC requires separate
+fresh functional execution, retain that separate example.
+
+The following consolidation identities all retain `@R1CRmCreateCaseFiles`, `@functional`,
+`@JIRA-LABEL:create-draft-casefile` and `@JIRA-EPIC:PO-6506`. The Story column lists retained scenario Story tags;
+none of these examples has an external Test-ID tag. Preserve the intermediate assertions named below.
+
+| Original names                                                                                                                                       | Retained name                                                                           | Story tags                  | Retained assertion boundary                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Require a creditor choice; Require a Major creditor selection; Accept an active Major creditor by ID                                                 | Recover from missing creditor choices and retain a Major creditor by ID                 | PO-9808                     | Controlled lookup; both linked error/focus states, then exact Major ID and no draft write                         |
+| Decline cancellation with a local edit; Accept cancellation with a local edit                                                                        | Retain the creditor edit on declined cancellation and discard it on acceptance          | PO-9808                     | Same controlled dirty edit; both warning decisions, retained Applicant, then Summary/no write                     |
+| Keep entered values after declining Cancel; Discard unsaved creditor details after accepting Cancel                                                  | Retain unsaved creditor details on declined cancellation and discard them on acceptance | PO-9809                     | Same controlled unsaved name; retained details, then absent new Minor/no write                                    |
+| Accept maintenance and continue without a backend draft; Required amount keeps the user on the input page                                            | Correct a required maintenance amount and continue without a backend draft              | PO-9807                     | Controlled MAT; required error/link/focus, then 12.30, Creditor destination/no write                              |
+| Changing one Order Term preserves its sibling; Confirming Order Term removal preserves its sibling; Abandoning Order Term removal retains both terms | Preserve sibling Order Terms through abandoned removal amendment and confirmed removal  | PO-10278                    | Live MAT; stable IDs/10–20 after abandonment, 10–25 after amendment, retained first term/removal success/no write |
+| A completed draft remains available after returning from cancellation; Confirming cancellation starts a genuinely fresh browser journey              | Retain a completed draft on return and start fresh after confirmed cancellation         | PO-9818, PO-10284, PO-10605 | Controlled complete draft; retained review, then discard/reset/history/no mutation                                |
+| Retain court payments without changing interest and indexation; Retain direct payments without changing interest and indexation                      | Retain court payments then direct payments without changing interest and indexation     | PO-10281                    | Live setup; each arrangement save/reopen, retained Yes/CPI and Provided tasks/no write                            |
+
+Historical functional expanded examples after the earlier consolidation were Creditor 10 (previously 13), Minor Creditor 11 (12), Order Terms Input 1 (2),
+Order Terms Summary 4 (6), cancellation 3 (4) and Payments 5 (6). All seventeen capability accessibility examples
+remained unchanged: 60 examples became 51 through nine fewer repeated setups, not nine fewer AC outcomes. The inherited
+Minor Creditor removal allocation is separate from this reduction; its controlled abandonment/confirmation sequence
+retains both outcomes and does not reduce the six live PO-10280 outcomes.
+
+The additional creditor/Order Terms consolidation retains these identities and boundaries; external Jira/Zephyr
+Test mappings remain unverified, and Story tags do not establish Test IDs.
+
+| Original names                                                                                              | Retained name                                                         | Story tags       | Retained assertion boundary                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Save an international creditor without BIC or IBAN; Accept a reviewed creditor                              | Save and accept an international creditor without BIC or IBAN         | PO-9809, PO-9810 | Non-UK Organisation input with BIC/IBAN blank; Minor Creditor Summary route/no draft write, then acceptance route/no draft write; no creditor payload-equality assertion                                                    |
+| Cancel pending minor creditor details without creating a creditor; Accept the applicant as creditor locally | Cancel pending Minor Creditor details and continue with the Applicant | PO-9808          | Clean cancel rejects confirmation; Creditor route/visible fieldset, enabled unchecked Applicant/Major/Add-new, absent Minor option/no write; then Applicant Continue to Summary/no write, without a saved-payload assertion |
+| Return from removal without removing an order; Amend one of two maintenance orders                          | Return from removal and then amend only the second maintenance order  | PO-9811          | After abandoned removal: stable £10/£20 cards and exactly two terms; amendment input initially 20.00 and Applicant selected; afterward stable £10/£25 cards and exactly two terms/no draft write                            |
+
+Applicant acceptance now follows clean cancellation. Fresh acceptance remains independently covered by the unchanged
+Creditor component test `AC1, AC4. should accept Applicant locally without persistence` and the live PO-10279
+`Retain the applicant for a Order Term` scenario.
+
+Amendment now follows abandoned removal. The unchanged routed amendment component test
+`changes the second repeated Result while the first accepted term remains unchanged` retains fresh amendment
+coverage. The live PO-10278 journey and shared-minor amendment cancellation scenario are unchanged.
+
+Current functional expanded examples are Creditor 9, Minor Creditor 10, Order Terms Input 1, Order Terms Summary 3,
+cancellation 3 and Payments 5: functional 31, accessibility 17 and capability 48. These counts do not establish a
+runtime improvement; the historical 60-to-51 benchmark below measures the earlier selection only.
+
+The installed runner caches authentication across specs and runs functional tests with three workers. Its ignored
+timing weights are generated locally; targeted runs can overwrite them. Preserve complete successful local snapshots
+before narrow runs and compare scheduling on the same code, selection and environment. Generated weights alone do
+not prove CI speed gains.
+
+Measure three comparable repetitions after warm-up; retain individual wall times, medians, expanded selections,
+failures, retries, workers and versions. A local capability comparison measured 497.07/496.77/495.12 seconds before
+and 425.31/422.75/433.61 seconds after consolidation: medians 496.77 and 425.31 seconds, an observed 71.46 seconds
+(14.38%) reduction for the 60-to-51-example capability selection. The final third sample includes one configured
+cancellation accessibility retry; these are not three clean samples or strict causal proof. The normal final full
+three-worker regression passed 334 examples across 45 specs in 480.99 seconds with zero retries. Historical backend
+503 failures prevented a valid full-suite baseline median, so no full-suite or scheduling speed improvement, or
+provider repair, is established. Fewer scenarios alone prove neither faster execution nor preserved acceptance coverage.
+
+A separate 6 November additional-consolidation comparison used the capability selection in the same twelve ordered
+specs, one worker, Chrome 157.0.8103.39, Cypress 15.21.1, Node 24.22.2 and Yarn 4.18.1, with the existing
+run-mode retry limit of one. Baseline 302.55/301.62/297.54s and final 282.58/286.00/283.25s give medians
+301.62 and 283.25s: an observed 18.37s (6.09%) lower duration for the intentionally changed 51-to-48-example
+workload. Baseline warm-up 303.32s and final warm-up 285.76s are excluded. Every baseline/final measured run
+passed its complete selection without retries, failures, skips or pending examples. The frontend used this
+checkout's Angular SSR development watcher on local port 5000; the backend compiled revision was not independently
+verified. Host load and cache warmth were uncontrolled. This observation does not establish a strict causal saving
+or an additional full-suite, scheduling or CI improvement.
+
+Final static checks passed Prettier, Cypress lint, E2E TypeScript, test metadata, duplicate scenario names and diff
+whitespace. Registry discovery passed 34 affected examples, 48 capability examples, 331 release-on examples across
+45 specs, 26 release-off examples and one smoke example, with no undefined or ambiguous binding. Expanded capability
+inventories confirm only the six named originals become the three retained names above; all other names, expanded
+rows and tags match. The five controlled Creditor feature callers and one Minor Creditor Flow caller remain separate
+from live setup. The unchanged Creditor and routed amendment component specs passed 35 and 24 tests; focused final
+Minor Creditor, Creditor and Summary browser pairs passed 17, 13 and four examples respectively.
+
+The first final normal three-worker functional attempt executed the complete 331-example/45-spec selection in
+372.38s: worker results were 68/76, 152/152 and 103/103 passing, with eight failures and no skips or pending cases.
+Five rejected-amendment accessibility examples and three checker-decision examples failed real fixture permission
+preflight with HTTP 401 instead of 200. Runtime logs also contained missing/expired-token diagnostics during the
+attempt, without request-level correlation establishing the exact cause. Report generation separately failed on
+stale duplicate sources after processing 351 current and historical XML files. Current-only JUnit inventories match
+all 331 discovered expanded names and multiplicities; 59 current cleanup receipts were empty. A fresh serial
+invocation of those two unchanged feature specs then passed 20 examples without retries in 80.79s. That serial
+pass does not establish the cause, pre-existence or repair of the parallel failures. All attempts are retained.
+
+After preserving every attempt and using the existing generated-report preparation workflow, the final normal
+three-worker regression passed all 331 examples across 45 specs in 359.90s, with worker totals 152, 76 and 103.
+One configured retry was required: `Retain a completed draft on return and start fresh after confirmed cancellation`
+initially expected the Order Terms Summary route but observed the task-list route; its retry passed. Final outcomes
+had zero failed, skipped or pending examples. All three distinct worker Cucumber files and 45 current JUnit files
+were inspected; expanded names, rows and tags exactly match release-on discovery. All 67 current owned cleanup
+receipts were empty. Report generation succeeded with three worker inputs. The earlier undefined-thread report was
+a stale serial leaf artifact, not evidence of worker-file collision. No assertion, timeout, retry setting or runtime
+configuration changed. The initial 401 cause and cancellation timing failure remain unproven; these passes establish
+neither a provider repair nor a new full-suite runtime gain.
+
+Sanitised inventories, attempt summaries, exact commands, timings, draft PR/Security Vulnerability Assessment and
+per-criterion Definition of Done are retained locally under ignored
+`docs/superpowers/evidence/2026-11-06-creditor-order-terms/`. Pre-final weights contained 45 entries but their
+originating successful full run was not independently verified; they were preserved rather than relabelled as a
+proven baseline. The final successful full-run weights are separately archived. No production UI, executable,
+dependency or coverage exclusion changed: production unit coverage, Sonar new-application-code coverage, Angular
+build/lint, full component regression and new manual UI screenshots/screen-reader/zoom checks are not applicable
+to this scope. Automated Axe, focus and keyboard results remain partial WCAG evidence. External Test mappings,
+reviewer approval, QA, CI, deployment and ticket closure remain pending unless separately evidenced.
+
+## Typing without incidental waits
+
+Use per-call `{ delay: 0 }` for ordinary E2E text entry when typing cadence is not the behaviour under test.
+Keep `.type()` so input events, validation, formatting and native length limits still run. Do not replace keyboard
+activation with a click or apply a global command overwrite. The installed Cypress binary determines the default
+keystroke delay; unversioned website defaults are not evidence of the installed behaviour.
+
+Autocomplete needs explicit readiness after entering the query. For these unique queries, require a single visible
+option matching the query or captured live label, then requery the input before Down/Enter. Keep existing lookup query/status/order assertions,
+selection retention and live-service boundaries. Keystroke delay is not a substitute for waiting for options or
+an asynchronous response. Do not wait for a second request when the journey legitimately caches a lookup.
+
+The typing follow-up adds zero delay to 56 E2E text calls across party and Minor Creditor details, Central Authority
+references, Order Details, Order Terms, comments/notes, review reasons, correction and recovery. The nine previously
+optimised party inputs and three authentication inputs retain their options. Keyboard-only commands retain their
+existing defaults; no positive delay is required as a readiness mechanism. Component tests follow the separate
+[component setup policy](CYPRESS_COMPONENT_TESTING.md#efficient-form-setup): seed setup-only state and retain actual
+input, validation, dirty-state and keyboard behaviour. No component zero-delay workaround is introduced.
+
+A separate 6 November typing comparison used seven Central Authority functional/accessibility examples in the same
+two ordered specs, one worker, Chrome 157, Node 24.22.2 and unchanged retries, with warmups excluded. Baseline
+46.73/47.55/47.63s and final 35.95/36.64/37.00s give medians 47.55 and 36.64s: an observed 10.91s (22.94%) saving
+for that selection only. All measured browser runs passed without retries. After the second final browser run
+completed successfully, a local recording-shell edit caused exit 127; that exit and successful browser events are
+retained, and the third sample ran separately. Host load/cache warmth limit attribution. This is separate from the
+earlier consolidation benchmark and establishes no additional whole-suite, component or CI runtime saving.
+
+Final follow-up verification passed the normal three-worker functional selection: 334 examples across 45 specs,
+zero retries and 67 empty current owned cleanup receipts. Full components passed 1,239 tests across 45 specs;
+current raw reporters were isolated from historical merged inputs. Earlier full attempts remain disclosed: stale
+leaf reports first failed merging, then two live approvals returned HTTP 503. The affected checker feature later
+passed 12 cases in isolation before the final parallel pass. These passes establish neither a cause nor a provider
+repair. The 17 filesystem reporting tests and 13 Groovy hook-freshness scenarios also passed.
+
 ## Pipeline report retention
 
 CNP prepares fresh generated report areas before the component and dev/staging functional gates. Preparation
@@ -261,10 +431,32 @@ UAT prepares its artifacts in `finally`, retaining raw NDJSON and XML after fail
 LaunchDarkly restoration also runs if artifact preparation, archiving or publication fails. These lifecycle
 changes do not enable a stage, add an upload or change release/tag selection.
 
-HTML publication preserves real reports and adds an explicitly incomplete fallback only when raw JSON,
-NDJSON or XML exists. The fallback directs readers to archived raw results and console output; it is not a
-merged result or a passing test report. Shared-runner fixes for component failure reporting and complete
-parallel merging/status handling remain deferred, and snapshots do not repair those results.
+E2E `before:run` and `after:spec` handlers retain native Cypress stats, final-attempt errors and retry counts
+in worker-specific `<messagesOutput>.results.json` files, independently of Cucumber. They contain test metadata
+and redacted diagnostics, with no request/session capture. Native counts include pending and skipped tests:
+Cucumber can discard entire features after a native hook failure, while JUnit can omit the skipped testcase entries.
+Each worker resets its own results at run start; nightly removes all old worker results for the attempted suite.
+
+At HTML publication, `scripts/cypress-execution-report.cjs` writes `execution-summary.html` and adds a visible
+summary/link to the existing Cucumber page. Native Cypress totals are preferred; JUnit supplies additional hook
+failures. Without native results, the page explicitly distinguishes declared JUnit totals from recorded testcases
+and does not infer passes from missing cases. Merged XML is preferred over shards to avoid double counting.
+Counts cover reported specs, so interrupted/missing workers can still leave incomplete evidence. The original
+Cucumber details remain available. Missing Cucumber HTML receives an incomplete entry page linking to the summary.
+Malformed evidence fails publication preparation and marks the build failed; test failures keep their original exit
+status. Component reports retain the existing raw-evidence fallback.
+
+CNP and nightly archive the enriched report directory after generation. Nightly also archives outstanding
+`functional-output/draft-casefile-cleanup/**` receipts for live functional/browser/UAT runs. UAT copies native worker
+results into its dedicated report directory alongside the raw NDJSON/XML. `corepack yarn test:reporting` covers
+hook failures, worker isolation, skipped counts, retries, XML-only fallback, escaping/redaction, malformed evidence
+and repeated publication. Shared-runner component/merging behaviour remains outside this change.
+
+For local leaf or `--no-reset` runs, snapshot raw results before changing selections. Before a full parallel run,
+archive earlier generated Cucumber NDJSON so the shared merger sees only current worker sources; a retained leaf
+file can otherwise duplicate a feature source and fail report generation after browser cases pass. Preserve cleanup
+receipts, account evidence and complete weights independently. Do not count stale or merged duplicate inputs as
+current execution evidence.
 
 Jira/Zephyr upload is separate from generation and retention. Project `33305` and the existing
 explicit-or-Friday upload selection remain unchanged. An archived JSON file does not prove a successful upload.
@@ -664,8 +856,9 @@ The Major Creditor lookup must return HTTP 200 with a `refData` array scoped to 
 records. An empty array is valid for these Applicant creditor journeys. These scenarios use real reference data and
 independent drafts; they observe that no draft-casefile POST occurs and stop before submission.
 
-Select nine expanded scenarios: four Order Term outcomes, one accessibility journey and four permission routes
-(summary, selection, MAT input and removal). Existing mocked regressions retain scenario-local setup.
+Select seven expanded scenarios: two Order Term outcomes, one accessibility journey and four permission routes
+(summary, selection, MAT input and removal). The live summary journey explicitly checks abandoned removal, amendment and confirmed removal in sequence; the
+separate Order Terms example remains independent. Existing mocked regressions retain scenario-local setup.
 
 ```bash
 TEST_URL=http://localhost:5000 \
@@ -688,6 +881,14 @@ Change, confirmed removal and abandoned removal are exercised from the locally s
 Final acceptance separately proves the expected Minor name is associated with its stable Order Term card. These
 scenarios cover the review actions currently provided by the product; accepted Order Term cards expose term actions.
 Removal checks the success banner, absence from Minor choices and fresh blank details on reopening.
+
+The controlled PO-9809 unsaved-details sequence now checks declined cancellation retention before accepted discard
+in the same draft; this does not combine the six live PO-10280 outcomes. The inherited controlled PO-9813
+`Return from removal without changing the reviewed creditor` journey retains abandonment before confirmed removal,
+success/dismissal, absent Minor choice and no draft write. Independent fresh review/removal states remain in the
+[Minor removal component spec](../cypress/component/createDraftCasefile/minorCreditor/minor-creditor-removal.cy.ts);
+[Minor accessibility](../cypress/e2e/functional/opal/features/createDraftCasefile/MinorCreditorAccessibility.feature)
+retains separate broad conditional-bank/review/removal coverage.
 
 Select eleven expanded examples: six functional outcomes, two accessibility journeys and three permission routes:
 
@@ -746,17 +947,17 @@ Repeat those specs with both tag variables set to `@R1CRmCreateCaseFiles and not
 
 ## Integrated Order Terms and creditor QA
 
-Select PO-10278, PO-10279 and PO-10280 together using both tag variables. This selection expands to exactly 27
+Select PO-10278, PO-10279 and PO-10280 together using both tag variables. This selection expands to exactly 25
 examples; the eleven permission routes tagged to other QA stories are outside this selection. The complete shared
 permission outline has nineteen unique routes, including the two journey routes for PO-10273 and the two payment
 routes for PO-10281.
 
 | QA story | Functional | Accessibility | Permission | Total |
 | -------- | ---------: | ------------: | ---------: | ----: |
-| PO-10278 |          4 |             1 |          4 |     9 |
+| PO-10278 |          2 |             1 |          4 |     7 |
 | PO-10279 |          4 |             2 |          1 |     7 |
 | PO-10280 |          6 |             2 |          3 |    11 |
-| Total    |         14 |             5 |          8 |    27 |
+| Total    |         12 |             5 |          8 |    25 |
 
 Use the configured frontend target in `TEST_URL`; localhost below is the local execution example. The enabled release,
 provisioned creator/denied accounts, Countries, active Create Casefile application and representative MAT metadata
@@ -772,7 +973,7 @@ First run discovery to verify selection and bindings, then remove `--env dryRun=
 TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and (@JIRA-STORY:PO-10278 or @JIRA-STORY:PO-10279 or @JIRA-STORY:PO-10280) and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and (@JIRA-STORY:PO-10278 or @JIRA-STORY:PO-10279 or @JIRA-STORY:PO-10280) and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/OrderTerms.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsSummary.feature,cypress/e2e/functional/opal/features/createDraftCasefile/OrderTermsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/MinorCreditor.feature,cypress/e2e/functional/opal/features/createDraftCasefile/MinorCreditorAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/Creditor.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CreditorAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature' --env dryRun=true
 ```
 
-A dry run does not execute browser steps. Require 27 actual passing examples with zero failed, pending or skipped
+A dry run does not execute browser steps. Require 25 actual passing examples with zero failed, pending or skipped
 examples, including eight denied-account routes. Record the command, exit code, expanded counts, browser version,
 safe environment alias and tested commit. Real-service QA observes HTTP traffic without replies/static responses;
 existing mocked regressions keep their scenario-local setup and original implementation-story tags.
@@ -805,7 +1006,7 @@ cp -R smoke-output/. docs/superpowers/plans/2026-10-14-order-terms-creditors-evi
 ```
 
 This regression includes retained Order Term input/summary validation, failure, cancellation and reload cases,
-Minor Creditor bank/review/removal cases, creditor choices, Order Details, mandatory parties and all fifteen permission
+Minor Creditor bank/review/removal cases, creditor choices, Order Details, mandatory parties and all nineteen permission
 routes. Complete the local pre-flight in [SONAR.md](SONAR.md), E2E TypeScript, the full configured Jira metadata policy
 and duplicate-scenario scan. A passing createDraftCasefile-only metadata check supplements the full policy result;
 missing authoritative Jira identifiers in other configured features remain an unmet required check. Do not invent
@@ -822,16 +1023,20 @@ until direct evidence confirms them.
 ## Capture payment arrangements QA (PO-10281)
 
 `Payments.feature` covers four independent interest/indexation combinations (Yes/RPI, No/CPI, Yes/Other and No/None)
-and both court/direct payment arrangements. Each example starts a fresh browser-led draft with live mandatory-party
+and one court-to-direct arrangement journey. Each example starts a fresh browser-led draft with live mandatory-party
 and Order Details setup, then saves and reopens the payment tasks to verify their actual selected controls and Provided
-statuses. Payment-management examples replay both tasks to prove neither local save overwrites the other task.
+statuses. The arrangement journey saves/reopens court and then direct, checking the retained interest/indexation, Provided
+statuses and no-write boundary after each save. Fresh direct selection remains in PaymentsAccessibility and
+independent court/direct saves in ManagingPayments.cy.ts; these controlled component saves and live journeys are
+separate evidence. The four fresh interest/indexation examples remain independent.
 No Draft Casefile creation POST is permitted. The examples stop before submission and do not test payment collection.
 
 Other indexation is a selection only, with no additional details input. This follows the functional write-up and
 existing implementation, as agreed for PO-10281; the TDIA's conditional Other-details wording remains a documentation
 follow-up. Field-level validation remains owned by the existing payment component specs.
 
-`PaymentsAccessibility.feature` scans both payment pages before selection, after keyboard selection and after local
+[PaymentsAccessibility.feature](../cypress/e2e/functional/opal/features/createDraftCasefile/PaymentsAccessibility.feature)
+scans both payment pages before selection, after keyboard selection and after local
 save/reopen. Keyboard assertions cover radio activation, native Tab movement and primary-action activation.
 These are partial accessibility results; specialist screen-reader, visible-focus and magnification checks remain
 necessary for full WCAG 2.2 AA assurance.
@@ -841,14 +1046,14 @@ live authorised-entry and denied-user preflights. Enable `release-1c-rm-create-c
 provision the live user, Country and Maintenance Application prerequisites above. These payment scenarios do not
 require Results, Major Creditors or Central Authorities. They do not replace live responses or mutate permissions.
 
-Run ten expanded examples: six functional outcomes, two accessibility journeys and two permission routes:
+Run nine expanded examples: five functional outcomes, two accessibility journeys and two permission routes:
 
 ```bash
 TEST_URL=http://localhost:5000 TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10281 and not @skip' CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10281 and not @skip' corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/Payments.feature,cypress/e2e/functional/opal/features/createDraftCasefile/PaymentsAccessibility.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CasefilePermissions.feature'
 ```
 
 Use the configured frontend target in `TEST_URL`; localhost is the local example. Run those specs with both tag
-variables set to `@R1CRmCreateCaseFiles and not @skip` to include all fifteen shared permission routes. Also run
+variables set to `@R1CRmCreateCaseFiles and not @skip` to include all nineteen shared permission routes. Also run
 `OrderDetails.feature`, `OrderDetailsAccessibility.feature`, `CheckCaseDetails.feature` and
 `CheckCaseDetailsAccessibility.feature` for the reused prerequisite and payment-to-review integration regressions,
 then the smoke suite and required local pre-flight. Preserve reports before the runner resets its output directory.
@@ -857,7 +1062,10 @@ then the smoke suite and required local pre-flight. Preserve reports before the 
 
 `CancelCaseCreation.feature` covers returning to review with the accepted draft retained, confirming cancellation
 without a draft submission, starting a fresh journey and preventing browser history from recovering the discarded
-case. Each positive scenario owns a complete local draft. `CancelCaseCreationAccessibility.feature` scans the
+case. The retained `Retain a completed draft on return and start fresh after confirmed cancellation` sequence
+checks retained review before discard, then fresh entry and history. The separate rejected-dashboard-origin case
+remains independent. These local draft outcomes use controlled responses; the denied-user preflight stays live.
+Each positive scenario owns a complete local draft. `CancelCaseCreationAccessibility.feature` scans the
 cancellation page and fresh destination; Axe provides partial accessibility evidence.
 
 The permission scenario reuses the shared live permission preflight: first verify ACTIVE Maintenance membership,
@@ -875,7 +1083,10 @@ CYPRESS_TAGS='@R1CRmCreateCaseFiles and @JIRA-STORY:PO-10284 and not @skip' \
 corepack yarn test:functional:serial --browser=chrome --spec 'cypress/e2e/functional/opal/features/createDraftCasefile/CancelCaseCreation.feature,cypress/e2e/functional/opal/features/createDraftCasefile/CancelCaseCreationAccessibility.feature'
 ```
 
-Require four passing browser scenarios with none skipped or pending. A dry run checks selection and step bindings
+The PO-10284 selector requires three passing examples (two functional, including live denial, plus one accessibility),
+with none skipped or pending. The separate rejected-dashboard-origin functional example has PO-9818/PO-10605 tags
+and is outside that selector; the complete cancellation feature pair contains four examples (three functional plus
+one accessibility). A dry run checks selection and step bindings
 only. Preserve and sanitise generated reports before another runner invocation resets output. Specialist follow-up
 must verify native browser Leave/Cancel behaviour, full keyboard traversal, screen-reader announcements and
 magnification with the same enabled release and provisioned accounts.

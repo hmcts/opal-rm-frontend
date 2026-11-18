@@ -126,6 +126,14 @@ it('AC1. should render the approved choices', { tags: buildTags('@JIRA-TEST-KEY:
 - Use direct control interactions such as `.check()` and `.select()` only when that interaction or its resulting state is relevant to the scenario.
 - Do not seed the same expected state on both sides of a save assertion if that would let the test pass without the submit handler. A submission test must make a relevant UI change or assert an observable submission result that distinguishes successful handling from the initial seed.
 
+The routed Creditor and amendment tests seed setup-only Minor Creditor fields on the rendered child form using
+[the typed seed helper](../cypress/component/createDraftCasefile/minorCreditor/setup/seed-minor-creditor-form.ts).
+They still activate Save, inspect pending versus accepted records and complete the real route transitions. The
+Organisation branch-clearing check similarly seeds the active non-UK controls before switching the bank radio;
+the clearing transition remains a UI interaction. Missing child forms fail setup explicitly. Request-lifecycle,
+frequency and reflow tests use existing review and Order Terms setup options. Default-arrival, typed casing,
+validation, character limits, dirty tracking and native keyboard checks retain their independent interactions.
+
 ## Keyboard interaction and dynamic content
 
 - Use `cy.press(Cypress.Keyboard.Keys.TAB)` to prove native focus movement and `cy.press(Cypress.Keyboard.Keys.SPACE)` to prove checkbox activation. Calling `.focus()` may establish the starting point, but must not replace the keyboard movement being asserted.

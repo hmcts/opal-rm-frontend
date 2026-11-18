@@ -779,15 +779,35 @@ describe('PO-10624 native accessible warning activation', () => {
 });
 
 /** Keeps native warning cancellation real while supplying the authoritative returned-review boundary. */
-function nativeCancellation() {
+function nativeCancellation(cached = false, independentStatus = 200) {
   const { session } = nativeWarning();
   const activated = cy.stub();
   cy.stub(CheckerDeletionActions.prototype, 'assertOutcome');
-  cy.stub(session.recovery, 'assertSavedPresentation');
+  let proved = !cached;
+  cy.stub(session.recovery, 'assertSavedPresentation').callsFake(() => {
+    cy.then(() => expect(proved, 'independent proof before presentation').to.equal(true));
+  });
+  if (cached)
+    cy.stub(cy, 'request').callsFake(() =>
+      cy.then(() => {
+        proved = independentStatus === 200;
+        return {
+          status: independentStatus,
+          body: structuredClone(session.before.draft),
+          headers: { etag: session.before.etag },
+        };
+      }),
+    );
   cy.stub(cy, 'intercept').returns(cy.wrap({}, { log: false }));
   cy.stub(cy, 'wait').returns(
     cy.wrap(
-      { response: { statusCode: 200, body: session.before.draft, headers: { etag: session.before.etag } } },
+      {
+        response: {
+          statusCode: cached ? 304 : 200,
+          body: cached ? '' : session.before.draft,
+          headers: { etag: session.before.etag },
+        },
+      },
       { log: false },
     ),
   );
@@ -810,6 +830,15 @@ function nativeCancellation() {
 
 // These documents isolate native activation while retained-receipt decoding and mutation accounting stay real.
 describe('PO-10624 native accessible cancellation and retry', () => {
+  let requiresIndependentFailure = false;
+  let independentFailed = false;
+  beforeEach(() => {
+    requiresIndependentFailure = false;
+    independentFailed = false;
+  });
+  afterEach(() => {
+    if (requiresIndependentFailure) expect(independentFailed, 'independent failure propagated').to.equal(true);
+  });
   it(
     'AC4. should Tab through the warning controls and cancel to focused unchanged review',
     { tags: buildTags() },
@@ -835,6 +864,24 @@ describe('PO-10624 native accessible cancellation and retry', () => {
       });
     },
   );
+
+  it('AC4. should await cached cancellation proof before returned presentation', { tags: buildTags() }, () => {
+    nativeCancellation(true);
+    cy.stub(accessibilityActions, 'checkAccessibilityOnly');
+    new CheckerDeletionFlow().accessible('cancel');
+  });
+
+  it('AC4. should fail cached cancellation when independent evidence fails', { tags: buildTags() }, () => {
+    nativeCancellation(true, 404);
+    cy.stub(accessibilityActions, 'checkAccessibilityOnly');
+    requiresIndependentFailure = true;
+    cy.once('fail', (error) => {
+      if (!error.message.includes('authoritative GET')) throw error;
+      independentFailed = true;
+      return false;
+    });
+    new CheckerDeletionFlow().accessible('cancel');
+  });
 
   it(
     'AC4. should scan the retained definite error then explicitly retry through native controls',

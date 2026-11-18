@@ -111,9 +111,9 @@ export class CasePartiesActions {
   /** Populates mandatory respondent details and verifies browser Tab focus order. */
   public populateRespondent(): void {
     this.assertCountryOrder(S.respondentDetails.countryAutocomplete, S.respondentDetails.countryOptions);
-    cy.get(S.respondentDetails.firstNames).type('Synthetic');
-    cy.get(S.respondentDetails.lastName).type('Respondent');
-    cy.get(S.respondentDetails.addressLine1).type('1 Test Street');
+    cy.get(S.respondentDetails.firstNames).type('Synthetic', { delay: 0 });
+    cy.get(S.respondentDetails.lastName).type('Respondent', { delay: 0 });
+    cy.get(S.respondentDetails.addressLine1).type('1 Test Street', { delay: 0 });
     cy.get(S.respondentDetails.firstNames).focus();
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(S.respondentDetails.lastName).should('be.focused');
@@ -134,9 +134,9 @@ export class CasePartiesActions {
   /** Populates the mandatory individual fields using the cached Country list. */
   public populateIndividual(): void {
     this.assertCountryOrder(S.applicantIndividual.countryAutocomplete, S.applicantIndividual.countryOptions);
-    cy.get(S.applicantIndividual.firstNames).type('Synthetic');
-    cy.get(S.applicantIndividual.lastName).type('Applicant');
-    cy.get(S.applicantIndividual.addressLine1).type('2 Test Street');
+    cy.get(S.applicantIndividual.firstNames).type('Synthetic', { delay: 0 });
+    cy.get(S.applicantIndividual.lastName).type('Applicant', { delay: 0 });
+    cy.get(S.applicantIndividual.addressLine1).type('2 Test Street', { delay: 0 });
     cy.get(S.applicantIndividual.bankTypeRadio('none')).check();
   }
 
@@ -155,9 +155,9 @@ export class CasePartiesActions {
   /** Populates the mandatory organisation fields using the cached Country list. */
   public populateOrganisation(): void {
     this.assertCountryOrder(S.applicantOrganisation.countryAutocomplete, S.applicantOrganisation.countryOptions);
-    cy.get(S.applicantOrganisation.organisationName).type('Synthetic Organisation');
-    cy.get(S.applicantOrganisation.foreignAuthorityReference).type('SYNTHETIC-ORG');
-    cy.get(S.applicantOrganisation.addressLine1).type('3 Test Street');
+    cy.get(S.applicantOrganisation.organisationName).type('Synthetic Organisation', { delay: 0 });
+    cy.get(S.applicantOrganisation.foreignAuthorityReference).type('SYNTHETIC-ORG', { delay: 0 });
+    cy.get(S.applicantOrganisation.addressLine1).type('3 Test Street', { delay: 0 });
     cy.get(S.applicantOrganisation.bankTypeRadio('none')).check();
   }
 
@@ -269,7 +269,9 @@ export class CasePartiesActions {
       cy.get(options).should((items) => {
         expect([...items].map((item) => item.textContent?.trim())).to.deep.equal(expectedNames);
       });
-      cy.get(input).type('United Kingdom').type('{downArrow}{enter}');
+      cy.get(input).type('United Kingdom', { delay: 0 });
+      cy.get(options).should('have.length', 1).and('be.visible').and('contain.text', 'United Kingdom');
+      cy.get(input).type('{downArrow}{enter}');
       cy.get(input).should('have.value', 'United Kingdom');
     });
   }

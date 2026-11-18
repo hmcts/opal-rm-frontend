@@ -194,7 +194,7 @@ export class DraftCasefileRecoveryActions {
   public correctRespondent(value: string, keyboard = false, onEditor?: () => void): void {
     this.activate(C.review.change('respondent'), keyboard);
     if (keyboard) cy.get(C.respondentDetails.firstNames).focus().should('be.focused');
-    cy.get(C.respondentDetails.firstNames).should('be.enabled').clear().type(value);
+    cy.get(C.respondentDetails.firstNames).should('be.enabled').clear().type(value, { delay: 0 });
     if (onEditor) cy.then(() => onEditor());
     if (keyboard) {
       cy.get(C.respondentDetails.firstNames).should('be.focused');

@@ -1,10 +1,11 @@
+import { seedMinorCreditorForm } from '../minorCreditor/setup/seed-minor-creditor-form';
 import { getState } from '@ngrx/signals';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { CASES_CREATE_CASEFILE_ROUTING_PATHS as PATHS } from 'src/app/flows/cases/cases-create-casefile/routing/constants/cases-create-casefile-routing-paths.constant';
 import { CreateCasefileSelectors as S } from '../../../shared/selectors/create-casefile.selectors';
 import { setupOrderTerms, type OrderTermsStore } from '../orderTerms/setup/order-terms.setup';
-import { SUMMARY_CREDITORS, SUMMARY_TERMS } from './mocks/order-terms-summary.mock';
+import { NEW_AMENDMENT_CREDITOR_FORM, SUMMARY_CREDITORS, SUMMARY_TERMS } from './mocks/order-terms-summary.mock';
 
 const buildTags = (): string[] => ['@JIRA-STORY:PO-9811', '@JIRA-EPIC:PO-6506', '@JIRA-LABEL:create-draft-casefile'];
 const originalCreditor = SUMMARY_CREDITORS[0];
@@ -32,9 +33,7 @@ const openNewDetails = (): void => {
 };
 const enterNewCreditorDetails = (): void => {
   cy.get(S.minorCreditor.organisation).check();
-  cy.get(S.minorCreditor.organisationName).type('Atomic synthetic creditor');
-  cy.get(S.minorCreditor.addressLine1).type('3 Test Street');
-  cy.get(S.minorCreditor.countryAutocomplete).type('United Kingdom').type('{downArrow}{enter}');
+  seedMinorCreditorForm(NEW_AMENDMENT_CREDITOR_FORM);
   cy.get(S.minorCreditor.bankNone).check();
 };
 const saveNewCreditor = (): void => {

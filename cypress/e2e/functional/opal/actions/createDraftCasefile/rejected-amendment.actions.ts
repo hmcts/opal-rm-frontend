@@ -104,7 +104,7 @@ export class RejectedAmendmentActions {
    */
   public correctRespondentAndReview(): void {
     cy.get(S.caseDetails.respondentLink).click();
-    cy.get(S.respondentDetails.firstNames).clear().type('Corrected');
+    cy.get(S.respondentDetails.firstNames).clear().type('Corrected', { delay: 0 });
     cy.get(S.respondentDetails.returnToCaseDetails).click();
     cy.get(S.caseDetails.checkCaseButton).click();
   }

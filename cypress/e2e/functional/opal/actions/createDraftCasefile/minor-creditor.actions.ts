@@ -17,12 +17,17 @@ export class MinorCreditorActions {
   /** Enters a valid Organisation/non-UK branch while leaving both international identifiers blank. */
   public enterInternationalOrganisation(): void {
     cy.get(S.minorCreditor.organisation).check();
-    cy.get(S.minorCreditor.organisationName).type(M.organisationName);
-    cy.get(S.minorCreditor.addressLine1).type(M.addressLine1);
-    cy.get(S.minorCreditor.countryAutocomplete).type(M.countryName).type('{downArrow}{enter}');
+    cy.get(S.minorCreditor.organisationName).type(M.organisationName, { delay: 0 });
+    cy.get(S.minorCreditor.addressLine1).type(M.addressLine1, { delay: 0 });
+    cy.get(S.minorCreditor.countryAutocomplete).type(M.countryName, { delay: 0 });
+    cy.get(S.minorCreditor.countryOptions)
+      .should('have.length', 1)
+      .and('be.visible')
+      .and('contain.text', M.countryName);
+    cy.get(S.minorCreditor.countryAutocomplete).type('{downArrow}{enter}');
     cy.get(S.minorCreditor.bankNonUk).check();
-    cy.get(S.minorCreditor.nonUkNameOnAccount).type(M.nameOnAccount);
-    cy.get(S.minorCreditor.nonUkPaymentReference).type(M.paymentReference);
+    cy.get(S.minorCreditor.nonUkNameOnAccount).type(M.nameOnAccount, { delay: 0 });
+    cy.get(S.minorCreditor.nonUkPaymentReference).type(M.paymentReference, { delay: 0 });
     cy.get(S.minorCreditor.nonUkBicSwiftCode).should('have.value', '');
     cy.get(S.minorCreditor.nonUkIban).should('have.value', '');
   }
@@ -50,6 +55,12 @@ export class MinorCreditorActions {
   public assertSummaryWithoutDraftWrite(): void {
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.minorCreditorSummary);
     cy.get(S.heading).should('have.text', 'Minor creditor summary');
+    cy.get('@draftCreation').should('not.have.been.called');
+  }
+
+  /** Checks cancellation retained the reviewed Organisation without writing a draft casefile. */
+  public assertReviewedCreditorRetained(): void {
+    cy.get(S.minorCreditorSummary.rowValue('Name')).should('have.text', M.organisationName);
     cy.get('@draftCreation').should('not.have.been.called');
   }
 
@@ -114,7 +125,7 @@ export class MinorCreditorActions {
   /** Creates an unsaved Organisation identity edit. */
   public enterUnsavedName(): void {
     cy.get(S.minorCreditor.organisation).check();
-    cy.get(S.minorCreditor.organisationName).type(M.unsavedName);
+    cy.get(S.minorCreditor.organisationName).type(M.unsavedName, { delay: 0 });
   }
 
   /**

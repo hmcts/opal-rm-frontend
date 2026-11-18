@@ -18,7 +18,12 @@ import {
   assertResubmittedCasefile,
   correctedRejectedCasefile,
 } from './rejected-casefile-evidence.actions';
-import { assertUnchangedDraft, decodeDraftSnapshot, readDraftSnapshot } from './draft-casefile-evidence.actions';
+import {
+  assertObservedUnchangedDraft,
+  assertUnchangedDraft,
+  decodeDraftSnapshot,
+  readDraftSnapshot,
+} from './draft-casefile-evidence.actions';
 import type { RejectedAmendmentKind, IRejectedCasefileContext } from './interfaces/rejected-casefile-context.interface';
 import type { IRejectedAmendmentSession } from './interfaces/rejected-amendment-session.interface';
 
@@ -338,11 +343,7 @@ export class RejectedCasefileJourneyActions {
     this.activate(`${D.row(context.owned.id)} ${D.column('respondent')} a`);
     cy.wait('@amendmentSavedDetail').then(({ response }) => {
       if (!response || !this.session.saved) throw new Error('Saved browser detail evidence missing');
-      expect(response.statusCode).to.equal(200);
-      assertUnchangedDraft(
-        this.session.saved,
-        decodeDraftSnapshot(context.owned.id, response.body, response.headers['etag']),
-      );
+      return assertObservedUnchangedDraft(this.session.saved, response);
     });
     if (checker)
       cy.location('pathname').should('equal', `/${CHECKER.root}/${CHECKER.children.review}/${context.owned.id}`);

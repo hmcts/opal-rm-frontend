@@ -64,9 +64,11 @@ export class CentralAuthorityDetailsActions {
     authorityChoice: CentralAuthorityChoice,
   ): void {
     this.withAuthorityLabel(authorityChoice, (authorityLabel) => {
-      cy.get(Page.remoReference).clear().type(remoReference);
-      cy.get(Page.centralAuthorityReference).clear().type(centralAuthorityReference);
-      cy.get(Page.autocomplete).clear().type(authorityLabel).type('{downArrow}{enter}');
+      cy.get(Page.remoReference).clear().type(remoReference, { delay: 0 });
+      cy.get(Page.centralAuthorityReference).clear().type(centralAuthorityReference, { delay: 0 });
+      cy.get(Page.autocomplete).clear().type(authorityLabel, { delay: 0 });
+      cy.get(Page.autocompleteOptions).should('have.length', 1).and('be.visible').and('contain.text', authorityLabel);
+      cy.get(Page.autocomplete).type('{downArrow}{enter}');
       cy.get(Page.returnToCaseDetails).click();
       cy.location('pathname').should('equal', taskListPath);
     });
@@ -104,8 +106,8 @@ export class CentralAuthorityDetailsActions {
 
   /** Submits references beyond their maximum lengths and confirms both validation errors. */
   public submitOverLimitReferences(): void {
-    cy.get(Page.remoReference).type('x'.repeat(21));
-    cy.get(Page.centralAuthorityReference).type('x'.repeat(51));
+    cy.get(Page.remoReference).type('x'.repeat(21), { delay: 0 });
+    cy.get(Page.centralAuthorityReference).type('x'.repeat(51), { delay: 0 });
     cy.get(Page.returnToCaseDetails).click();
     cy.get(Page.remoReferenceError).should('contain.text', 'REMO reference must be 20 characters or fewer');
     cy.get(Page.centralAuthorityReferenceError).should(

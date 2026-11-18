@@ -1,3 +1,7 @@
+import {
+  assertObservedUnchangedDraft,
+  decodeDraftSnapshot,
+} from '../../e2e/functional/opal/actions/checkAndValidateCase/draft-casefile-evidence.actions';
 import { getTestActor } from '../../support/test-actors';
 import { createPersistedCasefileDetail } from 'src/app/flows/cases/services/opal-maintenance-service/mocks/opal-maintenance-draft-casefile-detail.mock';
 import { DraftCasefileConcurrencyFlow } from '../../e2e/functional/opal/flows/checkAndValidateCase/draft-casefile-concurrency.flow';
@@ -143,6 +147,108 @@ describe('PO-10626 owned API fixture support', () => {
     );
     return writes;
   }
+
+  describe('observed saved-state evidence', () => {
+    const tags = ['@JIRA-EPIC:PO-10817', '@JIRA-STORY:PO-10626'];
+    const snapshot = () => {
+      const body = createPersistedCasefileDetail();
+      return decodeDraftSnapshot(body.draft_casefile_id, body, '"1"');
+    };
+    function independent(body: unknown, etag = '"1"', status = 200) {
+      const calls: Cypress.RequestOptions[] = [];
+      cy.stub(cy, 'request').callsFake((options: Cypress.RequestOptions) =>
+        cy.then(() => {
+          calls.push(options);
+          return { status, body, headers: { etag } };
+        }),
+      );
+      return calls;
+    }
+    it('AC1. should verify observed 200 without an independent read', { tags }, () => {
+      const expected = snapshot();
+      const calls = independent({});
+      assertObservedUnchangedDraft(expected, {
+        statusCode: 200,
+        body: structuredClone(expected.draft),
+        headers: { etag: expected.etag },
+      }).then(() => {
+        expect(calls).to.have.length(0);
+      });
+    });
+    it('AC1. should reject changed observed 200 aggregate', { tags }, () => {
+      const expected = snapshot();
+      const changed = structuredClone(expected.draft);
+      changed.casefile_snapshot = {};
+      const calls = independent({});
+      expectFailure('saved casefile_snapshot unchanged', () => expect(calls).to.have.length(0));
+      assertObservedUnchangedDraft(expected, { statusCode: 200, body: changed, headers: { etag: expected.etag } });
+    });
+    it('AC1. should await exactly one independent complete 200 for an empty matching 304', { tags }, () => {
+      const expected = snapshot();
+      const calls = independent(structuredClone(expected.draft));
+      assertObservedUnchangedDraft(expected, { statusCode: 304, body: '', headers: { etag: expected.etag } }).then(
+        () => {
+          expect(calls).to.have.length(1);
+          expect(calls[0]).to.include({
+            method: 'GET',
+            url: `/opal-maintenance-service/draft-casefiles/${expected.draft.draft_casefile_id}`,
+            failOnStatusCode: false,
+            retryOnNetworkFailure: false,
+            retryOnStatusCodeFailure: false,
+            log: false,
+          });
+          expect(calls[0].headers).to.deep.equal({ Accept: 'application/json' });
+        },
+      );
+    });
+    it('AC1. should propagate independent transport failure after matching browser 304', { tags }, () => {
+      let reads = 0;
+      cy.stub(cy, 'request').callsFake(() =>
+        cy.then(() => {
+          reads++;
+          throw new Error('Controlled independent transport failure');
+        }),
+      );
+      expectFailure('Controlled independent transport failure', () => expect(reads).to.equal(1));
+      const expected = snapshot();
+      assertObservedUnchangedDraft(expected, { statusCode: 304, body: '', headers: { etag: expected.etag } });
+    });
+    for (const [name, statusCode, etag, message] of [
+      ['missing ETag', 304, undefined, 'Observed cached GET has no ETag'],
+      ['weak ETag', 304, 'W/"1"', 'Invalid authoritative ETag'],
+      ['invalid ETag', 304, '1', 'Invalid authoritative ETag'],
+      ['different ETag', 304, '"2"', 'cached version unchanged'],
+      ['unsupported status', 404, '"1"', 'observed draft GET'],
+    ] as const) {
+      it(`AC1. should reject ${name} before independent read`, { tags }, () => {
+        const calls = independent({});
+        expectFailure(message, () => expect(calls).to.have.length(0));
+        assertObservedUnchangedDraft(snapshot(), { statusCode, body: '', headers: { etag } });
+      });
+    }
+    for (const kind of ['404', 'malformed', 'changed aggregate', 'changed version', '304'] as const) {
+      it(`AC1. should reject independent ${kind} after matching browser 304`, { tags }, () => {
+        const expected = snapshot();
+        const body = structuredClone(expected.draft);
+        if (kind === 'changed aggregate') body.casefile_snapshot = {};
+        const calls = independent(
+          kind === 'malformed' ? {} : body,
+          kind === 'changed version' ? '"2"' : '"1"',
+          kind === '404' ? 404 : kind === '304' ? 304 : 200,
+        );
+        const message =
+          kind === '404' || kind === '304'
+            ? 'authoritative GET'
+            : kind === 'malformed'
+              ? 'owned complete draft'
+              : kind === 'changed version'
+                ? 'saved version unchanged'
+                : 'saved casefile_snapshot unchanged';
+        expectFailure(message, () => expect(calls).to.have.length(1));
+        assertObservedUnchangedDraft(expected, { statusCode: 304, body: '', headers: { etag: expected.etag } });
+      });
+    }
+  });
 
   const parameters = [
     { name: 'Amount', mandatory: true },

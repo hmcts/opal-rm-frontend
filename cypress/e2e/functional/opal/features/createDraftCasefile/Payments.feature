@@ -22,14 +22,12 @@ Feature: Capture Draft Casefile payment arrangements
       | No       | NONE       |
 
   @JIRA-EPIC:PO-6506 @JIRA-STORY:PO-10281
-  Scenario Outline: Retain <arrangement> payments without changing interest and indexation
+  Scenario: Retain court payments then direct payments without changing interest and indexation
     Given I have saved interest "Yes" and indexation "CPI"
     When I open Managing Payments
-    And I choose "<arrangement>" payments
+    And I choose "court" payments
     And I save Managing Payments to Case Details
-    Then "<arrangement>" payments and the saved interest and indexation are retained without submitting the casefile
-
-    Examples:
-      | arrangement |
-      | court       |
-      | direct      |
+    Then "court" payments and the saved interest and indexation are retained without submitting the casefile
+    When I choose "direct" payments
+    And I save Managing Payments to Case Details
+    Then "direct" payments and the saved interest and indexation are retained without submitting the casefile

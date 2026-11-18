@@ -784,7 +784,9 @@ describe('Minor creditor details accessibility', () => {
     setupMinorCreditor({ details: MINOR_CREDITOR_UK_MOCK });
 
     // The autocomplete requires element-bound native key events to update and accept its active option.
-    cy.get(S.minorCreditor.countryAutocomplete).clear().type('Fra').type('{downarrow}{enter}');
+    cy.get(S.minorCreditor.countryAutocomplete).clear().type('Fra');
+    cy.get(S.minorCreditor.countryOptions).should('have.length', 1).and('be.visible').and('contain.text', 'France');
+    cy.get(S.minorCreditor.countryAutocomplete).type('{downarrow}{enter}');
     cy.get(S.minorCreditor.countryAutocomplete).should('have.value', 'France');
     cy.get(S.minorCreditor.countryId).should('have.value', '250');
   });

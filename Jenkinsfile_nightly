@@ -225,6 +225,7 @@ void publishHtmlReport(String dir, String files, String name) {
     echo "Fallback report generation failed with exit ${fallbackStatus}"
     currentBuild.result = 'FAILURE'
   }
+  archiveArtifact("${dir}**")
   publishHTML target: [
     allowMissing         : true,
     alwaysLinkToLastBuild: true,
@@ -391,7 +392,7 @@ void prepareUatTechnicalArtifacts(String browserToRun) {
     if [ -f "\$SOURCE_JUNIT_PATH" ]; then
       cp "\$SOURCE_JUNIT_PATH" "\$UAT_DIR/uat-technical-test-result.xml"
     fi
-    for raw in "\$SOURCE_CUCUMBER_DIR"/*.ndjson; do
+    for raw in "\$SOURCE_CUCUMBER_DIR"/*.ndjson "\$SOURCE_CUCUMBER_DIR"/*.results.json; do
       [ -f "\$raw" ] || continue
       cp "\$raw" "\$UAT_CUCUMBER_DIR/"
     done
@@ -444,6 +445,7 @@ void runUatTechnicalStage(
       sh """
         rm -f functional-output/prod/${browserToRun}/cucumber/*.ndjson \\
               functional-output/prod/${browserToRun}/cucumber/*.html \\
+              functional-output/prod/${browserToRun}/cucumber/*.results.json \\
               functional-output/prod/${browserToRun}/opal-mode-test-output-*.xml \\
               functional-output/prod/${browserToRun}/${browserToRun}-test-result.xml
         rm -rf functional-output/prod/${browserToRun}/uat-technical
@@ -479,6 +481,7 @@ void runUatTechnicalStage(
           echo "UAT-Technical artifact preparation failed: ${failure}"
           throw failure
         } finally {
+          archiveArtifact('functional-output/draft-casefile-cleanup/**')
           archiveArtifact(functionalProdArtifactsPath)
           archiveArtifact('functional-output/account_evidence/created-accounts.json')
           archiveArtifact('functional-output/account_evidence/**')
@@ -523,6 +526,7 @@ void runSmokeStage(
       sh """
         rm -f smoke-output/prod/${browserToRun}/cucumber/*.ndjson \\
               smoke-output/prod/${browserToRun}/cucumber/*.html \\
+              smoke-output/prod/${browserToRun}/cucumber/*.results.json \\
               smoke-output/prod/${browserToRun}/opal-mode-test-output-*.xml \\
               smoke-output/prod/${browserToRun}/${browserToRun}-test-result.xml
       """
@@ -554,12 +558,14 @@ void runFunctionalStage(
       sh """
         rm -f functional-output/prod/${browserToRun}/cucumber/*.ndjson \\
               functional-output/prod/${browserToRun}/cucumber/*.html \\
+              functional-output/prod/${browserToRun}/cucumber/*.results.json \\
               functional-output/prod/${browserToRun}/opal-mode-test-output-*.xml \\
               functional-output/prod/${browserToRun}/${browserToRun}-test-result.xml
       """
       builder.yarn(shouldRunWithZephyr ? 'zephyr:test:functional' : 'test:functional')
     } finally {
       snapshotZephyrReports('functional-output', "functional-output/prod/${browserToRun}")
+      archiveArtifact('functional-output/draft-casefile-cleanup/**')
       archiveArtifact(functionalProdArtifactsPath)
       archiveArtifact("functional-output/screenshots/${browserToRun}/**")
       publishHtmlReport(
@@ -585,6 +591,7 @@ void runLegacyStage(
       sh """
         rm -f functional-output/prod/${browserToRun}/legacy/cucumber/*.ndjson \\
               functional-output/prod/${browserToRun}/legacy/cucumber/*.html \\
+              functional-output/prod/${browserToRun}/legacy/cucumber/*.results.json \\
               functional-output/prod/${browserToRun}/legacy/legacy-mode-test-output-*.xml \\
               functional-output/prod/${browserToRun}/legacy/legacy-test-result.xml
       """
@@ -616,12 +623,14 @@ void runBrowserStage(
       sh """
         rm -f functional-output/prod/${stageConfig.browserToRun}/cucumber/*.ndjson \\
               functional-output/prod/${stageConfig.browserToRun}/cucumber/*.html \\
+              functional-output/prod/${stageConfig.browserToRun}/cucumber/*.results.json \\
               functional-output/prod/${stageConfig.browserToRun}/opal-mode-test-output-*.xml \\
               functional-output/prod/${stageConfig.browserToRun}/${stageConfig.browserToRun}-test-result.xml
       """
       builder.yarn(stageConfig.yarnCommand)
     } finally {
       snapshotZephyrReports('functional-output', "functional-output/prod/${stageConfig.browserToRun}")
+      archiveArtifact('functional-output/draft-casefile-cleanup/**')
       archiveArtifact("functional-output/prod/${stageConfig.browserToRun}/**")
       archiveArtifact("functional-output/screenshots/${stageConfig.browserToRun}/**")
       publishHtmlReport(

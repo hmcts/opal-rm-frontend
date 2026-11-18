@@ -210,3 +210,168 @@ test('prepare rejects arbitrary paths and filesystem errors fail closed', (t) =>
   }
   assert.equal(fs.readlinkSync(path.join(root, 'functional-output')), 'functional-output');
 });
+
+const {
+  resetExecutionResults,
+  recordExecutionResults,
+  publishExecutionSummary,
+} = require('./cypress-execution-report.cjs');
+
+function executionFixture(t) {
+  const root = temporary(t);
+  const dir = path.join(root, 'cucumber');
+  fs.mkdirSync(dir);
+  const html = path.join(dir, 'edge-report.html');
+  fs.writeFileSync(html, '<!doctype html><html><body class="report"><h1>Cucumber details</h1></body></html>');
+  return { root, dir, html };
+}
+
+const failedXml = `<testsuites tests="5"><testsuite name="Cleanup" tests="5"><testcase name="after each hook"><failure message="Cleanup returned HTTP 404">stack</failure></testcase></testsuite></testsuites>`;
+
+test('JUnit hook failures are visible even when an existing Cucumber report contains only passes', async (t) => {
+  const { root, dir, html } = executionFixture(t);
+  fs.writeFileSync(path.join(root, 'edge-test-result.xml'), failedXml);
+  fs.writeFileSync(path.join(root, 'opal-mode-test-output-shard.xml'), failedXml);
+  for (let repeat = 0; repeat < 2; repeat++) {
+    assert.equal(await publishExecutionSummary(dir + '/', 'edge-report.html', 'Edge'), true);
+  }
+  const summary = fs.readFileSync(path.join(dir, 'execution-summary.html'), 'utf8');
+  assert.match(summary, /Cleanup returned HTTP 404/);
+  assert.match(summary, /declares 5 tests and contains 1 testcase/);
+  assert.match(summary, /Skipped scenarios may be absent/);
+  assert.equal((summary.match(/Cleanup returned HTTP 404/g) ?? []).length, 1);
+  const published = fs.readFileSync(html, 'utf8');
+  assert.match(published, /Cucumber details/);
+  assert.match(published, /can omit entire features/);
+  assert.equal((published.match(/rm-execution-summary:start/g) ?? []).length, 1);
+});
+
+test('native worker results retain skipped counts and final retry outcomes independently', async (t) => {
+  const { dir } = executionFixture(t);
+  const worker = path.join(dir, 'OPAL-report-1.ndjson');
+  const other = path.join(dir, 'OPAL-report-2.ndjson');
+  resetExecutionResults(worker);
+  resetExecutionResults(other);
+  const result = {
+    stats: { tests: 5, passes: 0, failures: 1, pending: 0, skipped: 4 },
+    tests: [
+      { title: ['Feature', 'Scenario'], state: 'failed', attempts: [{ error: { message: 'Cleanup HTTP 404' } }] },
+    ],
+  };
+  recordExecutionResults(worker, { relative: 'one.feature' }, result);
+  recordExecutionResults(worker, { relative: 'one.feature' }, result);
+  recordExecutionResults(
+    other,
+    { relative: 'two.feature' },
+    {
+      stats: { tests: 1, passes: 1 },
+      tests: [{ title: ['Retried'], state: 'passed', attempts: [{ error: { message: 'First failure' } }, {}] }],
+    },
+  );
+  assert.equal(await publishExecutionSummary(dir, 'edge-report.html', 'Edge'), true);
+  const summary = fs.readFileSync(path.join(dir, 'execution-summary.html'), 'utf8');
+  assert.match(summary, /6 tests: 1 passed, 1 failed, 0 pending, 4 skipped/);
+  assert.match(summary, /Cleanup HTTP 404/);
+  assert.doesNotMatch(summary, /First failure/);
+  assert.equal(JSON.parse(fs.readFileSync(worker + '.results.json')).length, 1);
+  resetExecutionResults(worker);
+  assert.deepEqual(JSON.parse(fs.readFileSync(worker + '.results.json')), []);
+  assert.equal(JSON.parse(fs.readFileSync(other + '.results.json')).length, 1);
+});
+
+test('raw JUnit shards work without merged XML or HTML and escape diagnostic content', async (t) => {
+  const { root, dir, html } = executionFixture(t);
+  fs.rmSync(html);
+  fs.writeFileSync(
+    path.join(root, 'opal-mode-test-output-a.xml'),
+    `<testsuite tests="1"><testcase name="&lt;script&gt;"><error message="&lt;img&gt;">error</error></testcase></testsuite>`,
+  );
+  assert.equal(await publishExecutionSummary(dir, 'edge-report.html', '<Edge>'), true);
+  const summary = fs.readFileSync(path.join(dir, 'execution-summary.html'), 'utf8');
+  assert.match(summary, /&lt;script&gt;/);
+  assert.match(summary, /&lt;img&gt;/);
+  assert.match(summary, /&lt;Edge&gt;/);
+  assert.match(fs.readFileSync(html, 'utf8'), /Results are incomplete/);
+});
+
+test('empty, interactive and component runs do not manufacture execution results', async (t) => {
+  const { root, dir, html } = executionFixture(t);
+  resetExecutionResults(undefined);
+  recordExecutionResults(undefined, {}, {});
+  recordExecutionResults(path.join(dir, 'unused'), {}, undefined);
+  assert.equal(await publishExecutionSummary(dir, 'edge-report.html', 'Empty'), false);
+  assert.equal(await publishExecutionSummary(path.join(root, 'html'), 'report.html', 'Component'), false);
+  assert.equal(await publishExecutionSummary(path.join(root, 'absent/cucumber'), 'report.html', 'Absent'), false);
+  assert.match(fs.readFileSync(html, 'utf8'), /Cucumber details/);
+  await assert.rejects(publishExecutionSummary(dir, '../escape.html', 'Invalid'), /one report filename/);
+});
+
+test('native errors redact identities and credentials before persistence and HTML rendering', async (t) => {
+  const { dir } = executionFixture(t);
+  const worker = path.join(dir, 'OPAL-report-1.ndjson');
+  resetExecutionResults(worker);
+  recordExecutionResults(
+    worker,
+    { relative: 'failure.feature' },
+    {
+      stats: { tests: 1, failures: 1 },
+      error: 'Bearer synthetic-secret',
+      tests: [
+        {
+          title: ['user@example.invalid'],
+          state: 'failed',
+          attempts: [{ error: { message: 'password: synthetic-password' } }],
+        },
+      ],
+    },
+  );
+  await publishExecutionSummary(dir, 'edge-report.html', 'Failure');
+  for (const file of [worker + '.results.json', path.join(dir, 'execution-summary.html')]) {
+    const content = fs.readFileSync(file, 'utf8');
+    assert.doesNotMatch(content, /synthetic-secret|synthetic-password|user@example/);
+    assert.match(content, /redacted/);
+  }
+});
+
+test('CLI enriches an existing report; malformed XML fails without replacing its original details', (t) => {
+  const { spawnSync } = require('node:child_process');
+  const { root, dir, html } = executionFixture(t);
+  const xml = path.join(root, 'edge-test-result.xml');
+  const args = [require.resolve('./test-report-artifacts.cjs'), 'fallback', dir, 'edge-report.html', 'Edge'];
+  fs.writeFileSync(xml, failedXml);
+  assert.equal(spawnSync(process.execPath, args).status, 0);
+  assert.match(fs.readFileSync(html, 'utf8'), /execution-summary.html/);
+  fs.writeFileSync(xml, '<broken');
+  const before = fs.readFileSync(html, 'utf8');
+  assert.notEqual(spawnSync(process.execPath, args, { stdio: 'pipe' }).status, 0);
+  assert.equal(fs.readFileSync(html, 'utf8'), before);
+});
+
+test('nested XML totals and text-only failures do not double count parent suites', async (t) => {
+  const { root, dir } = executionFixture(t);
+  fs.writeFileSync(
+    path.join(root, 'edge-test-result.xml'),
+    '<testsuites><testsuite tests="2"><testsuite tests="2"><testcase><failure>Plain failure</failure></testcase><testcase name="passed"/></testsuite></testsuite></testsuites>',
+  );
+  await publishExecutionSummary(dir, 'edge-report.html', 'Nested');
+  const summary = fs.readFileSync(path.join(dir, 'execution-summary.html'), 'utf8');
+  assert.match(summary, /declares 2 tests and contains 2 testcase/);
+  assert.match(summary, /Plain failure/);
+});
+
+test('missing Cucumber report can be published repeatedly without duplicate banners', async (t) => {
+  const { root, dir, html } = executionFixture(t);
+  fs.rmSync(html);
+  fs.writeFileSync(path.join(root, 'edge-test-result.xml'), failedXml);
+  await publishExecutionSummary(dir, 'edge-report.html', 'Missing');
+  await publishExecutionSummary(dir, 'edge-report.html', 'Missing');
+  assert.equal((fs.readFileSync(html, 'utf8').match(/rm-execution-summary:start/g) ?? []).length, 1);
+});
+
+test('malformed native worker evidence fails without presenting an inaccurate summary', async (t) => {
+  const { dir, html } = executionFixture(t);
+  fs.writeFileSync(path.join(dir, 'OPAL-report-1.ndjson.results.json'), '{broken');
+  const before = fs.readFileSync(html, 'utf8');
+  await assert.rejects(publishExecutionSummary(dir, 'edge-report.html', 'Broken'));
+  assert.equal(fs.readFileSync(html, 'utf8'), before);
+});

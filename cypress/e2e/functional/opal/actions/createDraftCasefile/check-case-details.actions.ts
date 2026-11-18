@@ -44,7 +44,7 @@ export class CheckCaseDetailsActions {
   /** Saves the cleanup marker through the real REMO Reference form before submission. */
   public saveLiveTestRunReference(): void {
     cy.get(S.caseDetails.centralAuthorityLink).click();
-    cy.get(S.centralAuthority.remoReference).clear().type(this.testRunReference);
+    cy.get(S.centralAuthority.remoReference).clear().type(this.testRunReference, { delay: 0 });
     cy.get(S.centralAuthority.returnToCaseDetails).click();
     cy.get(S.caseDetails.centralAuthorityLink).click();
     cy.get(S.centralAuthority.remoReference).should('have.value', this.testRunReference);
@@ -88,7 +88,7 @@ export class CheckCaseDetailsActions {
   /** Saves a respondent correction from its contextual review action. */
   public correctRespondent(): void {
     cy.get(S.review.change('respondent')).click();
-    cy.get(S.respondentDetails.firstNames).clear().type('Corrected synthetic');
+    cy.get(S.respondentDetails.firstNames).clear().type('Corrected synthetic', { delay: 0 });
     cy.get(S.respondentDetails.returnToCaseDetails).click();
   }
 

@@ -30,13 +30,13 @@ export class MinorCreditorManagementActions {
   public fill(kind: MinorCreditorKind): void {
     if (kind === 'Individual') {
       cy.get(S.minorCreditor.individual).check();
-      cy.get(S.minorCreditor.firstNames).type('Synthetic');
-      cy.get(S.minorCreditor.lastName).type('Minor');
+      cy.get(S.minorCreditor.firstNames).type('Synthetic', { delay: 0 });
+      cy.get(S.minorCreditor.lastName).type('Minor', { delay: 0 });
     } else {
       cy.get(S.minorCreditor.organisation).check();
-      cy.get(S.minorCreditor.organisationName).type(this.expectedName(kind));
+      cy.get(S.minorCreditor.organisationName).type(this.expectedName(kind), { delay: 0 });
     }
-    cy.get(S.minorCreditor.addressLine1).type('4 Synthetic Street');
+    cy.get(S.minorCreditor.addressLine1).type('4 Synthetic Street', { delay: 0 });
     cy.get('@liveCountryNames').then((names) => {
       cy.get(S.minorCreditor.countryAutocomplete).clear().focus();
       cy.get(S.minorCreditor.countryOptions).should((options) => {
@@ -45,7 +45,12 @@ export class MinorCreditorManagementActions {
           'Full visible Country order',
         ).to.deep.equal(names);
       });
-      cy.get(S.minorCreditor.countryAutocomplete).type('United Kingdom').type('{downArrow}{enter}');
+      cy.get(S.minorCreditor.countryAutocomplete).type('United Kingdom', { delay: 0 });
+      cy.get(S.minorCreditor.countryOptions)
+        .should('have.length', 1)
+        .and('be.visible')
+        .and('contain.text', 'United Kingdom');
+      cy.get(S.minorCreditor.countryAutocomplete).type('{downArrow}{enter}');
       cy.get(S.minorCreditor.countryAutocomplete).should('have.value', 'United Kingdom');
     });
     cy.get(S.minorCreditor.bankNone).check();
@@ -86,13 +91,13 @@ export class MinorCreditorManagementActions {
     if (kind === 'Individual') {
       cy.get(S.minorCreditor.individual).should('be.checked');
       cy.get(S.minorCreditor.firstNames).should('have.value', 'Synthetic');
-      cy.get(S.minorCreditor.lastName).should('have.value', 'Minor').clear().type('Updated Minor');
+      cy.get(S.minorCreditor.lastName).should('have.value', 'Minor').clear().type('Updated Minor', { delay: 0 });
     } else {
       cy.get(S.minorCreditor.organisation).should('be.checked');
       cy.get(S.minorCreditor.organisationName)
         .should('have.value', this.expectedName(kind))
         .clear()
-        .type(this.expectedName(kind, true));
+        .type(this.expectedName(kind, true), { delay: 0 });
     }
     this.save();
   }

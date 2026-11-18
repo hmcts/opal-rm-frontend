@@ -395,7 +395,12 @@ describe('Order Details routed lifecycle', () => {
       );
       cy.get(S.caseDetails.orderDetailsLink).click();
       cy.wait('@applications');
-      cy.get(S.orderDetails.application).clear().type('TEST02').type('{downArrow}{enter}');
+      cy.get(S.orderDetails.application).clear().type('TEST02');
+      cy.get(S.orderDetails.applicationOptions)
+        .should('have.length', 1)
+        .and('be.visible')
+        .and('contain.text', 'TEST02');
+      cy.get(S.orderDetails.application).type('{downArrow}{enter}');
       cy.get(S.orderDetails.court).clear().type('New synthetic court');
       cy.get(S.orderDetails.dateOrderMade).clear().type('02/01/2026');
       cy.get(S.orderDetails.frequencyOptions).check('Quarterly');

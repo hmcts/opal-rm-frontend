@@ -99,3 +99,35 @@ export function assertUnchangedDraft(before: IDraftCasefileSnapshot, after: IDra
     expect(Cypress._.isEqual(after.draft[field], before.draft[field]), `saved ${field} unchanged`).to.equal(true);
   }
 }
+
+/**
+ * Verifies the complete saved state behind an observed browser read.
+ * @param expected Authoritative state captured before navigation.
+ * @param response Actual observed browser response.
+ * @param response.statusCode Observed HTTP status.
+ * @param response.body Observed body, empty for a cached read.
+ * @param response.headers Observed response headers.
+ * @returns Evidence chain completed before rendered assertions continue.
+ */
+export function assertObservedUnchangedDraft(
+  expected: IDraftCasefileSnapshot,
+  response: { statusCode: number; body: unknown; headers: Record<string, unknown> },
+): Cypress.Chainable<undefined> {
+  return cy.then<void>(() => {
+    if (response.statusCode === 304) {
+      const etag = response.headers['etag'];
+      if (typeof etag !== 'string') throw new Error('Observed cached GET has no ETag');
+      versionValue(etag);
+      expect(etag, 'cached version unchanged').to.equal(expected.etag);
+      return readDraftSnapshot(expected.draft.draft_casefile_id).then<void>((saved) => {
+        assertUnchangedDraft(expected, saved);
+      });
+    }
+    expect(response.statusCode, 'observed draft GET').to.equal(200);
+    assertUnchangedDraft(
+      expected,
+      decodeDraftSnapshot(expected.draft.draft_casefile_id, response.body, response.headers['etag']),
+    );
+    return undefined;
+  });
+}

@@ -1,3 +1,4 @@
+import type { ICasesCreateCasefileApplicantOrganisationFormData } from 'src/app/flows/cases/cases-create-casefile/cases-create-casefile-applicant-organisation/interfaces/cases-create-casefile-applicant-organisation-form-data.interface';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from 'src/app/flows/cases/cases-create-casefile/constants/cases-create-casefile-applicant-bank-types.constant';
 import type { ICasesCreateCasefileApplicantOrganisation } from 'src/app/flows/cases/cases-create-casefile/interfaces/cases-create-casefile-applicant-organisation.interface';
 
@@ -111,3 +112,13 @@ export const NON_UK_IBAN_APPLICANT_ORGANISATION_BEFORE_SAVE: ICasesCreateCasefil
     paymentReference: 'PREVIOUS-IBAN',
   },
 };
+
+export const STALE_NON_UK_ORGANISATION_FORM = {
+  create_casefile_applicant_organisation_non_uk_bank_name_on_account: 'Stale non-UK name',
+  create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: 'EXAMGB2L',
+  create_casefile_applicant_organisation_non_uk_bank_iban: 'GB29NWBK60161331926819',
+  create_casefile_applicant_organisation_non_uk_bank_payment_reference: 'STALE-NONUK',
+  create_casefile_applicant_organisation_non_uk_bank_name: 'Stale Bank',
+  create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: '123456',
+  create_casefile_applicant_organisation_non_uk_bank_account_number: 'STALE123',
+} satisfies Partial<ICasesCreateCasefileApplicantOrganisationFormData>;

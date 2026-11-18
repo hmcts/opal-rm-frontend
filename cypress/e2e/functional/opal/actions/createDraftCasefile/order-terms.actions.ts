@@ -98,7 +98,7 @@ export class OrderTermsActions {
    * @param amount Raw amount to enter.
    */
   public enterAmount(amount: string): void {
-    cy.get(S.orderTermsInput.amount).clear().type(amount);
+    cy.get(S.orderTermsInput.amount).clear().type(amount, { delay: 0 });
   }
   /** Submits the pending term. */
   public continueInput(): void {
@@ -129,7 +129,7 @@ export class OrderTermsActions {
     cy.get(S.orderTerms.add).click();
     cy.get(S.orderTerms.select).select('MAT');
     cy.get(S.orderTerms.continueButton).click();
-    cy.get(S.orderTermsInput.amount).type(amount);
+    cy.get(S.orderTermsInput.amount).type(amount, { delay: 0 });
     cy.get(S.orderTermsInput.continueButton).click();
     cy.get(S.creditor.applicant).check();
     cy.get(S.creditor.continueButton).click();
@@ -146,7 +146,7 @@ export class OrderTermsActions {
   /** Changes only the second accepted Maintenance term and completes creditor selection. */
   public amendSecondMaintenanceOrder(): void {
     cy.get(S.orderTermsSummary.change(this.secondTermId)).click();
-    cy.get(S.orderTermsInput.amount).should('have.value', '20.00').clear().type('25');
+    cy.get(S.orderTermsInput.amount).should('have.value', '20.00').clear().type('25', { delay: 0 });
     cy.get(S.orderTermsInput.continueButton).click();
     cy.get(S.creditor.applicant).should('be.checked');
     cy.get(S.creditor.continueButton).click();
@@ -167,7 +167,7 @@ export class OrderTermsActions {
     cy.get(S.orderTerms.add).click();
     cy.get(S.orderTerms.select).select('MAT');
     cy.get(S.orderTerms.continueButton).click();
-    cy.get(S.orderTermsInput.amount).type('10');
+    cy.get(S.orderTermsInput.amount).type('10', { delay: 0 });
     cy.get(S.orderTermsInput.continueButton).click();
     cy.get(S.creditor.addNew).check();
     cy.get(S.creditor.continueButton).click();
@@ -178,14 +178,14 @@ export class OrderTermsActions {
     cy.get(S.orderTerms.add).click();
     cy.get(S.orderTerms.select).select('MAT');
     cy.get(S.orderTerms.continueButton).click();
-    cy.get(S.orderTermsInput.amount).type('20');
+    cy.get(S.orderTermsInput.amount).type('20', { delay: 0 });
     cy.get(S.orderTermsInput.continueButton).click();
     cy.get(S.creditor.minor(1)).check();
     cy.get(S.creditor.continueButton).click();
     this.assertSummary();
 
     cy.get(S.orderTermsSummary.change(this.secondTermId)).click();
-    cy.get(S.orderTermsInput.amount).clear().type('30');
+    cy.get(S.orderTermsInput.amount).clear().type('30', { delay: 0 });
     cy.get(S.orderTermsInput.continueButton).click();
   }
 
@@ -195,9 +195,14 @@ export class OrderTermsActions {
    */
   private enterNewMinorCreditor(name: string): void {
     cy.get(S.minorCreditor.organisation).check();
-    cy.get(S.minorCreditor.organisationName).type(name);
-    cy.get(S.minorCreditor.addressLine1).type(E2E_MINOR_CREDITOR.addressLine1);
-    cy.get(S.minorCreditor.countryAutocomplete).type(E2E_MINOR_CREDITOR.countryName).type('{downArrow}{enter}');
+    cy.get(S.minorCreditor.organisationName).type(name, { delay: 0 });
+    cy.get(S.minorCreditor.addressLine1).type(E2E_MINOR_CREDITOR.addressLine1, { delay: 0 });
+    cy.get(S.minorCreditor.countryAutocomplete).type(E2E_MINOR_CREDITOR.countryName, { delay: 0 });
+    cy.get(S.minorCreditor.countryOptions)
+      .should('have.length', 1)
+      .and('be.visible')
+      .and('contain.text', E2E_MINOR_CREDITOR.countryName);
+    cy.get(S.minorCreditor.countryAutocomplete).type('{downArrow}{enter}');
     cy.get(S.minorCreditor.bankNone).check();
     cy.get(S.minorCreditor.save).click();
     cy.get(S.minorCreditorSummary.continue).should('be.visible');

@@ -88,7 +88,12 @@ describe('Create Casefile Central authority details', () => {
 
     cy.get(Page.remoReference).type('REMO-1');
     cy.get(Page.centralAuthorityReference).type('CA-1');
-    cy.get(Page.autocomplete).type('0456').type('{downArrow}{enter}');
+    cy.get(Page.autocomplete).type('0456');
+    cy.get(Page.autocompleteOptions)
+      .should('have.length', 1)
+      .and('be.visible')
+      .and('contain.text', '0456 - Central Authority Two');
+    cy.get(Page.autocomplete).type('{downArrow}{enter}');
     cy.get(Page.returnToCaseDetails).click();
 
     cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
@@ -114,32 +119,38 @@ describe('Create Casefile Central authority details', () => {
     });
   });
 
-  for (const [input, value, error, message] of [
-    [Page.remoReference, 'x'.repeat(21), Page.remoReferenceError, CENTRAL_AUTHORITY_ERRORS.remoReference],
-    [
-      Page.centralAuthorityReference,
-      'x'.repeat(51),
-      Page.centralAuthorityReferenceError,
+  it('AC4. should show both over-limit reference errors and focus each field', { tags: buildTags() }, () => {
+    setupCentralAuthorityDetails();
+
+    cy.get(Page.remoReference).type('x'.repeat(21));
+    cy.get(Page.centralAuthorityReference).type('x'.repeat(51));
+    cy.get(Page.returnToCaseDetails).click();
+
+    cy.get(Page.remoReferenceError).should('contain.text', CENTRAL_AUTHORITY_ERRORS.remoReference);
+    cy.get(Page.centralAuthorityReferenceError).should(
+      'contain.text',
       CENTRAL_AUTHORITY_ERRORS.centralAuthorityReference,
-    ],
-  ] as const) {
-    it(`AC4. should show and focus the exact error for ${input}`, { tags: buildTags() }, () => {
-      setupCentralAuthorityDetails();
+    );
+    cy.get(Page.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
+    cy.get(Page.errorSummaryLinks).should('have.length', 2);
+    cy.get(Page.errorSummaryLinks).contains(CENTRAL_AUTHORITY_ERRORS.remoReference).should('exist');
+    cy.get(Page.errorSummaryLinks).contains(CENTRAL_AUTHORITY_ERRORS.centralAuthorityReference).should('exist');
 
-      cy.get(input).type(value);
-      cy.get(Page.returnToCaseDetails).click();
-
-      cy.get(error).should('contain.text', message);
-      cy.get(Page.errorSummary).should('be.focused').and('contain.text', 'There is a problem');
-      cy.get(Page.errorSummaryLinks).contains(message).click();
-      cy.get(input).should('be.focused').and('have.value', value.toUpperCase());
-    });
-  }
+    cy.get(Page.errorSummaryLinks).contains(CENTRAL_AUTHORITY_ERRORS.remoReference).click();
+    cy.get(Page.remoReference).should('be.focused').and('have.value', 'X'.repeat(21));
+    cy.get(Page.errorSummaryLinks).contains(CENTRAL_AUTHORITY_ERRORS.centralAuthorityReference).click();
+    cy.get(Page.centralAuthorityReference).should('be.focused').and('have.value', 'X'.repeat(51));
+  });
 
   it('AC3. should replace and then remove a restored selection', { tags: buildTags() }, () => {
     setupCentralAuthorityDetails({ savedDetails: SAVED_DETAILS_WITH_STALE_COPY });
 
-    cy.get(Page.autocomplete).clear().type('0456').type('{downArrow}{enter}');
+    cy.get(Page.autocomplete).clear().type('0456');
+    cy.get(Page.autocompleteOptions)
+      .should('have.length', 1)
+      .and('be.visible')
+      .and('contain.text', '0456 - Central Authority Two');
+    cy.get(Page.autocomplete).type('{downArrow}{enter}');
     cy.get(Page.autocomplete).should('have.value', '0456 - Central Authority Two');
     cy.get(Page.autocomplete).clear().blur();
     cy.get(Page.returnToCaseDetails).click();
@@ -227,7 +238,12 @@ describe('Create Casefile Central authority details', () => {
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(Page.centralAuthorityReference).should('be.focused');
     cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.get(Page.autocomplete).should('be.focused').type('0456').type('{downArrow}{enter}');
+    cy.get(Page.autocomplete).should('be.focused').type('0456');
+    cy.get(Page.autocompleteOptions)
+      .should('have.length', 1)
+      .and('be.visible')
+      .and('contain.text', '0456 - Central Authority Two');
+    cy.get(Page.autocomplete).type('{downArrow}{enter}');
     cy.get(Page.autocomplete).should('have.value', '0456 - Central Authority Two');
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.get(Page.returnToCaseDetails).should('be.focused');

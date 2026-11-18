@@ -7,7 +7,7 @@ import { pressDashboardEnter } from '../../../../../support/utils/press-dashboar
  */
 export function setCasefileReason(selector: string, reason: string): void {
   cy.get(selector).should('be.visible').and('be.enabled').clear();
-  if (reason) cy.get(selector).type(reason);
+  if (reason) cy.get(selector).type(reason, { delay: 0 });
   cy.get(selector).should('have.value', reason);
 }
 

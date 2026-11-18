@@ -139,6 +139,7 @@ void publishHtmlReport(String dir, String files, String name) {
       echo "Fallback report generation failed with exit ${fallbackStatus}"
       currentBuild.result = 'FAILURE'
     }
+    archiveArtifact("${dir}**")
     publishHTML target: [
     allowMissing         : true,
     alwaysLinkToLastBuild: true,

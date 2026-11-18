@@ -79,8 +79,15 @@ if (require.main === module) {
   const [mode, ...args] = process.argv.slice(2);
   if (mode === 'prepare' && args.length === 0) prepareReportAttempt();
   else if (mode === 'snapshot' && args.length === 2) snapshotZephyrReports(...args);
-  else if (mode === 'fallback' && args.length === 3) ensureHtmlReport(...args);
-  else
+  else if (mode === 'fallback' && args.length === 3) {
+    const { publishExecutionSummary } = require('./cypress-execution-report.cjs');
+    publishExecutionSummary(...args)
+      .then(() => ensureHtmlReport(...args))
+      .catch((error) => {
+        console.error(error.message);
+        process.exitCode = 1;
+      });
+  } else
     throw new Error(
       'Expected prepare or snapshot <sourceRoot> <targetRoot> or fallback <reportDir> <reportFile> <title>',
     );

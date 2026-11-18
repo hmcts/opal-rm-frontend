@@ -119,6 +119,8 @@ function resubmitted(context: IRejectedCasefileContext, correction: string): IDr
 }
 
 interface Faults {
+  cachedSavedRead?: boolean;
+  failedSavedRead?: boolean;
   requestAudit?: boolean;
   missingProvider?: boolean;
   missingCheckerProvider?: boolean;
@@ -173,6 +175,7 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
   const collectionReceipts = new Map<string, Record<string, unknown>[]>();
   let document!: Document;
   let detailResponse: Record<string, unknown>;
+  let awaitingCachedProof = false;
   let returnedDashboardReceipt: Record<string, unknown> | undefined;
   const response = (snapshot: IDraftCasefileSnapshot, statusCode = 200) => ({
     statusCode,
@@ -556,7 +559,10 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
     return cy.wrap(null, { log: false });
   });
   cy.stub(cy, 'location').callsFake((key: string) =>
-    cy.then(() => (key === 'pathname' ? state.path : key === 'hash' ? state.hash : '')),
+    cy.then(() => {
+      expect(awaitingCachedProof, 'independent proof before route assertions').to.equal(false);
+      return key === 'pathname' ? state.path : key === 'hash' ? state.hash : '';
+    }),
   );
   cy.stub(cy, 'wait').callsFake((alias: string) =>
     cy.then(() => {
@@ -575,7 +581,14 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
         if (!detailResponse) throw new Error('Missing controlled saved detail response');
         return { response: detailResponse };
       }
-      if (alias === '@amendmentSavedDetail') return { response: detailResponse };
+      if (alias === '@amendmentSavedDetail') {
+        if (faults.cachedSavedRead) {
+          awaitingCachedProof = true;
+          state.events.push('cached-browser-read');
+          return { response: { ...detailResponse, statusCode: 304, body: '' } };
+        }
+        return { response: detailResponse };
+      }
       if (alias === '@amendmentReturnedDashboard') {
         if (!returnedDashboardReceipt) throw new Error('Missing controlled personal dashboard return');
         expect(state.path).to.equal(DASHBOARD);
@@ -596,6 +609,11 @@ function harness(kind: RejectedAmendmentKind, faults: Faults = {}) {
   cy.stub(cy, 'request').callsFake((request: Cypress.RequestOptions) =>
     cy.then(() => {
       state.requests.push(request);
+      if (awaitingCachedProof) {
+        state.events.push('independent-cached-proof');
+        awaitingCachedProof = false;
+        if (faults.failedSavedRead) return { status: 404, body: {}, headers: {} };
+      }
       if (request.method === 'PUT') {
         expect(state.actor, 'competing current A session').to.equal('synthetic-A');
         expect(request.headers).to.deep.equal({ 'If-Match': context.before.etag });
@@ -709,6 +727,31 @@ describe('PO-10623 real journey orchestration (controlled support only)', { retr
       });
     },
   );
+  describe('cached saved-state boundary', () => {
+    afterEach(() => {
+      if (expected) expect(observed, 'required cached evidence failure observed').to.equal(true);
+    });
+    it('AC1, AC3. should await independent cached saved evidence for both actors', { tags: tags() }, () => {
+      const state = harness('same-user', { cachedSavedRead: true });
+      const flow = new RejectedCasefileAmendmentFlow();
+      flow.prepare('same-user');
+      flow.resubmit();
+      flow.assertResubmitted();
+      cy.then(() => {
+        expect(state.events.filter((event) => event === 'cached-browser-read')).to.have.length(2);
+        expect(state.events.filter((event) => event === 'independent-cached-proof')).to.have.length(2);
+      });
+    });
+    it('AC1, AC3. should propagate failed independent cached saved evidence', { tags: tags() }, () => {
+      const state = harness('cross-user', { cachedSavedRead: true, failedSavedRead: true });
+      const flow = new RejectedCasefileAmendmentFlow();
+      mustFail('authoritative GET', () => expect(state.events).to.include('independent-cached-proof'));
+      flow.prepare('cross-user');
+      flow.resubmit();
+      flow.assertResubmitted();
+      requireFailure();
+    });
+  });
   it('AC1, AC3. should reject a failed cross-user dashboard return before opening In review', { tags: tags() }, () => {
     const state = harness('cross-user', { dashboardReturnStatus: 503 });
     mustFail('returned personal rejected collection', () => {

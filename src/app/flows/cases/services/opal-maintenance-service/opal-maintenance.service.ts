@@ -9,10 +9,25 @@ import type { IOpalMaintenanceDraftCasefileCountResponse } from './interfaces/op
 import { decodeDraftCasefileCount, decodeDraftCasefileList } from './utils/opal-maintenance-draft-casefile-response';
 import type { IOpalMaintenanceDraftCasefileRequest } from './interfaces/opal-maintenance-draft-casefile-request.interface';
 import type { IOpalMaintenanceDraftCasefileResponse } from './interfaces/opal-maintenance-draft-casefile-response.interface';
-import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
-import { defer, map, of, Observable, shareReplay, tap } from 'rxjs';
+import { withHttpRetry, withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
+import { catchError, defer, map, of, Observable, shareReplay, tap, throwError } from 'rxjs';
+import { ROUTE_OWNS_HTTP_ERROR } from '@app/interceptors/route-owned-http-error.interceptor';
+import type {
+  RespondentAccountAtAGlance,
+  RespondentAccountHeaderSummary,
+  RespondentAccountRead,
+} from './interfaces/opal-maintenance-respondent-account.interface';
+import {
+  invalidRespondentAccountResponse,
+  RespondentAccountReadError,
+  toRespondentAccountReadError,
+} from './utils/opal-maintenance-respondent-account-read-error';
+import {
+  isRespondentAccountAtAGlance,
+  isRespondentAccountHeaderSummary,
+} from './utils/opal-maintenance-respondent-account-response';
 import type { IOpalMaintenanceApplicationReferenceDataResponse } from './interfaces/opal-maintenance-application-reference-data-response.interface';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorParams } from './interfaces/opal-maintenance-major-creditor-params.interface';
@@ -81,6 +96,38 @@ export class OpalMaintenanceService {
     return request;
   }
 
+  private readRespondentAccount<T>(
+    accountId: number,
+    resource: 'header-summary' | 'at-a-glance',
+    isValidBody: (body: unknown, accountId: number) => body is T,
+  ): Observable<RespondentAccountRead<T>> {
+    if (!Number.isSafeInteger(accountId) || accountId < 1) {
+      return throwError(
+        () =>
+          new RespondentAccountReadError({
+            kind: 'route',
+            path: '/error/internal-server',
+            operationId: null,
+          }),
+      );
+    }
+    const context = withHttpRetry({ retryCount: 1 }, new HttpContext().set(ROUTE_OWNS_HTTP_ERROR, true));
+    return this.http
+      .get<unknown>(`/opal-maintenance-service/respondent-accounts/${accountId}/${resource}`, {
+        observe: 'response',
+        cache: 'no-store',
+        context,
+        transferCache: false,
+      })
+      .pipe(
+        map(({ body, headers }) => {
+          if (!isValidBody(body, accountId)) throw invalidRespondentAccountResponse();
+          return { body, etag: this.extractEtagVersion(headers) };
+        }),
+        catchError((error: unknown) => throwError(() => toRespondentAccountReadError(error))),
+      );
+  }
+
   /** Replaces the saved aggregate once using its opaque GET version. */
   public replaceDraftCasefile(
     id: number,
@@ -121,6 +168,20 @@ export class OpalMaintenanceService {
         transferCache: false,
       })
       .pipe(map((response) => decodeDraftCasefileDetail(response.body, this.extractEtagVersion(response.headers), id)));
+  }
+
+  /** Loads the account header and its unmodified HTTP version, with one eligible transport retry. */
+  public getRespondentAccountHeaderSummary(
+    respondentAccountId: number,
+  ): Observable<RespondentAccountRead<RespondentAccountHeaderSummary>> {
+    return this.readRespondentAccount(respondentAccountId, 'header-summary', isRespondentAccountHeaderSummary);
+  }
+
+  /** Loads the summary and its unmodified HTTP version, with one eligible transport retry. */
+  public getRespondentAccountAtAGlance(
+    respondentAccountId: number,
+  ): Observable<RespondentAccountRead<RespondentAccountAtAGlance>> {
+    return this.readRespondentAccount(respondentAccountId, 'at-a-glance', isRespondentAccountAtAGlance);
   }
 
   public createDraftCasefile(

@@ -25,17 +25,24 @@ interface RequestOptions {
   host?: string;
   remoteAddress?: string;
   forwardedFor?: string;
+  forwardedHost?: string;
 }
 
 function callHandler(
   handler: RequestHandler,
   path: string,
-  { method = 'GET', host = 'localhost:5200', remoteAddress = '127.0.0.1', forwardedFor }: RequestOptions = {},
+  {
+    method = 'GET',
+    host = 'localhost:5200',
+    remoteAddress = '127.0.0.1',
+    forwardedFor,
+    forwardedHost,
+  }: RequestOptions = {},
 ) {
   const requestHeaders: Record<string, string | undefined> = {
     host,
     'x-forwarded-for': forwardedFor,
-    'x-forwarded-host': 'localhost',
+    'x-forwarded-host': forwardedHost,
     'if-none-match': RESPONDENT_ACCOUNT_ETAG,
   };
   const request = {
@@ -81,6 +88,7 @@ test('serves the two synthetic GETs with matching quoted ETags and no-store', ()
       host: '[::1]:5200',
       remoteAddress: '::1',
       forwardedFor: '127.0.0.1, ::1',
+      forwardedHost: 'localhost:5200, [::1]:5200',
     }),
   ];
   assert.equal(continuedHeader, false);
@@ -145,11 +153,24 @@ test('returns terminal 503 for reserved reads when local mock setup is unavailab
     assertTerminalProblem(callHandler(handler, `${url}/header-summary`), 503);
   }
   const [handler] = register(enabled);
-  assertTerminalProblem(callHandler(handler, `${url}/header-summary`, { host: 'other.example.test' }), 503);
+  assertTerminalProblem(
+    callHandler(handler, `${url}/header-summary`, { host: 'other.example.test', forwardedHost: 'localhost' }),
+    503,
+  );
   assertTerminalProblem(callHandler(handler, `${url}/at-a-glance`, { remoteAddress: '192.0.2.3' }), 503);
 });
 
 test('rejects a non-loopback client when the local SSR watcher rewrites Host', () => {
   const [handler] = register(enabled);
   assertTerminalProblem(callHandler(handler, `${url}/header-summary`, { forwardedFor: '127.0.0.1, 192.0.2.3' }), 503);
+});
+
+test('rejects a non-loopback original Host after the local SSR watcher rewrites it', () => {
+  const [handler] = register(enabled);
+  for (const forwardedHost of ['other.example.test:5200', 'other.example.test, localhost:5200']) {
+    assertTerminalProblem(
+      callHandler(handler, `${url}/header-summary`, { forwardedFor: '127.0.0.1', forwardedHost }),
+      503,
+    );
+  }
 });

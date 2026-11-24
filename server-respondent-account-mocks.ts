@@ -35,12 +35,14 @@ export function configureRespondentAccountDevelopmentMocks(
       next();
       return;
     }
-    // The Angular SSR watcher can rewrite Host and forward the original client address.
+    // The Angular SSR watcher rewrites Host and forwards the original Host and client address.
     const forwardedFor = request.get('x-forwarded-for');
+    const forwardedHost = request.get('x-forwarded-host');
     const localRequest =
       loopbackAddresses.has(request.socket.remoteAddress ?? '') &&
       loopbackHost.test(request.get('host') ?? '') &&
-      (forwardedFor === undefined || forwardedFor.split(',').every((hop) => loopbackAddresses.has(hop.trim())));
+      (forwardedFor === undefined || forwardedFor.split(',').every((hop) => loopbackAddresses.has(hop.trim()))) &&
+      (forwardedHost === undefined || forwardedHost.split(',').every((hop) => loopbackHost.test(hop.trim())));
     if (!mocksEnabled || !localRequest) {
       sendTerminalProblem(response, 503);
       return;

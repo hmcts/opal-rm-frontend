@@ -1,3 +1,5 @@
+import { Location } from '@angular/common';
+import { provideLocationMocks } from '@angular/common/testing';
 import { Component, PLATFORM_ID, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
@@ -49,6 +51,7 @@ describe('Respondent account routes', () => {
     const error = commonRouting.find((route) => route.path === 'error/internal-server')!;
     TestBed.configureTestingModule({
       providers: [
+        provideLocationMocks(),
         { provide: AuthService, useValue: { checkAuthenticated: authenticated } },
         { provide: OpalUserService, useValue: { getLoggedInUserState: userState } },
         { provide: GlobalStore, useValue: { featureFlags: flags } },
@@ -146,6 +149,63 @@ describe('Respondent account routes', () => {
 
     await harness.navigateByUrl(root + '/comment/change');
     expect(cancel()?.getAttribute('href')).toBe(root + '/details');
+    expectNoAccountReads();
+  });
+
+  it.each([
+    ['note/add', '#authority', '#respondent-account-add-note', 'Add account note'],
+    ['case-type/change', '#authority', '#respondent-account-change-case-type', 'Change case type'],
+    ['comment/change', '', '#respondent-account-change-comment', 'Change comment'],
+  ])('restores the action context on browser Back and Forward for %s', async (child, origin, link, heading) => {
+    flags.set({ [key]: true });
+    const detailsUrl = root + '/details' + origin;
+    const actionUrl = root + '/' + child;
+    const harness = await RouterTestingHarness.create(detailsUrl);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    const router = TestBed.inject(Router);
+    const location = TestBed.inject(Location);
+    router.setUpLocationChangeListener();
+
+    const action = harness.routeNativeElement?.querySelector<HTMLAnchorElement>(link);
+    expect(action?.getAttribute('href')).toBe(actionUrl);
+    action!.click();
+    await vi.waitFor(() => expect(router.url).toBe(actionUrl));
+    harness.detectChanges();
+    const cancel = () =>
+      harness.routeNativeElement?.querySelector<HTMLAnchorElement>('#respondent-account-placeholder-cancel');
+    expect(cancel()?.getAttribute('href')).toBe(detailsUrl);
+
+    location.back();
+    await vi.waitFor(() => expect(router.url).toBe(detailsUrl));
+    location.forward();
+    await vi.waitFor(() => expect(router.url).toBe(actionUrl));
+    harness.detectChanges();
+    expect(cancel()?.getAttribute('href')).toBe(detailsUrl);
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toBe(heading);
+
+    cancel()!.click();
+    await vi.waitFor(() => expect(router.url).toBe(detailsUrl));
+    location.back();
+    await vi.waitFor(() => expect(router.url).toBe(actionUrl));
+    harness.detectChanges();
+    expect(cancel()?.getAttribute('href')).toBe(detailsUrl);
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toBe(heading);
+  });
+
+  it('uses the bare details URL on initial navigation with an existing browser history state', async () => {
+    flags.set({ [key]: true });
+    const actionUrl = root + '/comment/change';
+    TestBed.inject(Location).replaceState(actionUrl, '', { returnTab: 'authority', comment: 'add' });
+    const harness = await RouterTestingHarness.create();
+    const router = TestBed.inject(Router);
+    router.initialNavigation();
+    await vi.waitFor(() => expect(router.url).toBe(actionUrl));
+    harness.detectChanges();
+
+    const cancel = harness.routeNativeElement?.querySelector('#respondent-account-placeholder-cancel');
+    expect(cancel?.getAttribute('href')).toBe(root + '/details');
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toBe('Add or change comment');
     expectNoAccountReads();
   });
 

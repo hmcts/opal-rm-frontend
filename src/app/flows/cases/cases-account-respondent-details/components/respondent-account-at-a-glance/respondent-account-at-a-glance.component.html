@@ -38,7 +38,13 @@
   }
 </p>
 @if (showActions()) {
-  <a class="govuk-link" id="respondent-account-change-comment" [routerLink]="commentLink()" [info]="commentInfo()">
+  <a
+    class="govuk-link"
+    id="respondent-account-change-comment"
+    [routerLink]="commentLink()"
+    [info]="commentInfo()"
+    [state]="commentInfo()"
+  >
     @if (comment()) {
       Change<span class="govuk-visually-hidden"> comment</span>
     } @else {

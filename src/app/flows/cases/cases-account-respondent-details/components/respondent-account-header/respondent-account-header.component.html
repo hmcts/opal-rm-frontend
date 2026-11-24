@@ -28,6 +28,7 @@
           class="govuk-button govuk-button--secondary"
           [routerLink]="actionLinks().note"
           [info]="actionInfo()"
+          [state]="actionInfo()"
           >Add account note</a
         >
         <opal-lib-moj-button-menu
@@ -41,6 +42,7 @@
               id="respondent-account-change-case-type"
               [routerLink]="actionLinks().caseType"
               [info]="actionInfo()"
+              [state]="actionInfo()"
               >Change case type</a
             >
           </li>

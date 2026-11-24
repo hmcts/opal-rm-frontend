@@ -42,11 +42,13 @@ const commentHeadings = {
 })
 export class RespondentAccountActionPlaceholderComponent {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
+  private readonly navigation = inject(Router).currentNavigation();
   private readonly title = inject(Title);
   private readonly headingElement = viewChild.required<ElementRef<HTMLHeadingElement>>('headingElement');
-  private readonly info = this.router.currentNavigation()?.extras.info as
-    Partial<RespondentAccountActionInfo> | undefined;
+  // Initial navigation can also receive history state after a reload.
+  private readonly info = (this.navigation?.trigger === 'popstate'
+    ? this.navigation.extras.state
+    : this.navigation?.extras.info) as Partial<RespondentAccountActionInfo> | undefined;
   private readonly action = this.route.snapshot.data['actionHeading'] as string;
   private readonly comment = this.route.snapshot.data['comment'] === true ? this.info?.comment : undefined;
   private readonly commentHeading =

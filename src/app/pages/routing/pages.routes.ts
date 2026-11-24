@@ -1,3 +1,4 @@
+import { casesAccountRespondentRoutes } from '@app/flows/cases/cases-account-respondent-details/routing/cases-account-respondent.routes';
 import { CasesDraftCasefileStore } from '@app/flows/cases/cases-draft/stores/cases-draft-casefile.store';
 import { inject } from '@angular/core';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
@@ -40,6 +41,7 @@ export const routing: Routes = [
     canActivate: [authGuard, accountGuard, dashboardTypeGuard, dashboardSectionPermissionsGuard],
   },
   ...casesDraftCheckerRouting,
+  ...casesAccountRespondentRoutes,
   {
     path: CASES_DRAFT_ROUTING_PATHS.root,
     loadChildren: () =>

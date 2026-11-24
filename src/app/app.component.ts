@@ -1,3 +1,4 @@
+import { RESPONDENT_ACCOUNT_ROUTE } from '@app/flows/cases/cases-account-respondent-details/routing/cases-account-respondent-navigation';
 import { CASES_DRAFT_CHECKER_ROUTING_PATHS } from './flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
 import { Component, NgZone, OnDestroy, OnInit, PLATFORM_ID, inject, DOCUMENT, computed } from '@angular/core';
 import { Observable, Subject, filter, from, map, of, startWith, takeUntil, takeWhile, tap, timer } from 'rxjs';
@@ -326,6 +327,7 @@ export class AppComponent implements OnInit, OnDestroy {
     return (
       path === journeyRoot ||
       path.startsWith(`${journeyRoot}/`) ||
+      path.startsWith(`${RESPONDENT_ACCOUNT_ROUTE}/`) ||
       checkerShells.some((shell) => path.startsWith(`${checkerRoot}/${shell}/`))
     );
   }

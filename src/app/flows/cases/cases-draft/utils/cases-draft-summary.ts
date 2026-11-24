@@ -18,6 +18,7 @@ export function mapCasesDraftRows(
     .filter(({ casefile_status }) => statuses.has(casefile_status))
     .map((summary) => {
       const snapshot = summary.casefile_snapshot;
+      const respondentAccountId = snapshot.respondent_account?.account_id;
       return {
         id: summary.draft_casefile_id,
         respondent: populated(snapshot.respondent_account?.respondent_name),
@@ -28,6 +29,12 @@ export function mapCasesDraftRows(
         statusDate: summary.casefile_status_date,
         approved: summary.validated_date ?? null,
         respondentAccount: populated(snapshot.respondent_account?.account_number),
+        respondentAccountId:
+          typeof respondentAccountId === 'number' &&
+          Number.isSafeInteger(respondentAccountId) &&
+          respondentAccountId > 0
+            ? respondentAccountId
+            : null,
         applicantAccount: populated(snapshot.applicant_account?.account_number),
         minorCreditorAccounts: (snapshot.minor_creditor_accounts ?? [])
           .map(({ account_number }) => populated(account_number))

@@ -13,19 +13,30 @@ import type { CasesDraftSortColumn } from '../types/cases-draft-sort-column.type
 import type { CasesDraftTab, CasesDraftCheckerTab } from '../types/cases-draft-tab.type';
 
 describe('CasesDraftTableComponent rendered table', () => {
-  beforeEach(() =>
+  const featureFlags = signal<Record<string, boolean>>({});
+
+  beforeEach(() => {
+    featureFlags.set({});
     TestBed.configureTestingModule({
       imports: [CasesDraftTableComponent],
       providers: [
         provideRouter([]),
         {
           provide: GlobalStore,
-          useValue: { authenticated: signal(false), userState: signal(null), featureFlags: signal({}) },
+          useValue: { authenticated: signal(false), userState: signal(null), featureFlags },
         },
       ],
-    }),
-  );
-  function render(tab: CasesDraftTab = 'in-review', count = 1, page = 1) {
+    });
+  });
+  function render(
+    tab: CasesDraftTab = 'in-review',
+    count = 1,
+    page = 1,
+    respondentAccount: { account_id?: number; account_number?: string } = {
+      account_id: 987,
+      account_number: '000123A',
+    },
+  ) {
     const fixture = TestBed.createComponent(CasesDraftTableComponent);
     fixture.componentRef.setInput('selection', { ...defaultCasesDraftNavigation(tab), page });
     fixture.componentRef.setInput(
@@ -44,7 +55,7 @@ describe('CasesDraftTableComponent rendered table', () => {
                     : 'RESUBMITTED',
             validated_date: '2026-10-01T10:00:00Z',
             casefile_snapshot: {
-              respondent_account: { respondent_name: `Synthetic ${i}`, account_number: '000123A' },
+              respondent_account: { respondent_name: `Synthetic ${i}`, ...respondentAccount },
               applicant_account: { account_number: null },
               minor_creditor_accounts: [{ account_number: 'M10' }, { account_number: 'M2' }],
             },
@@ -84,6 +95,38 @@ describe('CasesDraftTableComponent rendered table', () => {
     expect(Array.from(element.querySelectorAll('li')).map((el) => el.textContent?.trim())).toEqual(['M10', 'M2']);
     expect(element.querySelectorAll('tbody a, tbody button')).toHaveLength(0);
   });
+  it.each([true, false, undefined])('gates the Approved link when the release is %s', (enabled) => {
+    featureFlags.set(enabled === undefined ? {} : { 'release-1c-rm-account-details': enabled });
+    const table: HTMLElement = render('approved').nativeElement;
+    const cell = table.querySelector('[data-column="respondentAccount"]');
+    expect(cell?.textContent?.trim()).toBe('000123A');
+    expect(cell?.querySelector('a')?.getAttribute('href')).toBe(
+      enabled ? '/cases/account/respondent/987/details' : undefined,
+    );
+    expect(cell?.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it.each([
+    [{ account_number: '000123A' }, '000123A'],
+    [{ account_id: 987 }, '—'],
+  ] as const)('keeps an incomplete account snapshot visible as %s', (account, display) => {
+    featureFlags.set({ 'release-1c-rm-account-details': true });
+    const table: HTMLElement = render('approved', 1, 1, account).nativeElement;
+    const cell = table.querySelector('[data-column="respondentAccount"]');
+    expect(cell?.textContent?.trim()).toBe(display);
+    expect(cell?.querySelector('a')).toBeNull();
+  });
+
+  it('keeps the existing draft link outside Approved when the release is enabled', () => {
+    featureFlags.set({ 'release-1c-rm-account-details': true });
+    const table: HTMLElement = render('in-review').nativeElement;
+    expect(table.querySelector('[data-column="respondentAccount"]')).toBeNull();
+    expect(table.querySelector('tbody a')?.getAttribute('href')).toBe(
+      '/cases/create-casefile/check-case-details/1#in-review',
+    );
+    expect(table.querySelector('tbody a[href^="/cases/account/respondent/"]')).toBeNull();
+  });
+
   it('uses shared sort buttons and emits both directions without mutating rows', () => {
     const fixture = render();
     const emit = vi.spyOn(fixture.componentInstance.sortChanged, 'emit');
@@ -614,6 +657,7 @@ describe('all-rejected rendered table', () => {
         statusDate: `2026-10-${String(27 - id).padStart(2, '0')}T10:00:00Z`,
         approved: null,
         respondentAccount: null,
+        respondentAccountId: null,
         applicantAccount: null,
         minorCreditorAccounts: [],
       }),

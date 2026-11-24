@@ -1,3 +1,4 @@
+import { RESPONDENT_ACCOUNT_ROUTE } from '@app/flows/cases/cases-account-respondent-details/routing/cases-account-respondent-navigation';
 import {
   BUSINESS_UNIT_ID_RESOLVER,
   businessUnitRoutePermissionsGuard,
@@ -29,6 +30,19 @@ describe('page routes', () => {
       useFactory: expect.any(Function),
     });
   });
+  it('hides primary navigation for the Respondent account parent and all of its children', () => {
+    const route = routing.find(
+      (candidate) => candidate.path === RESPONDENT_ACCOUNT_ROUTE.slice(1) + '/:respondentAccountId',
+    );
+    expect(route?.data).toEqual({ ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, sectionKey: 'cases' });
+    expect(route?.children?.map(({ path }) => path)).toEqual([
+      'details',
+      'note/add',
+      'case-type/change',
+      'comment/change',
+    ]);
+  });
+
   it('registers the Create Casefile shell', () => {
     const route = routing.find(
       (candidate) => candidate.path === CASES_CREATE_CASEFILE_ROUTING_PATHS.root && candidate.canDeactivate,

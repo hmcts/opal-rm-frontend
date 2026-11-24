@@ -624,6 +624,28 @@ describe('AppComponent - browser', () => {
     expect(fixture.componentInstance.primaryNavigationHidden()).toBe(hidden);
   });
 
+  it.each([
+    ['/cases/account/respondent/11748/details', true],
+    ['/cases/account/respondent/11748/details?source=test#authority', true],
+    ['/cases/account/respondent/11748/note/add', true],
+    ['/cases/account/respondent/11748/case-type/change', true],
+    ['/cases/account/respondent/11748/comment/change', true],
+    ['/cases/account/respondents/11748/details', false],
+    ['/cases/draft/create-and-manage/tabs#approved', false],
+  ] as const)('sets primary navigation on the initial render for %s', (url, hidden) => {
+    globalStore.setAuthenticated(true);
+    globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });
+    globalStore.setUserState(createUserStateWithPermissions([21]));
+    vi.spyOn(TestBed.inject(Location), 'path').mockReturnValue(url);
+    expect(TestBed.inject(Router).navigated).toBe(false);
+
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.primaryNavigationHidden()).toBe(hidden);
+    expect(hasPrimaryNavigation(fixture)).toBe(!hidden);
+  });
+
   it('inherits hidden navigation metadata from a containerless parent', async () => {
     globalStore.setAuthenticated(true);
     globalStore.setFeatureFlags({ 'release-1c-rm-create-case-files': true });

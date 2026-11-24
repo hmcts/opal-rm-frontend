@@ -1,5 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, untracked } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
+import {
+  RESPONDENT_ACCOUNT_DETAILS_FLAG,
+  RESPONDENT_ACCOUNT_ROUTE,
+} from '@app/flows/cases/cases-account-respondent-details/routing/cases-account-respondent-navigation';
 import {
   MojSortableTableComponent,
   MojSortableTableHeaderComponent,
@@ -35,12 +40,14 @@ import { sortCasesDraftRows } from '../utils/cases-draft-sort';
     MojSortableTableStatusComponent,
     MojPaginationComponent,
     DaysAgoPipe,
+    RouterLink,
   ],
   templateUrl: './cases-draft-table.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CasesDraftTableComponent extends AbstractSortableTablePaginationComponent {
   private readonly router = inject(Router);
+  private readonly global = inject(GlobalStore);
   private readonly navigation = inject(CasesDraftNavigationService);
   private readonly rowsById = computed(() => new Map(this.rows().map((row) => [row.id, row])));
   private readonly rowDestination = computed(() => {
@@ -52,6 +59,10 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
       ? CASES_DRAFT_ALL_REJECTED.columns
       : getCasesDraftTabMetadata(this.selection().tab, this.mode).columns,
   );
+  readonly accountDetailsEnabled = computed(() => {
+    const flags: Record<string, unknown> = this.global.featureFlags();
+    return flags[RESPONDENT_ACCOUNT_DETAILS_FLAG] === true;
+  });
   public readonly mode = inject(CASES_DRAFT_DASHBOARD_MODE);
   public readonly dates = inject(DateService);
   public readonly rows = input.required<readonly ICasesDraftRow[]>();
@@ -69,6 +80,8 @@ export class CasesDraftTableComponent extends AbstractSortableTablePaginationCom
       const row = this.rowsById().get(Number(item['id']))!;
       return {
         ...row,
+        respondentAccountLink:
+          row.respondentAccountId === null ? null : [RESPONDENT_ACCOUNT_ROUTE, row.respondentAccountId, 'details'],
         detailHref: this.router.serializeUrl(
           this.allRejected()
             ? this.navigation.allRejectedPlaceholderUrl('amendment', row.id)

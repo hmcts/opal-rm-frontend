@@ -36,7 +36,9 @@ export function headerRows(header: RespondentAccountHeaderSummary): AccountDispl
 
 export function respondentRows(summary: RespondentAccountAtAGlance): AccountDisplayRow[] {
   const { name, dateOfBirth, age, address, mainEmail } = summary.respondent;
-  const addressText = address ? [...address.lines, address.postcode, address.country].filter(Boolean).join('\n') : null;
+  const addressText = address
+    ? [...address.lines, address.postcode, address.country].filter((line) => line?.trim()).join('\n')
+    : null;
   return [
     { label: 'Name', value: accountDisplayName(name) },
     { label: 'Date of birth', value: accountDate(dateOfBirth) },

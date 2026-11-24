@@ -83,6 +83,30 @@ describe('Respondent account display', () => {
     ]);
   });
 
+  it.each([
+    {
+      description: 'leaves a whitespace-only address empty',
+      address: { lines: [' ', '\t'], postcode: '\n', country: '  ' },
+      expected: null,
+    },
+    {
+      description: 'preserves nonblank address text and removes blank lines',
+      address: {
+        lines: ['  1 Example Road ', '\t', 'Example Town  '],
+        postcode: ' AB1 2CD ',
+        country: 'United Kingdom',
+      },
+      expected: '  1 Example Road \nExample Town  \n AB1 2CD \nUnited Kingdom',
+    },
+  ])('$description', ({ address, expected }) => {
+    expect(
+      respondentRows({
+        ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
+        respondent: { ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.respondent, address },
+      }),
+    ).toContainEqual({ label: 'Address', value: expected });
+  });
+
   it('omits an age when the date of birth is missing', () => {
     expect(
       respondentRows({

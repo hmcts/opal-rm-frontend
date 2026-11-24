@@ -350,13 +350,53 @@ describe('Respondent account details', () => {
           cy.get(S.tab(tab)).click();
           expectRoute(detailsPath + '#' + tab);
           cy.get(S.tab(tab)).should('have.attr', 'aria-current', 'page');
-          cy.get(S.panel(tab)).should(($panel) => expect($panel.text().trim()).to.equal(''));
+          cy.get(S.panel(tab)).should(($panel) => {
+            const panel = $panel[0];
+            expect(panel.hasAttribute('hidden'), 'hidden attribute').to.equal(false);
+            // Check the layout box because an empty panel can have zero height.
+            expect(panel.checkVisibility({ visibilityProperty: true }), 'rendered panel').to.equal(true);
+            expect($panel.text().trim()).to.equal('');
+          });
+          cy.get(S.panel('at-a-glance')).should('not.exist');
           cy.get(S.heading).should(hasText(accountHeading));
           cy.checkA11y();
         }
         expectReadCounts(1, 1);
       },
     );
+
+    for (const respondentRestricted of [true, false]) {
+      const restrictedParty = respondentRestricted ? 'Respondent' : 'Applicant';
+
+      it('AC6. should show restricted information only for the ' + restrictedParty, { tags: buildTags() }, () => {
+        const applicant = summary.applicant;
+        if (applicant?.kind !== 'individual') {
+          throw new Error('The restriction scenario requires an individual Applicant fixture.');
+        }
+        interceptAccountRead('header-summary', ok(header, initialVersion));
+        interceptAccountRead(
+          'at-a-glance',
+          ok(
+            {
+              ...summary,
+              respondent: { ...summary.respondent, restricted: respondentRestricted },
+              applicant: { ...applicant, restricted: !respondentRestricted },
+            },
+            initialVersion,
+          ),
+        );
+
+        setupRespondentOverview();
+        waitForAccountPair();
+
+        const restrictedTag = respondentRestricted ? S.respondentRestriction : S.applicantRestriction;
+        const unrestrictedTag = respondentRestricted ? S.applicantRestriction : S.respondentRestriction;
+        cy.get(S.panel('at-a-glance')).within(() => {
+          cy.get(restrictedTag).should('be.visible').and(hasText('Restricted information'));
+          cy.get(unrestrictedTag).should('not.exist');
+        });
+      });
+    }
 
     it(
       'AC2, AC4, AC5, AC6, AC7. should announce loading and show optional omissions when the summary arrives',

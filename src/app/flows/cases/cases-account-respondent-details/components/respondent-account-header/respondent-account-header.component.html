@@ -1,0 +1,89 @@
+<header id="respondent-account-header">
+  @let account = header();
+  @if (account) {
+    <opal-lib-govuk-tag tagId="respondent-account-type">Respondent</opal-lib-govuk-tag>
+  }
+  <h1 class="govuk-heading-xl" id="respondent-account-heading" tabindex="-1">
+    {{ heading() }}
+  </h1>
+  @if (account) {
+    <dl class="govuk-summary-list">
+      @for (row of rows(); track row.label) {
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">{{ row.label }}</dt>
+          <dd class="govuk-summary-list__value">
+            @if (row.value !== null) {
+              {{ row.value }}
+            } @else {
+              <span aria-hidden="true">—</span><span class="govuk-visually-hidden">No data</span>
+            }
+          </dd>
+        </div>
+      }
+    </dl>
+    @if (showActions()) {
+      <div class="govuk-button-group">
+        <a
+          id="respondent-account-add-note"
+          class="govuk-button govuk-button--secondary"
+          [routerLink]="actionLinks().note"
+          [info]="actionInfo()"
+          >Add account note</a
+        >
+        <opal-lib-moj-button-menu
+          id="respondent-account-more-actions"
+          menuId="respondent-account-more-action-options"
+          menuButtonTitle="More actions"
+        >
+          <li>
+            <a
+              class="moj-button-menu__item"
+              id="respondent-account-change-case-type"
+              [routerLink]="actionLinks().caseType"
+              [info]="actionInfo()"
+              >Change case type</a
+            >
+          </li>
+        </opal-lib-moj-button-menu>
+      </div>
+    }
+  }
+  @if (freshness().warning) {
+    <opal-lib-moj-alert
+      id="respondent-account-freshness-warning"
+      type="warning"
+      ariaLabel="Some information on this page may be out of date."
+    >
+      <opal-lib-moj-alert-icon icon type="warning" />
+      <opal-lib-moj-alert-content content>
+        <opal-lib-moj-alert-content-text
+          >Some information on this page may be out of date.</opal-lib-moj-alert-content-text
+        >
+        <button
+          type="button"
+          class="govuk-button govuk-button--secondary"
+          id="respondent-account-refresh"
+          [attr.aria-disabled]="loading() ? 'true' : null"
+          (click)="refresh.emit()"
+        >
+          Refresh
+        </button>
+      </opal-lib-moj-alert-content>
+    </opal-lib-moj-alert>
+  }
+  @if (freshness().confirmed) {
+    <opal-lib-moj-alert
+      id="respondent-account-freshness-confirmation"
+      tabindex="-1"
+      type="success"
+      ariaLabel="Information is up to date"
+      [showDismiss]="true"
+      (dismissed)="dismissConfirmation.emit()"
+    >
+      <opal-lib-moj-alert-icon icon type="success" />
+      <opal-lib-moj-alert-content content>
+        <opal-lib-moj-alert-content-text>Information is up to date</opal-lib-moj-alert-content-text>
+      </opal-lib-moj-alert-content>
+    </opal-lib-moj-alert>
+  }
+</header>

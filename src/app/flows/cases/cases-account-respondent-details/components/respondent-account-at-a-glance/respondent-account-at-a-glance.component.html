@@ -1,0 +1,48 @@
+<ng-template #summaryRows let-rows>
+  <dl class="govuk-summary-list">
+    @for (row of rows; track row.label) {
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">{{ row.label }}</dt>
+        <dd class="govuk-summary-list__value">
+          @if (row.lines !== null) {
+            @for (line of row.lines; track $index; let last = $last) {
+              {{ line }}
+              @if (!last) {
+                <br />
+              }
+            }
+          } @else {
+            <span aria-hidden="true">—</span><span class="govuk-visually-hidden">No data</span>
+          }
+        </dd>
+      </div>
+    }
+  </dl>
+</ng-template>
+<h2 class="govuk-heading-m">Respondent</h2>
+@if (restrictedRespondent()) {
+  <opal-lib-govuk-tag tagId="respondent-account-respondent-restriction">Restricted information</opal-lib-govuk-tag>
+}
+<ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="respondent()" />
+<h2 class="govuk-heading-m">Applicant</h2>
+@if (restrictedApplicant()) {
+  <opal-lib-govuk-tag tagId="respondent-account-applicant-restriction">Restricted information</opal-lib-govuk-tag>
+}
+<ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="applicant()" />
+<h2 class="govuk-heading-m">Comments</h2>
+<p class="govuk-body">
+  @if (comment()) {
+    {{ comment() }}
+  } @else {
+    <span aria-hidden="true">—</span><span class="govuk-visually-hidden">No data</span>
+  }
+</p>
+@if (showActions()) {
+  <a class="govuk-link" id="respondent-account-change-comment" [routerLink]="commentLink()" [info]="commentInfo()">
+    @if (comment()) {
+      Change<span class="govuk-visually-hidden"> comment</span>
+    } @else {
+      Add comment
+    }
+  </a>
+}

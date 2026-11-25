@@ -91,7 +91,7 @@ function isOptionalApplicant(value: unknown): boolean {
   return value['kind'] === 'organisation' && isNonBlankString(value['organisationName']);
 }
 
-const caseTypes: readonly unknown[] = ['REMO In', 'REMO Out', 'REMO Out (CMS)', null];
+const caseTypes = new Set<unknown>(['REMO In', 'REMO Out', 'REMO Out (CMS)', null]);
 
 export function isRespondentAccountHeaderSummary(
   value: unknown,
@@ -105,7 +105,7 @@ export function isRespondentAccountHeaderSummary(
     isNonBlankString(value['accountNumber']) &&
     value['accountType'] === 'Respondent' &&
     isName(value['name']) &&
-    caseTypes.includes(value['caseType']) &&
+    caseTypes.has(value['caseType']) &&
     Number.isFinite(value['arrears']) &&
     Number.isFinite(value['balance']) &&
     isOptionalDate(value['arrearsUpdatedDate']) &&

@@ -3,14 +3,14 @@ import { provideLocationMocks } from '@angular/common/testing';
 import { Component, PLATFORM_ID, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
-import { provideRouter, Router } from '@angular/router';
+import { type ActivatedRouteSnapshot, convertToParamMap, provideRouter, Router, UrlTree } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routing as commonRouting } from '@hmcts/opal-frontend-common/pages';
 import { AuthService } from '@hmcts/opal-frontend-common/services/auth-service';
 import { LaunchDarklyService } from '@hmcts/opal-frontend-common/services/launch-darkly-service';
 import { OpalUserService } from '@hmcts/opal-frontend-common/services/opal-user-service';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { routing } from '@routing/pages/pages.routes';
 import {
   RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
@@ -19,6 +19,7 @@ import {
 } from '../../services/opal-maintenance-service/mocks/opal-maintenance-respondent-account.mock';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
 import { RESPONDENT_ACCOUNT_ROUTE } from './cases-account-respondent-navigation';
+import { respondentAccountDetailsGuard } from './respondent-account-details.guard';
 
 @Component({ selector: 'app-test-respondent-access-denied', template: 'Access denied' })
 class AccessDeniedPage {}
@@ -116,6 +117,36 @@ describe('Respondent account routes', () => {
     expectNoAccountReads();
   });
 
+  it('accepts the parent account ID when the child snapshot has no inherited parameters', async () => {
+    TestBed.overrideProvider(PLATFORM_ID, { useValue: 'server' });
+    flags.set({ [key]: true });
+    const router = TestBed.inject(Router);
+    const route = {
+      paramMap: convertToParamMap({}),
+      parent: { paramMap: convertToParamMap({ respondentAccountId: '11748' }) },
+    } as ActivatedRouteSnapshot;
+
+    const result = await TestBed.runInInjectionContext(() =>
+      respondentAccountDetailsGuard(route, router.routerState.snapshot),
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('redirects to the shared error page if the enabled route has no account ID', async () => {
+    TestBed.overrideProvider(PLATFORM_ID, { useValue: 'server' });
+    flags.set({ [key]: true });
+    const router = TestBed.inject(Router);
+    const route = { paramMap: convertToParamMap({}), parent: null } as ActivatedRouteSnapshot;
+
+    const result = await TestBed.runInInjectionContext(() =>
+      respondentAccountDetailsGuard(route, router.routerState.snapshot),
+    );
+
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(result?.toString()).toBe('/error/internal-server');
+  });
+
   it.each([
     ['', 'at-a-glance'],
     ['#respondent', 'respondent'],
@@ -130,6 +161,62 @@ describe('Respondent account routes', () => {
     expect(page?.querySelector('#respondent-account-panel-' + tab)).toBeTruthy();
     expect(getHeader).toHaveBeenCalledExactlyOnceWith(11748);
     expect(getSummary).toHaveBeenCalledExactlyOnceWith(11748);
+  });
+
+  it('shows the overview while the Header is pending and reveals metrics when it arrives', async () => {
+    const pendingHeader = new Subject<{ body: typeof RESPONDENT_ACCOUNT_HEADER_MOCK; etag: string }>();
+    getHeader.mockReturnValueOnce(pendingHeader.asObservable());
+    flags.set({ [key]: true });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(root + '/details');
+    TestBed.tick();
+    const page = harness.routeNativeElement!;
+
+    expect(page.querySelector('h1')?.textContent?.trim()).toBe('Respondent account details');
+    expect(page.querySelector('opal-lib-custom-summary-metric-bar')).toBeNull();
+    expect(page.querySelector('#respondent-account-add-note')).toBeNull();
+    expect(page.querySelector('#respondent-account-panel-at-a-glance')?.textContent).toContain(
+      'Synthetic account comment.',
+    );
+
+    pendingHeader.next({ body: RESPONDENT_ACCOUNT_HEADER_MOCK, etag: RESPONDENT_ACCOUNT_ETAG });
+    pendingHeader.complete();
+    TestBed.tick();
+
+    expect(page.querySelector('#respondent-account-number')?.textContent?.trim()).toBe('RM0011748');
+    expect(page.querySelector('opal-lib-custom-summary-metric-bar')?.textContent).toContain('£125.50');
+    expect(page.querySelector('#respondent-account-add-note')).not.toBeNull();
+  });
+
+  it.each([undefined, ' \n '])('offers Add comment for an absent or blank comment (%j)', async (comment) => {
+    getSummary.mockReturnValueOnce(
+      of({
+        body: {
+          ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
+          applicant: null,
+          comment,
+        },
+        etag: RESPONDENT_ACCOUNT_ETAG,
+      }),
+    );
+    flags.set({ [key]: true });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(root + '/details');
+    TestBed.tick();
+    const page = harness.routeNativeElement!;
+    const applicant = page.querySelector('[aria-labelledby="respondent-account-applicant-heading"]');
+    const emptyValues = Array.from(applicant?.querySelectorAll('dd .govuk-visually-hidden') ?? []);
+    expect(emptyValues.map((value) => value.textContent)).toEqual(['No data', 'No data']);
+    expect(applicant?.querySelector('#respondent-account-applicant-restriction')).toBeNull();
+
+    const addComment = page.querySelector<HTMLAnchorElement>('#respondent-account-change-comment')!;
+    expect(addComment.textContent?.trim()).toBe('Add comment');
+    addComment.click();
+    await harness.fixture.whenStable();
+    TestBed.tick();
+
+    expect(TestBed.inject(Router).url).toBe(root + '/comment/change');
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toBe('Add comment');
   });
 
   it('opens an action and builds Cancel from the account and validated origin', async () => {
@@ -234,10 +321,10 @@ describe('Respondent account routes', () => {
     expect(TestBed.inject(Title).getTitle()).toBe('OPAL - ' + heading);
   });
 
-  it('uses the application Error route for an invalid ID', async () => {
+  it.each(['invalid', '9007199254740992'])('uses the application Error route for an invalid ID %s', async (id) => {
     flags.set({ [key]: true });
     const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl('/cases/account/respondent/invalid/details');
+    await harness.navigateByUrl(`/cases/account/respondent/${id}/details`);
     expect(TestBed.inject(Router).url).toBe('/error/internal-server');
     expectNoAccountReads();
   });

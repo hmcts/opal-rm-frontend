@@ -22,7 +22,7 @@ import { casesAccountRespondentRoutes } from './cases-account-respondent.routes'
 @Component({ selector: 'app-test-respondent-permission-denied', template: '<h1>Permission denied</h1>' })
 class PermissionDeniedPage {}
 
-describe('Respondent account errors through the common HTTP interceptors', () => {
+describe('Respondent account reads through the common HTTP interceptors', () => {
   const details = '/cases/account/respondent/11748/details';
   const reads = '/opal-maintenance-service/respondent-accounts/11748';
   const headerUrl = reads + '/header-summary';
@@ -49,6 +49,89 @@ describe('Respondent account errors through the common HTTP interceptors', () =>
     await harness.navigateByUrl(details);
     return { harness, global, http: TestBed.inject(HttpTestingController) };
   }
+
+  async function openStaleAccount() {
+    const { harness, http } = await openDetails();
+    http.expectOne(headerUrl).flush(RESPONDENT_ACCOUNT_HEADER_MOCK, { headers: { ETag: '"v1"' } });
+    http.expectOne(summaryUrl).flush(RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, { headers: { ETag: '"v2"' } });
+    TestBed.tick();
+    const page = harness.routeNativeElement!;
+    const refresh = page.querySelector<HTMLButtonElement>('#respondent-account-refresh')!;
+    refresh.focus();
+    refresh.click();
+    TestBed.tick();
+    return { http, page, refresh };
+  }
+
+  it('focuses the confirmation only after both Refresh reads settle and restores heading focus on Dismiss', async () => {
+    const { http, page, refresh } = await openStaleAccount();
+    expect(refresh.getAttribute('aria-disabled')).toBe('true');
+    refresh.click();
+    http.expectOne(headerUrl).flush(RESPONDENT_ACCOUNT_HEADER_MOCK, { headers: { ETag: '"v3"' } });
+    TestBed.tick();
+    expect(document.activeElement).toBe(refresh);
+    expect(page.querySelector('#respondent-account-freshness-confirmation')).toBeNull();
+
+    http.expectOne(summaryUrl).flush(RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, { headers: { ETag: '"v3"' } });
+    TestBed.tick();
+    const confirmation = page.querySelector<HTMLElement>('#respondent-account-freshness-confirmation')!;
+    expect(document.activeElement).toBe(confirmation);
+    const dismiss = confirmation.querySelector<HTMLButtonElement>('button')!;
+    dismiss.focus();
+    dismiss.click();
+    TestBed.tick();
+    expect(confirmation.isConnected).toBe(false);
+    expect(document.activeElement).toBe(page.querySelector('h1'));
+    http.verify();
+  });
+
+  it('restores Refresh focus after an incomplete pair without taking focus from another control', async () => {
+    const { http, page, refresh } = await openStaleAccount();
+    refresh.blur();
+    http.expectOne(headerUrl).flush(RESPONDENT_ACCOUNT_HEADER_MOCK, { headers: { ETag: '"v3"' } });
+    http.expectOne(summaryUrl).flush(RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK);
+    TestBed.tick();
+    expect(document.activeElement).toBe(refresh);
+
+    refresh.click();
+    TestBed.tick();
+    const tab = page.querySelector<HTMLAnchorElement>('#respondent-account-tab-authority')!;
+    tab.focus();
+    http.expectOne(headerUrl).flush(RESPONDENT_ACCOUNT_HEADER_MOCK, { headers: { ETag: '"v4"' } });
+    http.expectOne(summaryUrl).flush(RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, { headers: { ETag: '"v4"' } });
+    TestBed.tick();
+    expect(page.querySelector('#respondent-account-freshness-confirmation')).not.toBeNull();
+    expect(document.activeElement).toBe(tab);
+    http.verify();
+  });
+
+  it('returns focus to Retry after a repeated read failure and to the account heading after recovery', async () => {
+    const { harness, http } = await openDetails();
+    const page = harness.routeNativeElement!;
+    http.expectOne(headerUrl).flush(RESPONDENT_ACCOUNT_HEADER_MOCK);
+    http.expectOne(summaryUrl).flush(null, { status: 204, statusText: 'No content' });
+    TestBed.tick();
+
+    const retry = () => page.querySelector<HTMLButtonElement>('#respondent-account-retry-summary')!;
+    const firstRetry = retry();
+    firstRetry.focus();
+    firstRetry.click();
+    // Both clicks can reach the same control before the next render removes it.
+    firstRetry.click();
+    TestBed.tick();
+    expect(page.querySelector('#respondent-account-retry-summary')).toBeNull();
+    http.expectOne(summaryUrl).flush(null, { status: 204, statusText: 'No content' });
+    TestBed.tick();
+    expect(document.activeElement).toBe(retry());
+
+    retry().click();
+    TestBed.tick();
+    http.expectOne(summaryUrl).flush(RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK);
+    TestBed.tick();
+    expect(page.querySelector('#respondent-account-retry-summary')).toBeNull();
+    expect(document.activeElement).toBe(page.querySelector('h1'));
+    http.verify();
+  });
 
   it('lets the shared permission-denied redirect finish when a tab is clicked as the read fails', async () => {
     let finishErrorLoad!: (page: typeof PermissionDeniedPage) => void;

@@ -794,6 +794,17 @@ describe('OpalMaintenanceService', () => {
       await expect(nextHeader).resolves.toEqual({ body: RESPONDENT_ACCOUNT_HEADER_MOCK, etag: null });
     });
 
+    it.each(['REMO Out', 'REMO Out (CMS)', null])('accepts a Completed Header with case type %s', async (caseType) => {
+      const body = {
+        ...RESPONDENT_ACCOUNT_HEADER_MOCK,
+        caseType,
+        accountStatus: { code: 'C', display: 'Completed' },
+      };
+      const result = firstValueFrom(service.getRespondentAccountHeaderSummary(accountId));
+      http.expectOne(headerUrl).flush(body);
+      await expect(result).resolves.toEqual({ body, etag: null });
+    });
+
     it('accepts a summary with optional data omitted', async () => {
       const body = {
         ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
@@ -806,12 +817,25 @@ describe('OpalMaintenanceService', () => {
       await expect(result).resolves.toEqual({ body, etag: null });
     });
 
+    it('accepts a Summary linked to an organisational Applicant', async () => {
+      const body = {
+        ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
+        applicant: { kind: 'organisation', accountId: 41748, organisationName: 'Example Organisation' },
+      };
+      const result = firstValueFrom(service.getRespondentAccountAtAGlance(accountId));
+      http.expectOne(summaryUrl).flush(body);
+      await expect(result).resolves.toEqual({ body, etag: null });
+    });
+
     it.each([
       null,
       {},
       { ...RESPONDENT_ACCOUNT_HEADER_MOCK, respondentAccountId: accountId + 1 },
+      { ...RESPONDENT_ACCOUNT_HEADER_MOCK, caseType: 'Unknown' },
+      { ...RESPONDENT_ACCOUNT_HEADER_MOCK, caseType: undefined },
       { ...RESPONDENT_ACCOUNT_HEADER_MOCK, arrears: '125.50' },
       { ...RESPONDENT_ACCOUNT_HEADER_MOCK, arrearsUpdatedDate: '2026-02-30' },
+      { ...RESPONDENT_ACCOUNT_HEADER_MOCK, accountStatus: { code: 'C', display: 'Live' } },
     ])('rejects an invalid successful Header response without issuing a retry', async (body) => {
       const result = firstValueFrom(service.getRespondentAccountHeaderSummary(accountId));
       const rejection = expect(result).rejects.toThrow('Invalid respondent account response');
@@ -820,13 +844,28 @@ describe('OpalMaintenanceService', () => {
       http.expectNone(headerUrl);
     });
 
-    it('rejects invalid nested Summary data without issuing a retry', async () => {
+    it.each([
+      { reason: 'a missing Respondent', fields: { respondent: null } },
+      {
+        reason: 'a negative age',
+        fields: { respondent: { ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.respondent, age: -1 } },
+      },
+      {
+        reason: 'an invalid Applicant ID',
+        fields: { applicant: { ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.applicant, accountId: 0 } },
+      },
+      {
+        reason: 'an unknown Applicant kind',
+        fields: { applicant: { kind: 'unknown', accountId: 41748, organisationName: 'Example Organisation' } },
+      },
+      {
+        reason: 'an empty Applicant organisation name',
+        fields: { applicant: { kind: 'organisation', accountId: 41748, organisationName: ' ' } },
+      },
+    ])('rejects a successful Summary response with $reason without issuing a retry', async ({ fields }) => {
       const result = firstValueFrom(service.getRespondentAccountAtAGlance(accountId));
       const rejection = expect(result).rejects.toThrow('Invalid respondent account response');
-      http.expectOne(summaryUrl).flush({
-        ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
-        respondent: { ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.respondent, age: -1 },
-      });
+      http.expectOne(summaryUrl).flush({ ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, ...fields });
       await rejection;
       http.expectNone(summaryUrl);
     });

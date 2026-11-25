@@ -49,7 +49,7 @@ export class RespondentAccountHeaderComponent {
   });
   protected readonly metrics = computed(() => {
     const account = this.header();
-    if (!account) return [];
+    if (!account) return null;
 
     return headerRows(account).map((row) => {
       const style = metricStyles.get(row.label);

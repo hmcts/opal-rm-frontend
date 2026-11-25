@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
-import { Subject } from 'rxjs';
+import { Subject, throwError } from 'rxjs';
 import type {
   RespondentAccountAtAGlance,
   RespondentAccountHeaderSummary,
@@ -82,6 +82,15 @@ describe('RespondentAccountDetailsStore', () => {
     expect(state.freshness()).toEqual({ baseline: '"v1"', warning: true, confirmed: false });
   });
 
+  it('establishes the Header baseline when the Summary returns first without an ETag', () => {
+    state.open(11748, null);
+    reply(summaryResults[0], RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, null);
+    reply(headerResults[0], RESPONDENT_ACCOUNT_HEADER_MOCK, '"v1"');
+
+    expect(state.summary().phase).toBe('ready');
+    expect(state.freshness()).toEqual({ baseline: '"v1"', warning: false, confirmed: false });
+  });
+
   it('keeps the Header and retries only the failed Summary', () => {
     state.open(11748, null);
     reply(headerResults[0], RESPONDENT_ACCOUNT_HEADER_MOCK, '"v1"');
@@ -103,6 +112,22 @@ describe('RespondentAccountDetailsStore', () => {
     expect(headerResults).toHaveLength(2);
     expect(summaryResults).toHaveLength(3);
     reply(summaryResults[2], RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, '"v2"');
+    expect(state.freshness()).toEqual({ baseline: '"v1"', warning: true, confirmed: false });
+  });
+
+  it('recovers a failed Header Refresh without replacing the established baseline', () => {
+    state.open(11748, null);
+    reply(headerResults[0], RESPONDENT_ACCOUNT_HEADER_MOCK, '"v1"');
+    reply(summaryResults[0], RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, '"v2"');
+    state.refresh();
+    headerResults[1].error(new HttpErrorResponse({ status: 503 }));
+    reply(summaryResults[1], RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, '"v2"');
+
+    state.retry('header');
+    reply(headerResults[2], RESPONDENT_ACCOUNT_HEADER_MOCK, '"v2"');
+
+    expect(state.header().phase).toBe('ready');
+    expect(summaryResults).toHaveLength(2);
     expect(state.freshness()).toEqual({ baseline: '"v1"', warning: true, confirmed: false });
   });
 
@@ -129,6 +154,19 @@ describe('RespondentAccountDetailsStore', () => {
     expect(summaryResults[0].observed).toBe(false);
     expect(state.unavailable()).toBe(true);
     expect(state.header()).toEqual({ phase: 'unavailable', data: null, error: null });
+  });
+
+  it('skips the Summary request when the Header fails before the Summary subscribes', () => {
+    const accessDenied = new HttpErrorResponse({ status: 403, error: { retriable: false } });
+    vi.spyOn(TestBed.inject(OpalMaintenanceService), 'getRespondentAccountHeaderSummary').mockReturnValueOnce(
+      throwError(() => accessDenied),
+    );
+
+    state.open(11748, null);
+
+    expect(summaryResults).toHaveLength(0);
+    expect(state.unavailable()).toBe(true);
+    expect(state.summary().phase).toBe('unavailable');
   });
 
   it('retains the failed read banner after a later successful sibling clears shared error state', () => {

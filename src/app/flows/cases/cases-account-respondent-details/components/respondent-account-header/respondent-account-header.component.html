@@ -91,9 +91,9 @@
     </ng-container>
   </opal-lib-custom-page-header>
 
-  @if (account) {
+  @if (metrics(); as headerMetrics) {
     <opal-lib-custom-summary-metric-bar>
-      @for (metric of metrics(); track metric.label) {
+      @for (metric of headerMetrics; track metric.label) {
         <opal-lib-custom-summary-metric-bar-item
           itemClasses="govuk-grid-column-one-half govuk-grid-column-one-quarter-from-desktop govuk-!-margin-bottom-2"
           [backgroundColour]="metric.backgroundColour"

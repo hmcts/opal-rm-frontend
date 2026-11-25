@@ -1,5 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { CustomPageHeaderComponent } from '@hmcts/opal-frontend-common/components/custom/custom-page-header';
+import { CustomSummaryMetricBarComponent } from '@hmcts/opal-frontend-common/components/custom/custom-summary-metric-bar';
+import { CustomSummaryMetricBarItemComponent } from '@hmcts/opal-frontend-common/components/custom/custom-summary-metric-bar/custom-summary-metric-bar-item';
+import { CustomSummaryMetricBarItemLabelComponent } from '@hmcts/opal-frontend-common/components/custom/custom-summary-metric-bar/custom-summary-metric-bar-item/custom-summary-metric-bar-item-label';
 import { GovukTagComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-tag';
 import {
   MojAlertComponent,
@@ -15,10 +19,19 @@ import {
 } from '../../routing/cases-account-respondent-navigation';
 import { accountDisplayName, headerRows } from '../../utils/respondent-account-display';
 
+const metricStyles = new Map([
+  ['Arrears', { background: 'govuk-blue-background-colour', text: 'govuk-white-text-colour' }],
+  ['Balance', { background: 'govuk-lighter-blue-background-colour', text: 'govuk-dark-blue-text-colour' }],
+]);
+
 @Component({
   selector: 'app-respondent-account-header',
   imports: [
     RouterLink,
+    CustomPageHeaderComponent,
+    CustomSummaryMetricBarComponent,
+    CustomSummaryMetricBarItemComponent,
+    CustomSummaryMetricBarItemLabelComponent,
     GovukTagComponent,
     MojAlertComponent,
     MojAlertContentComponent,
@@ -32,11 +45,16 @@ import { accountDisplayName, headerRows } from '../../utils/respondent-account-d
 export class RespondentAccountHeaderComponent {
   protected readonly heading = computed(() => {
     const account = this.header();
-    return account ? `${account.accountNumber} - ${accountDisplayName(account.name)}` : 'Respondent account details';
+    return account ? accountDisplayName(account.name) : 'Respondent account details';
   });
-  protected readonly rows = computed(() => {
+  protected readonly metrics = computed(() => {
     const account = this.header();
-    return account ? headerRows(account) : [];
+    if (!account) return [];
+
+    return headerRows(account).map((row) => {
+      const style = metricStyles.get(row.label);
+      return { ...row, backgroundColour: style?.background ?? '', textColour: style?.text ?? '' };
+    });
   });
   protected readonly actionLinks = computed(() => {
     const id = this.header()?.respondentAccountId;

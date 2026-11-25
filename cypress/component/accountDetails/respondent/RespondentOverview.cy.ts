@@ -58,7 +58,7 @@ const expectKeyboardFocus = (selector: string) =>
 
 const expectRoute = (path: string) => cy.get('@respondentRouter').its('url').should('equal', path);
 
-const accountHeading = 'RM0011748 - Ms Alex TEST';
+const accountHeading = 'Ms Alex TEST';
 const authorityPath = detailsPath + '#authority';
 const permissionDeniedPath = '/error/permission-denied';
 const accessDeniedPath = '/' + PAGES_ROUTING_PATHS.children.accessDenied;
@@ -121,7 +121,7 @@ describe('Respondent account details', () => {
           expect(new URL(url).pathname).to.equal(accountReadPath(publishedAccountId, 'at-a-glance'));
         });
 
-      cy.get(S.heading).should(
+      cy.get(S.accountNumber).should(
         'contain.text',
         publishedRespondent.casefile_snapshot.respondent_account?.account_number,
       );
@@ -310,17 +310,47 @@ describe('Respondent account details', () => {
       'AC1, AC2, AC4, AC5, AC6. should render the account and keep its header when switching tabs',
       { tags: buildTags() },
       () => {
+        cy.viewport(1280, 900);
         interceptMatchingPair();
         setupRespondentOverview();
         waitForAccountPair();
         expectRoute(detailsPath);
-        cy.get('main h1').should('have.length', 1).and(hasText(accountHeading));
-        cy.get(S.header).within(() => {
-          cy.contains('dt', 'Case type').next('dd').should(hasText('REMO In'));
-          cy.contains('dt', 'Arrears').next('dd').should(hasText('£125.50'));
-          cy.contains('dt', 'Balance').next('dd').should(hasText('£30.25'));
-          cy.contains('dt', 'Date arrears updated').next('dd').should(hasText('12 October 2026'));
+        cy.get(S.accountNumber).should('be.visible').and(hasText(header.accountNumber));
+        cy.get('opal-lib-custom-summary-metric-bar-item').should(($metrics) => {
+          expect($metrics).to.have.length(4);
+          const tiles = $metrics.toArray().map((tile) => tile.getBoundingClientRect());
+          expect(tiles[0].top).to.equal(tiles[3].top);
+          expect(tiles[0].right).to.be.at.most(tiles[1].left);
         });
+        cy.get(S.header).should(($header) => {
+          const heading = $header.find(S.heading)[0].getBoundingClientRect();
+          const addNote = $header.find(S.addNote)[0].getBoundingClientRect();
+          expect(addNote.left).to.be.at.least(heading.right);
+          expect(addNote.top).to.be.below(heading.bottom);
+        });
+        cy.get(S.panel('at-a-glance'))
+          .find('section')
+          .should(($sections) => {
+            expect($sections).to.have.length(3);
+            const [respondent, applicant, comments] = $sections
+              .toArray()
+              .map((section) => section.getBoundingClientRect());
+            expect(respondent.top).to.equal(comments.top);
+            expect(respondent.right).to.be.at.most(applicant.left);
+            expect(applicant.right).to.be.at.most(comments.left);
+            for (const heading of $sections.find('h2').toArray()) {
+              expect(getComputedStyle(heading).borderBottomWidth).to.equal('4px');
+            }
+          });
+        cy.get('main h1').should('have.length', 1).and(hasText(accountHeading));
+        for (const [label, value] of [
+          ['Arrears', '£125.50'],
+          ['Balance', '£30.25'],
+          ['Date arrears updated', '12 October 2026'],
+          ['Case type', 'REMO In'],
+        ]) {
+          cy.contains('[opal-lib-custom-summary-metric-bar-item-label]', label).next('p').should(hasText(value));
+        }
         cy.get(S.tab('at-a-glance')).should('have.attr', 'aria-current', 'page');
         cy.get(S.panel('at-a-glance')).within(() => {
           cy.contains('dt', 'Date of birth').next('dd').should(hasText('28 February 1990'));
@@ -333,13 +363,9 @@ describe('Respondent account details', () => {
             .and('contain.text', 'United Kingdom');
           cy.contains('dt', 'Main email address').next('dd').should(hasText('respondent@example.test'));
           cy.contains('dd', 'Mr Sam EXAMPLE').find('a').should('not.exist');
-          cy.contains('dt', 'Applicant account number')
-            .next('dd')
-            .should(hasText('RA0011748'))
-            .find('a')
-            .should('not.exist');
-          cy.get(S.respondentRestriction).should(hasText('Restricted information'));
-          cy.get(S.applicantRestriction).should(hasText('Restricted information'));
+          cy.contains('dt', 'Applicant account').next('dd').should(hasText('RA0011748')).find('a').should('not.exist');
+          cy.get(S.respondentRestriction).should(hasText('Restricted'));
+          cy.get(S.applicantRestriction).should(hasText('Restricted'));
           cy.contains(summary.comment!).should('be.visible');
         });
         cy.get(S.warning).should('not.exist');
@@ -359,6 +385,7 @@ describe('Respondent account details', () => {
           });
           cy.get(S.panel('at-a-glance')).should('not.exist');
           cy.get(S.heading).should(hasText(accountHeading));
+          cy.get(S.accountNumber).should(hasText(header.accountNumber));
           cy.checkA11y();
         }
         expectReadCounts(1, 1);
@@ -392,7 +419,7 @@ describe('Respondent account details', () => {
         const restrictedTag = respondentRestricted ? S.respondentRestriction : S.applicantRestriction;
         const unrestrictedTag = respondentRestricted ? S.applicantRestriction : S.respondentRestriction;
         cy.get(S.panel('at-a-glance')).within(() => {
-          cy.get(restrictedTag).should('be.visible').and(hasText('Restricted information'));
+          cy.get(restrictedTag).should('be.visible').and(hasText('Restricted'));
           cy.get(unrestrictedTag).should('not.exist');
         });
       });
@@ -423,10 +450,16 @@ describe('Respondent account details', () => {
         cy.wait('@accountSummary');
         cy.get(S.loading).should('not.contain.text', loadingMessage);
         cy.get(S.panel('at-a-glance')).within(() => {
-          for (const label of ['Date of birth', 'Age', 'Address', 'Main email address', 'Applicant account number']) {
+          for (const label of [
+            'Date of birth',
+            'Age',
+            'Address',
+            'Main email address',
+            'Applicant account',
+            'Applicant name',
+          ]) {
             cy.contains('dl dt', label).next('dd').within(expectNoData);
           }
-          cy.contains('h2', 'Applicant').next('dl').contains('dt', 'Name').next('dd').within(expectNoData);
           cy.contains('h2', 'Comments').next('p').within(expectNoData);
           cy.get(S.respondentRestriction).should('not.exist');
           cy.get(S.applicantRestriction).should('not.exist');
@@ -631,19 +664,37 @@ describe('Respondent account details', () => {
     () => {
       const defaultWidth = Cypress.config('viewportWidth');
       const defaultHeight = Cypress.config('viewportHeight');
+      const longSurname = 'LongSurname'.repeat(8);
       cy.viewport(1280, 800);
-      interceptAccountRead('header-summary', ok(header, initialVersion));
+      interceptAccountRead(
+        'header-summary',
+        ok({ ...header, name: { ...header.name, surname: longSurname } }, initialVersion),
+      );
       interceptAccountRead('at-a-glance', ok(summary, mismatchedVersion));
       setupRespondentOverview();
       waitForAccountPair();
 
-      cy.get(S.heading).should(hasText(accountHeading));
+      cy.get(S.heading).should(hasText(`Ms Alex ${longSurname.toUpperCase()}`));
       cy.get(S.warning).should('be.visible');
       cy.get(S.panel('at-a-glance')).should('contain.text', summary.comment);
+      expectReflow();
+      cy.viewport(800, 800);
+      cy.get('opal-lib-custom-summary-metric-bar-item p').each(($item) => {
+        expect($item[0].scrollWidth).to.be.at.most($item[0].clientWidth);
+      });
       expectReflow();
       cy.viewport(320, 800);
       cy.get(S.addNote).should('be.visible');
       cy.get(S.refresh).should('be.visible');
+      cy.get(S.panel('at-a-glance'))
+        .find('section')
+        .should(($sections) => {
+          const [respondent, applicant, comments] = $sections
+            .toArray()
+            .map((section) => section.getBoundingClientRect());
+          expect(applicant.top).to.be.at.least(respondent.bottom);
+          expect(comments.top).to.be.at.least(applicant.bottom);
+        });
       expectReflow();
 
       cy.get(S.addNote).click();

@@ -52,7 +52,7 @@ export function applicantRows(summary: RespondentAccountAtAGlance): AccountDispl
   const applicant = summary.applicant;
   const name = applicant?.kind === 'individual' ? accountDisplayName(applicant.name) : applicant?.organisationName;
   return [
-    { label: 'Name', value: name ?? null },
-    { label: 'Applicant account number', value: applicant?.accountNumber?.trim() || null },
+    { label: 'Applicant account', value: applicant?.accountNumber?.trim() || null },
+    { label: 'Applicant name', value: name ?? null },
   ];
 }

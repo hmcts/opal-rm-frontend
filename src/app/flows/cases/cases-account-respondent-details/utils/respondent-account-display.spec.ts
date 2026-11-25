@@ -43,7 +43,7 @@ describe('Respondent account display', () => {
         ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
         applicant: { kind: 'organisation', accountId: 71, organisationName: 'Example Authority' },
       }),
-    ).toContainEqual({ label: 'Name', value: 'Example Authority' });
+    ).toContainEqual({ label: 'Applicant name', value: 'Example Authority' });
     expect(headerRows({ ...RESPONDENT_ACCOUNT_HEADER_MOCK, arrears: 0, caseType: null })).toEqual(
       expect.arrayContaining([
         { label: 'Arrears', value: '£0.00' },
@@ -78,8 +78,8 @@ describe('Respondent account display', () => {
       ]),
     );
     expect(applicantRows(RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK)).toEqual([
-      { label: 'Name', value: 'Mr Sam EXAMPLE' },
-      { label: 'Applicant account number', value: 'RA0011748' },
+      { label: 'Applicant account', value: 'RA0011748' },
+      { label: 'Applicant name', value: 'Mr Sam EXAMPLE' },
     ]);
   });
 

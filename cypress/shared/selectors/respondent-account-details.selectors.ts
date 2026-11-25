@@ -3,6 +3,7 @@ import type { RespondentAccountTab } from 'src/app/flows/cases/cases-account-res
 export const RespondentAccountDetailsSelectors = {
   header: '#respondent-account-header',
   heading: '#respondent-account-heading',
+  accountNumber: '#respondent-account-number',
   loading: '#respondent-account-loading output[role="status"]',
   error: (read: 'header' | 'summary') => '#respondent-account-read-error-' + read,
   retry: (read: 'header' | 'summary') => '#respondent-account-retry-' + read,

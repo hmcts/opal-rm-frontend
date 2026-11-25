@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { GovukTagComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-tag';
+import { MojBadgeComponent } from '@hmcts/opal-frontend-common/components/moj/moj-badge';
 import type { RespondentAccountAtAGlance } from '../../../services/opal-maintenance-service/interfaces/opal-maintenance-respondent-account.interface';
 import {
   RESPONDENT_ACCOUNT_ROUTE,
@@ -15,8 +15,13 @@ function rowContext(rows: AccountDisplayRow[]) {
 
 @Component({
   selector: 'app-respondent-account-at-a-glance',
-  imports: [GovukTagComponent, NgTemplateOutlet, RouterLink],
+  imports: [MojBadgeComponent, NgTemplateOutlet, RouterLink],
   templateUrl: './respondent-account-at-a-glance.component.html',
+  styles: `
+    .account-summary-heading {
+      border-bottom: 4px solid var(--govuk-brand-colour);
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RespondentAccountAtAGlanceComponent {

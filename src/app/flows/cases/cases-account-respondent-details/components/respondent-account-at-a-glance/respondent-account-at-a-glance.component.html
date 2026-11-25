@@ -1,9 +1,9 @@
 <ng-template #summaryRows let-rows>
-  <dl class="govuk-summary-list">
+  <dl class="govuk-body govuk-!-margin-top-0 govuk-!-text-break-word">
     @for (row of rows; track row.label) {
-      <div class="govuk-summary-list__row">
-        <dt class="govuk-summary-list__key">{{ row.label }}</dt>
-        <dd class="govuk-summary-list__value">
+      <div class="govuk-!-margin-bottom-4">
+        <dt class="govuk-!-font-weight-bold govuk-!-margin-bottom-1">{{ row.label }}</dt>
+        <dd class="govuk-!-margin-left-0">
           @if (row.lines !== null) {
             @for (line of row.lines; track $index; let last = $last) {
               {{ line }}
@@ -19,36 +19,67 @@
     }
   </dl>
 </ng-template>
-<h2 class="govuk-heading-m">Respondent</h2>
-@if (restrictedRespondent()) {
-  <opal-lib-govuk-tag tagId="respondent-account-respondent-restriction">Restricted information</opal-lib-govuk-tag>
-}
-<ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="respondent()" />
-<h2 class="govuk-heading-m">Applicant</h2>
-@if (restrictedApplicant()) {
-  <opal-lib-govuk-tag tagId="respondent-account-applicant-restriction">Restricted information</opal-lib-govuk-tag>
-}
-<ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="applicant()" />
-<h2 class="govuk-heading-m">Comments</h2>
-<p class="govuk-body">
-  @if (comment()) {
-    {{ comment() }}
-  } @else {
-    <span aria-hidden="true">—</span><span class="govuk-visually-hidden">No data</span>
-  }
-</p>
-@if (showActions()) {
-  <a
-    class="govuk-link"
-    id="respondent-account-change-comment"
-    [routerLink]="commentLink()"
-    [info]="commentInfo()"
-    [state]="commentInfo()"
-  >
-    @if (comment()) {
-      Change<span class="govuk-visually-hidden"> comment</span>
-    } @else {
-      Add comment
+<div class="govuk-grid-row">
+  <section class="govuk-grid-column-one-third" aria-labelledby="respondent-account-respondent-heading">
+    <h2
+      id="respondent-account-respondent-heading"
+      class="govuk-heading-m govuk-!-padding-bottom-2 account-summary-heading"
+    >
+      Respondent
+    </h2>
+    @if (restrictedRespondent()) {
+      <p class="govuk-body govuk-!-margin-bottom-2">
+        <opal-lib-moj-badge badgeId="respondent-account-respondent-restriction" badgeClasses="moj-badge--red"
+          >Restricted</opal-lib-moj-badge
+        >
+      </p>
     }
-  </a>
-}
+    <ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="respondent()" />
+  </section>
+  <section class="govuk-grid-column-one-third" aria-labelledby="respondent-account-applicant-heading">
+    <h2
+      id="respondent-account-applicant-heading"
+      class="govuk-heading-m govuk-!-padding-bottom-2 account-summary-heading"
+    >
+      Applicant
+    </h2>
+    @if (restrictedApplicant()) {
+      <p class="govuk-body govuk-!-margin-bottom-2">
+        <opal-lib-moj-badge badgeId="respondent-account-applicant-restriction" badgeClasses="moj-badge--red"
+          >Restricted</opal-lib-moj-badge
+        >
+      </p>
+    }
+    <ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="applicant()" />
+  </section>
+  <section class="govuk-grid-column-one-third" aria-labelledby="respondent-account-comments-heading">
+    <h2
+      id="respondent-account-comments-heading"
+      class="govuk-heading-m govuk-!-padding-bottom-2 account-summary-heading"
+    >
+      Comments
+    </h2>
+    <p class="govuk-body govuk-!-text-break-word">
+      @if (comment()) {
+        {{ comment() }}
+      } @else {
+        <span aria-hidden="true">—</span><span class="govuk-visually-hidden">No data</span>
+      }
+    </p>
+    @if (showActions()) {
+      <a
+        class="govuk-link"
+        id="respondent-account-change-comment"
+        [routerLink]="commentLink()"
+        [info]="commentInfo()"
+        [state]="commentInfo()"
+      >
+        @if (comment()) {
+          Change<span class="govuk-visually-hidden"> comment</span>
+        } @else {
+          Add comment
+        }
+      </a>
+    }
+  </section>
+</div>

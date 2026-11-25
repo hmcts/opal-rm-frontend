@@ -1,6 +1,6 @@
 import { computed, DestroyRef, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
-import { defer, EMPTY, forkJoin, type Observable, Subject, takeUntil, tap } from 'rxjs';
+import { defer, forkJoin, type Observable, Subject, takeUntil, tap } from 'rxjs';
 import type {
   RespondentAccountAtAGlance,
   RespondentAccountHeaderSummary,
@@ -75,7 +75,6 @@ export const RespondentAccountDetailsStore = signalStore(
       updateSlot: (changes: Partial<ReadSlot<T>>) => void,
     ): Observable<RespondentAccountReadResult<T>> {
       return defer(() => {
-        if (store.unavailable()) return EMPTY;
         updateSlot({ phase: 'loading', error: null });
 
         return accountReads.read(request).pipe(

@@ -13,6 +13,7 @@ import {
   RESPONDENT_ACCOUNT_HEADER_MOCK,
 } from '../../services/opal-maintenance-service/mocks/opal-maintenance-respondent-account.mock';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
+import { RespondentAccountReadService } from '../services/respondent-account-read.service';
 import { observeTag, RespondentAccountDetailsStore } from './respondent-account-details.store';
 
 describe('RespondentAccountDetailsStore', () => {
@@ -34,6 +35,7 @@ describe('RespondentAccountDetailsStore', () => {
       providers: [
         { provide: GlobalStore, useValue: new GlobalStore() },
         RespondentAccountDetailsStore,
+        RespondentAccountReadService,
         {
           provide: OpalMaintenanceService,
           useValue: {
@@ -125,7 +127,8 @@ describe('RespondentAccountDetailsStore', () => {
     state.open(11748, null);
     headerResults[0].error(new HttpErrorResponse({ status: 403, error: { retriable: false } }));
     expect(summaryResults[0].observed).toBe(false);
-    expect(state.header().error).toBeNull();
+    expect(state.unavailable()).toBe(true);
+    expect(state.header()).toEqual({ phase: 'unavailable', data: null, error: null });
   });
 
   it('retains the failed read banner after a later successful sibling clears shared error state', () => {
@@ -144,6 +147,7 @@ describe('RespondentAccountDetailsStore', () => {
     expect(state.summary().error).toEqual({
       title: 'Summary unavailable',
       message: 'The summary can be retried.',
+      operationId: null,
     });
     expect(state.header().phase).toBe('ready');
   });
@@ -180,6 +184,7 @@ describe('RespondentAccountDetailsStore', () => {
     expect(state.summary().error).toEqual({
       title: 'There was a problem',
       message: 'You can try again. If the problem persists, contact the service desk.',
+      operationId: null,
     });
     expect(globalStore.bannerError()).toEqual(original);
   });
@@ -226,8 +231,14 @@ describe('RespondentAccountDetailsStore', () => {
       expect(headerResults[1].observed).toBe(false);
       reply(headerResults[1], RESPONDENT_ACCOUNT_HEADER_MOCK, '"v2"');
     }
-    expect(state.freshness()).toEqual({ baseline: '"v1"', warning: true, confirmed: false });
-    expect(state[read]().error).toBeNull();
+    expect(state.freshness()).toEqual({ baseline: null, warning: false, confirmed: false });
+    expect(state.header()).toEqual({ phase: 'unavailable', data: null, error: null });
+    expect(state.summary()).toEqual({ phase: 'unavailable', data: null, error: null });
+
+    state.open(11749, null);
+    expect(state.unavailable()).toBe(false);
+    expect(headerResults).toHaveLength(3);
+    expect(summaryResults).toHaveLength(3);
   });
 
   it('keeps the in-flight requests when the account and relationship stay the same', () => {

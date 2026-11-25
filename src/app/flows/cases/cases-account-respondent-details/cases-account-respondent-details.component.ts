@@ -7,8 +7,10 @@ import {
   DestroyRef,
   DOCUMENT,
   effect,
+  ElementRef,
   inject,
   Injector,
+  Renderer2,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -33,6 +35,7 @@ import {
   respondentAccountRouteId,
   respondentAccountTab,
 } from './routing/cases-account-respondent-navigation';
+import { RespondentAccountReadService } from './services/respondent-account-read.service';
 import {
   RespondentAccountDetailsStore,
   type RespondentAccountReadKind,
@@ -55,7 +58,7 @@ const headingId = 'respondent-account-heading';
     RespondentAccountHeaderComponent,
     RespondentAccountAtAGlanceComponent,
   ],
-  providers: [RespondentAccountDetailsStore],
+  providers: [RespondentAccountDetailsStore, RespondentAccountReadService],
   templateUrl: './cases-account-respondent-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -99,7 +102,22 @@ export class CasesAccountRespondentDetailsComponent {
   }));
 
   constructor() {
+    const host = inject(ElementRef<HTMLElement>).nativeElement;
+    const renderer = inject(Renderer2);
     afterNextRender(() => {
+      // An existing account link can still be clicked before the terminal state renders.
+      this.destroyRef.onDestroy(
+        renderer.listen(
+          host,
+          'click',
+          (event: MouseEvent) => {
+            if (!this.state.unavailable()) return;
+            event.preventDefault();
+            event.stopPropagation();
+          },
+          { capture: true },
+        ),
+      );
       this.document.getElementById(headingId)?.focus();
       this.route.parent?.paramMap
         .pipe(
@@ -119,7 +137,7 @@ export class CasesAccountRespondentDetailsComponent {
 
   private restoreOperationFocus(): void {
     const intent = this.focusIntent();
-    if (!intent) return;
+    if (!intent || this.state.unavailable()) return;
     if (intent === 'refresh') {
       if (this.loading()) return;
       const target = this.state.freshness().confirmed

@@ -3,7 +3,7 @@ import { PRIMARY_NAV_HIDDEN_ROUTE_DATA } from '@app/constants/route-data.constan
 import { accountGuard } from '@hmcts/opal-frontend-common/guards/account';
 import { authGuard } from '@hmcts/opal-frontend-common/guards/auth';
 import { TitleResolver } from '@hmcts/opal-frontend-common/resolvers/title';
-import { RESPONDENT_ACCOUNT_ROUTE } from './cases-account-respondent-navigation';
+import { CASES_ACCOUNT_RESPONDENT_ROUTING_PATHS } from './constants/cases-account-respondent-routing-paths.constant';
 import { respondentAccountDetailsGuard } from './respondent-account-details.guard';
 
 const loadPlaceholder = () =>
@@ -13,7 +13,7 @@ const loadPlaceholder = () =>
 
 export const casesAccountRespondentRoutes: Routes = [
   {
-    path: RESPONDENT_ACCOUNT_ROUTE.slice(1) + '/:respondentAccountId',
+    path: `${CASES_ACCOUNT_RESPONDENT_ROUTING_PATHS.root}/:respondentAccountId`,
     canActivate: [authGuard, accountGuard, respondentAccountDetailsGuard],
     canActivateChild: [respondentAccountDetailsGuard],
     data: { ...PRIMARY_NAV_HIDDEN_ROUTE_DATA, sectionKey: 'cases' },

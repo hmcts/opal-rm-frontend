@@ -34,9 +34,9 @@ import {
   respondentAccountTab,
 } from './routing/cases-account-respondent-navigation';
 import {
-  RespondentAccountDetailsState,
+  RespondentAccountDetailsStore,
   type RespondentAccountReadKind,
-} from './services/respondent-account-details-state.service';
+} from './stores/respondent-account-details.store';
 
 const headingId = 'respondent-account-heading';
 
@@ -55,7 +55,7 @@ const headingId = 'respondent-account-heading';
     RespondentAccountHeaderComponent,
     RespondentAccountAtAGlanceComponent,
   ],
-  providers: [RespondentAccountDetailsState],
+  providers: [RespondentAccountDetailsStore],
   templateUrl: './cases-account-respondent-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -63,13 +63,13 @@ export class CasesAccountRespondentDetailsComponent {
   private readonly document = inject(DOCUMENT);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly store = inject(GlobalStore);
+  private readonly globalStore = inject(GlobalStore);
   private readonly focusIntent = signal<'refresh' | RespondentAccountReadKind | null>(null);
 
   private readonly route = inject(ActivatedRoute);
   private readonly fragment = toSignal(this.route.fragment, { initialValue: this.route.snapshot.fragment });
 
-  protected readonly state = inject(RespondentAccountDetailsState);
+  protected readonly state = inject(RespondentAccountDetailsStore);
   protected readonly tab = computed(() => respondentAccountTab(this.fragment()));
   protected readonly tabs = [
     { key: 'at-a-glance', label: 'At a glance' },
@@ -81,7 +81,7 @@ export class CasesAccountRespondentDetailsComponent {
   protected readonly loadedHeader = computed(() => this.state.header().data?.body ?? null);
   protected readonly loadedSummary = computed(() => this.state.summary().data?.body ?? null);
   protected readonly showActions = computed(() => {
-    const flags: Record<string, unknown> = this.store.featureFlags();
+    const flags: Record<string, unknown> = this.globalStore.featureFlags();
     return this.loadedHeader() !== null && flags[RESPONDENT_ACCOUNT_DETAILS_FLAG] === true;
   });
   protected readonly loading = computed(

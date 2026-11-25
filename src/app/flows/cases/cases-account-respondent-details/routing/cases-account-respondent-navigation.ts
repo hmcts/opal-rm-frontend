@@ -1,4 +1,6 @@
-export const RESPONDENT_ACCOUNT_ROUTE = '/cases/account/respondent';
+import { CASES_ACCOUNT_RESPONDENT_ROUTING_PATHS } from './constants/cases-account-respondent-routing-paths.constant';
+
+export const RESPONDENT_ACCOUNT_ROUTE = `/${CASES_ACCOUNT_RESPONDENT_ROUTING_PATHS.root}`;
 export const RESPONDENT_ACCOUNT_DETAILS_FLAG = 'release-1c-rm-account-details';
 
 export type RespondentAccountTab = 'at-a-glance' | 'respondent' | 'authority';

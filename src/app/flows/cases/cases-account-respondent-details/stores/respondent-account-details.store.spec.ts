@@ -1,5 +1,7 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
+import { GLOBAL_ERROR_STATE } from '@hmcts/opal-frontend-common/stores/global/constants';
+import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
 import { Subject } from 'rxjs';
 import type {
   RespondentAccountAtAGlance,
@@ -11,11 +13,11 @@ import {
   RESPONDENT_ACCOUNT_HEADER_MOCK,
 } from '../../services/opal-maintenance-service/mocks/opal-maintenance-respondent-account.mock';
 import { OpalMaintenanceService } from '../../services/opal-maintenance-service/opal-maintenance.service';
-import { RespondentAccountReadError } from '../../services/opal-maintenance-service/utils/opal-maintenance-respondent-account-read-error';
-import { observeTag, RespondentAccountDetailsState } from './respondent-account-details-state.service';
+import { observeTag, RespondentAccountDetailsStore } from './respondent-account-details.store';
 
-describe('RespondentAccountDetailsState', () => {
-  let state: RespondentAccountDetailsState;
+describe('RespondentAccountDetailsStore', () => {
+  let state: InstanceType<typeof RespondentAccountDetailsStore>;
+  let globalStore: InstanceType<typeof GlobalStore>;
   let headerResults: Subject<RespondentAccountRead<RespondentAccountHeaderSummary>>[];
   let summaryResults: Subject<RespondentAccountRead<RespondentAccountAtAGlance>>[];
 
@@ -30,8 +32,8 @@ describe('RespondentAccountDetailsState', () => {
     summaryResults = [];
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([]),
-        RespondentAccountDetailsState,
+        { provide: GlobalStore, useValue: new GlobalStore() },
+        RespondentAccountDetailsStore,
         {
           provide: OpalMaintenanceService,
           useValue: {
@@ -41,7 +43,8 @@ describe('RespondentAccountDetailsState', () => {
         },
       ],
     });
-    state = TestBed.inject(RespondentAccountDetailsState);
+    state = TestBed.inject(RespondentAccountDetailsStore);
+    globalStore = TestBed.inject(GlobalStore);
   });
 
   function reply<T>(result: Subject<RespondentAccountRead<T>>, body: T, etag: string | null): void {
@@ -83,13 +86,14 @@ describe('RespondentAccountDetailsState', () => {
     reply(summaryResults[0], RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, '"v2"');
     state.refresh();
     reply(headerResults[1], RESPONDENT_ACCOUNT_HEADER_MOCK, '"v2"');
-    summaryResults[1].error(
-      new RespondentAccountReadError({
-        kind: 'retryable',
-        title: 'There was a problem',
-        message: 'Synthetic read failure',
-      }),
-    );
+    globalStore.setBannerError({
+      ...GLOBAL_ERROR_STATE,
+      error: true,
+      title: 'Summary unavailable',
+      message: 'Synthetic read failure',
+    });
+    summaryResults[1].error(new HttpErrorResponse({ status: 503 }));
+    expect(globalStore.bannerError()).toEqual(GLOBAL_ERROR_STATE);
     expect(state.header().phase).toBe('ready');
     expect(state.summary().error?.message).toBe('Synthetic read failure');
     state.retry('summary');
@@ -117,25 +121,67 @@ describe('RespondentAccountDetailsState', () => {
     expect(state.freshness()).toEqual({ baseline: '"v2"', warning: false, confirmed: false });
   });
 
-  it('routes a terminal read failure while the other read is still pending', () => {
-    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+  it('cancels the other read when the shared interceptor starts terminal navigation', () => {
     state.open(11748, null);
-    headerResults[0].error(
-      new RespondentAccountReadError({
-        kind: 'route',
-        path: '/error/permission-denied',
-        operationId: null,
-      }),
-    );
-    expect(navigate).toHaveBeenCalledExactlyOnceWith('/error/permission-denied', { state: { operationId: null } });
-    summaryResults[0].error(
-      new RespondentAccountReadError({
-        kind: 'route',
-        path: '/error/internal-server',
-        operationId: 'read-synthetic',
-      }),
-    );
-    expect(navigate).toHaveBeenCalledTimes(1);
+    headerResults[0].error(new HttpErrorResponse({ status: 403, error: { retriable: false } }));
+    expect(summaryResults[0].observed).toBe(false);
+    expect(state.header().error).toBeNull();
+  });
+
+  it('retains the failed read banner after a later successful sibling clears shared error state', () => {
+    state.open(11748, null);
+    globalStore.setBannerError({
+      ...GLOBAL_ERROR_STATE,
+      error: true,
+      title: 'Summary unavailable',
+      message: 'The summary can be retried.',
+    });
+    summaryResults[0].error(new HttpErrorResponse({ status: 503 }));
+    expect(globalStore.bannerError()).toEqual(GLOBAL_ERROR_STATE);
+
+    globalStore.resetBannerError();
+    reply(headerResults[0], RESPONDENT_ACCOUNT_HEADER_MOCK, '"v1"');
+    expect(state.summary().error).toEqual({
+      title: 'Summary unavailable',
+      message: 'The summary can be retried.',
+    });
+    expect(state.header().phase).toBe('ready');
+  });
+
+  it('settles an empty response stream with the shared banner and allows Retry', () => {
+    state.open(11748, null);
+    globalStore.setBannerError({
+      ...GLOBAL_ERROR_STATE,
+      error: true,
+      title: 'Summary unavailable',
+      message: 'The shared interceptor consumed the error.',
+    });
+    summaryResults[0].complete();
+    expect(state.summary().phase).toBe('error');
+    expect(state.summary().error?.title).toBe('Summary unavailable');
+    expect(globalStore.bannerError()).toEqual(GLOBAL_ERROR_STATE);
+
+    state.retry('summary');
+    expect(summaryResults).toHaveLength(2);
+    expect(headerResults).toHaveLength(1);
+  });
+
+  it('uses generic copy for a decoding failure without consuming unrelated banner state', () => {
+    state.open(11748, null);
+    const original = {
+      ...GLOBAL_ERROR_STATE,
+      error: true,
+      title: 'Other request',
+      message: 'Another feature reported this error.',
+    };
+    globalStore.setBannerError(original);
+    summaryResults[0].error(new Error('Invalid respondent account response'));
+
+    expect(state.summary().error).toEqual({
+      title: 'There was a problem',
+      message: 'You can try again. If the problem persists, contact the service desk.',
+    });
+    expect(globalStore.bannerError()).toEqual(original);
   });
 
   it('clears confirmation when a later comparable tag differs', () => {
@@ -150,13 +196,7 @@ describe('RespondentAccountDetailsState', () => {
     'detects a mismatch after Header Retry with %s',
     (order) => {
       state.open(11748, null);
-      headerResults[0].error(
-        new RespondentAccountReadError({
-          kind: 'retryable',
-          title: 'There was a problem',
-          message: 'Synthetic Header failure',
-        }),
-      );
+      headerResults[0].error(new HttpErrorResponse({ status: 503 }));
       state.retry('header');
       if (order === 'summary-first') reply(summaryResults[0], RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, '"v2"');
       reply(headerResults[1], RESPONDENT_ACCOUNT_HEADER_MOCK, '"v1"');
@@ -172,23 +212,13 @@ describe('RespondentAccountDetailsState', () => {
     },
   );
 
-  it.each(['header', 'summary'] as const)('uses shared routing for a terminal %s Refresh failure', (read) => {
-    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+  it.each(['header', 'summary'] as const)('cancels the sibling for a terminal %s Refresh failure', (read) => {
     state.open(11748, null);
     reply(headerResults[0], RESPONDENT_ACCOUNT_HEADER_MOCK, '"v1"');
     reply(summaryResults[0], RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, '"v2"');
     state.refresh();
     const rejected = read === 'header' ? headerResults[1] : summaryResults[1];
-    rejected.error(
-      new RespondentAccountReadError({
-        kind: 'route',
-        path: '/error/permission-denied',
-        operationId: 'read-synthetic',
-      }),
-    );
-    expect(navigate).toHaveBeenCalledExactlyOnceWith('/error/permission-denied', {
-      state: { operationId: 'read-synthetic' },
-    });
+    rejected.error(new HttpErrorResponse({ status: 403, error: { retriable: false } }));
     if (read === 'header') {
       expect(summaryResults[1].observed).toBe(false);
       reply(summaryResults[1], RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, '"v2"');
@@ -223,26 +253,15 @@ describe('RespondentAccountDetailsState', () => {
     expect(state.summary().data?.etag).toBe('"v2"');
   });
 
-  it('routes a terminal Header Retry failure and cancels the pending Summary', () => {
-    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+  it('stops further work and cancels the pending Summary after a terminal Header Retry failure', () => {
     state.open(11748, null);
-    headerResults[0].error(
-      new RespondentAccountReadError({ kind: 'retryable', title: 'There was a problem', message: 'Retry the Header' }),
-    );
+    headerResults[0].error(new HttpErrorResponse({ status: 503 }));
     state.retry('header');
-    headerResults[1].error(
-      new RespondentAccountReadError({
-        kind: 'route',
-        path: '/error/internal-server',
-        operationId: 'read-retry',
-      }),
-    );
+    headerResults[1].error(new HttpErrorResponse({ status: 500, error: { retriable: false } }));
+
     state.retry('header');
     expect(headerResults).toHaveLength(2);
     expect(summaryResults[0].observed).toBe(false);
-    expect(navigate).toHaveBeenCalledExactlyOnceWith('/error/internal-server', {
-      state: { operationId: 'read-retry' },
-    });
   });
 
   it('cancels pending reads when the page state is destroyed', () => {

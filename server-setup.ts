@@ -16,7 +16,6 @@ import {
   UserStateConfiguration,
 } from '@hmcts/opal-frontend-common-node/interfaces';
 import { DEFAULT_PROXY_CONFIG } from '@hmcts/opal-frontend-common-node/constants';
-import { configureRespondentAccountDevelopmentMocks } from './server-respondent-account-mocks';
 
 const env = process.env['NODE_ENV'] || 'development';
 const developmentMode = env === 'development';
@@ -96,8 +95,6 @@ export function configureApiProxyRoutes(app: Express, proxyConfiguration: ProxyC
       OpalApiProxy(proxyConfiguration.opalUserServiceUrl, ipLoggingEnabled, opalUserServiceProxyTimeoutInMilliseconds),
     );
   }
-
-  configureRespondentAccountDevelopmentMocks(app, process.env);
 
   if (proxyConfiguration.opalRmServiceUrl) {
     app.use(

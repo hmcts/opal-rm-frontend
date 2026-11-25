@@ -9,21 +9,15 @@ import type { IOpalMaintenanceDraftCasefileCountResponse } from './interfaces/op
 import { decodeDraftCasefileCount, decodeDraftCasefileList } from './utils/opal-maintenance-draft-casefile-response';
 import type { IOpalMaintenanceDraftCasefileRequest } from './interfaces/opal-maintenance-draft-casefile-request.interface';
 import type { IOpalMaintenanceDraftCasefileResponse } from './interfaces/opal-maintenance-draft-casefile-response.interface';
-import { HttpClient, HttpContext, HttpParams, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { withHttpRetry, withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
-import { catchError, defer, map, of, Observable, shareReplay, tap, throwError } from 'rxjs';
-import { ROUTE_OWNS_HTTP_ERROR } from '@app/interceptors/route-owned-http-error.interceptor';
+import { defer, map, of, Observable, shareReplay, tap } from 'rxjs';
 import type {
   RespondentAccountAtAGlance,
   RespondentAccountHeaderSummary,
   RespondentAccountRead,
 } from './interfaces/opal-maintenance-respondent-account.interface';
-import {
-  invalidRespondentAccountResponse,
-  RespondentAccountReadError,
-  toRespondentAccountReadError,
-} from './utils/opal-maintenance-respondent-account-read-error';
 import {
   isRespondentAccountAtAGlance,
   isRespondentAccountHeaderSummary,
@@ -101,30 +95,20 @@ export class OpalMaintenanceService {
     resource: 'header-summary' | 'at-a-glance',
     isValidBody: (body: unknown, accountId: number) => body is T,
   ): Observable<RespondentAccountRead<T>> {
-    if (!Number.isSafeInteger(accountId) || accountId < 1) {
-      return throwError(
-        () =>
-          new RespondentAccountReadError({
-            kind: 'route',
-            path: '/error/internal-server',
-            operationId: null,
-          }),
-      );
-    }
-    const context = withHttpRetry({ retryCount: 1 }, new HttpContext().set(ROUTE_OWNS_HTTP_ERROR, true));
+    if (!Number.isSafeInteger(accountId) || accountId < 1) throw new Error('Invalid respondent account identifier');
+
     return this.http
       .get<unknown>(`/opal-maintenance-service/respondent-accounts/${accountId}/${resource}`, {
         observe: 'response',
         cache: 'no-store',
-        context,
+        context: withHttpRetry({ retryCount: 1 }),
         transferCache: false,
       })
       .pipe(
         map(({ body, headers }) => {
-          if (!isValidBody(body, accountId)) throw invalidRespondentAccountResponse();
+          if (!isValidBody(body, accountId)) throw new Error('Invalid respondent account response');
           return { body, etag: this.extractEtagVersion(headers) };
         }),
-        catchError((error: unknown) => throwError(() => toRespondentAccountReadError(error))),
       );
   }
 

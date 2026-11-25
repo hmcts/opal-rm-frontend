@@ -230,16 +230,6 @@ yarn dev:ssr
 
 Leave `FEATURE_FLAGS_OVERRIDE` unset or set to `false` in deployed environments so Launch Darkly remains the source of truth.
 
-#### Preview the Respondent account details fixture
-
-With the usual local sign-in setup running, start the SSR development server on localhost.
-
-```bash
-NODE_ENV=development OPAL_RM_RESPONDENT_ACCOUNT_MOCKS=true FEATURE_FLAGS_OVERRIDE=true RELEASE_1C_RM_ACCOUNT_DETAILS_ENABLED=true corepack yarn dev:ssr
-```
-
-After signing in, open `/cases/account/respondent/11748/details`. The Header and At a glance use a synthetic account via the two Maintenance Service GET paths. The fixture responds to localhost requests for account `11748` when explicitly enabled in development. An unknown account ID returns 404 on these paths when the local fixture is enabled. The two reads return 503 if local fixture setup is unavailable. Standard proxy handling applies to unrelated paths and methods. Cypress sends its own controlled responses through network intercepts. Live integration will replace this temporary reservation once the provider contracts and permission follow-ups are verified.
-
 ## Build
 
 Run `yarn build:ssr` to build the project. The build artifacts will be stored in the `dist/opal-rm-frontend` directory. This compiles both the node.js server-side code and angular code.

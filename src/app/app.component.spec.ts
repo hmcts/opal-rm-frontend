@@ -625,6 +625,7 @@ describe('AppComponent - browser', () => {
   });
 
   it.each([
+    ['/cases/account/respondent', true],
     ['/cases/account/respondent/11748/details', true],
     ['/cases/account/respondent/11748/details?source=test#authority', true],
     ['/cases/account/respondent/11748/note/add', true],

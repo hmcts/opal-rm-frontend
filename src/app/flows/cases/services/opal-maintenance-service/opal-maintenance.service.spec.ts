@@ -1,11 +1,11 @@
 import { createPersistedCasefileDetail } from './mocks/opal-maintenance-draft-casefile-detail.mock';
 import { CasesCreateCasefilePayloadService } from '../../cases-create-casefile/services/cases-create-casefile-payload/cases-create-casefile-payload.service';
 import { createCasesCreateCasefileReviewState } from '../../cases-create-casefile/mocks/cases-create-casefile-review-state.mock';
-import { withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
+import { httpRetryInterceptor, withoutHttpRetry } from '@hmcts/opal-frontend-common/interceptors/http-retry';
 import { HttpClient, HttpResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { httpErrorInterceptor } from '@hmcts/opal-frontend-common/interceptors/http-error';
 import { AppInsightsService } from '@hmcts/opal-frontend-common/services/app-insights-service';
 import { GlobalStore } from '@hmcts/opal-frontend-common/stores/global';
@@ -13,6 +13,11 @@ import { EMPTY, firstValueFrom, take } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IOpalMaintenanceCountryReferenceDataResponse } from './interfaces/opal-maintenance-country-reference-data-response.interface';
 import type { IOpalMaintenanceMajorCreditorReferenceDataResponse } from './interfaces/opal-maintenance-major-creditor-reference-data-response.interface';
+import {
+  RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
+  RESPONDENT_ACCOUNT_ETAG,
+  RESPONDENT_ACCOUNT_HEADER_MOCK,
+} from './mocks/opal-maintenance-respondent-account.mock';
 import { OpalMaintenanceService } from './opal-maintenance.service';
 
 describe('OpalMaintenanceService', () => {
@@ -58,7 +63,7 @@ describe('OpalMaintenanceService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClient(withInterceptors([httpErrorInterceptor, httpRetryInterceptor])),
         provideHttpClientTesting(),
         { provide: GlobalStore, useValue: new GlobalStore() },
         { provide: AppInsightsService, useValue: { logException: () => undefined } },
@@ -759,5 +764,105 @@ describe('OpalMaintenanceService', () => {
 
     expect(service.getMajorCreditors(params)).toBe(replacement);
     requests[1].flush(majorCreditors);
+  });
+
+  describe('Respondent account reads', () => {
+    const accountId = RESPONDENT_ACCOUNT_HEADER_MOCK.respondentAccountId;
+    const root = '/opal-maintenance-service/respondent-accounts/' + accountId;
+    const headerUrl = root + '/header-summary';
+    const summaryUrl = root + '/at-a-glance';
+
+    it('makes fresh GETs for the Header and Summary and preserves their ETag values', async () => {
+      const header = firstValueFrom(service.getRespondentAccountHeaderSummary(accountId));
+      const summary = firstValueFrom(service.getRespondentAccountAtAGlance(accountId));
+
+      const headerRequest = http.expectOne({ method: 'GET', url: headerUrl });
+      const summaryRequest = http.expectOne({ method: 'GET', url: summaryUrl });
+      for (const { request } of [headerRequest, summaryRequest]) {
+        expect(request.cache).toBe('no-store');
+        expect(request.transferCache).toBe(false);
+        expect(request.headers.has('If-None-Match')).toBe(false);
+      }
+      headerRequest.flush(RESPONDENT_ACCOUNT_HEADER_MOCK, { headers: { eTaG: RESPONDENT_ACCOUNT_ETAG } });
+      summaryRequest.flush(RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK);
+
+      await expect(header).resolves.toEqual({ body: RESPONDENT_ACCOUNT_HEADER_MOCK, etag: RESPONDENT_ACCOUNT_ETAG });
+      await expect(summary).resolves.toEqual({ body: RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK, etag: null });
+
+      const nextHeader = firstValueFrom(service.getRespondentAccountHeaderSummary(accountId));
+      http.expectOne(headerUrl).flush(RESPONDENT_ACCOUNT_HEADER_MOCK);
+      await expect(nextHeader).resolves.toEqual({ body: RESPONDENT_ACCOUNT_HEADER_MOCK, etag: null });
+    });
+
+    it('accepts a summary with optional data omitted', async () => {
+      const body = {
+        ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
+        respondent: { name: RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.respondent.name },
+        applicant: null,
+        comment: null,
+      };
+      const result = firstValueFrom(service.getRespondentAccountAtAGlance(accountId));
+      http.expectOne(summaryUrl).flush(body);
+      await expect(result).resolves.toEqual({ body, etag: null });
+    });
+
+    it.each([
+      null,
+      {},
+      { ...RESPONDENT_ACCOUNT_HEADER_MOCK, respondentAccountId: accountId + 1 },
+      { ...RESPONDENT_ACCOUNT_HEADER_MOCK, arrears: '125.50' },
+      { ...RESPONDENT_ACCOUNT_HEADER_MOCK, arrearsUpdatedDate: '2026-02-30' },
+    ])('rejects an invalid successful Header response without issuing a retry', async (body) => {
+      const result = firstValueFrom(service.getRespondentAccountHeaderSummary(accountId));
+      const rejection = expect(result).rejects.toThrow('Invalid respondent account response');
+      http.expectOne(headerUrl).flush(body, { status: 200, statusText: 'OK' });
+      await rejection;
+      http.expectNone(headerUrl);
+    });
+
+    it('rejects invalid nested Summary data without issuing a retry', async () => {
+      const result = firstValueFrom(service.getRespondentAccountAtAGlance(accountId));
+      const rejection = expect(result).rejects.toThrow('Invalid respondent account response');
+      http.expectOne(summaryUrl).flush({
+        ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
+        respondent: { ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.respondent, age: -1 },
+      });
+      await rejection;
+      http.expectNone(summaryUrl);
+    });
+
+    it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])('rejects invalid account ID %s before HTTP', (id) => {
+      expect(() => service.getRespondentAccountHeaderSummary(id)).toThrow('Invalid respondent account identifier');
+      expect(() => service.getRespondentAccountAtAGlance(id)).toThrow('Invalid respondent account identifier');
+      http.expectNone((request) => request.url.includes('/respondent-accounts/'));
+    });
+
+    it.each([408, 502, 503, 504])('retries transient status %i once using the shared policy', async (status) => {
+      const problem = { retriable: true, title: 'Summary unavailable', detail: 'Try the summary again.' };
+      const result = firstValueFrom(service.getRespondentAccountAtAGlance(accountId));
+      const rejection = expect(result).rejects.toMatchObject({ status, error: problem });
+      http.expectOne(summaryUrl).flush(problem, { status, statusText: 'Unavailable' });
+      http.expectOne(summaryUrl).flush(problem, { status, statusText: 'Unavailable' });
+      await rejection;
+
+      http.expectNone(summaryUrl);
+      expect(TestBed.inject(GlobalStore).bannerError()).toMatchObject({
+        error: true,
+        title: problem.title,
+        message: problem.detail,
+      });
+    });
+
+    it('lets the shared interceptor navigate after a non-retryable permission denial', async () => {
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      const problem = { retriable: false, title: 'Permission denied' };
+      const result = firstValueFrom(service.getRespondentAccountHeaderSummary(accountId));
+      const rejection = expect(result).rejects.toMatchObject({ status: 403, error: problem });
+      http.expectOne(headerUrl).flush(problem, { status: 403, statusText: 'Forbidden' });
+      await rejection;
+
+      expect(navigate).toHaveBeenCalledExactlyOnceWith(['/error/permission-denied']);
+      http.expectNone(headerUrl);
+    });
   });
 });

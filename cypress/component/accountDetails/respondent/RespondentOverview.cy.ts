@@ -342,10 +342,10 @@ describe('Respondent account details', () => {
             expect($headings).to.have.length(3);
             for (const heading of $headings.toArray()) {
               const divider = heading.nextElementSibling;
-              expect(
-                divider?.matches('hr.govuk-section-break--visible.custom-section-break--4px[aria-hidden="true"]'),
-                'divider below heading',
-              ).to.equal(true);
+              expect(divider?.matches('hr.govuk-section-break[aria-hidden="true"]'), 'divider below heading').to.equal(
+                true,
+              );
+              expect(getComputedStyle(divider!).backgroundColor, 'GOV.UK blue divider').to.equal('rgb(29, 112, 184)');
               expect(getComputedStyle(heading).fontSize, 'section heading size').to.equal('19px');
               const headingBounds = heading.getBoundingClientRect();
               const dividerBounds = divider!.getBoundingClientRect();

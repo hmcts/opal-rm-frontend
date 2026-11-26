@@ -1,9 +1,9 @@
 <ng-template #summaryRows let-rows>
-  <dl class="govuk-body govuk-!-margin-top-0 govuk-!-text-break-word">
+  <dl [class]="style.list">
     @for (row of rows; track row.label) {
-      <div class="govuk-!-margin-bottom-4">
-        <dt class="govuk-!-font-weight-bold govuk-!-margin-bottom-1">{{ row.label }}</dt>
-        <dd class="govuk-!-margin-left-0">
+      <div [class]="style.row">
+        <dt [class]="style.label">{{ row.label }}</dt>
+        <dd [class]="style.value">
           @if (row.lines !== null) {
             @for (line of row.lines; track $index; let last = $last) {
               {{ line }}
@@ -21,15 +21,11 @@
 </ng-template>
 <div class="govuk-grid-row">
   <section class="govuk-grid-column-one-third" aria-labelledby="respondent-account-respondent-heading">
-    <h2
-      id="respondent-account-respondent-heading"
-      class="govuk-heading-m govuk-!-padding-bottom-2 account-summary-heading"
-    >
-      Respondent
-    </h2>
+    <h2 id="respondent-account-respondent-heading" [class]="style.heading">Respondent</h2>
+    <hr [class]="style.hr" aria-hidden="true" />
     @if (restrictedRespondent()) {
-      <p class="govuk-body govuk-!-margin-bottom-2">
-        <opal-lib-moj-badge badgeId="respondent-account-respondent-restriction" badgeClasses="moj-badge--red"
+      <p [class]="style.restriction">
+        <opal-lib-moj-badge badgeId="respondent-account-respondent-restriction" [badgeClasses]="style.restrictedBadge"
           >Restricted</opal-lib-moj-badge
         >
       </p>
@@ -37,15 +33,11 @@
     <ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="respondent()" />
   </section>
   <section class="govuk-grid-column-one-third" aria-labelledby="respondent-account-applicant-heading">
-    <h2
-      id="respondent-account-applicant-heading"
-      class="govuk-heading-m govuk-!-padding-bottom-2 account-summary-heading"
-    >
-      Applicant
-    </h2>
+    <h2 id="respondent-account-applicant-heading" [class]="style.heading">Applicant</h2>
+    <hr [class]="style.hr" aria-hidden="true" />
     @if (restrictedApplicant()) {
-      <p class="govuk-body govuk-!-margin-bottom-2">
-        <opal-lib-moj-badge badgeId="respondent-account-applicant-restriction" badgeClasses="moj-badge--red"
+      <p [class]="style.restriction">
+        <opal-lib-moj-badge badgeId="respondent-account-applicant-restriction" [badgeClasses]="style.restrictedBadge"
           >Restricted</opal-lib-moj-badge
         >
       </p>
@@ -53,13 +45,9 @@
     <ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="applicant()" />
   </section>
   <section class="govuk-grid-column-one-third" aria-labelledby="respondent-account-comments-heading">
-    <h2
-      id="respondent-account-comments-heading"
-      class="govuk-heading-m govuk-!-padding-bottom-2 account-summary-heading"
-    >
-      Comments
-    </h2>
-    <p class="govuk-body govuk-!-text-break-word">
+    <h2 id="respondent-account-comments-heading" [class]="style.heading">Comments</h2>
+    <hr [class]="style.hr" aria-hidden="true" />
+    <p [class]="style.comment">
       @if (comment()) {
         {{ comment() }}
       } @else {
@@ -68,7 +56,7 @@
     </p>
     @if (showActions()) {
       <a
-        class="govuk-link"
+        [class]="style.changeLink"
         id="respondent-account-change-comment"
         [routerLink]="commentLink()"
         [info]="commentInfo()"

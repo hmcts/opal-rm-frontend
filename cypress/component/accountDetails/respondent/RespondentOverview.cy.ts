@@ -338,8 +338,30 @@ describe('Respondent account details', () => {
             expect(respondent.top).to.equal(comments.top);
             expect(respondent.right).to.be.at.most(applicant.left);
             expect(applicant.right).to.be.at.most(comments.left);
-            for (const heading of $sections.find('h2').toArray()) {
-              expect(getComputedStyle(heading).borderBottomWidth).to.equal('4px');
+            const $headings = $sections.children('h2');
+            expect($headings).to.have.length(3);
+            for (const heading of $headings.toArray()) {
+              const divider = heading.nextElementSibling;
+              expect(
+                divider?.matches('hr.govuk-section-break--visible.custom-section-break--4px[aria-hidden="true"]'),
+                'divider below heading',
+              ).to.equal(true);
+              expect(getComputedStyle(heading).fontSize, 'section heading size').to.equal('19px');
+              const headingBounds = heading.getBoundingClientRect();
+              const dividerBounds = divider!.getBoundingClientRect();
+              expect(dividerBounds.height, 'visible divider').to.be.greaterThan(0);
+              expect(dividerBounds.top).to.be.at.least(headingBounds.bottom);
+              expect(dividerBounds.left).to.equal(headingBounds.left);
+              expect(dividerBounds.right).to.equal(headingBounds.right);
+            }
+            const $labels = $sections.find('dt');
+            expect($labels).to.have.length(7);
+            for (const label of $labels.toArray()) {
+              const value = label.nextElementSibling;
+              expect(value?.matches('dd')).to.equal(true);
+              expect(getComputedStyle(label).fontSize, 'field label size').to.equal('16px');
+              expect(getComputedStyle(value!).fontSize, 'field value size').to.equal('16px');
+              expect(value!.getBoundingClientRect().top).to.be.at.least(label.getBoundingClientRect().bottom);
             }
           });
         cy.get('main h1').should('have.length', 1).and(hasText(accountHeading));
@@ -460,7 +482,7 @@ describe('Respondent account details', () => {
           ]) {
             cy.contains('dl dt', label).next('dd').within(expectNoData);
           }
-          cy.contains('h2', 'Comments').next('p').within(expectNoData);
+          cy.get('section[aria-labelledby="respondent-account-comments-heading"]').find('p').within(expectNoData);
           cy.get(S.respondentRestriction).should('not.exist');
           cy.get(S.applicantRestriction).should('not.exist');
         });

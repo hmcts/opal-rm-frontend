@@ -5,13 +5,13 @@ import {
 import { accountDate, applicantRows, headerRows, respondentRows } from './respondent-account-display';
 
 describe('Respondent account display', () => {
-  it('uses supplied age including zero and preserves a leap-day date', () => {
+  it('preserves a leap-day date of birth and omits the supplied age', () => {
     const rows = respondentRows({
       ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
       respondent: { ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.respondent, dateOfBirth: '2000-02-29', age: 0 },
     });
     expect(rows).toContainEqual({ label: 'Date of birth', value: '29 February 2000' });
-    expect(rows).toContainEqual({ label: 'Age', value: '0' });
+    expect(rows.map((row) => row.label)).not.toContain('Age');
   });
 
   it('keeps optional rows when account data is absent', () => {
@@ -27,7 +27,6 @@ describe('Respondent account display', () => {
     });
     expect(rows.filter((row) => row.value === null).map((row) => row.label)).toEqual([
       'Date of birth',
-      'Age',
       'Address',
       'Main email address',
     ]);
@@ -105,23 +104,5 @@ describe('Respondent account display', () => {
         respondent: { ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.respondent, address },
       }),
     ).toContainEqual({ label: 'Address', value: expected });
-  });
-
-  it('omits an age when the date of birth is missing', () => {
-    expect(
-      respondentRows({
-        ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
-        respondent: { ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.respondent, dateOfBirth: null },
-      }),
-    ).toContainEqual({ label: 'Age', value: null });
-  });
-
-  it('omits an age the service does not supply', () => {
-    expect(
-      respondentRows({
-        ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK,
-        respondent: { ...RESPONDENT_ACCOUNT_AT_A_GLANCE_MOCK.respondent, age: undefined },
-      }),
-    ).toContainEqual({ label: 'Age', value: null });
   });
 });

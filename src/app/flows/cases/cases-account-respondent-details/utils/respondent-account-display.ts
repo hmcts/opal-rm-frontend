@@ -35,14 +35,13 @@ export function headerRows(header: RespondentAccountHeaderSummary): AccountDispl
 }
 
 export function respondentRows(summary: RespondentAccountAtAGlance): AccountDisplayRow[] {
-  const { name, dateOfBirth, age, address, mainEmail } = summary.respondent;
+  const { name, dateOfBirth, address, mainEmail } = summary.respondent;
   const addressText = address
     ? [...address.lines, address.postcode, address.country].filter((line) => line?.trim()).join('\n')
     : null;
   return [
     { label: 'Name', value: accountDisplayName(name) },
     { label: 'Date of birth', value: accountDate(dateOfBirth) },
-    { label: 'Age', value: dateOfBirth && age !== undefined ? String(age) : null },
     { label: 'Address', value: addressText || null },
     { label: 'Main email address', value: mainEmail?.trim() || null },
   ];

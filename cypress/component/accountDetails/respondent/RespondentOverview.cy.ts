@@ -355,7 +355,7 @@ describe('Respondent account details', () => {
               expect(dividerBounds.right).to.equal(headingBounds.right);
             }
             const $labels = $sections.find('dt');
-            expect($labels).to.have.length(7);
+            expect($labels).to.have.length(6);
             for (const label of $labels.toArray()) {
               const value = label.nextElementSibling;
               expect(value?.matches('dd')).to.equal(true);
@@ -376,7 +376,7 @@ describe('Respondent account details', () => {
         cy.get(S.tab('at-a-glance')).should('have.attr', 'aria-current', 'page');
         cy.get(S.panel('at-a-glance')).within(() => {
           cy.contains('dt', 'Date of birth').next('dd').should(hasText('28 February 1990'));
-          cy.contains('dt', /^Age$/).next('dd').should(hasText('36'));
+          cy.contains('dt', /^Age$/).should('not.exist');
           cy.contains('dt', /^Address$/)
             .next('dd')
             .should('contain.text', '1 Example Road')
@@ -474,7 +474,6 @@ describe('Respondent account details', () => {
         cy.get(S.panel('at-a-glance')).within(() => {
           for (const label of [
             'Date of birth',
-            'Age',
             'Address',
             'Main email address',
             'Applicant account',

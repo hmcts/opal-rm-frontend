@@ -1,0 +1,35 @@
+# Only send reproducible application build inputs to Docker. Local dependencies,
+# secrets, Git metadata, agent files, and generated evidence stay on the host.
+**
+!Dockerfile
+!.dockerignore
+!.nvmrc
+!package.json
+!yarn.lock
+!version
+!.yarnrc.yml
+!.yarn/
+.yarn/**
+!.yarn/releases/
+!.yarn/releases/**
+!.yarn/plugins/
+!.yarn/plugins/**
+!.yarn/patches/
+!.yarn/patches/**
+!patches/
+!patches/**
+!angular.json
+!tsconfig.json
+!tsconfig.app.json
+!tsconfig.server.json
+!server.ts
+!server-setup.ts
+!src/
+!src/**
+!config/
+config/**
+!config/default.json
+!config/production.json
+!config/custom-environment-variables.json
+**/.env*
+**/.opal.env

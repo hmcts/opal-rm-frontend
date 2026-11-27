@@ -218,6 +218,8 @@ describe('All rejected cases native keyboard and accessibility', () => {
   it('AC2. should traverse all six headers and respondent with native Tab and Enter', { tags: buildTags() }, () => {
     setupAllRejected();
     cy.get(S.allRejectedHeading).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.scrollRegion).should('be.focused');
     for (const key of ['respondent', 'applicant', 'caseType', 'submittedByName', 'created', 'statusDate']) {
       cy.press(Cypress.Keyboard.Keys.TAB);
       cy.get(S.sort(key)).should('be.focused');
@@ -329,6 +331,14 @@ describe('All rejected cases native keyboard and accessibility', () => {
       cy.viewport(320, 900);
       setupAllRejected();
       cy.get(S.allRejectedHeading).should('be.focused');
+      cy.get(S.scrollRegion).should(($region) => {
+        expect($region.prop('tagName')).to.equal('DIV');
+        expect($region.attr('role')).to.equal('region');
+        expect($region.attr('tabindex')).to.equal('0');
+        expect($region.attr('aria-label')).to.equal('All rejected cases');
+      });
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.scrollRegion).should('be.focused');
       for (const key of ['respondent', 'applicant', 'caseType', 'submittedByName', 'created', 'statusDate']) {
         cy.press(Cypress.Keyboard.Keys.TAB);
         cy.get(S.sort(key)).should('be.focused');

@@ -6,7 +6,7 @@ import { GovukCancelLinkComponent } from '@hmcts/opal-frontend-common/components
 import { GovukErrorSummaryComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-error-summary';
 import { GovukTextInputComponent } from '@hmcts/opal-frontend-common/components/govuk/govuk-text-input';
 import { CapitalisationDirective } from '@hmcts/opal-frontend-common/directives/capitalisation';
-import { EMAIL_ADDRESS_PATTERN } from '@hmcts/opal-frontend-common/constants';
+import { ASCII_ALPHANUMERIC_PATTERN, EMAIL_ADDRESS_PATTERN } from '@hmcts/opal-frontend-common/constants';
 import { optionalMaxLengthValidator } from '@hmcts/opal-frontend-common/validators/optional-max-length';
 import { patternValidator } from '@hmcts/opal-frontend-common/validators/pattern-validator';
 import { Subject } from 'rxjs';
@@ -168,6 +168,7 @@ export class CasesCreateCasefileApplicantOrganisationFormComponent
       ]),
       create_casefile_applicant_organisation_foreign_authority_reference: new FormControl<string | null>(null, [
         casesCreateCasefileApplicantOrganisationTrimRequiredValidator,
+        patternValidator(ASCII_ALPHANUMERIC_PATTERN, 'pattern'),
         Validators.maxLength(40),
       ]),
       create_casefile_applicant_organisation_main_email_address: contactControls.mainEmailAddress,

@@ -2,6 +2,7 @@ export const APPLICANT_ORGANISATION_ERROR_MESSAGES = {
   bankTypeRequired: 'Select an option',
   organisationName: 'Enter organisation name',
   foreignAuthorityReference: 'Enter a foreign authority reference number',
+  foreignAuthorityReferenceFormat: 'Foreign authority reference must contain letters and numbers only',
   mainEmailFormat: 'Enter an email address in the correct format, like name@example.com',
   mainTelephoneMaxLength: 'Main telephone number must be 35 characters or fewer',
   address: 'Enter an address',

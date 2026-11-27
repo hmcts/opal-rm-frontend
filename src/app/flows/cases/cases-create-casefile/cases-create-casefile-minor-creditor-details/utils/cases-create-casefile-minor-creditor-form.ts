@@ -7,6 +7,7 @@ import {
   type ValidatorFn,
 } from '@angular/forms';
 import { createCasesCreateCasefileCountrySelectionValidator } from '../../validators/cases-create-casefile-country-selection.validator';
+import { maxCodePointLengthValidator } from '../../validators/cases-create-casefile-max-code-point-length.validator';
 import { CASES_CREATE_CASEFILE_MINOR_CREDITOR_FIELD_NAMES as F } from '../constants/cases-create-casefile-minor-creditor-field-names.constant';
 import type { ICasesCreateCasefileMinorCreditorFormData } from '../interfaces/cases-create-casefile-minor-creditor-form-data.interface';
 
@@ -61,7 +62,7 @@ const NON_UK_BRANCH: Branch = [
   { name: F.nonUkPaymentReference, validators: requiredText(18) },
   { name: F.nonUkBicSwiftCode, validators: [Validators.pattern(/^[A-Za-z0-9]{8,11}$/)] },
   { name: F.nonUkIban, validators: [Validators.pattern(/^[A-Za-z0-9]{1,34}$/)] },
-  { name: F.nonUkBankName, validators: [] },
+  { name: F.nonUkBankName, validators: [maxCodePointLengthValidator(100)] },
   { name: F.nonUkBranchSortCode, validators: [Validators.pattern(/^\d+$/), Validators.maxLength(12)] },
 ];
 

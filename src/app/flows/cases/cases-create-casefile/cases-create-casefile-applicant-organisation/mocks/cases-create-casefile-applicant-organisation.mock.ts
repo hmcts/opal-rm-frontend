@@ -33,7 +33,7 @@ const emptyFormData: ICasesCreateCasefileApplicantOrganisationFormData = {
 const validUkFormData: ICasesCreateCasefileApplicantOrganisationFormData = {
   ...emptyFormData,
   create_casefile_applicant_organisation_name: 'Example Organisation',
-  create_casefile_applicant_organisation_foreign_authority_reference: 'FA-9803',
+  create_casefile_applicant_organisation_foreign_authority_reference: 'FA9803',
   create_casefile_applicant_organisation_main_email_address: 'main@example.org',
   create_casefile_applicant_organisation_other_email_address: 'other@example.org',
   create_casefile_applicant_organisation_main_telephone_number: '020 7946 0100',
@@ -46,7 +46,7 @@ const validUkFormData: ICasesCreateCasefileApplicantOrganisationFormData = {
   create_casefile_applicant_organisation_postal_or_zip_code: 'EX1 1MP',
   create_casefile_applicant_organisation_country_id: 826,
   create_casefile_applicant_organisation_bank_type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK,
-  create_casefile_applicant_organisation_uk_bank_name_on_account: 'Example Organisation',
+  create_casefile_applicant_organisation_uk_bank_name_on_account: 'Example Org',
   create_casefile_applicant_organisation_uk_bank_sort_code: '112233',
   create_casefile_applicant_organisation_uk_bank_account_number: '12345678',
   create_casefile_applicant_organisation_uk_bank_payment_reference: 'PAY-9803',
@@ -54,7 +54,7 @@ const validUkFormData: ICasesCreateCasefileApplicantOrganisationFormData = {
 
 const savedUk: ICasesCreateCasefileApplicantOrganisation = {
   organisationName: 'Example Organisation',
-  foreignAuthorityReference: 'FA-9803',
+  foreignAuthorityReference: 'FA9803',
   contactDetails: {
     mainEmailAddress: 'main@example.org',
     otherEmailAddress: 'other@example.org',
@@ -72,7 +72,7 @@ const savedUk: ICasesCreateCasefileApplicantOrganisation = {
   },
   bankDetails: {
     type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK,
-    nameOnAccount: 'Example Organisation',
+    nameOnAccount: 'Example Org',
     sortCode: '112233',
     accountNumber: '12345678',
     paymentReference: 'PAY-9803',
@@ -86,7 +86,7 @@ const validNonUkFormData: ICasesCreateCasefileApplicantOrganisationFormData = {
   create_casefile_applicant_organisation_uk_bank_sort_code: null,
   create_casefile_applicant_organisation_uk_bank_account_number: null,
   create_casefile_applicant_organisation_uk_bank_payment_reference: null,
-  create_casefile_applicant_organisation_non_uk_bank_name_on_account: 'Example Organisation International',
+  create_casefile_applicant_organisation_non_uk_bank_name_on_account: 'Example Intl Org',
   create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: 'EXAMGB2L',
   create_casefile_applicant_organisation_non_uk_bank_iban: 'GB29NWBK60161331926819',
   create_casefile_applicant_organisation_non_uk_bank_payment_reference: 'INTL-9803',
@@ -99,7 +99,7 @@ const savedNonUk: ICasesCreateCasefileApplicantOrganisation = {
   ...savedUk,
   bankDetails: {
     type: CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK,
-    nameOnAccount: 'Example Organisation International',
+    nameOnAccount: 'Example Intl Org',
     bicSwiftCode: 'EXAMGB2L',
     iban: 'GB29NWBK60161331926819',
     paymentReference: 'INTL-9803',

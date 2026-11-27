@@ -3,6 +3,7 @@ import { setupInputterDashboard, setupResolvedInputterDashboard } from './setup/
 import { dashboardFixtures, populatedReflowFixtures } from './mocks/dashboard.mock';
 import { CasesDraftSelectors as S } from '../../../shared/selectors/cases-draft.selectors';
 import { createCasesDraftSummary } from 'src/app/flows/cases/cases-draft/mocks/cases-draft-summary.mock';
+import { CASES_DRAFT_TABS as TABS } from 'src/app/flows/cases/cases-draft/constants/cases-draft-tabs.constant';
 import { CASES_DRAFT_ROUTING_PATHS } from 'src/app/flows/cases/cases-draft/routing/constants/cases-draft-routing-paths.constant';
 import { type CasesDraftInputterTab } from 'src/app/flows/cases/cases-draft/types/cases-draft-tab.type';
 import { pressDashboardEnter } from '../../../support/utils/press-dashboard-enter';
@@ -362,12 +363,15 @@ describe('Inputter dashboard accessibility', () => {
       setupInputterDashboard({ tab, rows });
       cy.get(S.heading).should('be.focused');
       cy.document().then((document) => expect(document.documentElement.scrollWidth).to.be.at.most(320));
-      cy.get(S.scrollRegion).should('have.prop', 'tagName', 'SECTION');
-      cy.get(S.scrollRegion).should('not.have.attr', 'role');
-      cy.get(S.scrollRegion).should('not.have.attr', 'tabindex');
-      cy.get(S.scrollRegion).should('have.attr', 'aria-label').and('include', 'cases');
-      const firstColumn = tab === 'approved' ? 'respondentAccount' : 'respondent';
-      cy.get(S.sort(firstColumn)).focus().should('be.focused');
+      cy.get(S.scrollRegion).should(($region) => {
+        expect($region.prop('tagName')).to.equal('DIV');
+        expect($region.attr('role')).to.equal('region');
+        expect($region.attr('tabindex')).to.equal('0');
+        expect($region.attr('aria-label')).to.equal(TABS[tab].label + ' cases');
+      });
+      cy.get(S.tab('deleted')).focus();
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.scrollRegion).should('be.focused').and('have.prop', 'scrollLeft', 0);
       cy.then(async () => {
         for (const type of ['keyDown', 'keyUp']) {
           await Cypress.automation('remote:debugger:protocol', {
@@ -395,7 +399,7 @@ describe('Inputter dashboard accessibility', () => {
           'approved',
         );
       else if (tab !== 'in-review') columns.push('statusDate');
-      for (const column of columns.slice(1)) {
+      for (const column of columns) {
         cy.press(Cypress.Keyboard.Keys.TAB);
         cy.get(S.sort(column)).should('be.focused');
       }

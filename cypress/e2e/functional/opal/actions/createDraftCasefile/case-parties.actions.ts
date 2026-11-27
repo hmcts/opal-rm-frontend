@@ -156,7 +156,7 @@ export class CasePartiesActions {
   public populateOrganisation(): void {
     this.assertCountryOrder(S.applicantOrganisation.countryAutocomplete, S.applicantOrganisation.countryOptions);
     cy.get(S.applicantOrganisation.organisationName).type('Synthetic Organisation', { delay: 0 });
-    cy.get(S.applicantOrganisation.foreignAuthorityReference).type('SYNTHETIC-ORG', { delay: 0 });
+    cy.get(S.applicantOrganisation.foreignAuthorityReference).type('SYNTHETICORG1', { delay: 0 });
     cy.get(S.applicantOrganisation.addressLine1).type('3 Test Street', { delay: 0 });
     cy.get(S.applicantOrganisation.bankTypeRadio('none')).check();
   }
@@ -245,7 +245,7 @@ export class CasePartiesActions {
     cy.get(S.caseDetails.applicantLink).click();
     cy.location('pathname').should('eq', '/' + PATHS.root + '/' + PATHS.children.applicantOrganisation);
     cy.get(S.applicantOrganisation.organisationName).should('have.value', 'SYNTHETIC ORGANISATION');
-    cy.get(S.applicantOrganisation.foreignAuthorityReference).should('have.value', 'SYNTHETIC-ORG');
+    cy.get(S.applicantOrganisation.foreignAuthorityReference).should('have.value', 'SYNTHETICORG1');
     cy.get(S.applicantOrganisation.addressLine1).should('have.value', '3 Test Street');
     cy.get(S.applicantOrganisation.countryAutocomplete).should('have.value', 'United Kingdom');
     cy.get(S.applicantOrganisation.bankTypeRadio('none')).should('be.checked');

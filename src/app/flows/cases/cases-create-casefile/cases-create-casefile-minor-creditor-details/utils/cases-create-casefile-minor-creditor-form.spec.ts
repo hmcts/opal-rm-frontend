@@ -174,10 +174,24 @@ describe('minor creditor form rules', () => {
     }
   });
 
-  it('does not impose an unapproved length limit on the optional non-UK bank name', () => {
+  it('allows a blank non-UK bank name and limits a supplied name to 100 characters', () => {
     const form = setBank('non-uk');
-    form.controls[F.nonUkBankName].setValue('A bank name '.repeat(100));
-    expect(form.controls[F.nonUkBankName].valid).toBe(true);
+    const control = form.controls[F.nonUkBankName];
+
+    expect(control.valid).toBe(true);
+
+    control.setValue('A'.repeat(100));
+    expect(control.valid).toBe(true);
+
+    control.setValue('A'.repeat(101));
+    expect(control.hasError('maxlength')).toBe(true);
+
+    const unicodeNameAtLimit = '𠮷' + 'A'.repeat(99);
+    control.setValue(unicodeNameAtLimit);
+    expect(control.valid).toBe(true);
+
+    control.setValue(unicodeNameAtLimit + 'A');
+    expect(control.errors).toEqual({ maxlength: { requiredLength: 100, actualLength: 101 } });
   });
 });
 

@@ -40,6 +40,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS = {
     },
     ukBankNameOnAccount: {
       required: createCasesCreateCasefileError('Enter name on account', 1),
+      ...createCasesCreateCasefileMaxLengthError('Name on account', 18, 3),
     },
     ukBankSortCode: {
       required: createCasesCreateCasefileError('Enter sort code', 1),
@@ -53,12 +54,15 @@ export const CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS = {
     },
     ukBankPaymentReference: {
       required: createCasesCreateCasefileError('Enter UK bank account payment reference', 1),
+      ...createCasesCreateCasefileMaxLengthError('Payment reference', 18, 3),
     },
     nonUkBankPaymentReference: {
       required: createCasesCreateCasefileError('Enter non-UK bank account payment reference', 1),
+      ...createCasesCreateCasefileMaxLengthError('Payment reference', 18, 3),
     },
     nonUkBankNameOnAccount: {
       required: createCasesCreateCasefileError('Enter name on account', 1),
+      ...createCasesCreateCasefileMaxLengthError('Name on account', 18, 3),
     },
     nonUkBankAccountNumber: createCasesCreateCasefileMaxLengthError('Account number', 20, 1),
     nonUkBankBicSwiftCode: {
@@ -77,6 +81,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS = {
         2,
       ),
     },
+    nonUkBankName: createCasesCreateCasefileMaxLengthError('Bank name', 100, 1),
     nonUkBankBranchSortCode: {
       branchSortCodePattern: createCasesCreateCasefileError('Enter correct branch or sort code', 2),
       branchSortCodeLength: createCasesCreateCasefileError('Branch or sort code must be 12 numbers or fewer', 3),

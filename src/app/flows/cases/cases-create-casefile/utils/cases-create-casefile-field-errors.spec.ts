@@ -22,6 +22,7 @@ describe('cases-create-casefile-field-errors', () => {
     'nonUkBankAccountNumber',
     'nonUkBankBicSwiftCode',
     'nonUkBankIban',
+    'nonUkBankName',
     'nonUkBankBranchSortCode',
   ] as const;
 
@@ -224,7 +225,10 @@ describe('cases-create-casefile-field-errors', () => {
     ['create_casefile_applicant_individual_bank_type', { required: { message: 'Select an option', priority: 1 } }],
     [
       'create_casefile_applicant_individual_uk_bank_name_on_account',
-      { required: { message: 'Enter name on account', priority: 1 } },
+      {
+        required: { message: 'Enter name on account', priority: 1 },
+        maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_individual_uk_bank_sort_code',
@@ -244,15 +248,24 @@ describe('cases-create-casefile-field-errors', () => {
     ],
     [
       'create_casefile_applicant_individual_uk_bank_payment_reference',
-      { required: { message: 'Enter UK bank account payment reference', priority: 1 } },
+      {
+        required: { message: 'Enter UK bank account payment reference', priority: 1 },
+        maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_individual_non_uk_bank_payment_reference',
-      { required: { message: 'Enter non-UK bank account payment reference', priority: 1 } },
+      {
+        required: { message: 'Enter non-UK bank account payment reference', priority: 1 },
+        maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_individual_non_uk_bank_name_on_account',
-      { required: { message: 'Enter name on account', priority: 1 } },
+      {
+        required: { message: 'Enter name on account', priority: 1 },
+        maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_individual_non_uk_bank_account_number',
@@ -268,6 +281,10 @@ describe('cases-create-casefile-field-errors', () => {
     [
       'create_casefile_applicant_individual_non_uk_bank_iban',
       { internationalIdentifierPattern: { message: 'Enter correct BIC or SWIFT code or IBAN number', priority: 2 } },
+    ],
+    [
+      'create_casefile_applicant_individual_non_uk_bank_name',
+      { maxlength: { message: 'Bank name must be 100 characters or fewer', priority: 1 } },
     ],
     [
       'create_casefile_applicant_individual_non_uk_bank_branch_sort_code',
@@ -297,6 +314,7 @@ describe('cases-create-casefile-field-errors', () => {
       'create_casefile_applicant_organisation_foreign_authority_reference',
       {
         required: { message: 'Enter a foreign authority reference number', priority: 1 },
+        pattern: { message: 'Foreign authority reference must contain letters and numbers only', priority: 2 },
         maxlength: { message: 'Foreign authority reference must be 40 characters or fewer', priority: 3 },
       },
     ],
@@ -353,7 +371,10 @@ describe('cases-create-casefile-field-errors', () => {
     ['create_casefile_applicant_organisation_bank_type', { required: { message: 'Select an option', priority: 1 } }],
     [
       'create_casefile_applicant_organisation_uk_bank_name_on_account',
-      { required: { message: 'Enter name on account', priority: 1 } },
+      {
+        required: { message: 'Enter name on account', priority: 1 },
+        maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_organisation_uk_bank_sort_code',
@@ -373,11 +394,17 @@ describe('cases-create-casefile-field-errors', () => {
     ],
     [
       'create_casefile_applicant_organisation_uk_bank_payment_reference',
-      { required: { message: 'Enter UK bank account payment reference', priority: 1 } },
+      {
+        required: { message: 'Enter UK bank account payment reference', priority: 1 },
+        maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_name_on_account',
-      { required: { message: 'Enter name on account', priority: 1 } },
+      {
+        required: { message: 'Enter name on account', priority: 1 },
+        maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_bic_swift_code',
@@ -392,9 +419,15 @@ describe('cases-create-casefile-field-errors', () => {
     ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_payment_reference',
-      { required: { message: 'Enter non-UK bank account payment reference', priority: 1 } },
+      {
+        required: { message: 'Enter non-UK bank account payment reference', priority: 1 },
+        maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
+      },
     ],
-    ['create_casefile_applicant_organisation_non_uk_bank_name', {}],
+    [
+      'create_casefile_applicant_organisation_non_uk_bank_name',
+      { maxlength: { message: 'Bank name must be 100 characters or fewer', priority: 1 } },
+    ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_branch_sort_code',
       {

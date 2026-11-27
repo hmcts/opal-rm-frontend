@@ -12,6 +12,7 @@ import {
   casesCreateCasefileApplicantUkAccountNumberValidator,
   casesCreateCasefileApplicantUkSortCodeValidator,
 } from '../validators/cases-create-casefile-applicant-bank.validator';
+import { maxCodePointLengthValidator } from '../validators/cases-create-casefile-max-code-point-length.validator';
 import type { ICasesCreateCasefileApplicantBankControls } from './cases-create-casefile-form-control-builders';
 
 type CasesCreateCasefileApplicantNonUkBankFieldName = keyof Pick<
@@ -86,7 +87,7 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     {
       control: controls.ukBankNameOnAccount,
       fieldName: fieldNames.ukNameOnAccount,
-      validators: [requiredTextValidator],
+      validators: [requiredTextValidator, maxCodePointLengthValidator(18)],
     },
     {
       control: controls.ukBankSortCode,
@@ -101,14 +102,14 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     {
       control: controls.ukBankPaymentReference,
       fieldName: fieldNames.ukPaymentReference,
-      validators: [requiredTextValidator],
+      validators: [requiredTextValidator, maxCodePointLengthValidator(18)],
     },
   ];
   const nonUkBranchByFieldName: Record<CasesCreateCasefileApplicantNonUkBankFieldName, IBankBranchControl> = {
     nonUkNameOnAccount: {
       control: controls.nonUkBankNameOnAccount,
       fieldName: fieldNames.nonUkNameOnAccount,
-      validators: [requiredTextValidator],
+      validators: [requiredTextValidator, maxCodePointLengthValidator(18)],
     },
     nonUkAccountNumber: {
       control: controls.nonUkBankAccountNumber,
@@ -118,7 +119,7 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     nonUkPaymentReference: {
       control: controls.nonUkBankPaymentReference,
       fieldName: fieldNames.nonUkPaymentReference,
-      validators: [requiredTextValidator],
+      validators: [requiredTextValidator, maxCodePointLengthValidator(18)],
     },
     nonUkBicSwiftCode: {
       control: controls.nonUkBankBicSwiftCode,
@@ -136,7 +137,7 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     nonUkBankName: {
       control: controls.nonUkBankName,
       fieldName: fieldNames.nonUkBankName,
-      validators: [],
+      validators: [maxCodePointLengthValidator(100)],
     },
     nonUkBranchSortCode: {
       control: controls.nonUkBankBranchSortCode,

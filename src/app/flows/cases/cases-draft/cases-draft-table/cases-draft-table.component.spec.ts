@@ -68,13 +68,14 @@ describe('CasesDraftTableComponent rendered table', () => {
       ),
     ).toEqual(columns);
   });
-  it('names each native table region and leaves keyboard focus on its sort controls', () => {
+  it('renders a named, focusable scrollable pane with sort controls', () => {
     const element: HTMLElement = render().nativeElement;
     const region = element.querySelector('#cases-draft-table-scroll');
-    expect(region?.tagName).toBe('SECTION');
+    expect(region?.tagName).toBe('DIV');
+    expect(region?.classList.contains('moj-scrollable-pane')).toBe(true);
     expect(region?.getAttribute('aria-label')).toBe('In review cases');
-    expect(region?.hasAttribute('role')).toBe(false);
-    expect(region?.hasAttribute('tabindex')).toBe(false);
+    expect(region?.getAttribute('role')).toBe('region');
+    expect(region?.getAttribute('tabindex')).toBe('0');
     expect(region?.querySelectorAll('th button')).toHaveLength(4);
   });
   it('renders published accounts as text in snapshot order', () => {

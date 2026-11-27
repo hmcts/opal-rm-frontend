@@ -15,6 +15,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS: ICasesCr
     },
     create_casefile_applicant_organisation_foreign_authority_reference: {
       required: createCasesCreateCasefileError('Enter a foreign authority reference number', 1),
+      pattern: createCasesCreateCasefileError('Foreign authority reference must contain letters and numbers only', 2),
       ...createCasesCreateCasefileMaxLengthError('Foreign authority reference', 40, 3),
     },
     ...createCasesCreateCasefileApplicantContactAddressFieldErrors(FIELD_NAMES),
@@ -35,7 +36,8 @@ export const CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS: ICasesCr
       CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankIban,
     create_casefile_applicant_organisation_non_uk_bank_payment_reference:
       CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankPaymentReference,
-    create_casefile_applicant_organisation_non_uk_bank_name: {},
+    create_casefile_applicant_organisation_non_uk_bank_name:
+      CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankName,
     create_casefile_applicant_organisation_non_uk_bank_branch_sort_code:
       CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankBranchSortCode,
     create_casefile_applicant_organisation_non_uk_bank_account_number:

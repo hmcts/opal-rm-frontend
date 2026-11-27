@@ -135,7 +135,7 @@ describe('CasesCreateCasefileApplicantOrganisationComponent', () => {
     fixture.detectChanges();
     const enteredValues = {
       create_casefile_applicant_organisation_name: 'Example Authority',
-      create_casefile_applicant_organisation_foreign_authority_reference: 'fa-Ab12',
+      create_casefile_applicant_organisation_foreign_authority_reference: 'faAb12',
       create_casefile_applicant_organisation_postal_or_zip_code: 'ab1 2cd',
       create_casefile_applicant_organisation_uk_bank_payment_reference: 'pay-Ab12',
     };
@@ -154,7 +154,7 @@ describe('CasesCreateCasefileApplicantOrganisationComponent', () => {
     expect(store.applicantDetails()).toEqual({
       ...savedApplicant,
       organisationName: 'EXAMPLE AUTHORITY',
-      foreignAuthorityReference: 'FA-AB12',
+      foreignAuthorityReference: 'FAAB12',
       contactDetails: {
         ...savedApplicant.contactDetails,
         address: {

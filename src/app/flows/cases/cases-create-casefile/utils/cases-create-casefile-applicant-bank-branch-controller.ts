@@ -12,6 +12,7 @@ import {
   casesCreateCasefileApplicantUkAccountNumberValidator,
   casesCreateCasefileApplicantUkSortCodeValidator,
 } from '../validators/cases-create-casefile-applicant-bank.validator';
+import { maxCodePointLengthValidator } from '../validators/cases-create-casefile-max-code-point-length.validator';
 import type { ICasesCreateCasefileApplicantBankControls } from './cases-create-casefile-form-control-builders';
 
 type CasesCreateCasefileApplicantNonUkBankFieldName = keyof Pick<
@@ -136,7 +137,7 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     nonUkBankName: {
       control: controls.nonUkBankName,
       fieldName: fieldNames.nonUkBankName,
-      validators: [],
+      validators: [maxCodePointLengthValidator(100)],
     },
     nonUkBranchSortCode: {
       control: controls.nonUkBankBranchSortCode,

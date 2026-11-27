@@ -121,7 +121,9 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     create_casefile_applicant_organisation_non_uk_bank_payment_reference: {
       required: { message: 'Enter non-UK bank account payment reference', priority: 1 },
     },
-    create_casefile_applicant_organisation_non_uk_bank_name: {},
+    create_casefile_applicant_organisation_non_uk_bank_name: {
+      maxlength: { message: 'Bank name must be 100 characters or fewer', priority: 1 },
+    },
     create_casefile_applicant_organisation_non_uk_bank_branch_sort_code: {
       branchSortCodePattern: { message: 'Enter correct branch or sort code', priority: 2 },
       branchSortCodeLength: { message: 'Branch or sort code must be 12 numbers or fewer', priority: 3 },

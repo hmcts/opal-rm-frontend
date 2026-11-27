@@ -127,6 +127,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_INDIVIDUAL_FIELD_ERRORS: ICasesCrea
     [FIELD_NAMES.nonUkBankAccountNumber]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankAccountNumber,
     [FIELD_NAMES.nonUkBankBicSwiftCode]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankBicSwiftCode,
     [FIELD_NAMES.nonUkBankIban]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankIban,
+    [FIELD_NAMES.nonUkBankName]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankName,
     [FIELD_NAMES.nonUkBankBranchSortCode]: CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS.bank.nonUkBankBranchSortCode,
     create_casefile_applicant_individual_restricted_information_reason: {
       required: createCasesCreateCasefileError('Enter a reason', 1),

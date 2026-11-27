@@ -70,7 +70,7 @@ export const CASES_CREATE_CASEFILE_MINOR_CREDITOR_FIELD_ERRORS: IAbstractFormBas
   [F.nonUkIban]: {
     pattern: error('Enter correct BIC or SWIFT code or IBAN number', 2),
   },
-  [F.nonUkBankName]: {},
+  [F.nonUkBankName]: { maxlength: error('Bank name must be 100 characters or fewer', 1) },
   [F.nonUkBranchSortCode]: {
     pattern: error('Enter correct branch or sort code', 2),
     maxlength: error('Branch or sort code must be 12 numbers or fewer', 3),

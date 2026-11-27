@@ -77,6 +77,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS = {
         2,
       ),
     },
+    nonUkBankName: createCasesCreateCasefileMaxLengthError('Bank name', 100, 1),
     nonUkBankBranchSortCode: {
       branchSortCodePattern: createCasesCreateCasefileError('Enter correct branch or sort code', 2),
       branchSortCodeLength: createCasesCreateCasefileError('Branch or sort code must be 12 numbers or fewer', 3),

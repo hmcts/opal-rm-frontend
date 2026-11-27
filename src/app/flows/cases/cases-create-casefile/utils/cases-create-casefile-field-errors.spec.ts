@@ -22,6 +22,7 @@ describe('cases-create-casefile-field-errors', () => {
     'nonUkBankAccountNumber',
     'nonUkBankBicSwiftCode',
     'nonUkBankIban',
+    'nonUkBankName',
     'nonUkBankBranchSortCode',
   ] as const;
 
@@ -270,6 +271,10 @@ describe('cases-create-casefile-field-errors', () => {
       { internationalIdentifierPattern: { message: 'Enter correct BIC or SWIFT code or IBAN number', priority: 2 } },
     ],
     [
+      'create_casefile_applicant_individual_non_uk_bank_name',
+      { maxlength: { message: 'Bank name must be 100 characters or fewer', priority: 1 } },
+    ],
+    [
       'create_casefile_applicant_individual_non_uk_bank_branch_sort_code',
       {
         branchSortCodePattern: { message: 'Enter correct branch or sort code', priority: 2 },
@@ -394,7 +399,10 @@ describe('cases-create-casefile-field-errors', () => {
       'create_casefile_applicant_organisation_non_uk_bank_payment_reference',
       { required: { message: 'Enter non-UK bank account payment reference', priority: 1 } },
     ],
-    ['create_casefile_applicant_organisation_non_uk_bank_name', {}],
+    [
+      'create_casefile_applicant_organisation_non_uk_bank_name',
+      { maxlength: { message: 'Bank name must be 100 characters or fewer', priority: 1 } },
+    ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_branch_sort_code',
       {

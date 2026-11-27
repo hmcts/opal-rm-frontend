@@ -47,6 +47,10 @@
       },
       "releases": {
         "release-1c-rm-create-case-files": { "__name": "RELEASE_1C_RM_CREATE_CASE_FILES_ENABLED", "__format": "json" },
+        "release-1c-rm-account-details": {
+          "__name": "RELEASE_1C_RM_ACCOUNT_DETAILS_ENABLED",
+          "__format": "json"
+        },
         "release-1a": { "__name": "RELEASE_1A_ENABLED", "__format": "json" },
         "release-1b": { "__name": "RELEASE_1B_ENABLED", "__format": "json" },
         "release-1c-write-off": { "__name": "RELEASE_1C_WRITE_OFF_ENABLED", "__format": "json" },

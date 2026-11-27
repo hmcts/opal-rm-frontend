@@ -1,0 +1,76 @@
+<div class="govuk-grid-column-full" [attr.inert]="state.unavailable() ? '' : null">
+  <app-respondent-account-header
+    [header]="loadedHeader()"
+    [showActions]="showActions()"
+    [actionInfo]="actionInfo()"
+    [freshness]="state.freshness()"
+    [loading]="loading()"
+    (refresh)="refreshAccount()"
+    (dismissConfirmation)="dismissFreshness()"
+  />
+
+  <ng-template #readError let-error let-read="read" let-label="label">
+    @if (error) {
+      @let errorCode = error.operationId ? 'Error code: ' + error.operationId : '';
+      <opal-lib-moj-alert
+        type="error"
+        [id]="'respondent-account-read-error-' + read"
+        [ariaLabel]="label + '. ' + error.title + (errorCode ? '. ' + errorCode : '')"
+      >
+        <opal-lib-moj-alert-icon icon type="error" />
+        <opal-lib-moj-alert-content content>
+          <opal-lib-moj-alert-content-heading>{{ error.title }}</opal-lib-moj-alert-content-heading>
+          <opal-lib-moj-alert-content-text>{{ error.message }}</opal-lib-moj-alert-content-text>
+          @if (errorCode) {
+            <opal-lib-moj-alert-content-text>
+              <p class="govuk-body-s govuk-dark-grey-text-colour govuk-!-margin-top-1">{{ errorCode }}</p>
+            </opal-lib-moj-alert-content-text>
+          }
+          <button
+            type="button"
+            class="govuk-button govuk-button--secondary"
+            [id]="'respondent-account-retry-' + read"
+            [attr.aria-label]="'Retry ' + label"
+            (click)="retryRead(read)"
+          >
+            Retry
+          </button>
+        </opal-lib-moj-alert-content>
+      </opal-lib-moj-alert>
+    }
+  </ng-template>
+  <ng-container [ngTemplateOutlet]="readError" [ngTemplateOutletContext]="headerError()" />
+  <ng-container [ngTemplateOutlet]="readError" [ngTemplateOutletContext]="summaryError()" />
+  <opal-lib-custom-deferred-live-region-announcement
+    id="respondent-account-loading"
+    [message]="loading() ? 'Loading account details' : ''"
+  />
+  @if (loading()) {
+    <p class="govuk-body" aria-hidden="true">Loading account details</p>
+  }
+  <opal-lib-moj-sub-navigation subNavId="respondent-account-tabs">
+    @for (item of tabs; track item.key) {
+      <li class="moj-sub-navigation__item" [class.moj-sub-navigation__item--active]="tab() === item.key">
+        <a
+          class="moj-sub-navigation__link"
+          [id]="'respondent-account-tab-' + item.key"
+          [routerLink]="[]"
+          [fragment]="fragmentFor(item.key)"
+          [attr.aria-current]="tab() === item.key ? 'page' : null"
+          >{{ item.label }}</a
+        >
+      </li>
+    }
+  </opal-lib-moj-sub-navigation>
+  <div [id]="'respondent-account-panel-' + tab()">
+    @if (tab() === 'at-a-glance') {
+      @if (loadedSummary(); as summary) {
+        <app-respondent-account-at-a-glance
+          [summary]="summary"
+          [showActions]="showActions()"
+          [actionInfo]="actionInfo()"
+        />
+      }
+    }
+  </div>
+</div>

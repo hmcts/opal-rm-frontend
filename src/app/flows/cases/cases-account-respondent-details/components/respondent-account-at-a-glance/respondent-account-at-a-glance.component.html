@@ -1,0 +1,73 @@
+<ng-template #summaryRows let-rows>
+  <dl [class]="style.list">
+    @for (row of rows; track row.label) {
+      <div [class]="style.row">
+        <dt [class]="style.label">{{ row.label }}</dt>
+        <dd [class]="style.value">
+          @if (row.lines !== null) {
+            @for (line of row.lines; track $index; let last = $last) {
+              {{ line }}
+              @if (!last) {
+                <br />
+              }
+            }
+          } @else {
+            <span aria-hidden="true">—</span><span class="govuk-visually-hidden">No data</span>
+          }
+        </dd>
+      </div>
+    }
+  </dl>
+</ng-template>
+<div class="govuk-grid-row">
+  <section class="govuk-grid-column-one-third" aria-labelledby="respondent-account-respondent-heading">
+    <h2 id="respondent-account-respondent-heading" [class]="style.heading">Respondent</h2>
+    <hr [class]="style.hr" aria-hidden="true" />
+    @if (restrictedRespondent()) {
+      <p [class]="style.restriction">
+        <opal-lib-moj-badge badgeId="respondent-account-respondent-restriction" [badgeClasses]="style.restrictedBadge"
+          >Restricted</opal-lib-moj-badge
+        >
+      </p>
+    }
+    <ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="respondent()" />
+  </section>
+  <section class="govuk-grid-column-one-third" aria-labelledby="respondent-account-applicant-heading">
+    <h2 id="respondent-account-applicant-heading" [class]="style.heading">Applicant</h2>
+    <hr [class]="style.hr" aria-hidden="true" />
+    @if (restrictedApplicant()) {
+      <p [class]="style.restriction">
+        <opal-lib-moj-badge badgeId="respondent-account-applicant-restriction" [badgeClasses]="style.restrictedBadge"
+          >Restricted</opal-lib-moj-badge
+        >
+      </p>
+    }
+    <ng-container [ngTemplateOutlet]="summaryRows" [ngTemplateOutletContext]="applicant()" />
+  </section>
+  <section class="govuk-grid-column-one-third" aria-labelledby="respondent-account-comments-heading">
+    <h2 id="respondent-account-comments-heading" [class]="style.heading">Comments</h2>
+    <hr [class]="style.hr" aria-hidden="true" />
+    <p [class]="style.comment">
+      @if (comment()) {
+        {{ comment() }}
+      } @else {
+        <span aria-hidden="true">—</span><span class="govuk-visually-hidden">No data</span>
+      }
+    </p>
+    @if (showActions()) {
+      <a
+        [class]="style.changeLink"
+        id="respondent-account-change-comment"
+        [routerLink]="commentLink()"
+        [info]="commentInfo()"
+        [state]="commentInfo()"
+      >
+        @if (comment()) {
+          Change<span class="govuk-visually-hidden"> comment</span>
+        } @else {
+          Add comment
+        }
+      </a>
+    }
+  </section>
+</div>

@@ -42,11 +42,12 @@ describe('mapCasesDraftRows', () => {
     ).toHaveLength(1);
   });
   it('excludes pending publication and retains populated account strings in source order', () => {
+    const respondentAccount = { account_id: 987, account_number: '000123A' };
     const published = createCasesDraftSummary({
       casefile_status: 'PUBLISHED',
       validated_date: '2026-09-01T10:00:00Z',
       casefile_snapshot: {
-        respondent_account: { account_number: '000123A' },
+        respondent_account: respondentAccount,
         applicant_account: { account_number: null },
         minor_creditor_accounts: [
           { account_number: 'M10' },
@@ -63,6 +64,7 @@ describe('mapCasesDraftRows', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       respondentAccount: '000123A',
+      respondentAccountId: 987,
       applicantAccount: null,
       submittedByName: null,
       minorCreditorAccounts: ['M10', 'M2', 'M10'],
@@ -70,6 +72,23 @@ describe('mapCasesDraftRows', () => {
       created: published.created_date,
     });
   });
+
+  it.each([undefined, null, 0, -15, 2.5, Number.MAX_SAFE_INTEGER + 1])(
+    'keeps a published number visible without an eligible account ID %s',
+    (account_id) => {
+      const respondentAccount = { account_id, account_number: '000123A' };
+      const published = createCasesDraftSummary({
+        draft_casefile_id: 123,
+        casefile_status: 'PUBLISHED',
+        casefile_snapshot: { respondent_account: respondentAccount },
+      });
+      expect(mapCasesDraftRows([published], 'approved')[0]).toMatchObject({
+        id: 123,
+        respondentAccountId: null,
+        respondentAccount: '000123A',
+      });
+    },
+  );
 
   it('maps absent snapshot account data to null and filters rows by tab status', () => {
     const summary = createCasesDraftSummary({ casefile_status: 'RESUBMITTED', casefile_snapshot: {} });

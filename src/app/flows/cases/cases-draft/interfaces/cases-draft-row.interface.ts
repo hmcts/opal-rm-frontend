@@ -10,6 +10,7 @@ export interface ICasesDraftRow {
   statusDate: string;
   approved: string | null;
   respondentAccount: string | null;
+  respondentAccountId: number | null;
   applicantAccount: string | null;
   minorCreditorAccounts: readonly string[];
 }

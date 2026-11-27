@@ -1,3 +1,4 @@
+import { CASES_ACCOUNT_RESPONDENT_ROUTING_PATHS } from '@app/flows/cases/cases-account-respondent-details/routing/constants/cases-account-respondent-routing-paths.constant';
 import { CASES_DRAFT_CHECKER_ROUTING_PATHS } from './flows/cases/cases-draft/routing/constants/cases-draft-checker-routing-paths.constant';
 import { Component, NgZone, OnDestroy, OnInit, PLATFORM_ID, inject, DOCUMENT, computed } from '@angular/core';
 import { Observable, Subject, filter, from, map, of, startWith, takeUntil, takeWhile, tap, timer } from 'rxjs';
@@ -311,11 +312,12 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Identifies creation and checker shell URLs that hide navigation before the route tree exists.
+   * Identifies journey URLs that hide navigation before the route tree exists.
    */
   private isPrimaryNavigationHiddenForInitialUrl(url: string): boolean {
     const path = url.split('#')[0].split('?')[0];
     const journeyRoot = `/${CASES_CREATE_CASEFILE_ROUTING_PATHS.root}`;
+    const accountJourneyRoot = `/${CASES_ACCOUNT_RESPONDENT_ROUTING_PATHS.root}`;
 
     const checkerRoot = `/${CASES_DRAFT_CHECKER_ROUTING_PATHS.root}`;
     const checkerShells = [
@@ -326,6 +328,8 @@ export class AppComponent implements OnInit, OnDestroy {
     return (
       path === journeyRoot ||
       path.startsWith(`${journeyRoot}/`) ||
+      path === accountJourneyRoot ||
+      path.startsWith(`${accountJourneyRoot}/`) ||
       checkerShells.some((shell) => path.startsWith(`${checkerRoot}/${shell}/`))
     );
   }

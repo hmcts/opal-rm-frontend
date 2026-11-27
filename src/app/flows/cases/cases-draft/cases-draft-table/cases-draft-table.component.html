@@ -120,7 +120,13 @@
               #paginationFocusTarget
               tabindex="-1"
             >
-              {{ row.respondentAccount ?? '—' }}
+              @if (accountDetailsEnabled() && row.respondentAccountLink && row.respondentAccount) {
+                <a class="govuk-link" [routerLink]="row.respondentAccountLink">
+                  {{ row.respondentAccount }}
+                </a>
+              } @else {
+                {{ row.respondentAccount ?? '—' }}
+              }
             </td>
             <td
               opal-lib-moj-sortable-table-row-data

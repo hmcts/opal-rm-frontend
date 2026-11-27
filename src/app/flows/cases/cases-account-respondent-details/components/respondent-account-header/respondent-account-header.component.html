@@ -1,0 +1,114 @@
+<header id="respondent-account-header">
+  @if (freshness().warning) {
+    <opal-lib-moj-alert
+      id="respondent-account-freshness-warning"
+      type="warning"
+      ariaLabel="Some information on this page may be out of date."
+    >
+      <opal-lib-moj-alert-icon icon type="warning" />
+      <opal-lib-moj-alert-content content>
+        <opal-lib-moj-alert-content-text
+          >Some information on this page may be out of date.</opal-lib-moj-alert-content-text
+        >
+        <button
+          type="button"
+          class="govuk-button govuk-button--secondary"
+          id="respondent-account-refresh"
+          [attr.aria-disabled]="loading() ? 'true' : null"
+          (click)="refresh.emit()"
+        >
+          Refresh
+        </button>
+      </opal-lib-moj-alert-content>
+    </opal-lib-moj-alert>
+  }
+  @if (freshness().confirmed) {
+    <opal-lib-moj-alert
+      id="respondent-account-freshness-confirmation"
+      tabindex="-1"
+      type="success"
+      ariaLabel="Information is up to date"
+      [showDismiss]="true"
+      (dismissed)="dismissConfirmation.emit()"
+    >
+      <opal-lib-moj-alert-icon icon type="success" />
+      <opal-lib-moj-alert-content content>
+        <opal-lib-moj-alert-content-text>Information is up to date</opal-lib-moj-alert-content-text>
+      </opal-lib-moj-alert-content>
+    </opal-lib-moj-alert>
+  }
+
+  @let account = header();
+  @if (account) {
+    <opal-lib-govuk-tag tagId="respondent-account-type" tagClasses="govuk-tag govuk-!-margin-bottom-3"
+      >Respondent</opal-lib-govuk-tag
+    >
+  }
+
+  <opal-lib-custom-page-header>
+    <ng-container pageHeaderHeading>
+      @if (account) {
+        <span class="govuk-caption-l govuk-!-text-break-word" id="respondent-account-number">{{
+          account.accountNumber
+        }}</span>
+      }
+      <h1
+        class="govuk-heading-l govuk-!-margin-bottom-4 govuk-!-text-break-word"
+        id="respondent-account-heading"
+        [attr.aria-describedby]="account ? 'respondent-account-number' : null"
+        tabindex="-1"
+      >
+        {{ heading() }}
+      </h1>
+    </ng-container>
+    <ng-container pageHeaderButtons>
+      @if (showActions()) {
+        <a
+          id="respondent-account-add-note"
+          class="govuk-button govuk-button--secondary"
+          [routerLink]="actionLinks().note"
+          [info]="actionInfo()"
+          [state]="actionInfo()"
+          >Add account note</a
+        >
+        <opal-lib-moj-button-menu
+          id="respondent-account-more-actions"
+          menuId="respondent-account-more-action-options"
+          menuButtonTitle="More actions"
+        >
+          <li>
+            <a
+              class="moj-button-menu__item"
+              id="respondent-account-change-case-type"
+              [routerLink]="actionLinks().caseType"
+              [info]="actionInfo()"
+              [state]="actionInfo()"
+              >Change case type</a
+            >
+          </li>
+        </opal-lib-moj-button-menu>
+      }
+    </ng-container>
+  </opal-lib-custom-page-header>
+
+  @if (metrics(); as headerMetrics) {
+    <opal-lib-custom-summary-metric-bar>
+      @for (metric of headerMetrics; track metric.label) {
+        <opal-lib-custom-summary-metric-bar-item
+          itemClasses="govuk-grid-column-one-half govuk-grid-column-one-quarter-from-desktop govuk-!-margin-bottom-2"
+          [backgroundColour]="metric.backgroundColour"
+        >
+          <p opal-lib-custom-summary-metric-bar-item-label [textColour]="metric.textColour">{{ metric.label }}</p>
+          <p class="govuk-body govuk-!-margin-0 govuk-!-text-break-word" [class]="metric.textColour">
+            @if (metric.value !== null) {
+              {{ metric.value }}
+            } @else {
+              <span aria-hidden="true">—</span><span class="govuk-visually-hidden">No data</span>
+            }
+          </p>
+        </opal-lib-custom-summary-metric-bar-item>
+      }
+    </opal-lib-custom-summary-metric-bar>
+    <hr class="govuk-section-break govuk-section-break--visible govuk-!-margin-bottom-3" />
+  }
+</header>

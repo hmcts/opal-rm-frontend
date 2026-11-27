@@ -1,4 +1,5 @@
 import { defineConfig } from 'cypress';
+import { applyExtendedTestSelection } from '@hmcts/opal-frontend-common-cypress';
 import { mergeZephyrReports, cleanZephyrReports } from '@hmcts/zephyr-automation-nodejs';
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 import { createHash } from 'node:crypto';
@@ -111,6 +112,7 @@ async function setupE2eNodeEvents(
   on: Cypress.PluginEvents,
   config: Cypress.PluginConfigOptions,
 ): Promise<Cypress.PluginConfigOptions> {
+  applyExtendedTestSelection(config);
   // Cucumber v26 reads lowercase tags; retain the runner and Jenkins TAGS contract.
   config.env.tags = config.env.tags ?? config.env.TAGS;
 
@@ -301,6 +303,7 @@ export default defineConfig({
       },
     },
     setupNodeEvents(on, config) {
+      applyExtendedTestSelection(config);
       setupBrowserLaunch(on);
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { plugin: cypressGrepPlugin } = require('@cypress/grep/plugin');

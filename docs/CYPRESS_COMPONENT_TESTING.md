@@ -56,6 +56,8 @@ it('AC3. should save the valid selection and request onward navigation', { tags:
 
 ## Jira tags
 
+See [Extended test runs](EXTENDED_TEST_RUNS.md) for the shared `@extendedTest` policy.
+
 `corepack yarn check:cypress:test-metadata` calls the published shared Jira validator directly. Its existing
 scope is `cypress/component/createDraftCasefile` and `cypress/e2e/functional/opal/features`; it does not validate
 the entire component, login or smoke suite. CNP runs this check before component and functional execution,

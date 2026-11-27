@@ -225,7 +225,10 @@ describe('cases-create-casefile-field-errors', () => {
     ['create_casefile_applicant_individual_bank_type', { required: { message: 'Select an option', priority: 1 } }],
     [
       'create_casefile_applicant_individual_uk_bank_name_on_account',
-      { required: { message: 'Enter name on account', priority: 1 } },
+      {
+        required: { message: 'Enter name on account', priority: 1 },
+        maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_individual_uk_bank_sort_code',
@@ -259,7 +262,10 @@ describe('cases-create-casefile-field-errors', () => {
     ],
     [
       'create_casefile_applicant_individual_non_uk_bank_name_on_account',
-      { required: { message: 'Enter name on account', priority: 1 } },
+      {
+        required: { message: 'Enter name on account', priority: 1 },
+        maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_individual_non_uk_bank_account_number',
@@ -364,7 +370,10 @@ describe('cases-create-casefile-field-errors', () => {
     ['create_casefile_applicant_organisation_bank_type', { required: { message: 'Select an option', priority: 1 } }],
     [
       'create_casefile_applicant_organisation_uk_bank_name_on_account',
-      { required: { message: 'Enter name on account', priority: 1 } },
+      {
+        required: { message: 'Enter name on account', priority: 1 },
+        maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_organisation_uk_bank_sort_code',
@@ -391,7 +400,10 @@ describe('cases-create-casefile-field-errors', () => {
     ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_name_on_account',
-      { required: { message: 'Enter name on account', priority: 1 } },
+      {
+        required: { message: 'Enter name on account', priority: 1 },
+        maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_bic_swift_code',

@@ -49,7 +49,7 @@ describe('buildOrderTermCard', () => {
       CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.savedNonUk,
       'Example Organisation',
       [
-        { id: 'nameOnAccount', label: 'Name on account', value: 'Example Organisation International' },
+        { id: 'nameOnAccount', label: 'Name on account', value: 'Example Intl Org' },
         { id: 'bicSwiftCode', label: 'BIC/SWIFT', value: 'EXAMGB2L' },
         { id: 'iban', label: 'IBAN', value: 'GB29NWBK60161331926819' },
         { id: 'paymentReference', label: 'Payment reference', value: 'INTL-9803' },

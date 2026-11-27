@@ -87,7 +87,7 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     {
       control: controls.ukBankNameOnAccount,
       fieldName: fieldNames.ukNameOnAccount,
-      validators: [requiredTextValidator],
+      validators: [requiredTextValidator, maxCodePointLengthValidator(18)],
     },
     {
       control: controls.ukBankSortCode,
@@ -109,7 +109,7 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     nonUkNameOnAccount: {
       control: controls.nonUkBankNameOnAccount,
       fieldName: fieldNames.nonUkNameOnAccount,
-      validators: [requiredTextValidator],
+      validators: [requiredTextValidator, maxCodePointLengthValidator(18)],
     },
     nonUkAccountNumber: {
       control: controls.nonUkBankAccountNumber,

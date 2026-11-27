@@ -40,6 +40,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS = {
     },
     ukBankNameOnAccount: {
       required: createCasesCreateCasefileError('Enter name on account', 1),
+      ...createCasesCreateCasefileMaxLengthError('Name on account', 18, 3),
     },
     ukBankSortCode: {
       required: createCasesCreateCasefileError('Enter sort code', 1),
@@ -61,6 +62,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_FIELD_ERRORS = {
     },
     nonUkBankNameOnAccount: {
       required: createCasesCreateCasefileError('Enter name on account', 1),
+      ...createCasesCreateCasefileMaxLengthError('Name on account', 18, 3),
     },
     nonUkBankAccountNumber: createCasesCreateCasefileMaxLengthError('Account number', 20, 1),
     nonUkBankBicSwiftCode: {

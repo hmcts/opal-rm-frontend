@@ -173,6 +173,27 @@ describe('createCasesCreateCasefileApplicantBankBranchController', () => {
     }
   });
 
+  it.each([
+    [CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK, 'ukBankNameOnAccount'],
+    [CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK, 'nonUkBankNameOnAccount'],
+  ] as const)('limits the %s name on account to 18 characters', (type, field) => {
+    createController().applySelection(type);
+    const control = controls[field];
+
+    control.setValue('A'.repeat(18));
+    expect(control.valid).toBe(true);
+
+    control.setValue('A'.repeat(19));
+    expect(control.hasError('maxlength')).toBe(true);
+
+    const unicodeLimit = '𠮷' + 'A'.repeat(17);
+    control.setValue(unicodeLimit);
+    expect(control.valid).toBe(true);
+
+    control.setValue(unicodeLimit + 'A');
+    expect(control.getError('maxlength')).toEqual({ requiredLength: 18, actualLength: 19 });
+  });
+
   it('preserves inactive reset and active validator-enable-validity operation order', () => {
     const controller = createController();
     const activeControl = controls.ukBankNameOnAccount;

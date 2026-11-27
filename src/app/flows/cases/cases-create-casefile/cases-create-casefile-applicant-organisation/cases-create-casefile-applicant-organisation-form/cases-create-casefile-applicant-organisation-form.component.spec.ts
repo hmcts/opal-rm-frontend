@@ -85,6 +85,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     },
     create_casefile_applicant_organisation_uk_bank_name_on_account: {
       required: { message: 'Enter name on account', priority: 1 },
+      maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
     },
     create_casefile_applicant_organisation_uk_bank_sort_code: {
       required: { message: 'Enter sort code', priority: 1 },
@@ -102,6 +103,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     },
     create_casefile_applicant_organisation_non_uk_bank_name_on_account: {
       required: { message: 'Enter name on account', priority: 1 },
+      maxlength: { message: 'Name on account must be 18 characters or fewer', priority: 3 },
     },
     create_casefile_applicant_organisation_non_uk_bank_bic_swift_code: {
       internationalIdentifierRequired: {
@@ -682,7 +684,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
       ).checked,
     ).toBe(true);
     expect(component.form.controls.create_casefile_applicant_organisation_non_uk_bank_name_on_account.value).toBe(
-      'Example Organisation International',
+      'Example Intl Org',
     );
     expect(component.form.controls.create_casefile_applicant_organisation_non_uk_bank_bic_swift_code.value).toBe(
       'EXAMGB2L',

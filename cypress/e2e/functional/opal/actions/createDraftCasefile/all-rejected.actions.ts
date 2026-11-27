@@ -393,9 +393,20 @@ export class AllRejectedActions {
   public reflow(): void {
     cy.viewport(320, 900);
     cy.document().then((document) => expect(document.documentElement.scrollWidth).to.be.at.most(320));
-    cy.get(S.scrollRegion).should('have.prop', 'tagName', 'SECTION');
-    cy.get(S.scrollRegion).should('not.have.attr', 'tabindex');
-    cy.get(S.scrollRegion).should('be.visible');
+    cy.get(S.scrollRegion)
+      .should('be.visible')
+      .and((region) => {
+        expect(region.prop('tagName')).to.equal('DIV');
+        expect(region.attr('role')).to.equal('region');
+        expect(region.attr('tabindex')).to.equal('0');
+        expect(region.attr('aria-label')).to.equal('All rejected cases');
+        expect(region[0].scrollWidth).to.be.greaterThan(region[0].clientWidth);
+      });
+    cy.get(S.allRejectedHeading).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.scrollRegion).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.get(S.sort('respondent')).should('be.focused');
     accessibilityActions.checkAccessibilityOnly();
     cy.screenshot('po10607-e2e-reflow-320');
   }

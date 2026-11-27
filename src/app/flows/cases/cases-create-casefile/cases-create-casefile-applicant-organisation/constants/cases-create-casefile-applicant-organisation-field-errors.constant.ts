@@ -15,6 +15,7 @@ export const CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_FIELD_ERRORS: ICasesCr
     },
     create_casefile_applicant_organisation_foreign_authority_reference: {
       required: createCasesCreateCasefileError('Enter a foreign authority reference number', 1),
+      pattern: createCasesCreateCasefileError('Foreign authority reference must contain letters and numbers only', 2),
       ...createCasesCreateCasefileMaxLengthError('Foreign authority reference', 40, 3),
     },
     ...createCasesCreateCasefileApplicantContactAddressFieldErrors(FIELD_NAMES),

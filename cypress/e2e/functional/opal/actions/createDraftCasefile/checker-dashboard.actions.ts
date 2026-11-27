@@ -535,12 +535,19 @@ export class CheckerDashboardActions {
   public reflow(): void {
     cy.viewport(320, 900);
     cy.document().then((document) => expect(document.documentElement.scrollWidth).to.be.at.most(320));
-    cy.get(S.scrollRegion).should('have.prop', 'tagName', 'SECTION').and('have.attr', 'aria-label').and('not.be.empty');
     cy.location('hash').then((fragment) => {
       const tab = fragment.slice(1) as CasesDraftCheckerTab;
-      const columns = TABS[tab].columns;
-      cy.get(S.sort(columns[0])).focus().should('be.focused');
-      for (const column of columns.slice(1)) {
+      const { label, columns } = TABS[tab];
+      cy.get(S.scrollRegion).should((region) => {
+        expect(region.prop('tagName')).to.equal('DIV');
+        expect(region.attr('role')).to.equal('region');
+        expect(region.attr('tabindex')).to.equal('0');
+        expect(region.attr('aria-label')).to.equal(label + ' cases');
+      });
+      cy.get(S.selectedHeading).focus().should('be.focused');
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.get(S.scrollRegion).should('be.focused');
+      for (const column of columns) {
         cy.press(Cypress.Keyboard.Keys.TAB);
         cy.get(S.sort(column)).should('be.focused');
       }

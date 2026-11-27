@@ -137,7 +137,7 @@ describe('Check case details submission', () => {
       cy.get(S.section('caseType')).should('contain.text', 'Organisation');
       cy.get(S.section('applicant'))
         .should('contain.text', 'Example Organisation')
-        .and('contain.text', 'FA-9803')
+        .and('contain.text', 'FA9803')
         .and('not.contain.text', 'Date of birth');
       cy.get(S.bankToggle).click();
       cy.get(S.bankDetails)
@@ -152,6 +152,21 @@ describe('Check case details submission', () => {
       cy.get<ReviewStore>('@reviewStore').should((store) =>
         expect(getState(store)).to.deep.equal(createOrganisationReviewState()),
       );
+    },
+  );
+
+  it(
+    'AC1. should send the accepted foreign authority reference when submitting an organisation casefile',
+    { tags: [...buildTags(), '@JIRA-DEFECT:PO-11884'] },
+    () => {
+      interceptReviewSubmission();
+      setupReview({ state: createOrganisationReviewState() });
+
+      cy.get(S.submit).click();
+
+      cy.wait('@draftCasefilePost')
+        .its('request.body.casefile.applicant.party_details.organisation_details.foreign_authority_reference')
+        .should('equal', 'FA9803');
     },
   );
 

@@ -33,7 +33,7 @@ const emptyFormData: ICasesCreateCasefileApplicantOrganisationFormData = {
 const validUkFormData: ICasesCreateCasefileApplicantOrganisationFormData = {
   ...emptyFormData,
   create_casefile_applicant_organisation_name: 'Example Organisation',
-  create_casefile_applicant_organisation_foreign_authority_reference: 'FA-9803',
+  create_casefile_applicant_organisation_foreign_authority_reference: 'FA9803',
   create_casefile_applicant_organisation_main_email_address: 'main@example.org',
   create_casefile_applicant_organisation_other_email_address: 'other@example.org',
   create_casefile_applicant_organisation_main_telephone_number: '020 7946 0100',
@@ -54,7 +54,7 @@ const validUkFormData: ICasesCreateCasefileApplicantOrganisationFormData = {
 
 const savedUk: ICasesCreateCasefileApplicantOrganisation = {
   organisationName: 'Example Organisation',
-  foreignAuthorityReference: 'FA-9803',
+  foreignAuthorityReference: 'FA9803',
   contactDetails: {
     mainEmailAddress: 'main@example.org',
     otherEmailAddress: 'other@example.org',

@@ -35,6 +35,8 @@ import { createCasesDraftSummary } from '../mocks/cases-draft-summary.mock';
 
 @Component({ template: '<p>Denied</p>' })
 class DeniedComponent {}
+@Component({ template: '<p>Sign in</p>' })
+class SignInComponent {}
 const key = 'release-1c-rm-create-case-files';
 const dashboard = '/cases/draft/check-and-validate/tabs';
 const details = '/cases/create-casefile/check-case-details/123';
@@ -72,18 +74,23 @@ describe('checker production route boundaries', () => {
           { path: 'error/permission-denied', component: DeniedComponent },
           { path: 'error/:kind', component: DeniedComponent },
           { path: 'account-created', component: DeniedComponent },
+          { path: 'sign-in', component: SignInComponent },
         ]),
         appConfig.providers[2],
         { provide: AppInsightsService, useValue: { logException: vi.fn() } },
         provideHttpClientTesting(),
         { provide: AuthService, useValue: { checkAuthenticated: () => of(authenticated()) } },
-        { provide: OpalUserService, useValue: { getLoggedInUserState: () => of(userState()) } },
+        {
+          provide: OpalUserService,
+          useValue: { getLoggedInUserState: () => of(userState()), clearUserStateCache: vi.fn() },
+        },
         {
           provide: GlobalStore,
           useValue: {
             userState,
             featureFlags,
             authenticated,
+            ssoEnabled: () => false,
             bannerError,
             setBannerError: vi.fn((value: Parameters<typeof bannerError.set>[0]) => bannerError.set(value)),
             resetBannerError: vi.fn(() => bannerError.set({ ...GLOBAL_ERROR_STATE })),
@@ -915,7 +922,7 @@ describe('checker production route boundaries', () => {
       userState.set(user);
       await RouterTestingHarness.create('/cases/draft/check-and-validate/review/123');
       let destination = '/access-denied';
-      if (condition === 'authentication') destination = '/';
+      if (condition === 'authentication') destination = '/sign-in';
       if (condition === 'inactive') destination = '/account-created';
       expect(TestBed.inject(Router).url).toBe(destination);
       http.expectNone((request) => request.url.includes('/draft-casefiles'));

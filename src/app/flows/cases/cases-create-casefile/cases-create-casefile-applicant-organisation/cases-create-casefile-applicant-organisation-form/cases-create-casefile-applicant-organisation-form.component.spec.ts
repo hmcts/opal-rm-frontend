@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
+import { CapitalisationDirective } from '@hmcts/opal-frontend-common/directives/capitalisation';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CasesCreateCasefileBankDetailsComponent } from '../../components/cases-create-casefile-bank-details/cases-create-casefile-bank-details.component';
 import { CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES } from '../../constants/cases-create-casefile-applicant-bank-types.constant';
@@ -36,6 +37,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     },
     create_casefile_applicant_organisation_foreign_authority_reference: {
       required: { message: 'Enter a foreign authority reference number', priority: 1 },
+      pattern: { message: 'Foreign authority reference must contain letters and numbers only', priority: 2 },
       maxlength: { message: 'Foreign authority reference must be 40 characters or fewer', priority: 3 },
     },
     create_casefile_applicant_organisation_main_email_address: {
@@ -777,13 +779,58 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     );
   });
 
+  it.each([
+    ['AB 12', 'AB 12'],
+    ['ab-12', 'AB-12'],
+    ['AB.12', 'AB.12'],
+    [' Ab12 ', ' AB12 '],
+    ['AB\u00a012', 'AB\u00a012'],
+    ['abß12', 'ABß12'],
+  ])('displays invalid reference %j as %j and blocks submission', (reference, expectedReference) => {
+    component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNoneFormData;
+    const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
+    fixture.detectChanges();
+    const fieldId = 'create_casefile_applicant_organisation_foreign_authority_reference';
+    const input = setRenderedInputValue(fieldId, reference);
+
+    (fixture.nativeElement.querySelector('#returnToCaseDetails') as HTMLButtonElement).click();
+
+    const message = 'Foreign authority reference must contain letters and numbers only';
+    expect(component.formErrorSummaryMessage).toEqual([{ fieldId, message }]);
+    expect(fixture.nativeElement.querySelector(`#${fieldId}-error-message`)?.textContent).toContain(message);
+    expect(input.value).toBe(expectedReference);
+    expect(formSubmitSpy).not.toHaveBeenCalled();
+  });
+
+  it('uses shared capitalisation and keeps the caret position for a valid foreign authority reference', () => {
+    component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validNoneFormData;
+    fixture.detectChanges();
+    const reference = component.form.controls.create_casefile_applicant_organisation_foreign_authority_reference;
+    const capitalisation = fixture.debugElement
+      .queryAll(By.directive(CapitalisationDirective))
+      .map((element) => element.injector.get(CapitalisationDirective));
+    expect(capitalisation.some((directive) => directive.control === reference)).toBe(true);
+
+    const input = fixture.nativeElement.querySelector(
+      '#create_casefile_applicant_organisation_foreign_authority_reference',
+    ) as HTMLInputElement;
+    input.focus();
+    input.value = 'Ab123';
+    input.setSelectionRange(2, 2);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+
+    expect(input.value).toBe('AB123');
+    expect(input.selectionStart).toBe(2);
+    expect(input.selectionEnd).toBe(2);
+  });
+
   it('uppercases the rendered organisation name, authority reference, postal code and UK payment reference on submit', () => {
     component.initialFormData = CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData;
     const formSubmitSpy = vi.spyOn(component['formSubmit'], 'emit');
     fixture.detectChanges();
     const uppercaseValues = {
       create_casefile_applicant_organisation_name: ['Example Organisation', 'EXAMPLE ORGANISATION'],
-      create_casefile_applicant_organisation_foreign_authority_reference: ['fa-Ab12', 'FA-AB12'],
+      create_casefile_applicant_organisation_foreign_authority_reference: ['faAb12', 'FAAB12'],
       create_casefile_applicant_organisation_postal_or_zip_code: ['ab1 2cd', 'AB1 2CD'],
       create_casefile_applicant_organisation_uk_bank_payment_reference: ['pay-Ab12', 'PAY-AB12'],
     } as const;
@@ -808,7 +855,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
         ...CASES_CREATE_CASEFILE_APPLICANT_ORGANISATION_MOCKS.validUkFormData,
         ...unchangedValues,
         create_casefile_applicant_organisation_name: 'EXAMPLE ORGANISATION',
-        create_casefile_applicant_organisation_foreign_authority_reference: 'FA-AB12',
+        create_casefile_applicant_organisation_foreign_authority_reference: 'FAAB12',
         create_casefile_applicant_organisation_postal_or_zip_code: 'AB1 2CD',
         create_casefile_applicant_organisation_uk_bank_payment_reference: 'PAY-AB12',
       },

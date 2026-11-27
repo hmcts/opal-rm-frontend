@@ -4,7 +4,7 @@ import type { ICasesCreateCasefileApplicantOrganisation } from 'src/app/flows/ca
 
 export const SAVED_APPLICANT_ORGANISATION: ICasesCreateCasefileApplicantOrganisation = {
   organisationName: 'Test Organisation',
-  foreignAuthorityReference: 'FA-9803',
+  foreignAuthorityReference: 'FA9803',
   contactDetails: {
     mainEmailAddress: 'main@example.com',
     otherEmailAddress: 'other@example.com',
@@ -31,7 +31,7 @@ export const SAVED_APPLICANT_ORGANISATION: ICasesCreateCasefileApplicantOrganisa
 
 export const VALID_UK_APPLICANT_ORGANISATION = {
   organisationName: 'Test Organisation',
-  foreignAuthorityReference: 'FA-9803',
+  foreignAuthorityReference: 'FA9803',
   contactDetails: {
     mainEmailAddress: null,
     otherEmailAddress: null,

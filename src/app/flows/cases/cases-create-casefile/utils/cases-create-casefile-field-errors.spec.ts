@@ -314,6 +314,7 @@ describe('cases-create-casefile-field-errors', () => {
       'create_casefile_applicant_organisation_foreign_authority_reference',
       {
         required: { message: 'Enter a foreign authority reference number', priority: 1 },
+        pattern: { message: 'Foreign authority reference must contain letters and numbers only', priority: 2 },
         maxlength: { message: 'Foreign authority reference must be 40 characters or fewer', priority: 3 },
       },
     ],

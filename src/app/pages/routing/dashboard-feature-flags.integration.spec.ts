@@ -16,6 +16,8 @@ import { DASHBOARD_SECTION_PERMISSIONS } from '../dashboard/constants/dashboard-
 class Dashboard {}
 @Component({ template: 'Access denied' })
 class Denied {}
+@Component({ template: 'Sign in' })
+class SignIn {}
 
 describe('dashboard release routing', () => {
   const key = 'release-1c-rm-create-case-files';
@@ -38,9 +40,9 @@ describe('dashboard release routing', () => {
     getUserState.mockReset().mockReturnValue(of(user));
     TestBed.configureTestingModule({
       providers: [
-        { provide: GlobalStore, useValue: { featureFlags: flags } },
+        { provide: GlobalStore, useValue: { featureFlags: flags, ssoEnabled: () => false } },
         { provide: AuthService, useValue: { checkAuthenticated: () => of(true) } },
-        { provide: OpalUserService, useValue: { getLoggedInUserState: getUserState } },
+        { provide: OpalUserService, useValue: { getLoggedInUserState: getUserState, clearUserStateCache: vi.fn() } },
         {
           provide: LaunchDarklyService,
           useValue: {
@@ -54,6 +56,7 @@ describe('dashboard release routing', () => {
             .map((route) => (route.loadComponent ? { ...route, loadComponent: async () => Dashboard } : route)),
           { path: 'access-denied', component: Denied },
           { path: 'account-created', component: Denied },
+          { path: 'sign-in', component: SignIn },
         ]),
       ],
     });
@@ -148,12 +151,14 @@ describe('dashboard release routing', () => {
     expect(TestBed.inject(Router).url).toBe('/access-denied');
   });
 
-  it('still blocks an unauthenticated user when the release is enabled', async () => {
+  it('redirects an unauthenticated user to sign in when the release is enabled', async () => {
     flags.set({ [key]: true });
     TestBed.overrideProvider(AuthService, { useValue: { checkAuthenticated: () => of(false) } });
     const harness = await RouterTestingHarness.create();
-    expect(await TestBed.inject(Router).navigateByUrl('/dashboard')).toBe(false);
-    expect(harness.routeNativeElement).toBeNull();
+    await harness.navigateByUrl('/dashboard');
+    expect(TestBed.inject(Router).url).toBe('/sign-in');
+    expect(harness.routeNativeElement?.textContent).toBe('Sign in');
+    expect(TestBed.inject(OpalUserService).clearUserStateCache).toHaveBeenCalledOnce();
   });
 
   it.each(['created', 'suspended', 'deactivated'] as const)(

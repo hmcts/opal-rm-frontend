@@ -154,7 +154,7 @@ describe('Create Casefile Applicant Organisation', () => {
         .clear()
         .type('Mixed organisation')
         .should('have.value', 'MIXED ORGANISATION');
-      cy.get(Page.applicantOrganisation.foreignAuthorityReference).clear().type('fa-a9').should('have.value', 'FA-A9');
+      cy.get(Page.applicantOrganisation.foreignAuthorityReference).clear().type('faa9').should('have.value', 'FAA9');
       cy.get(Page.applicantOrganisation.postalOrZipCode).type('te1 1st').should('have.value', 'TE1 1ST');
       cy.get(Page.applicantOrganisation.mainEmailAddress)
         .type('Mixed@example.com')
@@ -168,7 +168,7 @@ describe('Create Casefile Applicant Organisation', () => {
       assertRouterPath(taskListPath);
       cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
         const applicant = store.applicantDetails();
-        expect(applicant).to.include({ organisationName: 'MIXED ORGANISATION', foreignAuthorityReference: 'FA-A9' });
+        expect(applicant).to.include({ organisationName: 'MIXED ORGANISATION', foreignAuthorityReference: 'FAA9' });
         expect(applicant?.contactDetails.mainEmailAddress).to.equal('Mixed@example.com');
         expect(applicant?.contactDetails.address).to.include({
           addressLine1: '1 Mixed Street',
@@ -177,6 +177,43 @@ describe('Create Casefile Applicant Organisation', () => {
       });
     },
   );
+
+  for (const [invalidCharacter, reference, expectedReference] of [
+    ['a space', 'ab 12', 'AB 12'],
+    ['a hyphen', 'ab-12', 'AB-12'],
+    ['punctuation', 'ab.12', 'AB.12'],
+    ['a non-ASCII letter', 'abß12', 'ABß12'],
+  ] as const) {
+    it(
+      `AC1. should keep a foreign authority reference containing ${invalidCharacter} and block Return`,
+      { tags: buildTags('@JIRA-DEFECT:PO-11884') },
+      () => {
+        const draftWrite = cy.spy().as('prohibitedDraftWrite');
+        cy.intercept({ method: '+(POST|PUT)', url: DRAFT_CASEFILE_WRITE_URL }, draftWrite);
+        setupApplicantOrganisation({ savedApplicant: VALID_NONE_APPLICANT_ORGANISATION });
+
+        cy.get(Page.applicantOrganisation.foreignAuthorityReference)
+          .invoke('val', reference)
+          .trigger('input')
+          .should('have.value', expectedReference);
+        cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
+
+        assertRouterPath(applicantPath);
+        const message = APPLICANT_ORGANISATION_ERROR_MESSAGES.foreignAuthorityReferenceFormat;
+        assertInlineError(Page.applicantOrganisation.foreignAuthorityReferenceError, message);
+        cy.get(Page.applicantOrganisation.errorSummary).should('be.focused');
+        cy.get(Page.applicantOrganisation.errorSummaryLinks).contains(message).click();
+        cy.get(Page.applicantOrganisation.foreignAuthorityReference)
+          .should('be.focused')
+          .and('have.value', expectedReference)
+          .and('have.attr', 'aria-describedby', Page.applicantOrganisation.foreignAuthorityReferenceError.slice(1));
+        cy.get('@casesCreateCasefileStore').should((store: CasesCreateCasefileStoreInstance) => {
+          expect(store.applicantDetails()).to.deep.equal(VALID_NONE_APPLICANT_ORGANISATION);
+        });
+        cy.get('@prohibitedDraftWrite').should('not.have.been.called');
+      },
+    );
+  }
 
   for (const bank of [
     {
@@ -292,7 +329,7 @@ describe('Create Casefile Applicant Organisation', () => {
     setupApplicantOrganisation({ savedApplicant: SAVED_APPLICANT_ORGANISATION });
 
     cy.get(Page.applicantOrganisation.organisationName).should('have.value', 'Test Organisation');
-    cy.get(Page.applicantOrganisation.foreignAuthorityReference).should('have.value', 'FA-9803');
+    cy.get(Page.applicantOrganisation.foreignAuthorityReference).should('have.value', 'FA9803');
     cy.get(Page.applicantOrganisation.mainEmailAddress).should('have.value', 'main@example.com');
     cy.get(Page.applicantOrganisation.otherEmailAddress).should('have.value', 'other@example.com');
     cy.get(Page.applicantOrganisation.mainTelephoneNumber).should('have.value', '01234567890');
@@ -402,7 +439,7 @@ describe('Create Casefile Applicant Organisation', () => {
       cy.get('@casesCreateCasefileStore').then((store: CasesCreateCasefileStoreInstance) => {
         expect(store.applicantDetails()).to.deep.equal({
           organisationName: 'Test Organisation',
-          foreignAuthorityReference: 'FA-9803',
+          foreignAuthorityReference: 'FA9803',
           contactDetails: {
             mainEmailAddress: null,
             otherEmailAddress: null,
@@ -903,6 +940,7 @@ describe('Create Casefile Applicant Organisation', () => {
 
   it('AC5. should have no detectable Axe violations in the validation-error state', { tags: buildTags() }, () => {
     setupApplicantOrganisation();
+    cy.get(Page.applicantOrganisation.foreignAuthorityReference).type('AB.12');
     cy.get(Page.applicantOrganisation.bankTypeRadio(CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK)).check();
     cy.get(Page.applicantOrganisation.returnToCaseDetails).click();
     cy.get(Page.applicantOrganisation.errorSummary).should('be.focused');

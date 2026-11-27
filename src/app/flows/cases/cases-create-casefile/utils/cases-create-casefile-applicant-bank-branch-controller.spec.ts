@@ -233,6 +233,27 @@ describe('createCasesCreateCasefileApplicantBankBranchController', () => {
     expect(controls.nonUkBankPaymentReference.errors).toBeNull();
   });
 
+  it.each([
+    [CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.UK, 'ukBankPaymentReference'],
+    [CASES_CREATE_CASEFILE_APPLICANT_BANK_TYPES.NON_UK, 'nonUkBankPaymentReference'],
+  ] as const)('limits the %s payment reference to 18 characters', (type, field) => {
+    createController().applySelection(type);
+    const control = controls[field];
+
+    control.setValue('A'.repeat(18));
+    expect(control.valid).toBe(true);
+
+    control.setValue('A'.repeat(19));
+    expect(control.hasError('maxlength')).toBe(true);
+
+    const unicodeLimit = '𠮷' + 'A'.repeat(17);
+    control.setValue(unicodeLimit);
+    expect(control.valid).toBe(true);
+
+    control.setValue(unicodeLimit + 'A');
+    expect(control.getError('maxlength')).toEqual({ requiredLength: 18, actualLength: 19 });
+  });
+
   it('enables the non-UK branch with its exact validator composition', () => {
     const controller = createController();
 

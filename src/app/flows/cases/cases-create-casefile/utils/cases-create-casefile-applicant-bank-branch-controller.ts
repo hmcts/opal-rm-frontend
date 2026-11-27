@@ -102,7 +102,7 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     {
       control: controls.ukBankPaymentReference,
       fieldName: fieldNames.ukPaymentReference,
-      validators: [requiredTextValidator],
+      validators: [requiredTextValidator, maxCodePointLengthValidator(18)],
     },
   ];
   const nonUkBranchByFieldName: Record<CasesCreateCasefileApplicantNonUkBankFieldName, IBankBranchControl> = {
@@ -119,7 +119,7 @@ export const createCasesCreateCasefileApplicantBankBranchController = (
     nonUkPaymentReference: {
       control: controls.nonUkBankPaymentReference,
       fieldName: fieldNames.nonUkPaymentReference,
-      validators: [requiredTextValidator],
+      validators: [requiredTextValidator, maxCodePointLengthValidator(18)],
     },
     nonUkBicSwiftCode: {
       control: controls.nonUkBankBicSwiftCode,

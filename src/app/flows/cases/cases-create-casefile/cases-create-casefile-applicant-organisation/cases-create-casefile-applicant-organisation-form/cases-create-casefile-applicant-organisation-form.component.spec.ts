@@ -98,6 +98,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     },
     create_casefile_applicant_organisation_uk_bank_payment_reference: {
       required: { message: 'Enter UK bank account payment reference', priority: 1 },
+      maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
     },
     create_casefile_applicant_organisation_non_uk_bank_name_on_account: {
       required: { message: 'Enter name on account', priority: 1 },
@@ -120,6 +121,7 @@ describe('CasesCreateCasefileApplicantOrganisationFormComponent', () => {
     },
     create_casefile_applicant_organisation_non_uk_bank_payment_reference: {
       required: { message: 'Enter non-UK bank account payment reference', priority: 1 },
+      maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
     },
     create_casefile_applicant_organisation_non_uk_bank_name: {
       maxlength: { message: 'Bank name must be 100 characters or fewer', priority: 1 },

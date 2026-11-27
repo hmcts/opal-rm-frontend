@@ -245,11 +245,17 @@ describe('cases-create-casefile-field-errors', () => {
     ],
     [
       'create_casefile_applicant_individual_uk_bank_payment_reference',
-      { required: { message: 'Enter UK bank account payment reference', priority: 1 } },
+      {
+        required: { message: 'Enter UK bank account payment reference', priority: 1 },
+        maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_individual_non_uk_bank_payment_reference',
-      { required: { message: 'Enter non-UK bank account payment reference', priority: 1 } },
+      {
+        required: { message: 'Enter non-UK bank account payment reference', priority: 1 },
+        maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_individual_non_uk_bank_name_on_account',
@@ -378,7 +384,10 @@ describe('cases-create-casefile-field-errors', () => {
     ],
     [
       'create_casefile_applicant_organisation_uk_bank_payment_reference',
-      { required: { message: 'Enter UK bank account payment reference', priority: 1 } },
+      {
+        required: { message: 'Enter UK bank account payment reference', priority: 1 },
+        maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_name_on_account',
@@ -397,7 +406,10 @@ describe('cases-create-casefile-field-errors', () => {
     ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_payment_reference',
-      { required: { message: 'Enter non-UK bank account payment reference', priority: 1 } },
+      {
+        required: { message: 'Enter non-UK bank account payment reference', priority: 1 },
+        maxlength: { message: 'Payment reference must be 18 characters or fewer', priority: 3 },
+      },
     ],
     [
       'create_casefile_applicant_organisation_non_uk_bank_name',
